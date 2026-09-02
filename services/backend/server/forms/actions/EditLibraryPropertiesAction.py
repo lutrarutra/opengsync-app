@@ -98,16 +98,16 @@ class EditLibraryPropertiesAction(HTMXForm):
             seq_request_id: int | None = Query(None),
             project_id: int | None = Query(None),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_user),
+            current_user_id: int = Depends(dependencies.require_user_id),
         ):
             libraries = session.get_all(Q.library.select(seq_request_id=seq_request_id, project_id=project_id, id=library_id).order_by(models.Library.id.asc()))
 
             if library_id is not None:
-                access_level = session.get_access_level(Q.library.permissions(library_id=library_id, user_id=current_user.id))
+                access_level = session.get_access_level(Q.library.permissions(library_id=library_id, user_id=current_user_id))
             elif seq_request_id is not None:
-                access_level = session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))
+                access_level = session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user_id))
             elif project_id is not None:
-                access_level = session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+                access_level = session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user_id))
             else:
                 raise exc.BadRequestException("Must provide at least one of seq_request_id, project_id, or library_id")
             

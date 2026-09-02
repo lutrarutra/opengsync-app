@@ -1,117 +1,114 @@
-{% from "components/table_col.jinja2" import browser_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% extends "base.html" %}
 {% set active_page = "browser-page" %}
 {% block content %}
-<div class="file-browser table-container" id="file-browser-container">
-    <table class="table">
-        <thead>
-            <tr>
-                <th colspan="4" style="">
-                    Storage Status:
-                    <span id="mount-status-badge" style="font-weight: bold;">
-                        <div class="spinner-border cemm-blue spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </span>
-                    <small id="mount-status-details" style="margin-left: 10px;"></small>
-                </th>
-            </tr>
-            <tr>
-                {{
-                    browser_col(
-                        "Name", "name",
-                        sort_url=url_for("browser_page", sort_by=sort_by, sort_order="asc", subpath=current_path.as_posix() if current_path else ""),
-                        sort_by=sort_by, sort_order=sort_order, col_size=6
-                    )
-                }}
-                {{
-                    browser_col(
-                        "Size", "size", sort_url="browser_page",
-                        url_context={"subpath": current_path.as_posix() if current_path else "", },
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
-                    )
-                }}
-                {{
-                    browser_col(
-                        "Last Modified", "mtime", sort_url="browser_page",
-                        url_context={"subpath": current_path.as_posix() if current_path else "", },
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
-                    )
-                }}
-                <th class="col-2">Associations</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if current_path.parts %}
-            <tr>
-                <td class="col-6"><a href="{{ url_for('browser_page', subpath=parent_dir if parent_dir else '', sort_by=sort_by, sort_order=sort_order) }}">../</a></td>
-                <td class="col-2">-</td>
-                <td class="col-2">-</td>
-                <td class="col-2">-</td>
-            </tr>
-            {% endif %}
-            <tr hx-get="{{ url_for('render_file_browser_page', subpath=current_path, sort_by=sort_by, sort_order=sort_order) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                <td colspan="4">{{ spinner() }}</td>
-            </tr>
-        </tbody>
-    </table>
+<div class="file-browser" id="file-browser-container">
+    <div class="file-browser-toolbar" role="toolbar" aria-label="File browser sorting">
+        <span class="file-browser-toolbar-label">Sort by:</span>
+        <button
+            type="button"
+            class="btn btn-sm {% if sort_by == 'name' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by='name', sort_order='asc') }}"
+            hx-target="#file-browser-root"
+            hx-swap="innerHTML"
+            hx-indicator="#file-browser-root-loading">
+            <i class="bi bi-sort-alpha-down" aria-hidden="true"></i>
+            Filename
+        </button>
+        <button
+            type="button"
+            class="btn btn-sm {% if sort_by == 'mtime' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by='mtime', sort_order='desc') }}"
+            hx-target="#file-browser-root"
+            hx-swap="innerHTML"
+            hx-indicator="#file-browser-root-loading">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>
+            Edited
+        </button>
+        <button
+            type="button"
+            class="btn btn-sm {% if sort_by == 'size' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by='size', sort_order='desc') }}"
+            hx-target="#file-browser-root"
+            hx-swap="innerHTML"
+            hx-indicator="#file-browser-root-loading">
+            <i class="bi bi-sort-numeric-down" aria-hidden="true"></i>
+            Size
+        </button>
+        <span class="file-browser-root-loading htmx-indicator" id="file-browser-root-loading">
+            {{ spinner() }}
+        </span>
+    </div>
+
+    <div class="file-browser-storage-status">
+        <span>Storage status:</span>
+        <strong id="mount-status-badge">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span class="visually-hidden">Loading...</span>
+        </strong>
+        <small id="mount-status-details"></small>
+    </div>
+
+    <div
+        class="file-browser-root"
+        id="file-browser-root"
+        hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by=sort_by, sort_order=sort_order) }}"
+        hx-trigger="load"
+        hx-swap="innerHTML">
+        <div class="browser-loading-initial">
+            {{ spinner() }}
+            <span>Loading files…</span>
+        </div>
+    </div>
 </div>
+
 <script>
+function toggleBrowserDirectory(toggle) {
+    const directory = toggle.closest('.browser-directory');
+    if (!directory) return;
+
+    const expanded = directory.classList.toggle('is-expanded');
+    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
 $(document).ready(function() {
     function renderStatus(data) {
-        var $badge = $("#mount-status-badge");
-        var $details = $("#mount-status-details");
-        
-        // Reset details
-        $details.text("");
+        const badge = $("#mount-status-badge");
+        const details = $("#mount-status-details");
+        details.text("");
 
         if (data.status === "online") {
-            $badge.text("🟢 Online");
-            
+            badge.text("🟢 Online");
         } else if (data.status === "degraded") {
-            $badge.text("🟠 Degraded");
-            
-            // Find which specific mounts are offline to show to the user
-            let offlineMounts = [];
-            for (const [name, status_msg] of Object.entries(data.details)) {
-                if (status_msg !== "online") {
-                    offlineMounts.push(name);
-                }
+            badge.text("🟠 Degraded");
+            const offlineMounts = [];
+            for (const [name, statusMessage] of Object.entries(data.details)) {
+                if (statusMessage !== "online") offlineMounts.push(name);
             }
-            $details.text("Missing: " + offlineMounts.join(", "));
-            
+            details.text("Missing: " + offlineMounts.join(", "));
         } else if (data.status === "offline") {
-            $badge.text("🔴 Offline");
-            $details.text("Cannot connect to cluster storage.");
+            badge.text("🔴 Offline");
+            details.text("Cannot connect to cluster storage.");
         } else {
-            $badge.text("⚫ Unknown");
-            $details.text("Share status is not configured.");
+            badge.text("⚫ Unknown");
+            details.text("Share status is not configured.");
         }
     }
 
-    function fetchMountStatus() {
-        $.ajax({
-            url: "{{ url_for('share_status_check') }}",
-            type: "GET",
-            dataType: "json",
-            
-            success: function(data) {
-                renderStatus(data);
-            },
-            
-            error: function(jqXHR) {
-                if (jqXHR.responseJSON) {
-                    renderStatus(jqXHR.responseJSON);
-                } else {
-                    $("#mount-status-badge").text("⚫ Unknown Error");
-                    $("#mount-status-badge").css("color", "black");
-                    $("#mount-status-details").text("Failed to reach server API.");
-                }
+    $.ajax({
+        url: "{{ url_for('share_status_check') }}",
+        type: "GET",
+        dataType: "json",
+        success: renderStatus,
+        error: function(jqXHR) {
+            if (jqXHR.responseJSON) {
+                renderStatus(jqXHR.responseJSON);
+            } else {
+                $("#mount-status-badge").text("⚫ Unknown Error");
+                $("#mount-status-details").text("Failed to reach server API.");
             }
-        });
-    }
-    fetchMountStatus();
+        }
+    });
 });
 </script>
 {% endblock content %}

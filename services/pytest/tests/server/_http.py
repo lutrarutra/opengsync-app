@@ -28,7 +28,7 @@ class OpenGSyncTestClient(TestClient):
 
 
 def auth(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
+    return {"Cookie": f"access_token={token}"}
 
 
 def htmx_headers(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -44,13 +44,10 @@ def flush_redis(client: OpenGSyncTestClient) -> None:
 
 
 def _request_headers(
-    token: str | None = None,
     htmx: bool = False,
     headers: dict[str, str] | None = None,
 ) -> dict[str, str]:
     req_headers: dict[str, str] = {}
-    if token:
-        req_headers.update(auth(token))
     if htmx:
         req_headers.update(htmx_headers())
     if headers:
@@ -73,7 +70,8 @@ def post_form(
     return client.post(
         path,
         data=payload,
-        headers=_request_headers(token=token, htmx=htmx, headers=headers),
+        headers=_request_headers(htmx=htmx, headers=headers),
+        cookies={"access_token": token} if token else None,
         params=params,
         follow_redirects=False,
     )
@@ -96,7 +94,8 @@ def post_form_csrf_mismatch(
     return client.post(
         path,
         data=payload,
-        headers=_request_headers(token=token, htmx=htmx, headers=headers),
+        headers=_request_headers(htmx=htmx, headers=headers),
+        cookies={"access_token": token} if token else None,
         params=params,
         follow_redirects=False,
     )
@@ -117,7 +116,8 @@ def put_form(
     return client.put(
         path,
         data=payload,
-        headers=_request_headers(token=token, htmx=htmx, headers=headers),
+        headers=_request_headers(htmx=htmx, headers=headers),
+        cookies={"access_token": token} if token else None,
         params=params,
         follow_redirects=False,
     )
@@ -131,14 +131,26 @@ def get(
     **kwargs,
 ):
     extra_headers = kwargs.pop("headers", {})
-    headers = _request_headers(token=token, htmx=htmx, headers=extra_headers)
-    return client.get(path, headers=headers, follow_redirects=False, **kwargs)
+    headers = _request_headers(htmx=htmx, headers=extra_headers)
+    return client.get(
+        path,
+        headers=headers,
+        cookies={"access_token": token} if token else None,
+        follow_redirects=False,
+        **kwargs,
+    )
 
 
 def delete(client: TestClient, path: str, token: str | None = None, htmx: bool = False, **kwargs):
     extra_headers = kwargs.pop("headers", {})
-    headers = _request_headers(token=token, htmx=htmx, headers=extra_headers)
-    return client.delete(path, headers=headers, follow_redirects=False, **kwargs)
+    headers = _request_headers(htmx=htmx, headers=extra_headers)
+    return client.delete(
+        path,
+        headers=headers,
+        cookies={"access_token": token} if token else None,
+        follow_redirects=False,
+        **kwargs,
+    )
 
 
 def spreadsheet_payload(columns: list[str], rows: list[list[Any]]) -> dict[str, str]:

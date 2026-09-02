@@ -57,6 +57,7 @@ class CheckBarcodeClashesAction(HTMXForm):
     def RenderSelectSamples(cls) -> RouteFunc:
         def route(
             form: CheckBarcodeClashesAction = Depends(CheckBarcodeClashesAction.Init()),
+            _: models.User = Depends(dependencies.require_user),
         ) -> Response:
             return form.make_response()
         return route

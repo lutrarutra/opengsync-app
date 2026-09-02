@@ -1,0 +1,90 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/spinner.jinja2" import spinner %}
+
+{% for browser_path in paths %}
+{% set stat = browser_path.path.stat() %}
+{% set relative_path = browser_path.rel_path.as_posix() %}
+{% set entry_id = uuid4() %}
+{% set is_directory = browser_path.path.is_dir() %}
+{% if current_path.parts %}
+    {% set child_path = (current_path / browser_path.path.name).as_posix() %}
+{% else %}
+    {% set child_path = browser_path.path.name %}
+{% endif %}
+
+<div class="browser-entry{% if is_directory %} browser-directory{% else %} browser-file{% endif %}"
+     {% if is_directory and not share_token %}
+     class="cm-callback"
+     {{ context_menu([
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Share Directory", "config": {"url": url_for('ShareDirectoryAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
+     ]) }}
+     {% endif %}>
+    <div class="browser-entry-row">
+        {% if is_directory %}
+        {% set children_id = "browser-children-" ~ entry_id %}
+        <button
+            class="browser-entry-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="{{ children_id }}"
+            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath=child_path, page=0, sort_by=sort_by, sort_order=sort_order) }}"
+            hx-trigger="click once"
+            hx-target="#{{ children_id }}"
+            hx-swap="innerHTML"
+            hx-on::after-request="this.dataset.browserLoaded = 'true'"
+            onclick="toggleBrowserDirectory(this)">
+            <i class="bi bi-chevron-right browser-directory-chevron" aria-hidden="true"></i>
+            <i class="bi bi-folder browser-entry-icon" aria-hidden="true"></i>
+            <span class="browser-entry-name">{{ browser_path.path.name }}/</span>
+        </button>
+        {% else %}
+        <span class="browser-entry-file-name">
+            <i class="bi bi-file-earmark browser-entry-icon" aria-hidden="true"></i>
+            <span class="browser-entry-name">{{ browser_path.path.name }}</span>
+        </span>
+        {% endif %}
+        <span class="browser-entry-size">{{ stat.st_size | bytes_to_human }}</span>
+        <time class="browser-entry-mtime" datetime="{{ stat.st_mtime }}">{{ stat.st_mtime | from_timestamp }}</time>
+        <span class="browser-entry-associations">
+            {% for data_path in browser_path.data_paths %}
+            {% if data_path.project %}
+            <a href="{{ url_for('project_page', project_id=data_path.project.id) }}" class="badge">
+                {{ data_path.project.identifier or data_path.project.title }}
+            </a>
+            {% endif %}
+            {% if data_path.experiment %}
+            <span class="badge">{{ data_path.experiment.name }}</span>
+            {% endif %}
+            {% if data_path.seq_request %}
+            <span class="badge">{{ data_path.seq_request.name }}</span>
+            {% endif %}
+            {% if data_path.library %}
+            <a href="{{ url_for('library_page', library_id=data_path.library.id) }}" class="badge">
+                {{ data_path.library.name }}
+            </a>
+            {% endif %}
+            {% endfor %}
+        </span>
+    </div>
+    {% if is_directory %}
+    <div id="{{ children_id }}" class="browser-children" role="group" aria-label="Contents of {{ browser_path.path.name }}">
+        <div class="browser-directory-loading">Loading…</div>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% if not paths and current_page == 0 %}
+<div class="browser-empty">This directory is empty.</div>
+{% endif %}
+
+{% if paths | length == limit %}
+<div class="browser-page-sentinel"
+     hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath=current_path, page=current_page + 1, sort_by=sort_by, sort_order=sort_order) }}"
+     hx-trigger="intersect once root:#file-browser-root"
+     hx-swap="outerHTML">
+    {{ spinner() }}
+    <span>Loading more…</span>
+</div>
+{% endif %}

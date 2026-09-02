@@ -26,6 +26,7 @@ def render_protocol_table(
     id: str | None = Query(None, description="Search by protocol ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     service_type_in: list[C.ServiceType] | None = Depends(dependencies.parse_enum_ids(C.ServiceType, "service_type_in")),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     table = ProtocolTable(route="render_protocol_table", page=page)

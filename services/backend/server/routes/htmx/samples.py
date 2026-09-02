@@ -116,12 +116,12 @@ def render_sample_table(
 @router.get("/sample-attribute-spreadsheet")
 def render_sample_attribute_spreadsheet(
     seq_request_id: int = Query(..., description="Optional seq request ID to filter samples"),
-    current_user: models.User = Depends(dependencies.require_user),
+    current_user_id: int = Depends(dependencies.require_user_id),
     session: SyncSession = Depends(dependencies.db_session),
 ):
 
     if seq_request_id is not None:
-        if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user_id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         df = session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
     else:

@@ -582,6 +582,7 @@ def get_seq_request_submit_checklist(
     seq_request_id: int,
     session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+    _: models.User = Depends(dependencies.require_user),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
@@ -722,6 +723,7 @@ def get_seq_request_sample_table(
     seq_request_id: int,
     session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+    _: models.User = Depends(dependencies.require_user),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()

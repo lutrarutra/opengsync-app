@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     logger.add(
         sys.stdout, level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO",
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+        backtrace=False, diagnose=False
     )
 
     if os.path.exists(config_path := "/app/opengsync.yaml"):
@@ -37,7 +38,17 @@ async def lifespan(app: FastAPI):
         compression="zip",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
         filter=lambda record: not record["extra"].get("audit"),
-        level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO"
+        level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO",
+        backtrace=False, diagnose=False
+    )
+    logger.add(
+        f"{config.settings.app_config.log_folder}/{{time:YYYY-MM-DD}}.err",
+        rotation="1 day",
+        retention="7 days",
+        compression="zip",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
+        filter=lambda record: not record["extra"].get("audit"),
+        level="ERROR"
     )
     os.makedirs(f"{config.settings.app_config.log_folder}/audits", exist_ok=True)
     logger.add(

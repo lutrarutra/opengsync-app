@@ -39,6 +39,7 @@ def render_kit_table(
     order_by: utils.OrderBy | None = Depends(
         dependencies.parse_order_by(model=models.Kit, default=models.Kit.id.desc())
     ),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     table = KitTable(route="render_kit_table", page=page, order_by=order_by)
@@ -76,7 +77,7 @@ def render_kit_table(
     return table.make_response(kits=kits)
 
 
-@router.get("/search-kits", dependencies=[Depends(dependencies.require_user)])
+@router.get("/search-kits", dependencies=[Depends(dependencies.require_user_id)])
 def search_kits(
     word: str = Query(..., description="Search term for kit name or identifier"),
     kit_type: C.KitType | None = Depends(dependencies.parse_enum_id(C.KitType, "kit_type")),

@@ -46,8 +46,7 @@ class OpeNGSyncServerException(Exception):
 
     @staticmethod
     def Handler(request: Request, e: Exception) -> Response:
-        # logger.error(f"Exception details: {e}", exc_info=e)
-        logger.opt(exception=e).error(f"Exception details: {e}")
+        logger.opt(exception=e).error(f"{request.method.upper()} {request.url.path}: {e}")
         if isinstance(e, OpeNGSyncServerException):
             message = e.message
         elif isinstance(e, HTTPException):

@@ -2,7 +2,7 @@ from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
-from opengsync_db import categories as C
+from opengsync_db import categories as C, models
 
 from ....core import dependencies, exceptions as exc, redis, responses
 from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
@@ -60,6 +60,7 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
     def Begin(cls) -> RouteFunc:
         def route(
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+            _: models.User = Depends(dependencies.require_user),
             form: wf.ProjectSelectForm = Depends(wf.ProjectSelectForm.Init()),
         ):
             if access_level < C.AccessLevel.WRITE:

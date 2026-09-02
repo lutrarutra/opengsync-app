@@ -168,6 +168,7 @@ class SeqRequestForm(HTMXForm):
     def RenderEdit(cls) -> RouteFunc:
         def route(
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+            current_user: models.User = Depends(dependencies.require_user),
             form: "SeqRequestForm" = Depends(SeqRequestForm.Init(form_type="edit"))
         ):
             if access_level < C.AccessLevel.WRITE:

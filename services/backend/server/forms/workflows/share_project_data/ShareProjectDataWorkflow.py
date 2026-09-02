@@ -54,7 +54,7 @@ class ShareProjectDataWorkflow(HTMXWorkflow):
         def dependency(
             project_id: int = Query(..., description="Project ID"),
             uuid: str | None = Query(None, description="The UUID of the workflow state."),
-            user: models.User = Depends(dependencies.require_user),
+            viewer_id: int = Depends(dependencies.require_user_id),
             session: SyncSession = Depends(dependencies.db_session),
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "ShareProjectDataWorkflow":
@@ -62,7 +62,7 @@ class ShareProjectDataWorkflow(HTMXWorkflow):
             if project is None:
                 raise exc.NotFoundException("Project not found.")
 
-            access_level = session.get_access_level(Q.project.permissions(project.id, user.id))
+            access_level = session.get_access_level(Q.project.permissions(project.id, viewer_id))
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException()
 
@@ -73,6 +73,7 @@ class ShareProjectDataWorkflow(HTMXWorkflow):
     def Begin(cls) -> RouteFunc:
         def route(
             workflow: ShareProjectDataWorkflow = Depends(ShareProjectDataWorkflow.Init("Begin")),
+            _: models.User = Depends(dependencies.require_user),
             session: SyncSession = Depends(dependencies.db_session),
         ):
             form = wf.ShareProjectDataForm.build(workflow, session)

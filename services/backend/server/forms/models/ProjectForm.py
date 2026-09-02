@@ -69,10 +69,10 @@ class ProjectForm(HTMXForm):
     @htmx_route("GET", "/create", name="Create")
     def RenderCreate(cls) -> RouteFunc:
         def route(
-            current_user: models.User = Depends(dependencies.require_user),
+            current_user_id: int = Depends(dependencies.require_user_id),
             form: "ProjectForm" = Depends(ProjectForm.Init(form_type="create"))
         ):
-            form.owner.data = current_user.id
+            form.owner.data = current_user_id
             return form.make_response()
         return route
 

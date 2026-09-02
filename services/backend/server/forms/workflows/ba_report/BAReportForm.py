@@ -72,7 +72,7 @@ class BAReportForm(BAReportWorkflowStep):
             form: "BAReportForm" = Depends(BAReportForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             method: Literal["excel", "manual"] = Query(..., description="The method used to submit the form. Can be 'excel' or 'manual'."),
-            current_user: models.User = Depends(dependencies.require_user),
+            current_user_id: int = Depends(dependencies.require_user_id),
         ) -> Response:
             form.active_tab = method
             if method == "manual":
@@ -102,7 +102,7 @@ class BAReportForm(BAReportWorkflowStep):
                     extension=extension,
                     size_bytes=form.pdf.data.size,
                     type=C.MediaFileType.BIOANALYZER_REPORT,
-                    uploader_id=current_user.id,
+                    uploader_id=current_user_id,
                 ))
                 form.pdf.save(media_file)
 

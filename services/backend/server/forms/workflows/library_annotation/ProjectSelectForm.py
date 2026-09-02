@@ -48,6 +48,7 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
     def Previous(cls) -> RouteFunc:
         def route(
             form: ProjectSelectForm = Depends(ProjectSelectForm.Init()),
+            _: models.User = Depends(dependencies.require_user),
         ) -> Response:
             project_id = form.workflow.metadata.get("project_id")
             if project_id is not None:

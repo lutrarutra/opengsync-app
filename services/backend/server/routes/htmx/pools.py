@@ -65,6 +65,7 @@ def render_pool_table(
     elif lab_prep_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view pools for this lab prep.")
+        table.template = "components/tables/lab_prep-pool.html"
         table.url_params["lab_prep_id"] = lab_prep_id
         table.context["lab_prep_id"] = lab_prep_id
     elif experiment_id is not None:

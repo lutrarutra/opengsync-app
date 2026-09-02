@@ -62,7 +62,7 @@ class CompleteBAReport(BAReportWorkflowStep):
         def route(
             form: "CompleteBAReport" = Depends(CompleteBAReport.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_user),
+            current_user_id: int = Depends(dependencies.require_user_id),
         ):
             for entry in form.sample_forms:
                 sample = session.get_one(Q.sample.select(id=entry.id_.data))
@@ -86,7 +86,7 @@ class CompleteBAReport(BAReportWorkflowStep):
                 extension=extension,
                 size_bytes=form.pdf.data.size,
                 type=C.MediaFileType.BIOANALYZER_REPORT,
-                uploader_id=current_user.id,
+                uploader_id=current_user_id,
             ))
             form.pdf.save(media_file)
             

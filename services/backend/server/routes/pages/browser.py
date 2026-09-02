@@ -21,5 +21,6 @@ def browser_page(request: Request, subpath: str = ""):
         parent_dir=subpath_path.parent if subpath_path != Path() else None,
         sort_by=sort_by,
         sort_order=sort_order,
+        share_token=None,
         title="OpeNGSync - Files",
     )

@@ -59,7 +59,7 @@ def render_index_kit_table(
     return table.make_response(index_kits=index_kits)
 
 
-@router.get("/spreadsheet/{index_kit_id}", dependencies=[Depends(dependencies.require_user)])
+@router.get("/spreadsheet/{index_kit_id}", dependencies=[Depends(dependencies.require_user_id)])
 def render_index_kit_spreadsheet(
     index_kit_id: int,
     session: SyncSession = Depends(dependencies.db_session),
@@ -81,7 +81,7 @@ def render_index_kit_spreadsheet(
     return responses.htmx_response(content=spreadsheet.render())
 
 
-@router.get("/search-index_kits", dependencies=[Depends(dependencies.require_user)])
+@router.get("/search-index_kits", dependencies=[Depends(dependencies.require_user_id)])
 def search_index_kits(
     word: str = Query(..., description="Search term for kit name or identifier"),
     type: C.IndexType | None = Depends(dependencies.parse_enum_id(C.IndexType, "type")),

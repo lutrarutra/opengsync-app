@@ -42,6 +42,12 @@ function init_htmx_callbacks() {
         if ($(this).attr('_') && $(this).attr('_').includes('htmx:confirm')) {
             return;
         }
+        // A directory toggle only sends an HTMX request on its first click
+        // (`hx-trigger="click once"`). Subsequent clicks only collapse the
+        // already-loaded children and must not put the page into waiting mode.
+        if ($(this).is('.browser-entry-toggle') && $(this).data('browser-loaded')) {
+            return;
+        }
         disable_button($(this));
     });
 }

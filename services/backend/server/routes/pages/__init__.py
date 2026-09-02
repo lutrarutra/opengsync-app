@@ -21,6 +21,7 @@ from . import (
     seq_requests,
     seq_runs,
     share_tokens,
+    shared_browser,
     users,
 )
 
@@ -28,6 +29,7 @@ router = APIRouter(tags=["pages"])
 
 # Public routes (no auth required)
 router.include_router(auth.router)
+router.include_router(shared_browser.router)
 
 # Authenticated routes (require_user)
 router.include_router(dashboard.router, dependencies=[Depends(dependencies.require_user)])

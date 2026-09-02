@@ -85,6 +85,7 @@ async def timing_middleware(request: runtime.Request, call_next: Callable[[runti
     response = await call_next(request)
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
+    request.state.process_time = str(process_time)
     return response
 
 def __save_audit_log(request: runtime.Request, user_id, status_code: int):
@@ -93,11 +94,12 @@ def __save_audit_log(request: runtime.Request, user_id, status_code: int):
         audit=True,
         user_id=user_id,
         method=request.method.upper(),
+        path=request.url.path,
         route=getattr(route, "path", request.url.path),
         query_params=dict(request.query_params),
         ip=request.headers.get("x-real-ip") or (request.client.host if request.client else "1.1.1.1"),
         agent=request.headers.get("user-agent", "unknown"),
-        process_time=request.headers.get("x-process-time"),
+        process_time=getattr(request.state, "process_time", None),
         status_code=status_code,
     ).info("request completed")
 

@@ -331,7 +331,7 @@ def render_file_browser_page(
     sort_by: Literal["name", "size", "mtime"] = Query("name"),
     sort_order: Literal["asc", "desc"] | None = Query(None),
     session: SyncSession = Depends(dependencies.db_session),
-    _: models.User = Depends(dependencies.require_user),
+    _: int = Depends(dependencies.require_user_id),
 ):
     PAGE_LIMIT = 50
     if sort_order is None:
@@ -348,14 +348,14 @@ def render_file_browser_page(
     )
 
     return responses.htmx_response(
-        "components/tables/files-body.html",
+        "components/file-browser/entries.html",
         paths=paths,
         current_path=current_path,
-        parents_dir=current_path.parent if current_path != Path() else None,
         limit=PAGE_LIMIT,
         current_page=page,
         sort_by=sort_by,
         sort_order=sort_order,
+        share_token=None,
     )
 
 

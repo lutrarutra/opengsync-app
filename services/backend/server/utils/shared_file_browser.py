@@ -5,6 +5,7 @@ from pathlib import Path
 import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 
 from opengsync_db import models
 
@@ -53,18 +54,40 @@ class SharedFileBrowser:
         # allows relative symlink traversal upstream of shared paths, but not outside of root_dir
         self.allow_symlink_traversal = allow_symlink_traversal
 
-    def list_contents(self, subpath: Path = Path()) -> list[Path]:
+    def list_contents(
+        self,
+        subpath: Path = Path(),
+        limit: int | None = None,
+        offset: int = 0,
+        sort_by: Literal["name", "size", "mtime"] = "name",
+        sort_order: Literal["asc", "desc"] = "asc",
+    ) -> list[Path]:
         if not self.is_safe(subpath):
             return []
 
         full_path = self.root_dir / subpath
 
         if full_path.exists() and full_path.is_dir():
-            paths: list[Path] = []
-            for path in full_path.iterdir():
-                if not self._is_safe(path):
-                    continue
-                paths.append(path)
+            paths = [
+                path for path in full_path.iterdir()
+                if not self.OS_JUNK_REGEX.search(path.name) and self._is_safe(path)
+            ]
+
+            def sort_key(path: Path):
+                try:
+                    if sort_by == "size":
+                        return path.stat().st_size
+                    if sort_by == "mtime":
+                        return path.stat().st_mtime
+                except OSError:
+                    return -1
+                return path.name.casefold()
+
+            paths.sort(key=sort_key, reverse=sort_order == "desc")
+            if offset:
+                paths = paths[offset:]
+            if limit is not None:
+                paths = paths[:limit]
             return paths
 
         return []

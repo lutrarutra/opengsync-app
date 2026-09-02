@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from ...core import dependencies
 from ...forms import workflows as wf
 
-router = APIRouter(prefix="/workflows", tags=["workflows"], dependencies=[Depends(dependencies.require_user)])
+router = APIRouter(prefix="/workflows", tags=["workflows"], dependencies=[Depends(dependencies.require_user_id)])
 
 router.include_router(wf.library_annotation.LibraryAnnotationWorkflow.Router())
 router.include_router(wf.ba_report.BAReportWorkflow.Router())
