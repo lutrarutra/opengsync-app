@@ -107,6 +107,4 @@ def delete_kit(
 router.include_router(forms.actions.EditKitFeaturesAction.Router())
 router.include_router(forms.actions.QueryBarcodeSequencesAction.Router())
 router.include_router(forms.actions.BarcodeConstraintsAction.Router())
-router.include_router(forms.models.FeatureKitForm.Router())
-router.include_router(forms.models.IndexKitForm.Router())
 router.include_router(forms.models.KitForm.Router())

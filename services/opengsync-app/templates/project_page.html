@@ -183,7 +183,7 @@
                 {{
                     metadata_group_email_link(
                         "Owner Email", project.owner.email, class="col-4",
-                        subject=organization_name + " Project: " + (project.identifier or project.title)
+                        subject="[" + project.identifier_display + "] " + project.title
                     )
                 }}
             </div>

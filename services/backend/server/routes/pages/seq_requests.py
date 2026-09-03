@@ -25,6 +25,7 @@ def seq_request_page(
             orm.selectinload(models.SeqRequest.organization_contact),
             orm.selectinload(models.SeqRequest.bioinformatician_contact),
             orm.selectinload(models.SeqRequest.billing_contact),
+            orm.selectinload(models.SeqRequest.pi_contact),
             orm.selectinload(models.SeqRequest.seq_auth_form_file),
             orm.selectinload(models.SeqRequest.delivery_email_links),
             orm.with_expression(models.SeqRequest._num_samples, models.SeqRequest.num_samples.expression),

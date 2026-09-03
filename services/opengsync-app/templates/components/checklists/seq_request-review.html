@@ -70,7 +70,7 @@
                     {{ 
                         metadata_group_email_link(
                             "Email", seq_request.requestor.email, class="col",
-                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
                         ) 
                     }}
                 </div>
@@ -88,7 +88,7 @@
                     {{ 
                         metadata_group_email_link(
                             "Contact Person Email", seq_request.contact_person.email, class="col-6 col-xl-4",
-                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
                         )
                     }}
                     {{ 
@@ -110,7 +110,7 @@
                     {{ 
                         metadata_group_email_link(
                             "Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-4",
-                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
                         )
                     }}
                     {{ metadata_group("Phone", seq_request.bioinformatician_contact.phone, class="col-6 col-xl-4") }}
@@ -126,7 +126,7 @@
                     {{ 
                         metadata_group_email_link(
                             "Email", seq_request.billing_contact.email, class="col-6",
-                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
                         )
                     }}
                     {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col-6") }}

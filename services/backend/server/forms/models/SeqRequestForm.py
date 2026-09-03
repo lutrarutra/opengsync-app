@@ -5,7 +5,7 @@ from fastapi.responses import Response
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
-from ...core import responses, dependencies, exceptions as exc
+from ...core import responses, dependencies, exceptions as exc, secrets
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..SubHTMXForm import SubHTMXForm
@@ -42,18 +42,25 @@ class BasicInfoSubForm(SubHTMXForm):
 
 
 class UserSelectionSubForm(SubHTMXForm):
-    """User selection (insider only)."""
+    """Existing or manually-created requestor (insider only)."""
 
     user_id = inputs.searchable.SearchableInputField("User", route="search_users", required=False)
+    email = inputs.string.EmailInputField("New User Email", required=False)
+    first_name = inputs.string.StringInputField("New User First Name", required=False)
+    last_name = inputs.string.StringInputField("New User Last Name", required=False)
 
 
 class TechnicalInfoSubForm(SubHTMXForm):
     """Technical requirements for sequencing."""
 
     submission_type = inputs.selectable.SelectableInputField("Submission Type", options=C.SubmissionType.as_selectable(include_unpooled_libraries=False))
-    read_type = inputs.selectable.SelectableInputField("Read Type", options=C.ReadType.as_selectable())
-    read_length = inputs.string.StringInputField("Read Length", required=False)
-    num_lanes = inputs.string.StringInputField("Number of Lanes", required=False)
+    read_type = inputs.selectable.SelectableInputField(
+        "Read Type",
+        options=C.ReadType.as_selectable(),
+        default=C.ReadType.PAIRED_END.id,
+    )
+    read_length = inputs.numeric.IntInputField("Read Length", required=False, ge=1)
+    num_lanes = inputs.numeric.IntInputField("Number of Lanes", required=False, ge=1, le=8)
     data_delivery_mode = inputs.selectable.SelectableInputField("Data Delivery Mode", options=C.DataDeliveryMode.as_selectable())
     special_requirements = inputs.string.TextAreaInputField("Special Requirements", required=False)
 
@@ -63,24 +70,24 @@ class ContactSubForm(SubHTMXForm):
 
     current_user_is_contact = inputs.boolean.SwitchInputField("Requestor is the contact person")
     name = inputs.string.StringInputField("Contact Person Name", required=True)
-    email = inputs.string.StringInputField("Contact Person Email", required=True)
-    phone = inputs.string.StringInputField("Contact Person Phone", required=False)
+    email = inputs.string.EmailInputField("Contact Person Email", required=True)
+    phone = inputs.string.StringInputField("Contact Person Phone", required=True)
+    pi_name = inputs.string.StringInputField("Principal Investigator Name", required=False)
+    pi_email = inputs.string.EmailInputField("Principal Investigator Email", required=False)
 
 
 class BioinformaticianSubForm(SubHTMXForm):
     """Bioinformatician contact (optional)."""
 
     name = inputs.string.StringInputField("Bioinformatician Name", required=False)
-    email = inputs.string.StringInputField("Bioinformatician Email", required=False)
+    email = inputs.string.EmailInputField("Bioinformatician Email", required=False)
     phone = inputs.string.StringInputField("Bioinformatician Phone", required=False)
 
 
 class OrganizationSubForm(SubHTMXForm):
-    """Organization information."""
+    """Organization name and address."""
 
     name = inputs.string.StringInputField("Organization Name", required=True)
-    email = inputs.string.StringInputField("Organization Email", required=False)
-    phone = inputs.string.StringInputField("Organization Phone", required=False)
     address = inputs.string.TextAreaInputField("Organization Address", required=True)
 
 
@@ -89,8 +96,9 @@ class BillingSubForm(SubHTMXForm):
 
     code = inputs.string.StringInputField("Billing Code", required=False)
     name = inputs.string.StringInputField("Billing Contact Name", required=True)
-    email = inputs.string.StringInputField("Billing Contact Email", required=True)
+    email = inputs.string.EmailInputField("Billing Contact Email", required=True)
     phone = inputs.string.StringInputField("Billing Contact Phone", required=False)
+    address = inputs.string.TextAreaInputField("Billing Address", required=True)
 
 
 class SeqRequestForm(HTMXForm):
@@ -181,12 +189,8 @@ class SeqRequestForm(HTMXForm):
 
             # Technical info
             form.technical_info.read_type.data = form.seq_request.read_type
-            form.technical_info.read_length.data = (
-                str(form.seq_request.read_length) if form.seq_request.read_length else ""
-            )
-            form.technical_info.num_lanes.data = (
-                str(form.seq_request.num_lanes) if form.seq_request.num_lanes else ""
-            )
+            form.technical_info.read_length.data = form.seq_request.read_length
+            form.technical_info.num_lanes.data = form.seq_request.num_lanes
             form.technical_info.data_delivery_mode.data = form.seq_request.data_delivery_mode
             form.technical_info.special_requirements.data = (
                 form.seq_request.special_requirements or ""
@@ -198,6 +202,9 @@ class SeqRequestForm(HTMXForm):
                 form.contact.name.data = form.seq_request.contact_person.name or ""
                 form.contact.email.data = form.seq_request.contact_person.email or ""
                 form.contact.phone.data = form.seq_request.contact_person.phone or ""
+            if form.seq_request.pi_contact:
+                form.contact.pi_name.data = form.seq_request.pi_contact.name or ""
+                form.contact.pi_email.data = form.seq_request.pi_contact.email or ""
 
             # Bioinformatician
             if form.seq_request.bioinformatician_contact:
@@ -216,12 +223,6 @@ class SeqRequestForm(HTMXForm):
                 form.organization.name.data = (
                     form.seq_request.organization_contact.name or ""
                 )
-                form.organization.email.data = (
-                    form.seq_request.organization_contact.email or ""
-                )
-                form.organization.phone.data = (
-                    form.seq_request.organization_contact.phone or ""
-                )
                 form.organization.address.data = (
                     form.seq_request.organization_contact.address or ""
                 )
@@ -231,6 +232,7 @@ class SeqRequestForm(HTMXForm):
                 form.billing.name.data = form.seq_request.billing_contact.name or ""
                 form.billing.email.data = form.seq_request.billing_contact.email or ""
                 form.billing.phone.data = form.seq_request.billing_contact.phone or ""
+                form.billing.address.data = form.seq_request.billing_contact.address or ""
                 form.billing.code.data = form.seq_request.billing_code or ""
 
             return form.make_response()
@@ -242,6 +244,7 @@ class SeqRequestForm(HTMXForm):
             request: Request,
             current_user: models.User = Depends(dependencies.require_user),
             session: SyncSession = Depends(dependencies.db_session),
+            bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
             form: "SeqRequestForm" = Depends(SeqRequestForm.Validate(form_type="create"))
         ) -> Response:
             SeqRequestForm._validate_bioinformatician(form)
@@ -258,17 +261,51 @@ class SeqRequestForm(HTMXForm):
 
             current_user = request.state.current_user
 
-            if form.user_selection.user_id.data:
-                selected_user = session.first(Q.user.select(id=int(form.user_selection.user_id.data)))
-                if selected_user is None:
-                    form.user_selection.user_id.errors.append("Selected user not found.")
+            requestor = current_user
+            if current_user.is_insider:
+                user_id = form.user_selection.user_id.data
+                email = form.user_selection.email.data
+                first_name = form.user_selection.first_name.data
+                last_name = form.user_selection.last_name.data
+
+                if user_id and any((email, first_name, last_name)):
+                    form.user_selection.user_id.errors.append("Select a user or enter new user details, not both.")
                     raise exc.FormValidationException(form)
+
+                if user_id:
+                    requestor = session.first(Q.user.select(id=int(user_id)))
+                    if requestor is None:
+                        form.user_selection.user_id.errors.append("Selected user not found.")
+                        raise exc.FormValidationException(form)
+                elif any((email, first_name, last_name)):
+                    if not email or not first_name or not last_name:
+                        form.user_selection.email.errors.append("Email, first name, and last name are required for a new user.")
+                        raise exc.FormValidationException(form)
+                    if session.exists(Q.user.select(email=email)):
+                        form.user_selection.email.errors.append("Email already registered.")
+                        raise exc.FormValidationException(form)
+                    requestor = session.save(Q.user.create(
+                        email=email,
+                        first_name=first_name.strip(),
+                        last_name=last_name.strip(),
+                        hashed_password=bcrypt.generate_password_hash(secrets.url_safe_token()),
+                        role=C.UserRole.DEACTIVATED,
+                    ), flush=True)
 
             contact_person = Q.contact.create(
                 form.contact.name.data,
                 form.contact.email.data,
                 form.contact.phone.data,
             )
+            pi_contact = None
+            if form.contact.pi_name.data or form.contact.pi_email.data:
+                if not form.contact.pi_name.data or not form.contact.pi_email.data:
+                    form.contact.pi_email.errors.append("PI name and email must be provided together.")
+                    raise exc.FormValidationException(form)
+                pi_contact = Q.contact.create(
+                    form.contact.pi_name.data,
+                    form.contact.pi_email.data,
+                )
             if (
                 form.bioinformatician.name.data
                 and form.bioinformatician.email.data
@@ -283,8 +320,8 @@ class SeqRequestForm(HTMXForm):
 
             organization = Q.contact.create(
                 form.organization.name.data,
-                form.organization.email.data,
-                form.organization.phone.data,
+                None,
+                None,
                 form.organization.address.data,
             )
 
@@ -292,6 +329,7 @@ class SeqRequestForm(HTMXForm):
                 form.billing.name.data,
                 form.billing.email.data,
                 form.billing.phone.data,
+                form.billing.address.data,
             )
 
             seq_request = session.save(
@@ -306,10 +344,11 @@ class SeqRequestForm(HTMXForm):
                     submission_type=C.SubmissionType.get(form.technical_info.submission_type.data),
                     billing_code=form.billing.code.data or None,
                     contact_person=contact_person,
+                    pi_contact=pi_contact,
                     bioinformatician_contact=bioinformatician,
                     organization_contact=organization,
                     billing_contact=billing_contact,
-                    requestor=current_user,
+                    requestor=requestor,
                     group=session.get_one(Q.group.select(id=form.basic_info.group_id.data)) if form.basic_info.group_id.data else None,
                 ),
                 flush=True,
@@ -380,6 +419,24 @@ class SeqRequestForm(HTMXForm):
             seq_request.contact_person.name = form.contact.name.data
             seq_request.contact_person.email = form.contact.email.data
             seq_request.contact_person.phone = form.contact.phone.data
+            if form.contact.pi_name.data or form.contact.pi_email.data:
+                if not form.contact.pi_name.data or not form.contact.pi_email.data:
+                    form.contact.pi_email.errors.append("PI name and email must be provided together.")
+                    raise exc.FormValidationException(form)
+                if seq_request.pi_contact is None:
+                    seq_request.pi_contact = Q.contact.create(
+                        form.contact.pi_name.data,
+                        form.contact.pi_email.data,
+                    )
+                else:
+                    seq_request.pi_contact.name = form.contact.pi_name.data
+                    seq_request.pi_contact.email = form.contact.pi_email.data
+            else:
+                seq_request.pi_contact = None
+            seq_request.billing_contact.name = form.billing.name.data
+            seq_request.billing_contact.email = form.billing.email.data
+            seq_request.billing_contact.phone = form.billing.phone.data
+            seq_request.billing_contact.address = form.billing.address.data
 
             if (
                 form.bioinformatician.name.data
@@ -405,12 +462,8 @@ class SeqRequestForm(HTMXForm):
                 seq_request.bioinformatician_contact = None
 
             seq_request.organization_contact.name = form.organization.name.data
-            seq_request.organization_contact.email = (
-                form.organization.email.data
-            )
-            seq_request.organization_contact.phone = (
-                form.organization.phone.data
-            )
+            seq_request.organization_contact.email = None
+            seq_request.organization_contact.phone = None
             seq_request.organization_contact.address = (
                 form.organization.address.data
             )

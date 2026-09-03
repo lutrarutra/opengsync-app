@@ -1,5 +1,6 @@
 import mimetypes
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
@@ -32,12 +33,12 @@ def _browser(token: str, session) -> SharedFileBrowser:
     return SharedFileBrowser(Path(config.settings.app_config.share_root), share_token)
 
 
-def _sort_value(value: str) -> str:
-    return value if value in {"name", "size", "mtime"} else "name"
+def _sort_value(value: str) -> Literal["name", "size", "mtime"]:
+    return value if value in {"name", "size", "mtime"} else "name"  # type: ignore[return-value]
 
 
-def _order_value(value: str) -> str:
-    return value if value in {"asc", "desc"} else "asc"
+def _order_value(value: str) -> Literal["asc", "desc"]:
+    return value if value in {"asc", "desc"} else "asc"  # type: ignore[return-value]
 
 
 def _browser_paths(paths: list[Path]) -> list[BrowserPath]:

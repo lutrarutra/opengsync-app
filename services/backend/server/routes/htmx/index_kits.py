@@ -6,6 +6,7 @@ from opengsync_db import SyncSession, queries as Q, categories as C, utils, mode
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
 from ...forms.actions.edit_kit_actions import EditKitBarcodesForm
+from ...forms.models import IndexKitForm
 
 router = APIRouter(prefix="/index_kits", tags=["index-kits"])
 
@@ -97,3 +98,5 @@ def search_index_kits(
 
 
 router.include_router(EditKitBarcodesForm.Router())
+router.include_router(IndexKitForm.Router())
+

@@ -24,6 +24,7 @@ def create(
     num_lanes: int | None = None,
     special_requirements: str | None = None,
     billing_code: str | None = None,
+    pi_contact: Contact | None = None,
 ) -> SeqRequest:
     return SeqRequest(
         name=name.strip(),
@@ -42,6 +43,7 @@ def create(
         status_id=SeqRequestStatus.DRAFT.id,
         data_delivery_mode_id=data_delivery_mode.id,
         billing_code=billing_code.strip() if billing_code else None,
+        pi_contact=pi_contact,
     )
 
 

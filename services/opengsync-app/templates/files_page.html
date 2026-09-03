@@ -69,6 +69,14 @@ function toggleBrowserDirectory(toggle) {
 
     const expanded = directory.classList.toggle('is-expanded');
     toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+    if (!expanded) {
+        // Collapsing is entirely local. Clear any stale HTMX loading state
+        // left on the toggle or page by the global request styling.
+        toggle.classList.remove('htmx-request');
+        directory.classList.remove('htmx-request');
+        document.body.classList.remove('waiting');
+    }
 }
 
 $(document).ready(function() {

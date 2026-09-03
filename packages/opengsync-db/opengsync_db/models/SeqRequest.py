@@ -47,6 +47,9 @@ class SeqRequest(Base):
     read_length: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     num_lanes: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
 
+    pi_contact_id: Mapped[int | None] = mapped_column(sa.ForeignKey("contact.id"), nullable=True)
+    pi_contact: Mapped["Contact | None"] = relationship("Contact", lazy="select", foreign_keys=[pi_contact_id], cascade="save-update, merge")
+
     organization_contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge")
 

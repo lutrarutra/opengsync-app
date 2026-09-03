@@ -17,10 +17,7 @@ class ProtocolForm(HTMXForm):
         max_length=models.Protocol.name.type.length,
         min_length=6,
     )
-    service_type = inputs.selectable.SelectableInputField(
-        "Service Type",
-        C.ServiceType.as_selectable(),
-    )
+    service_type = inputs.selectable.SelectableInputField("Service Type", C.ServiceType.as_selectable(),)
     read_structure = inputs.string.StringInputField(
         "Read Structure",
         max_length=models.Protocol.read_structure.type.length,

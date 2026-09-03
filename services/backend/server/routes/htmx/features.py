@@ -5,6 +5,7 @@ from opengsync_db import SyncSession, queries as Q, categories as C, utils, mode
 
 from ...core import dependencies
 from ...components.tables import HTMXTable, TableCol
+from ...forms.models import FeatureKitForm
 
 router = APIRouter(prefix="/features", tags=["features"])
 
@@ -48,3 +49,5 @@ def render_feature_table(
 
     features = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(features=features)
+
+router.include_router(FeatureKitForm.Router())

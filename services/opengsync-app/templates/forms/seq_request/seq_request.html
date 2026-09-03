@@ -97,6 +97,11 @@
         <div id="section-user-selection" class="accordion-collapse collapse">
           <div class="accordion-body">
             {{ form.user_selection.user_id.render() }}
+            <div class="row">
+              {{ form.user_selection.email.render("col-md-4") }}
+              {{ form.user_selection.first_name.render("col-md-4") }}
+              {{ form.user_selection.last_name.render("col-md-4") }}
+            </div>
           </div>
         </div>
       </div>
@@ -147,6 +152,10 @@
               {{ form.contact.name.render("col-md-4") }} {{
               form.contact.email.render("col-md-4") }} {{
               form.contact.phone.render("col-md-4") }}
+            </div>
+            <div class="row">
+              {{ form.contact.pi_name.render("col-md-6") }} {{
+              form.contact.pi_email.render("col-md-6") }}
             </div>
           </div>
         </div>
@@ -236,10 +245,6 @@
         <div id="section-organization" class="accordion-collapse collapse show">
           <div class="accordion-body">
             {{ form.organization.name.render() }}
-            <div class="row">
-              {{ form.organization.email.render("col-md-6") }} {{
-              form.organization.phone.render("col-md-6") }}
-            </div>
             {{ form.organization.address.render() }}
           </div>
         </div>
@@ -266,6 +271,7 @@
               form.billing.email.render("col-md-4") }} {{
               form.billing.phone.render("col-md-4") }}
             </div>
+            {{ form.billing.address.render() }}
             <div class="row">
               {{ form.billing.code.render("col-md-6") }}
             </div>

@@ -363,6 +363,12 @@ class Project(Base):
         if self.identifier:
             return f"Project(id: {self.id}, identifier: {self.identifier})"
         return f"Project(id: {self.id}, title: {self.title})"
+
+    @property
+    def identifier_display(self) -> str:
+        if self.identifier:
+            return self.identifier
+        return f"PRJ_{self.id:04d}"
     
     def __repr__(self) -> str:
         return self.__str__()

@@ -42,10 +42,11 @@ function init_htmx_callbacks() {
         if ($(this).attr('_') && $(this).attr('_').includes('htmx:confirm')) {
             return;
         }
-        // A directory toggle only sends an HTMX request on its first click
-        // (`hx-trigger="click once"`). Subsequent clicks only collapse the
-        // already-loaded children and must not put the page into waiting mode.
-        if ($(this).is('.browser-entry-toggle') && $(this).data('browser-loaded')) {
+        // Directory toggles manage their own expanded/collapsed state. A
+        // collapse is a local operation and must never activate the global
+        // page-wide waiting cursor. The first expansion is also lightweight
+        // enough to use the browser's own HTMX indicator, if configured.
+        if ($(this).is('.browser-entry-toggle')) {
             return;
         }
         disable_button($(this));

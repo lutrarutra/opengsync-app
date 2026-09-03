@@ -82,7 +82,7 @@ class IndexKitForm(HTMXForm):
 
         return route
 
-    @htmx_route("GET", "/create", name="Create")
+    @htmx_route("GET", name="Create")
     def RenderCreate(cls) -> RouteFunc:
         def route(
             form: "IndexKitForm" = Depends(IndexKitForm.Init(form_type="create")),
@@ -133,7 +133,7 @@ class IndexKitForm(HTMXForm):
 
         return submit
 
-    @htmx_route("POST", "/create", name="Create")
+    @htmx_route("POST", name="Create")
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
