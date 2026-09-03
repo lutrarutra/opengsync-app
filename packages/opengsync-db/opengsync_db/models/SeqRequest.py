@@ -8,9 +8,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .. import localize
+from .. import localize, categories as C
 from .Base import Base
-from ..categories import SeqRequestStatus, SeqRequestStatus, ReadType, ReadType, DataDeliveryMode, DataDeliveryMode, SubmissionType, SubmissionType, MediaFileType, LibraryType, LibraryType, MUXType, MUXType
 from . import links
 
 if TYPE_CHECKING:
@@ -39,13 +38,16 @@ class SeqRequest(Base):
     data_delivery_mode_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=C.SeqRequestStatus.DRAFT.id)
 
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
 
     read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+
+    pi_contact_id: Mapped[int | None] = mapped_column(sa.ForeignKey("contact.id"), nullable=True)
+    pi_contact: Mapped["Contact | None"] = relationship("Contact", lazy="select", foreign_keys=[pi_contact_id], cascade="save-update, merge")
 
     organization_contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge")
@@ -67,7 +69,7 @@ class SeqRequest(Base):
 
     seq_auth_form_file: Mapped[Optional["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=False,
-        primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {MediaFileType.SEQ_AUTH_FORM.id})",
+        primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {C.MediaFileType.SEQ_AUTH_FORM.id})",
     )
 
     sample_submission_event_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("event.id"), nullable=True)
@@ -108,7 +110,7 @@ class SeqRequest(Base):
         samples_added = self.num_samples > 0 and self.num_libraries > 0
         authorization_form_added = self.seq_auth_form_file is not None
         is_submittable = self.is_submittable()
-        request_submitted = self.status >= SeqRequestStatus.SUBMITTED if samples_added else None
+        request_submitted = self.status >= C.SeqRequestStatus.SUBMITTED if samples_added else None
 
         return dict(
             samples_added=samples_added,
@@ -133,9 +135,9 @@ class SeqRequest(Base):
         checklist["check_comments"] = checklist.get("check_comments", False)
         checklist["samples_checked"] = checklist.get("samples_checked", False)
         checklist["check_submission_date"] = checklist.get("check_submission_date", False)
-        checklist["check_barcodes"] = checklist.get("check_barcodes", True if self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] else False)
+        checklist["check_barcodes"] = checklist.get("check_barcodes", True if self.submission_type not in [C.SubmissionType.POOLED_LIBRARIES, C.SubmissionType.UNPOOLED_LIBRARIES] else False)
         checklist["auth_form_checked"] = checklist.get("auth_form_checked", None if self.seq_auth_form_file is None else False)
-        checklist["submission_processed"] = self.status > SeqRequestStatus.SUBMITTED
+        checklist["submission_processed"] = self.status > C.SeqRequestStatus.SUBMITTED
 
         return checklist
     
@@ -334,22 +336,22 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[C.LibraryType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
                 types.add(lib.type_id)
 
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+            return [C.LibraryType.get(type_id) for type_id in sorted(types)]
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.seq_request_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+        return [C.LibraryType.get(type_id) for (type_id,) in type_ids]
     
     @property
-    def mux_types(self) -> list[MUXType]:
+    def mux_types(self) -> list[C.MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
         
@@ -362,14 +364,14 @@ class SeqRequest(Base):
             Library.mux_type_id.isnot(None)
         ).distinct().all()
 
-        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
+        return [C.MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
     
     @hybrid_property
-    def library_type_counts(self) -> dict[LibraryType, int]:
-        counts: dict[LibraryType, int] = {}
+    def library_type_counts(self) -> dict[C.LibraryType, int]:
+        counts: dict[C.LibraryType, int] = {}
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             for lib in self.libraries:
-                lib_type = LibraryType.get(lib.type_id)
+                lib_type = C.LibraryType.get(lib.type_id)
                 counts[lib_type] = counts.get(lib_type, 0) + 1
             return counts
         
@@ -378,7 +380,7 @@ class SeqRequest(Base):
         from .Library import Library
         results = session.query(Library.type_id, sa.func.count(Library.id)).filter(Library.seq_request_id == self.id).group_by(Library.type_id).all()
         for type_id, count in results:
-            lib_type = LibraryType.get(type_id)
+            lib_type = C.LibraryType.get(type_id)
             counts[lib_type] = count
         return counts
     
@@ -401,35 +403,35 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
-    def status(self) -> SeqRequestStatus:
-        return SeqRequestStatus.get(self.status_id)
+    def status(self) -> C.SeqRequestStatus:
+        return C.SeqRequestStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: SeqRequestStatus):
+    def status(self, value: C.SeqRequestStatus):
         self.status_id = value.id
     
     @property
-    def submission_type(self) -> SubmissionType:
-        return SubmissionType.get(self.submission_type_id)
+    def submission_type(self) -> C.SubmissionType:
+        return C.SubmissionType.get(self.submission_type_id)
     
     @submission_type.setter
-    def submission_type(self, value: SubmissionType):
+    def submission_type(self, value: C.SubmissionType):
         self.submission_type_id = value.id
     
     @property
-    def data_delivery_mode(self) -> DataDeliveryMode:
-        return DataDeliveryMode.get(self.data_delivery_mode_id)
+    def data_delivery_mode(self) -> C.DataDeliveryMode:
+        return C.DataDeliveryMode.get(self.data_delivery_mode_id)
     
     @data_delivery_mode.setter
-    def data_delivery_mode(self, value: DataDeliveryMode):
+    def data_delivery_mode(self, value: C.DataDeliveryMode):
         self.data_delivery_mode_id = value.id
     
     @property
-    def read_type(self) -> ReadType:
-        return ReadType.get(self.read_type_id)
+    def read_type(self) -> C.ReadType:
+        return C.ReadType.get(self.read_type_id)
     
     @read_type.setter
-    def read_type(self, value: ReadType):
+    def read_type(self, value: C.ReadType):
         self.read_type_id = value.id
     
     @property
@@ -458,13 +460,13 @@ class SeqRequest(Base):
         return self.name
     
     def is_editable(self) -> bool:
-        return self.status == SeqRequestStatus.DRAFT
+        return self.status == C.SeqRequestStatus.DRAFT
     
     def is_authorized(self) -> bool:
         return self.seq_auth_form_file is not None
     
     def is_submittable(self) -> bool:
-        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
+        return self.status == C.SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
     
     def timestamp_submitted_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         if (ts := self.timestamp_submitted) is None:
