@@ -1,6 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
-
-
 <div class="modal-content" id="todo-comment-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Add Comment</h1>
@@ -9,8 +6,8 @@
     <div class="modal-body">
         <div id="todo-comment-form">
             {{ form.csrf_token.render() }}
-            {{ form_group(form.text) }}
-            {{ select_input(form.status_id) }}
+            {{ form.text.render() }}
+            {{ form.status_id.render() }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">

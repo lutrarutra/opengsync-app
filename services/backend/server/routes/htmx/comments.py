@@ -1,6 +1,6 @@
 from sqlalchemy import select as sa_select
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy import orm
 
@@ -39,53 +39,7 @@ def render_comment_thread(
 
     return responses.htmx_response("components/comment-thread.html", comments=comments)
 
-@router.get("/form", name="comment_form", dependencies=[Depends(dependencies.require_insider)])
-def render_todo_comment_form(
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    todo_comment_id: int | None = Query(None),
-    flow_cell_design_id: int | None = Query(None),
-    pool_design_id: int | None = Query(None),
-) -> Response:
-    """Render the TODO comment form for a flow cell or pool design."""
-    todo_comment: models.TODOComment | None = None
-    flow_cell_design: models.FlowCellDesign | None = None
-    pool_design: models.PoolDesign | None = None
-
-    if todo_comment_id is not None:
-        result = session.execute(
-            sa_select(models.TODOComment).where(models.TODOComment.id == todo_comment_id)
-        )
-        todo_comment = result.scalar_one_or_none()
-        if todo_comment is None:
-            raise exc.NotFoundException("TODO Comment not found")
-
-    if flow_cell_design_id is not None:
-        flow_cell_design = session.get_one(
-            Q.flow_cell_design.select(id=flow_cell_design_id)
-        )
-
-    if pool_design_id is not None:
-        pool_design = session.get_one(
-            Q.pool_design.select(id=pool_design_id)
-        )
-
-    form = forms.models.TODOCommentForm(
-        request,
-        todo_comment=todo_comment,
-        flow_cell_design_id=flow_cell_design_id,
-        pool_design_id=pool_design_id,
-    )
-    return form.make_response()
-
-
-@router.post("/form")
-def submit_todo_comment_form(
-    response: Response = Depends(forms.models.TODOCommentForm.submit_form),
-) -> Response:
-    """Process the TODO comment form submission."""
-    return response
-
+router.include_router(forms.models.TODOCommentForm.Router())
 
 @router.post("/edit-status", name="edit_comment_status", dependencies=[Depends(dependencies.require_insider)])
 def edit_todo_comment_status(

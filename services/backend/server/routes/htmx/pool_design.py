@@ -1,65 +1,16 @@
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q
 
-from ...core import dependencies, responses, exceptions as exc
-from ...forms.models import PoolDesignForm
+from ...core import dependencies, responses
+from ... import forms
 
-router = APIRouter(prefix="/pool_design", tags=["pool_design"])
-
-
-@router.get("/create-pool-design", name="create_pool_design")
-def create_pool_design_get(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
-):
-    """Render the create pool design form."""
-    form = PoolDesignForm(request, pool_design=None)
-    return form.make_response()
-
-
-@router.post("/create-pool-design")
-def create_pool_design_post(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    """Process the create pool design form."""
-    form = PoolDesignForm(request, pool_design=None)
-    return form.process_request()
-
-
-@router.get("/edit-pool-design", name="edit_pool_design")
-def edit_pool_design_get(
-    request: Request,
-    pool_design_id: int = Query(...),
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    """Render the edit pool design form."""
-    pd = session.get_one(Q.pool_design.select(id=pool_design_id))
-    form = PoolDesignForm(request, pool_design=pd)
-    return form.make_response()
-
-
-@router.post("/edit-pool-design")
-def edit_pool_design_post(
-    request: Request,
-    pool_design_id: int = Query(...),
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    """Process the edit pool design form."""
-    pd = session.get_one(Q.pool_design.select(id=pool_design_id))
-    form = PoolDesignForm(request, pool_design=pd)
-    return form.process_request()
+router = APIRouter(prefix="/pool_design", tags=["pool_design"], dependencies=[Depends(dependencies.require_insider)])
 
 
 @router.delete("/delete-pool-design")
 def delete_pool_design(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     pool_design_id: int = Query(...),
 ):
@@ -71,8 +22,6 @@ def delete_pool_design(
 
 @router.delete("/remove-pool-design")
 def remove_pool_design(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     pool_design_id: int = Query(...),
 ):
@@ -84,8 +33,6 @@ def remove_pool_design(
 
 @router.post("/move-pool-design")
 def move_pool_design(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     pool_design_id: int = Query(...),
     new_flow_cell_design_id: int = Query(...),
@@ -98,8 +45,6 @@ def move_pool_design(
 
 @router.get("/render-pool-designs")
 def render_pool_designs(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     flow_cell_design_id: int | None = Query(None),
 ):
@@ -129,3 +74,5 @@ def render_pool_designs(
         pool_designs=pool_designs,
         flow_cell_design=flow_cell_design,
     )
+
+router.include_router(forms.models.PoolDesignForm.Router())

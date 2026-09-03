@@ -61,7 +61,7 @@ class TechnicalInfoSubForm(SubHTMXForm):
     )
     read_length = inputs.numeric.IntInputField("Read Length", required=False, ge=1)
     num_lanes = inputs.numeric.IntInputField("Number of Lanes", required=False, ge=1, le=8)
-    data_delivery_mode = inputs.selectable.SelectableInputField("Data Delivery Mode", options=C.DataDeliveryMode.as_selectable())
+    data_delivery_mode = inputs.selectable.SelectableInputField("Data Delivery Mode", options=C.DataDeliveryMode.as_selectable(), default=C.DataDeliveryMode.CUSTOM.id)
     special_requirements = inputs.string.TextAreaInputField("Special Requirements", required=False)
 
 
@@ -72,8 +72,8 @@ class ContactSubForm(SubHTMXForm):
     name = inputs.string.StringInputField("Contact Person Name", required=True)
     email = inputs.string.EmailInputField("Contact Person Email", required=True)
     phone = inputs.string.StringInputField("Contact Person Phone", required=True)
-    pi_name = inputs.string.StringInputField("Principal Investigator Name", required=False)
-    pi_email = inputs.string.EmailInputField("Principal Investigator Email", required=False)
+    pi_name = inputs.string.StringInputField("Principal Investigator Name", required=True)
+    pi_email = inputs.string.EmailInputField("Principal Investigator Email", required=True)
 
 
 class BioinformaticianSubForm(SubHTMXForm):

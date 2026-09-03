@@ -46,6 +46,33 @@ def _created_request(session: SyncSession, name: str):
     return session.first(Q.seq_request.select(name=name))
 
 
+def test_billing_can_reuse_organization_name_and_address(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    name = f"organization-billing-{uuid4().hex}"
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create",
+        _request_payload(
+            name,
+            **{
+                "billing-name": "Test Organization",
+                "billing-address": "1 Organization Street",
+            },
+        ),
+        token=user_token,
+    )
+
+    assert response.status_code == 204
+    request = _created_request(session, name)
+    assert request is not None
+    assert request.billing_contact.name == "Test Organization"
+    assert request.billing_contact.address == "1 Organization Street"
+
+
 def test_insider_can_assign_existing_user_as_requestor(
     client: TestClient,
     session: SyncSession,

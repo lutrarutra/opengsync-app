@@ -1,17 +1,15 @@
-
-
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions as exc
-from ...forms.models import FlowCellDesignForm
+from ...core import dependencies, responses
+from ... import forms
 
-router = APIRouter(prefix="/flow_cell_design", tags=["flow_cell_design"])
+router = APIRouter(prefix="/flow_cell_design", tags=["flow_cell_design"], dependencies=[Depends(dependencies.require_insider)])
 
 def _get_flow_cell_designs(
-    session: AsyncSession, archived: bool = False,
+    session: SyncSession, archived: bool = False,
 ) -> list[models.FlowCellDesign]:
     """Fetch flow cell designs with eager-loaded pool_designs and comments."""
     stmt = Q.flow_cell_design.select(archived=archived).order_by(models.FlowCellDesign.id.desc())
@@ -26,7 +24,6 @@ def _get_flow_cell_designs(
 
 @router.get("/flow-cells")
 def flow_cells(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     """Render the active (non-archived) flow cell design list."""
@@ -39,7 +36,6 @@ def flow_cells(
 
 @router.get("/archived-flow-cells")
 def archived_flow_cells(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     """Render the archived flow cell design list."""
@@ -52,7 +48,6 @@ def archived_flow_cells(
 
 @router.post("/create-flow-cell-design")
 def create_flow_cell_design(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     pool_design_id: int = Query(...),
 ):
@@ -71,35 +66,9 @@ def create_flow_cell_design(
     return responses.htmx_response(redirect=responses.url_for("design"))
 
 
-@router.get("/edit-flow-cell-design", name="edit_flow_cell_design")
-def edit_flow_cell_design_get(
-    request: Request,
-    flow_cell_design_id: int = Query(...),
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    """Render the edit flow cell design form."""
-    design = session.get_one(Q.flow_cell_design.select(id=flow_cell_design_id))
-    form = FlowCellDesignForm(request, flow_cell_design=design)
-    return form.make_response()
-
-
-@router.post("/edit-flow-cell-design")
-def edit_flow_cell_design_post(
-    request: Request,
-    flow_cell_design_id: int = Query(...),
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    """Process the edit flow cell design form."""
-    design = session.get_one(Q.flow_cell_design.select(id=flow_cell_design_id))
-    form = FlowCellDesignForm(request, flow_cell_design=design)
-    return form.process_request()
-
 
 @router.post("/set-flow-cell-type")
 def set_flow_cell_type(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     flow_cell_design_id: int = Query(...),
     flow_cell_type_id: int = Query(...),
@@ -117,7 +86,6 @@ def set_flow_cell_type(
 
 @router.post("/archive-flow-cell-design")
 def archive_flow_cell_design(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     flow_cell_design_id: int = Query(...),
 ):
@@ -129,7 +97,6 @@ def archive_flow_cell_design(
 
 @router.post("/unarchive-flow-cell-design")
 def unarchive_flow_cell_design(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     flow_cell_design_id: int = Query(...),
 ):
@@ -141,7 +108,6 @@ def unarchive_flow_cell_design(
 
 @router.delete("/delete-flow-cell-design")
 def delete_flow_cell_design(
-    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     flow_cell_design_id: int = Query(...),
 ):
@@ -155,3 +121,5 @@ def delete_flow_cell_design(
         pd.flow_cell_design = None
     session.delete(design)
     return responses.htmx_response(redirect=responses.url_for("design"))
+
+router.include_router(forms.models.FlowCellDesignForm.Router())
