@@ -1,4 +1,27 @@
 # OpeNGSync
+
+## Database migrations
+
+Alembic migrations run through the dedicated Docker Compose `db-migrator` service. They are intentionally manual: starting the application with `make dev-run` or `make prod-run` does not apply migrations automatically.
+
+For development, start PostgreSQL and apply migrations with:
+
+```bash
+make dev-migrate
+```
+
+For production, build the release image, run the test suite, apply migrations, and then start the application:
+
+```bash
+make prod-build
+make prod-migrate  # runs `make test` first
+make prod-run
+```
+
+The migrator waits for PostgreSQL to become healthy and runs `alembic upgrade head`. Development mounts the local `alembic/` directory; production uses the migrations baked into the release image. Run migrations before starting application code that depends on a new schema.
+
+To downgrade one migration, use `make dev-downgrade` or `make prod-downgrade`. Each command prints the migration that was removed (the revision that was current before downgrade) and the revision that is current afterward.
+
 Modern web app for NGS sample/library/project tracking and NGS service request management.
 
 ## Features

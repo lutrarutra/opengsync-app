@@ -122,14 +122,16 @@ class SeqRequestForm(HTMXForm):
         self.form_type = form_type
         self.seq_request = seq_request
 
-        if form_type == "create" and seq_request is not None:
-            raise exc.OpeNGSyncServerException(
-                "SeqRequest must be None when form_type is 'create'."
-            )
-        if form_type == "edit" and seq_request is None:
-            raise exc.OpeNGSyncServerException(
-                "SeqRequest must be provided when form_type is 'edit'."
-            )
+        if form_type == "create":
+            self.post_url = responses.url_for("SeqRequestForm.Create")
+            if seq_request is not None:
+                raise exc.OpeNGSyncServerException("SeqRequest must be None when form_type is 'create'.")
+        elif form_type == "edit":
+            if seq_request is None:
+                raise exc.OpeNGSyncServerException("SeqRequest must be provided when form_type is 'edit'.")
+            self.post_url = responses.url_for("SeqRequestForm.Edit", seq_request_id=seq_request.id)
+        else:
+            raise exc.OpeNGSyncServerException("Invalid form_type. Must be 'create' or 'edit'.")
 
     @staticmethod
     def _validate_bioinformatician(form: "SeqRequestForm"):

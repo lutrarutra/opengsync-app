@@ -2,10 +2,10 @@
 
 help:
 	@echo "Error: Please specify a target."
-	@echo "Usage: make [deploy|test|debug|prod-build|prod-run|prod-logs|prod-stop|dev-build|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
+	@echo "Usage: make [deploy|test|debug|prod-build|prod-migrate|prod-downgrade|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
 CLEAN_VERSION := $(shell echo $(VERSION) | sed 's/^v//')
@@ -37,6 +37,12 @@ dev-build:
 dev-build-logs:
 	$(COMPOSE_DEV) build --progress=plain --build-arg VERSION=$(VERSION)
 
+dev-migrate:
+	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null; alembic --config /app/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null'
+
+dev-downgrade:
+	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
+
 dev-run:
 	$(COMPOSE_DEV) up -d --remove-orphans
 
@@ -59,6 +65,13 @@ prod-build:
 
 prod-build-logs:
 	$(COMPOSE_PROD) build --progress=plain --build-arg VERSION=$(VERSION)
+
+prod-migrate:
+	$(MAKE) test
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null; alembic --config /app/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null'
+
+prod-downgrade:
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
 
 prod-run:
 	$(COMPOSE_PROD) up -d --remove-orphans --wait

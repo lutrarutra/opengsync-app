@@ -29,6 +29,14 @@ COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
 COPY services/backend/pyproject.toml ./services/backend/
 RUN uv sync --frozen --no-install-project --no-dev
 
+# --- ALEMBIC MIGRATOR ---
+FROM builder AS migrator
+COPY packages/opengsync-db /app/packages/opengsync-db
+COPY alembic /app/alembic
+COPY alembic.ini /app/alembic.ini
+RUN uv sync --frozen --no-editable --no-dev
+RUN uv pip install alembic
+
 # --- SERVER ---
 FROM builder AS opengsync-app
 

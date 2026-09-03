@@ -63,7 +63,7 @@ def run_migrations_online() -> None:
     """
     user = os.environ["POSTGRES_USER"]
     password = os.environ["POSTGRES_PASSWORD"]
-    host = "localhost"
+    host = os.environ["POSTGRES_HOST"]
     port = os.environ["POSTGRES_PORT"]
     # host = os.environ["POSTGRES_SERVER_IP"]
     # port = 5432

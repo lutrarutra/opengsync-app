@@ -75,6 +75,16 @@ textarea.disabled:focus {
     }
 }
 
+/* Metadata values are read-only, but should retain the same background as
+   editable Bootstrap form controls. */
+.form-group.metadata-group input.form-control:read-only,
+.form-group.metadata-group textarea.form-control:read-only,
+.form-group.metadata-group select.form-control,
+.form-group.metadata-group .input-group-text {
+    background-color: var(--bs-body-bg) !important;
+    opacity: 1;
+}
+
 .form-check:has(input.disabled) {
     label {
         color: var(--color-gray-500) !important;

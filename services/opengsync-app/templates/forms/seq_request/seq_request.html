@@ -285,27 +285,14 @@
     <div class="footer-id"></div>
     <div class="footer-info"></div>
     <div class="footer-controls">
-      {% if form.form_type == "edit" %}
       <button
         class="btn btn-success"
         hx-include="#seq_request-form"
         hx-target="#seq_request-form-container"
         hx-swap="outerHTML"
-        hx-post="{{ url_for('SeqRequestForm.Edit', seq_request_id=seq_request.id) }}"
-      >
-        Save
+        hx-post="{{ form.post_url }}">
+        {% if form.form_type == "edit" %}Save{% else %}Create{% endif %}
       </button>
-      {% elif form.form_type == "create" %}
-      <button
-        class="btn btn-success"
-        hx-include="#seq_request-form"
-        hx-target="#seq_request-form-container"
-        hx-swap="outerHTML"
-        hx-post="{{ url_for('SeqRequestForm.Create') }}"
-      >
-        Create
-      </button>
-      {% endif %}
     </div>
   </div>
 

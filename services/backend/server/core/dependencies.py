@@ -187,8 +187,6 @@ def require_user(user: models.User | None = Depends(get_user)) -> models.User:
     return user
 
 def require_admin(user: models.User = Depends(require_user)) -> models.User:
-    from loguru import logger
-    logger.debug(f"Checking admin privileges for user {user.id} with role {user.role}")
     if user.role != C.UserRole.ADMIN:
         raise exc.NoPermissionsException(detail="Admin privileges required")
     return user
