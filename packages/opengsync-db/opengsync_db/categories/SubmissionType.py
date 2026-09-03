@@ -18,6 +18,7 @@ class SubmissionType(ExtendedEnum):
     RAW_SAMPLES = SubmissionTypeEnum(1, "Raw Samples", "Raw", "Submit raw samples for library preparation and sequencing.")
     POOLED_LIBRARIES = SubmissionTypeEnum(2, "Pooled Libraries", "Pooled", "Submit ready-to-sequence pooled libraries for sequencing.")
     UNPOOLED_LIBRARIES = SubmissionTypeEnum(3, "Un-Pooled Libraries", "Un-Pooled", "Submit un-pooled libraries for pooling and sequencing.")
+    QC_ONLY = SubmissionTypeEnum(4, "QC Only", "QC", "Submit libraries for quality control only; they will not be sequenced.")
 
     @classmethod
     def as_selectable(cls, inlcude_unpooled_libraries: bool = True) -> list[tuple[int, str]]:

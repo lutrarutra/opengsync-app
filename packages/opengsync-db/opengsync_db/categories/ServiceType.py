@@ -1,8 +1,7 @@
-from typing import Optional
 from dataclasses import dataclass, field
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
-from .LibraryType import LibraryType, LibraryTypeEnum
+from .LibraryType import LibraryType
 
 
 @dataclass(eq=False, frozen=True)
