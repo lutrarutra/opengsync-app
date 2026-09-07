@@ -288,8 +288,6 @@ def test_optional_fields_can_be_omitted_on_create(
         "technical_info-read_length",
         "technical_info-num_lanes",
         "technical_info-special_requirements",
-        "contact-pi_name",
-        "contact-pi_email",
         "bioinformatician-name",
         "bioinformatician-email",
         "bioinformatician-phone",
@@ -313,7 +311,9 @@ def test_optional_fields_can_be_omitted_on_create(
     assert request.num_lanes is None
     assert request.special_requirements is None
     assert request.bioinformatician_contact is None
-    assert request.pi_contact is None
+    assert request.pi_contact is not None
+    assert request.pi_contact.name == "Principal Investigator"
+    assert request.pi_contact.email == "pi@example.com"
     assert request.billing_contact.phone is None
     assert request.billing_code is None
 
