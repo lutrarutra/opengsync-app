@@ -48,7 +48,7 @@
                 </td>
                 <td>
                     <span {{ tooltip(library.type.label) }}>
-                        {{ library.type.identifier }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
+                        {{ library.type.identifier }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.label }}</td>
@@ -56,7 +56,7 @@
                     context_menu([
                         {"type": "copy", "value": library.seq_request.name, "label": "Copy Name"},
                     ])
-                }}><a href="{{ url_for('seq_request_page', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
+                }}><a href="{{ url_for('seq_request_page', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="text-muted">(QC)</sup>{% endif %}</a></td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>

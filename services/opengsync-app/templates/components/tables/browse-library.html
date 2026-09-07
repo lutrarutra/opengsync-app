@@ -23,7 +23,7 @@
                 <td>{{ library.name }}</td>
                 <td>
                     <span {{ tooltip(library.type.label) }}>
-                        {{ library.type.abbreviation }}
+                        {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}
                     </span>
                 </td>
                 <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>

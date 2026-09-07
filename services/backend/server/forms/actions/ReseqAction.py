@@ -49,6 +49,8 @@ class ReseqAction(HTMXForm):
             # Validate context and permissions
             if seq_request_id is not None:
                 seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
+                if seq_request.submission_type == C.SubmissionType.QC_ONLY:
+                    raise exc.BadRequestException("QC-only requests cannot be re-sequenced.")
                 if session.get_access_level(Q.seq_request.permissions(seq_request.id, user.id)) < C.AccessLevel.WRITE:
                     raise exc.NoPermissionsException()
             elif lab_prep_id is not None:
@@ -76,6 +78,11 @@ class ReseqAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             indexed = form.reprep_type.data == 0
+
+            if form.seq_request_id is not None:
+                seq_request = session.get_one(Q.seq_request.select(id=form.seq_request_id))
+                if seq_request.submission_type == C.SubmissionType.QC_ONLY:
+                    raise exc.BadRequestException("QC-only requests cannot be re-sequenced.")
 
             for library in form.selected_library_ids.get_selected_libraries(session=session):
                 seq_request_id = library.seq_request_id

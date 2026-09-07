@@ -41,7 +41,7 @@
                         <tr id="selected-library-row-{{ library.id }}" class="library-row selected">
                             <th scope="row">{{ library.id }}</th>
                             <td>{{ library.name }}</td>
-                            <td>{{ library.type.abbreviation }}</td>
+                            <td>{{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}</td>
                             <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
                             <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                         </tr>

@@ -397,6 +397,8 @@ def clone_seq_request(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
+    if seq_request.submission_type == C.SubmissionType.QC_ONLY:
+        raise exc.BadRequestException("QC-only requests cannot be cloned.")
     cloned_request = actions.clone_seq_request(session=session, seq_request=seq_request, method=method)
     cloned_request.status = C.SeqRequestStatus.DRAFT
     return responses.htmx_response(

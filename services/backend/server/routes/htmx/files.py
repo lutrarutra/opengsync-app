@@ -38,6 +38,11 @@ BROWSER_RENDERABLE_EXTENSIONS = {
 
 router = APIRouter(prefix="/files", tags=["files"])
 
+# Register form routes before the catch-all browser routes below. Starlette
+# matches routes in declaration order, so otherwise GET /upload is consumed by
+# /{subpath:path} and renders the file browser instead of the upload form.
+router.include_router(MediaFileForm.Router())
+
 _CANARY_TIMEOUT_S = 2.0
 
 
@@ -361,4 +366,3 @@ def render_file_browser_page(
 
 router.include_router(ShareDirectoryAction.Router())
 router.include_router(AssociatePathAction.Router())
-router.include_router(MediaFileForm.Router())

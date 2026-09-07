@@ -1,6 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
-
 <div id="experiment-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Experiment</h1>
@@ -8,23 +5,23 @@
     </div>
     <div class="modal-body">
         <div id="experiment-form">
-            {{ form.csrf_token() }}
+            {{ form.csrf_token.render() }}
                 
             <div class="row">
-                {{ form_group(form.name, class="col-4") }}
-                {{ select_input(form.workflow, class="col-4") }}
-                {{ search_select_field(form.sequencer, url_for('search_sequencers'), "name", class="col-4") }}
+                {{ form.name.render("col-4") }}
+                {{ form.workflow.render("col-4") }}
+                {{ form.sequencer.render("col-4") }}
             </div>
             <div class="row">
-                {{ search_select_field(form.operator, url_for('search_users'), "name", class="col-6") }}
-                {{ select_input(form.status, class="col-6") }}
+                {{ form.operator.render("col-6") }}
+                {{ form.status.render("col-6") }}
             </div>
 
             <div class="row">
-                {{ form_group(form.r1_cycles, class="col-3") }}
-                {{ form_group(form.i1_cycles, class="col-3") }}
-                {{ form_group(form.i2_cycles, class="col-3") }}
-                {{ form_group(form.r2_cycles, class="col-3") }}
+                {{ form.r1_cycles.render("col-3") }}
+                {{ form.i1_cycles.render("col-3") }}
+                {{ form.i2_cycles.render("col-3") }}
+                {{ form.r2_cycles.render("col-3") }}
             </div>
         </div>
     </div>

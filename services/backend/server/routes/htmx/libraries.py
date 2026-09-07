@@ -185,7 +185,11 @@ def search_libraries(
     if not current_user.is_insider:
         stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
 
-    libraries, _ = session.page(stmt, page=page)
+    libraries, _ = session.page(
+        stmt,
+        page=page,
+        options=[orm.selectinload(models.Library.seq_request)],
+    )
     return responses.htmx_response(template="components/search/library.html", libraries=libraries)
 
 

@@ -188,7 +188,7 @@
             </div>
             <ol class="mt-2">
               {% for st in
-              C.SubmissionType.as_list(include_unpooled_libraries=False) %}
+              C.SubmissionType.as_list(include_unpooled_libraries=True) %}
               <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
               {% endfor %}
             </ol>

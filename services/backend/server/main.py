@@ -83,5 +83,7 @@ if config.settings.ENVIRONMENT != "production":
 
 
 
-if config.settings.ENVIRONMENT in ("dev", "test"):
-    app.mount("/static", StaticFiles(directory="/static"), name="static")
+# Static assets are required in every environment. Production images copy the
+# JavaScript/images/resources into /static, while development mounts them from
+# the application source tree.
+app.mount("/static", StaticFiles(directory="/static"), name="static")

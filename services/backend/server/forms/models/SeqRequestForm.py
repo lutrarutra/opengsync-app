@@ -178,13 +178,16 @@ class SeqRequestForm(HTMXForm):
     def RenderEdit(cls) -> RouteFunc:
         def route(
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-            current_user: models.User = Depends(dependencies.require_user),
+            _ = Depends(dependencies.require_user),
             form: "SeqRequestForm" = Depends(SeqRequestForm.Init(form_type="edit"))
         ):
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this request.")
             if form.seq_request is None:
                 raise exc.OpeNGSyncServerException("SeqRequest ID must be provided for edit form.")
+
+            form.disclaimer.validated = True
+            form.disclaimer.accepted.data = True
             
             form.basic_info.name.data = form.seq_request.name or ""
             form.basic_info.description.data = form.seq_request.description or ""
@@ -368,6 +371,7 @@ class SeqRequestForm(HTMXForm):
             seq_request_id: int,
             request: Request,
             session: SyncSession = Depends(dependencies.db_session),
+            _ = Depends(dependencies.require_user),
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
             form: "SeqRequestForm" = Depends(SeqRequestForm.Validate(form_type="edit")),
         ) -> Response:

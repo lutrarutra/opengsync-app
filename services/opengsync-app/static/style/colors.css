@@ -86,6 +86,11 @@ sup.mux-type {
     color: var(--color-cemm-green-dark) !important;
 }
 
+sup.qc-type {
+    color: var(--color-cemm-blue-dark) !important;
+    font-weight: 600;
+}
+
 /* Print Window Logic */
 @media print {
     .print-window .cemm-blue,

@@ -94,7 +94,19 @@ class StoreSamplesAction(HTMXForm):
                     logger.error(f"SeqRequest {_srid} not found")
                     raise Exception(f"SeqRequest {_srid} not found")
 
-                if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
+                if seq_request.submission_type == C.SubmissionType.QC_ONLY:
+                    all_libraries_stored = all(
+                        library.status >= C.LibraryStatus.STORED
+                        for library in seq_request.libraries
+                    )
+                    if all_libraries_stored and seq_request.libraries:
+                        for library in seq_request.libraries:
+                            library.status = C.LibraryStatus.QC_PENDING
+                            session.save(library)
+                        seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
+                        session.save(seq_request)
+
+                elif seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
                     all_samples_stored = True
                     for sample in seq_request.samples:
                         all_samples_stored = sample.status >= C.SampleStatus.STORED and all_samples_stored

@@ -13,8 +13,8 @@ from . import links
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
-    LibraryType, LibraryType, LibraryStatus, LibraryStatus, GenomeRef,
-    GenomeRef, ServiceType, ServiceType, MUXType, MUXType, IndexType, IndexType
+    LibraryType, LibraryStatus, GenomeRef,
+    ServiceType, MUXType, IndexType
 )
 
 if TYPE_CHECKING:
