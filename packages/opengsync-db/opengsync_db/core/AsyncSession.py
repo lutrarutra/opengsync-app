@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Sequence, AsyncIterator
+from typing import TYPE_CHECKING, Any
+from collections.abc import AsyncIterator, Sequence
 
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc

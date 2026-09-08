@@ -2,15 +2,15 @@ from opengsync_db import categories
 import requests
 import pandas as pd
 
-
+from pydantic import SecretStr
 
 class OpeNGSyncAPI:
-    def __init__(self, base_url, api_token: str):
+    def __init__(self, base_url, api_token: SecretStr):
         self.base_url = base_url.rstrip("/")
         self.api_token = api_token
 
     def _headers(self) -> dict[str, str]:
-        return {"X-API-Token": self.api_token}
+        return {"X-API-Token": self.api_token.get_secret_value()}
 
     def get_status(self):
         response = requests.get(f"{self.base_url}/api/status")

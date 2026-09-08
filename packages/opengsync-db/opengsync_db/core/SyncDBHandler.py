@@ -1,7 +1,8 @@
 import threading
-from typing import Optional, Union
+from typing import Optional
 
 import loguru
+from pydantic import SecretStr
 from sqlalchemy import create_engine, Engine
 from sqlalchemy import orm
 import sqlalchemy as sa
@@ -34,8 +35,10 @@ class SyncDBHandler:
         self.actions = ActionsBP("actions", self)
 
     def connect(
-        self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
+        self, user: str, password: str | SecretStr, host: str, db: str = "opengsync_db", port: str | int = 5432
     ) -> None:
+        if isinstance(password, SecretStr):
+            password = password.get_secret_value()
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self.public_url = f"postgresql+psycopg://{host}:{port}/{db}"
         
@@ -47,7 +50,7 @@ class SyncDBHandler:
             with self._engine.connect() as conn:
                 conn.execute(sa.text("SELECT 1"))
         except Exception as e:
-            raise Exception(f"Could not connect to DB '{self.public_url}':\n{e}")
+            raise ConnectionError(f"Could not connect to DB '{self.public_url}':\n{e}") from e
             
         self.session_factory = orm.sessionmaker(
             bind=self._engine, 
@@ -56,7 +59,7 @@ class SyncDBHandler:
             default_limit=self.default_limit,
         )
         SyncDBHandler.Session = orm.scoped_session(self.session_factory)
-        from . import listeners
+        from . import listeners  # noqa: F401
 
     @staticmethod
     def AdminURL(user: str, password: str, host: str, db: str, port: str | int) -> str:
@@ -75,7 +78,7 @@ class SyncDBHandler:
     @property
     def session(self) -> SyncSession:
         if self._session is None:
-            raise Exception("Session is not open.")
+            raise RuntimeError("Session is not open.")
         return self._session
 
     def open_session(self, autoflush: bool = True) -> SyncSession:

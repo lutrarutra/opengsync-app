@@ -1,4 +1,4 @@
-from uuid import uuid7
+from uuid6 import uuid7
 import sqlalchemy as sa
 from sqlalchemy import sql
 

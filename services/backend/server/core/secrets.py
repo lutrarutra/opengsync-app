@@ -33,7 +33,7 @@ def url_safe_token(length: int = 32) -> str:
     return secrets.token_urlsafe(length)
 
 def create_password_reset_token(user_id: int, valid_minutes: int = 60 * 24) -> str:
-    expire = dt.datetime.now() + dt.timedelta(minutes=valid_minutes)
+    expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(minutes=valid_minutes)
     payload = {
         "user_id": user_id,
         "exp": expire,
@@ -55,7 +55,7 @@ def verify_password_reset_token(token: str) -> int | None:
         return None
     
 def generate_registration_token(email: str, role: UserRole, valid_minutes: int = 60 * 24) -> str:
-    expire = dt.datetime.now() + dt.timedelta(minutes=valid_minutes)
+    expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(minutes=valid_minutes)
     payload = {
         "email": email,
         "role": role.id,
@@ -86,7 +86,7 @@ def verify_registration_token(token: str) -> tuple[str, UserRole] | None:
     
 
 def create_login_token(user: models.User, valid_days: int = 7) -> str:
-    expire = dt.datetime.now() + dt.timedelta(days=valid_days)
+    expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(days=valid_days)
     payload = {
         "id": user.id,
         "exp": expire.timestamp(),

@@ -8,7 +8,7 @@ description = "Database for NGS sample/library/project tracking app."
 authors = [
     { name = "lutrarutra", email = "lutrarutra@pm.me" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dynamic = ["version"]
 dependencies = [
     "numpy>= 2.2",

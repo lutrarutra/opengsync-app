@@ -1,7 +1,9 @@
-from typing import Optional, Union
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
-import loguru
+from pydantic import SecretStr
 import sqlalchemy as sa
+import loguru
 
 from .AsyncSession import AsyncSession
 
@@ -17,15 +19,17 @@ class AsyncDBHandler:
         default_row_limit: int | None = 10,
     ):
         self._logger = logger
-        self._engine: Optional[AsyncEngine] = None
+        self._engine: AsyncEngine | None = None
         self.expire_on_commit = expire_on_commit
         self.auto_open = auto_open
         self.auto_commit = auto_commit
         self.default_limit = default_row_limit
 
     async def connect(
-        self, user: str, password: str, host: str, db: str = "token_db", port: Union[str, int] = 5432
+        self, user: str, password: str | SecretStr, host: str, db: str = "token_db", port: str | int = 5432
     ) -> None:
+        if isinstance(password, SecretStr):
+            password = password.get_secret_value()
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self.public_url = f"postgresql+psycopg://{host}:{port}/{db}"
         
@@ -35,7 +39,7 @@ class AsyncDBHandler:
             async with self._engine.connect() as conn:
                 await conn.execute(sa.text("SELECT 1"))
         except Exception as e:
-            raise Exception(f"Could not connect to DB '{self.public_url}':\n{e}")
+            raise ConnectionError(f"Could not connect to DB '{self.public_url}':\n{e}") from e
             
         self.session_factory = async_sessionmaker(
             bind=self._engine, 
