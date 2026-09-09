@@ -1,9 +1,11 @@
+import datetime as dt
+
 from fastapi import Request, Depends
 from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession, models
 
-from ...core import responses, dependencies, exceptions as exc, secrets
+from ...core import responses, dependencies, exceptions as exc, secrets, redis as rds
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
@@ -53,6 +55,7 @@ class ResetPasswordForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
             bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
             form: "ResetPasswordForm" = Depends(ResetPasswordForm.Validate()),
+            r: rds.RedisClient = Depends(dependencies.redis),
             _ = Depends(dependencies.audit_log)
         ) -> Response:
             user_id = secrets.verify_password_reset_token(form.token)
@@ -66,6 +69,8 @@ class ResetPasswordForm(HTMXForm):
 
             user = session.get_one(Q.user.select(id=user_id))
             user.password = bcrypt.generate_password_hash(form.password.data)
+            user.pw_set_datetime = dt.datetime.now(dt.timezone.utc)
+            r.delete(f"user:{user.id}")
 
             return responses.htmx_response(
                 redirect=responses.url_for("login_page"),

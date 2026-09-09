@@ -3,9 +3,12 @@ import re
 import json
 import unicodedata
 import difflib
-from collections.abc import Generator, Hashable
-from typing import Union, TypeVar, Optional
+from collections.abc import Generator, Hashable, Mapping
+from enum import Enum
+from types import UnionType
+from typing import Optional, TypeVar, Union, get_args, get_origin
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, TypeAdapter
 
@@ -26,14 +29,14 @@ def check_string(val: str | None, allowed_special_characters: list[str] | tuple[
     Returns:
         str | None: Returns None if the string is valid, otherwise returns an error message.
     """
-    if pd.isna(val):
+    if pd.isna(val):  # type: ignore
         if not required:
             return None
         return "Value is missing."
     
     allowed_characters = string.ascii_letters + string.digits + "".join(allowed_special_characters)
     
-    for c in val:
+    for c in val:  # type: ignore
         if c not in allowed_characters:
             return "Invalid character in name: '" + c + f"'. You can only use letters, digits and the following special characters: {allowed_special_characters}"
         
@@ -49,7 +52,7 @@ def make_filenameable(val, keep: list[str] | tuple[str, ...] = ('-', '.', '_')) 
 
 
 def make_alpha_numeric(val: str | None, keep: list[str] | tuple[str, ...] = (".", "-", "_"), replace_white_spaces_with: str | None = "_") -> str | None:
-    if pd.isna(val) or not val:
+    if pd.isna(val) or not val:  # type: ignore
         return None
     
     if replace_white_spaces_with is not None:
@@ -64,7 +67,7 @@ def make_alpha_numeric(val: str | None, keep: list[str] | tuple[str, ...] = ("."
 
 
 def parse_float(val: Union[int, float, str, None]) -> float | None:
-    if isinstance(val, int) or isinstance(val, float):
+    if isinstance(val, int) or isinstance(val, float):  # type: ignore
         return float(val)
     if isinstance(val, str):
         try:
@@ -243,10 +246,88 @@ def to_json(df: pd.DataFrame) -> str:
 
 
 def is_valid_email(email: str | None) -> bool:
-    if pd.isna(email) or not email:
+    if pd.isna(email) or not email:  # type: ignore
         return False
     # basic check for email validity
     return "@" in email and "." in email.split("@")[-1]
+
+
+def _unwrap_numpy_scalar(val: object) -> object:
+    """Convert numpy scalars and 0-d arrays to native Python types."""
+    if isinstance(val, np.generic) or (isinstance(val, np.ndarray) and val.ndim == 0):
+        return val.item()
+    return val
+
+def is_missing(val: object) -> bool:
+    """True only for scalar NA (None, NaN, NaT, pd.NA). Lists and arrays are never missing."""
+    if not pd.api.types.is_scalar(val):
+        return False
+    missing = pd.isna(val)
+    return isinstance(missing, (bool, np.bool_)) and bool(missing)
+
+
+def _is_enum_annotation(annotation: object) -> bool:
+    origin = get_origin(annotation)
+    if origin is Union or origin is UnionType:
+        args = [a for a in get_args(annotation) if a is not type(None)]
+        return len(args) == 1 and _is_enum_annotation(args[0])
+    return isinstance(annotation, type) and issubclass(annotation, Enum)
+
+
+def validate_row(row: Mapping[str, object] | pd.Series, model: type[M]) -> M:
+    """Validate a mapping or Series against a Pydantic model.
+
+    Only keys matching ``model`` fields are included. NaN/NaT values
+    are converted to ``None``, and numpy scalars are unwrapped to
+    native Python types before validation.
+
+    Fields without a default must be present. Fields with a default
+    (``bonus: int = 0``, ``note: str | None = None``) are optional
+    columns and are filled in when absent::
+
+        class User(BaseModel):
+            id: int
+            score: float | None
+            bonus: int = 0
+
+    Raises:
+        pydantic.ValidationError: If the row fails validation or a
+            required column is missing.
+    """
+    data: dict[str, object] = {}
+    for col in model.model_fields:
+        if col not in row:
+            continue
+        val = _unwrap_numpy_scalar(row[col])
+        data[col] = None if is_missing(val) else val
+    return model.model_validate(data)
+
+
+def validate(df: pd.DataFrame, model: type[M]) -> pd.DataFrame:
+    """Validate a DataFrame against a Pydantic model and return a DataFrame of dumped rows.
+
+    Enum fields (including ``IntEnum`` / ``ExtendedEnum``) are kept as
+    enum members, not converted to ints.
+
+    Raises:
+        pydantic.ValidationError: Immediately on the first row that fails
+            validation.
+    """
+    columns = list(model.model_fields.keys())
+    data: dict[str, list[object]] = {name: [] for name in columns}
+    for _, row in df.iterrows():
+        instance = validate_row(row, model)
+        for name in columns:
+            data[name].append(getattr(instance, name))
+
+    return pd.DataFrame({
+        name: (
+            pd.Series(values, dtype="object")
+            if _is_enum_annotation(model.model_fields[name].annotation)
+            else values
+        )
+        for name, values in data.items()
+    })
 
 
 def safe_iter(
@@ -276,9 +357,6 @@ def safe_iter(
         pydantic.ValidationError: Immediately on the first row or index
             that fails validation.
     """
-    model_fields = set(model.model_fields.keys())
-    columns = [col for col in df.columns if col in model_fields]
-
     _validate_index = index_type is not Hashable
     if _validate_index:
         index_adapter = TypeAdapter(index_type)
@@ -286,18 +364,7 @@ def safe_iter(
     for idx, row in df.iterrows():
         if _validate_index:
             idx = index_adapter.validate_python(idx)  # type: ignore[assignment]
-
-        row_dict: dict[str, object] = {}
-        for col in columns:
-            val = row[col]
-            if pd.isna(val):
-                row_dict[col] = None
-            elif hasattr(val, 'item'):
-                row_dict[col] = val.item()  # type: ignore[union-attr]
-            else:
-                row_dict[col] = val
-
-        yield idx, model.model_validate(row_dict)  # type: ignore[return-type]
+        yield idx, validate_row(row, model)  # type: ignore[return-value]
 
 
 def safe_groupby(
@@ -336,13 +403,4 @@ def safe_groupby(
         else:
             raw_key = {by_cols[0]: group_key}
 
-        key_dict: dict[str, object] = {}
-        for col, val in raw_key.items():
-            if pd.isna(val):
-                key_dict[col] = None
-            elif hasattr(val, "item"):
-                key_dict[col] = val.item()
-            else:
-                key_dict[col] = val
-
-        yield key_model.model_validate(key_dict), group_df
+        yield validate_row(raw_key, key_model), group_df

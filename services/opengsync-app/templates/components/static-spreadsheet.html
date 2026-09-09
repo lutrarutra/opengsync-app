@@ -4,7 +4,7 @@
 </div>
 <script>
     $(document).ready(function() {
-        load_jspreadsheet().then(() => {
+        load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
             window.jspreadsheet(document.getElementById("{{ spreadsheet._id }}"), {
                 worksheets: [{
                     data: {{ spreadsheet._data | tojson }},

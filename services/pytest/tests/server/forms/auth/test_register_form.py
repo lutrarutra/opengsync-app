@@ -1,7 +1,5 @@
 """RegisterForm: GET rendering, role/domain checks, CSRF, and mail/redirect behavior."""
 
-import pytest
-
 from opengsync_db import SyncSession, queries as Q
 from opengsync_db.categories import UserRole
 
@@ -51,7 +49,7 @@ def test_register_get_insider_includes_role(client: OpenGSyncTestClient, insider
     assert 'name="role"' in response.text
 
 
-def test_register_new_email_sends_welcome_back(
+def test_register_new_email_sends_registration_link(
     client: OpenGSyncTestClient, fake_mailer, session: SyncSession,
 ):
     email = "new-user@example.com"
@@ -59,12 +57,15 @@ def test_register_new_email_sends_welcome_back(
     response = _register(client, email)
 
     assert_htmx_redirect(response, contains="/auth/login")
-    assert fake_mailer.welcome_back == [email]
-    assert fake_mailer.registration == []
+    assert fake_mailer.welcome_back == []
+    assert len(fake_mailer.registration) == 1
+    sent_email, link = fake_mailer.registration[0]
+    assert sent_email == email
+    assert "/auth/complete-registration/" in link
     assert session.first(Q.user.select(email=email)) is None
 
 
-def test_register_existing_email_sends_registration_link(
+def test_register_existing_email_sends_welcome_back(
     client: OpenGSyncTestClient, fake_mailer, session: SyncSession, user,
 ):
     before = session.count(Q.user.select())
@@ -72,11 +73,8 @@ def test_register_existing_email_sends_registration_link(
     response = _register(client, user.email)
 
     assert_htmx_redirect(response, contains="/auth/login")
-    assert fake_mailer.welcome_back == []
-    assert len(fake_mailer.registration) == 1
-    sent_email, link = fake_mailer.registration[0]
-    assert sent_email == user.email
-    assert "/auth/complete-registration/" in link
+    assert fake_mailer.welcome_back == [user.email]
+    assert fake_mailer.registration == []
     assert session.count(Q.user.select()) == before
 
 
@@ -126,7 +124,8 @@ def test_register_whitelisted_domain_succeeds(client: OpenGSyncTestClient, fake_
     try:
         response = _register(client, "user@example.com")
         assert_htmx_redirect(response, contains="/auth/login")
-        assert fake_mailer.welcome_back == ["user@example.com"]
+        assert fake_mailer.welcome_back == []
+        assert len(fake_mailer.registration) == 1
     finally:
         config.settings.app_config.email_domain_white_list[:] = original
 
@@ -143,7 +142,8 @@ def test_register_insider_bypasses_domain_whitelist(
             client, "user@example.com", role=UserRole.CLIENT.id, token=insider_token,
         )
         assert_htmx_redirect(response, contains="/auth/login")
-        assert fake_mailer.welcome_back == ["user@example.com"]
+        assert fake_mailer.welcome_back == []
+        assert len(fake_mailer.registration) == 1
     finally:
         config.settings.app_config.email_domain_white_list[:] = original
 
@@ -172,7 +172,8 @@ def test_register_technician_can_request_deactivated(
         client, "user@example.com", role=UserRole.DEACTIVATED.id, token=insider_token,
     )
     assert_htmx_redirect(response, contains="/auth/login")
-    assert fake_mailer.welcome_back == ["user@example.com"]
+    assert fake_mailer.welcome_back == []
+    assert len(fake_mailer.registration) == 1
 
 
 def test_register_invalid_role_rerenders(client: OpenGSyncTestClient, fake_mailer, insider_token: str):
@@ -187,7 +188,11 @@ def test_register_mailer_failure_does_not_create_user(
     client.app.state.mailer = FailingMailer()
     email = "new-user@example.com"
 
-    with pytest.raises(RuntimeError, match="smtp down"):
+    try:
         _register(client, email)
+    except RuntimeError as error:
+        assert str(error) == "smtp down"
+    else:
+        assert False, "Expected the mailer failure to propagate"
 
     assert session.first(Q.user.select(email=email)) is None

@@ -9,13 +9,15 @@
 hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-feed-indicator" hx-swap="outerHTML" hx-indicator="#projects-feed-indicator"
 {% endif %}>
     <div class="row">
-        <div class="col-6">
-            <a type="button" href="{{ url_for('project_page', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a> {% if project.assignees %} - {{ assignee_list(project.assignees, current_user=current_user) }}{% endif %}
+        <div class="col-4">
+            <a type="button" href="{{ url_for('project_page', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a> 
         </div>
-        <div class="col-6">
+        <div class="col-8">
             {% if current_user.is_insider and current_user not in project.assignees %}
-            <button type="button" {{ tooltip("Assign Me", category="success", position="left") }} class="btn" hx-post="{{ url_for('AddProjectAssigneeAction.AssignMe', project_id=project.id, context='dashboard') }}"><i class="bi bi-person-fill-add"></i></button>
+            <button type="button" class="btn" {{ tooltip("Assign Me", category="success", position="left") }}
+            hx-post="{{ url_for('add_project_assignee', project_id=project.id) }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
+            {% if project.assignees %}{{ assignee_list(project.assignees, current_user=current_user, delete_url=url_for('remove_project_assignee', project_id=project.id, assignee_id=current_user.id)) }}{% endif %}
             <span class="badge">{{ project.timestamp_created_str("%-d. %b. %Y") }}</span>
             <span class="badge">Samples: {{ project.num_samples }}</span>
         </div>

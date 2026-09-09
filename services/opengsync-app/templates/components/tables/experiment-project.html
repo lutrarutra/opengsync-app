@@ -28,18 +28,20 @@
                         {{ project.id }}
                         <span class="scroll-container">
                             {% if current_user not in project.assignees %}
-                            <button type="button" {{ tooltip("Assign Me", category="success", position="left") }} class="btn assignee-btn" hx-post="{{ url_for('AddProjectAssigneeAction.AssignMe', project_id=project.id, experiment_id=experiment.id, sort_by=sort_by, sort_order=sort_order, page=active_page) }}" hx-target="#experiment-project-table" hx-swap="outerHTML"><i class="bi bi-person-fill-add"></i></button>
+                            <button type="button" class="btn assignee-badge"  {{ tooltip("Assign Me", category="success") }}
+                            hx-post="{{ url_for('add_project_assignee', project_id=project.id) }}"
+                            hx-target="#experiment-project-table"><i class="bi bi-person-fill-add"></i></button>
                             {% endif %}
-                            {{ assignee_list(project.assignees, current_user=current_user) }}
+                            {{ assignee_list(project.assignees, current_user=current_user, delete_url=url_for('remove_project_assignee', project_id=project.id, assignee_id=current_user.id)) }}
                         </span>
                     </span>
                 </th>
-                <td><a href="{{ url_for('project_page', project_id=project.id, from='experiment@' + experiment.id | string) }}">{{ project.identifier or "" }}</a></td>
-                <td><a href="{{ url_for('project_page', project_id=project.id, from='experiment@' + experiment.id | string) }}">{{ project.title }}</a></td>
+                <td><a href="{{ url_for('project_page', project_id=project.id, from='experiment@' + experiment_id | string) }}">{{ project.identifier or "" }}</a></td>
+                <td><a href="{{ url_for('project_page', project_id=project.id, from='experiment@' + experiment_id | string) }}">{{ project.title }}</a></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
                 <td>{{ project.status.icon }} {{ project.status.label }}</td>
                 <td>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
-                <td><a href="{{ url_for('user_page', user_id=project.owner_id, from='experiment@' + experiment.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('user_page', user_id=project.owner_id, from='experiment@' + experiment_id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

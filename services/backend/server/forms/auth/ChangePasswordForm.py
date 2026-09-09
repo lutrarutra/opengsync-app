@@ -1,9 +1,11 @@
-from fastapi import Request, Depends, Query
+import datetime as dt
+
+from fastapi import Depends, Query
 from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
-from ...core import responses, dependencies, exceptions as exc, secrets
+from ...core import responses, dependencies, exceptions as exc, secrets, redis as rds
 from ...components import inputs
 from ..HTMXForm import HTMXForm, FormFunc, htmx_route, RouteFunc
 
@@ -12,13 +14,13 @@ class ChangePasswordForm(HTMXForm):
     template_path = "forms/auth/change_password.html"
 
     current_password = inputs.string.PasswordInputField("Current Password")
-    new_password = inputs.string.PasswordInputField("New Password", min_length=8)
-    confirm_new_password = inputs.string.PasswordInputField("Confirm New Password")
+    new_password = inputs.string.PasswordInputField("New Password", min_length=8, autocomplete="new-password")
+    confirm_new_password = inputs.string.PasswordInputField("Confirm New Password", autocomplete="new-password")
 
     def __init__(self, user: models.User):
         super().__init__()
         self.user = user
-        self.post_url = responses.url_for("ChangePasswordForm.Submit", user_id=user.id)
+        self.post_url = responses.url_for("ChangePasswordForm.Submit").include_query_params(user_id=user.id)
 
     @classmethod
     def Init(cls) -> FormFunc:
@@ -47,15 +49,18 @@ class ChangePasswordForm(HTMXForm):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
+            session: SyncSession = Depends(dependencies.db_session),
             form: "ChangePasswordForm" = Depends(ChangePasswordForm.Validate()),
             bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
             current_user: models.User = Depends(dependencies.require_user),
             access_level: C.AccessLevel = Depends(dependencies.user_permissions),
+            r: rds.RedisClient = Depends(dependencies.redis),
         ) -> Response:
             if current_user.id != form.user.id and access_level < C.AccessLevel.ADMIN:
                 raise exc.NoPermissionsException("You do not have permission to change this user's password.")
 
-            if not bcrypt.check_password_hash(form.user.password, form.current_password.data):
+            user = session.get_one(Q.user.select(id=form.user.id))
+            if not bcrypt.check_password_hash(user.password, form.current_password.data):
                 form.current_password.errors.append("Current password is incorrect.")
                 raise exc.FormValidationException(form)
 
@@ -63,7 +68,9 @@ class ChangePasswordForm(HTMXForm):
                 form.confirm_new_password.errors.append("New passwords do not match.")
                 raise exc.FormValidationException(form)
 
-            form.user.password = bcrypt.generate_password_hash(form.new_password.data)
+            user.password = bcrypt.generate_password_hash(form.new_password.data)
+            user.pw_set_datetime = dt.datetime.now(dt.timezone.utc)
+            r.delete(f"user:{user.id}")
 
             if current_user.id == form.user.id:
                 resp = responses.htmx_response(
@@ -74,8 +81,8 @@ class ChangePasswordForm(HTMXForm):
                 resp.delete_cookie(key="csrf_token", path="/", samesite="lax")
                 return resp
 
-            return responses.html_response(
-                redirect=responses.url_for("user_page", user_id=form.user.id),
+            return responses.htmx_response(
+                redirect=responses.url_for("user_page", user_id=user.id),
                 flash=responses.flash("Password Changed!", "success"),
             )
         return route

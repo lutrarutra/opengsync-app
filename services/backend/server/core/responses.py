@@ -31,6 +31,7 @@ def html_response(
     redirect: URL | None = None, 
     status: int = 200, 
     response: Response | None = None,
+    flash: FlashMessage | str | None = None,
     **context
 ) -> Response:
     if redirect:
@@ -51,6 +52,20 @@ def html_response(
             if header.lower() == b"set-cookie":
                 resp.raw_headers.append((header, value))
     
+    if flash:
+        flash_data = flash.model_dump() if isinstance(flash, FlashMessage) else {
+            "message": flash,
+            "category": "info",
+        }
+        resp.set_cookie(
+            key="flash_message",
+            value=quote(json.dumps(flash_data)),
+            max_age=60,
+            httponly=False,
+            samesite="lax",
+            path="/",
+        )
+
     return resp
 
 def htmx_response(

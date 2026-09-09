@@ -9,11 +9,14 @@
 hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq-requests-feed-indicator" hx-swap="outerHTML" hx-indicator="#seq-requests-feed-indicator"
 {% endif %}>
     <div class="row">
-        <div class="col-6"><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
-        <div class="col-6">
+        <div class="col-4">
+            <a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a>
+        </div>
+        <div class="col-8">
             {% if current_user.is_insider and current_user not in seq_request.assignees %}
             <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('add_assignee_to_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
+            {% if seq_request.assignees %}{{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}
             <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
             <span class="badge">{{ seq_request.submission_type.display_name }}</span>
         </div>

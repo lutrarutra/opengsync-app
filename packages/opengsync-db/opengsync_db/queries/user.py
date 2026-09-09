@@ -1,3 +1,5 @@
+import datetime as dt
+
 import sqlalchemy as sa
 from sqlalchemy import sql
 
@@ -11,12 +13,14 @@ def create(
     first_name: str,
     last_name: str,
     role: UserRole,
+    pw_set_datetime: dt.datetime | None = None,
 ) -> User:
     user = User(
         email=email.strip().lower(),
         first_name=first_name.strip(),
         last_name=last_name.strip(),
         password=hashed_password,
+        pw_set_datetime=pw_set_datetime,
         role_id=role.id,
     )
     return user

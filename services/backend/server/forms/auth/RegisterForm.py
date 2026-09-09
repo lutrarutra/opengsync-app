@@ -62,23 +62,23 @@ class RegisterForm(HTMXForm):
                 raise exc.FormValidationException(form)
 
             # Process registration
-            if (user := session.first(Q.user.select(email=form.email.data))) is None:
+            if session.exists(Q.user.select(email=form.email.data)):
                 try:
                     mailer.send_welcome_back(form.email.data)
                 except Exception as e:
                     logger.error(f"Failed to send welcome back email to '{form.email.data}':", exception=e)
                     form.email.errors.append("Failed to send registration email. Please contact administrator.")
-                    raise e
+                    raise
                 return responses.htmx_response(redirect=responses.url_for("login_page"))
 
-            token = secrets.generate_registration_token(email=form.email.data, role=user.role)
+            token = secrets.generate_registration_token(email=form.email.data, role=UserRole.get(form.role.data))
             link = responses.url_for("complete_registration_page", token=token)
             try:
                 mailer.send_registration(form.email.data, link)
             except Exception as e:
                 logger.error(f"Failed to send registration email to '{form.email.data}':", exception=e)
                 form.email.errors.append("Failed to send registration email. Please contact administrator.")
-                raise e
+                raise
 
             return responses.htmx_response(redirect=responses.url_for("login_page"))
         return route

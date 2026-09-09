@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -7,7 +8,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 from .Base import Base
 from . import links
-from ..categories import UserRole, UserRole
+from ..categories import UserRole
 
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from .APIToken import APIToken
 
 
-class UserMixin():
+class UserMixin:
     """
     This provides default implementations for the methods that Flask-Login
     expects user objects to have.
@@ -76,6 +77,9 @@ class User(Base, UserMixin):
     last_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), nullable=False, unique=True, index=True)
     password: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    pw_set_datetime: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True, default=None,
+    )
     role_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")

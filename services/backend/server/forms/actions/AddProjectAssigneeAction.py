@@ -1,4 +1,4 @@
-from fastapi import Depends, Query
+from fastapi import Depends
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q
@@ -63,35 +63,5 @@ class AddProjectAssigneeAction(HTMXForm):
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=form.project.id).include_query_params(tab="project-assignees-tab"),
                 flash=responses.flash("Assignee added successfully.", "success"),
-            )
-        return route
-
-    @htmx_route("POST", "/assign-me/{project_id}", name="AssignMe")
-    def AssignMe(cls) -> RouteFunc:
-        def route(
-            project_id: int,
-            context: str | None = Query(None),
-            session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
-        ):
-            project = session.get_one(
-                Q.project.select(id=project_id),
-                options=[orm.selectinload(models.Project.assignees)],
-            )
-
-            if current_user in project.assignees:
-                raise exc.BadRequestException("User is already an assignee.")
-
-            project.assignees.append(current_user)
-
-            if context == "dashboard":
-                return responses.htmx_response(
-                    redirect=responses.url_for("dashboard"),
-                    flash=responses.flash("Assignee Added!", "success"),
-                )
-
-            return responses.htmx_response(
-                redirect=responses.url_for("project_page", project_id=project_id),
-                flash=responses.flash("Assignee Added!", "success"),
             )
         return route

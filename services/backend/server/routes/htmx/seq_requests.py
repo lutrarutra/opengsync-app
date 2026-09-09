@@ -574,9 +574,7 @@ def remove_seq_request_assignee(
     seq_request.assignees.remove(assignee)
     session.save(seq_request)
 
-    return responses.htmx_response(
-        flash=responses.flash("Assignee removed.", "success"),
-    )
+    return responses.htmx_response(flash=responses.flash("Assignee removed.", "success"))
 
 
 @router.get("/{seq_request_id}/submit-checklist")

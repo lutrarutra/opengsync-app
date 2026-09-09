@@ -118,7 +118,8 @@ function load_interactjs() {
     return _interactjsLoadPromise;
 }
 
-async function load_jspreadsheet() {
+async function load_jspreadsheet(jssExtendedUrl = '/static/js/jss-extended.js') {
+    console.log(jssExtendedUrl);
     if (window.jspreadsheet && window.jSuites) {
         return;
     }
@@ -129,7 +130,7 @@ async function load_jspreadsheet() {
     _jspreadsheetLoadPromise = (async () => {
         const scripts = [
             'https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.min.js',
-            '/static/js/jss-extended.js'
+            jssExtendedUrl
         ];
         for (const src of scripts) {
             if (document.querySelector(`script[src="${src}"]`)) continue;

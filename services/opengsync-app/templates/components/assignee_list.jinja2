@@ -1,7 +1,12 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
-{% macro assignee_list(assignees, current_user) %}
+{% macro assignee_list(assignees, current_user, delete_url=none) %}
 {% for assignee in assignees | prioritize_current_user(current_user) %}
+{% if not delete_url or assignee.id != current_user.id %}
 <span class="badge assignee-badge {% if assignee == current_user %}badge-success{% endif %}" {{ tooltip(assignee.name, category="success" if assignee == current_user else "primary") }}>{{ assignee.initials }}</span>
+{% else %}
+<button type="button" class="btn badge assignee-badge badge-success" {{ tooltip(assignee.name, category="success" if assignee == current_user else "primary") }}
+hx-delete="{{ delete_url }}">{{ assignee.initials }}</button>
+{% endif %}
 {% endfor %}
 {% endmacro %}

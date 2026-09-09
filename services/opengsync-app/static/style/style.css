@@ -19,6 +19,27 @@
 @import "./multiple-select.css";
 @import "./search-select.css";
 
+.assignee-badge {
+    height: 24px;
+    width: 24px;
+    font-size: 14px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-white) !important;
+}
+
+.assignee-badge.btn {
+    padding: 0 4px;
+    margin: 0;
+    color: var(--color-white) !important;
+    background-color: var(--color-gray-300);
+}
+
+.assignee-badge.btn:hover {
+    background-color: var(--color-cemm-green-dark) !important;
+}
+
 body.waiting,
 body.waiting * {
     cursor: wait !important;

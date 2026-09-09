@@ -108,6 +108,7 @@ def render_project_table(
             raise exc.NoPermissionsException("You do not have permission to view projects for this experiment.")
         table.template = "components/tables/experiment-project.html"
         table.url_params["experiment_id"] = experiment_id
+        table.context["experiment_id"] = experiment_id
     elif seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view projects for this seq request.")
@@ -502,6 +503,23 @@ def render_project_feed(
         limit=PAGE_LIMIT,
     )
 
+@router.post("/{project_id}/add-assignee", dependencies=[Depends(dependencies.require_insider)])
+def add_project_assignee(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+):
+    project = session.get_one(
+        Q.project.select(id=project_id),
+        options=[orm.selectinload(models.Project.assignees)],
+    )
+
+    if current_user in project.assignees:
+        raise exc.BadRequestException("User is already an assignee.")
+
+    project.assignees.append(current_user)
+    return responses.htmx_response(flash=responses.flash("Assignee Added!", "success"))
+
 
 @router.delete("/{project_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])
 def remove_project_assignee(
@@ -519,9 +537,7 @@ def remove_project_assignee(
 
     project.assignees.remove(assignee)
     session.save(project)
-    return responses.htmx_response(
-        flash=responses.flash("Assignee removed.", "success"),
-    )
+    return responses.htmx_response(flash=responses.flash("Assignee removed.", "success"))
 
 @router.delete("/{project_id}/remove-data_path", dependencies=[Depends(dependencies.require_insider)])
 def remove_project_data_path(

@@ -49,24 +49,24 @@
 
 ### `CompleteRegistrationForm`
 
-- [ ] Valid completion with a valid registration token.
-- [ ] Expired token.
-- [ ] Unknown or already-used token.
-- [ ] Password mismatch and invalid password.
-- [ ] Duplicate/invalid user state.
-- [ ] CSRF failure.
-- [ ] Account activation persistence.
+- [x] Valid completion with a valid registration token.
+- [x] Expired token.
+- [x] Unknown or already-used token.
+- [x] Password mismatch and invalid password.
+- [x] Duplicate/invalid user state.
+- [x] CSRF failure.
+- [x] Account activation persistence.
 
 ### `ChangePasswordForm`
 
-- [ ] Valid password change.
-- [ ] Incorrect current password.
-- [ ] New-password mismatch.
-- [ ] New password equal to old password, if prohibited.
-- [ ] Invalid password and missing fields.
-- [ ] Anonymous-user rejection.
-- [ ] CSRF failure.
-- [ ] Session/token behavior after password change.
+- [x] Valid password change.
+- [x] Incorrect current password.
+- [x] New-password mismatch.
+- [x] New password equal to old password, if prohibited. *(N/A — current logic does not prohibit reuse.)*
+- [x] Invalid password and missing fields.
+- [x] Anonymous-user rejection.
+- [x] CSRF failure.
+- [x] Session/token behavior after password change. *(Cookie deletion covered; JWT revocation is not implemented.)*
 
 ### `ResetPasswordForm`
 

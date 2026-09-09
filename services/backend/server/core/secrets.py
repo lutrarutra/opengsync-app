@@ -86,10 +86,12 @@ def verify_registration_token(token: str) -> tuple[str, UserRole] | None:
     
 
 def create_login_token(user: models.User, valid_days: int = 7) -> str:
-    expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(days=valid_days)
+    issued = dt.datetime.now(settings.TIMEZONE)
+    expire = issued + dt.timedelta(days=valid_days)
     payload = {
         "id": user.id,
         "exp": expire.timestamp(),
+        "iat": issued.timestamp(),
         "username": user.email,
         "role": user.role.id
     }
@@ -114,7 +116,38 @@ def validate_login_token(token: str) -> dict | None:
         logger.warning("Invalid token")
         raise exc.OpeNGSyncServerException(message="Invalid token")
     
-    return {"id": user_id, "username": username, "role": role}
+    return {
+        "id": user_id,
+        "username": username,
+        "role": role,
+        "iat": payload.get("iat"),
+    }
+
+
+def is_login_token_valid_after_password_change(
+    payload: dict | None,
+    pw_set_datetime: dt.datetime | None,
+) -> bool:
+    """Return whether a login token was issued after the password changed.
+
+    Tokens created before ``iat`` was added remain valid for users who have
+    never changed their password. Once a password changes, legacy tokens
+    without ``iat`` are rejected.
+    """
+    if payload is None:
+        return False
+    if pw_set_datetime is None:
+        return True
+
+    issued_at = payload.get("iat")
+    if isinstance(issued_at, bool) or not isinstance(issued_at, (int, float)):
+        return False
+
+    if pw_set_datetime.tzinfo is None:
+        pw_set_datetime = pw_set_datetime.replace(
+            tzinfo=dt.timezone.utc,
+        )
+    return issued_at > pw_set_datetime.timestamp()
 
 
 class BcryptCompat:

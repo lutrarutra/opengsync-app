@@ -1,3 +1,5 @@
+import datetime as dt
+
 from fastapi import Depends
 from fastapi.responses import Response
 from loguru import logger
@@ -61,6 +63,10 @@ class CompleteRegistrationForm(HTMXForm):
                 form.email.errors.append("Token expired or invalid.")
                 raise exc.FormValidationException(form)
 
+            if form.password.data != form.confirm.data:
+                form.confirm.errors.append("Passwords do not match.")
+                raise exc.FormValidationException(form)
+
             email, role = data
             if session.exists(Q.user.select(email=email)):
                 form.email.errors.append("User already exists.")
@@ -74,6 +80,7 @@ class CompleteRegistrationForm(HTMXForm):
                 first_name=form.first_name.data,
                 last_name=form.last_name.data,
                 hashed_password=bcrypt.generate_password_hash(form.password.data),
+                pw_set_datetime=dt.datetime.now(dt.timezone.utc),
                 role=UserRole.get(role),
             ), flush=True)
 

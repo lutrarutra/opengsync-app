@@ -1,4 +1,5 @@
 import json
+import datetime as dt
 from typing import TypeVar
 from collections.abc import Callable
 import hashlib
@@ -23,6 +24,10 @@ def _user_to_cache_dict(user: models.User) -> dict:
         "last_name": user.last_name,
         "email": user.email,
         "password": user.password,
+        "pw_set_datetime": (
+            user.pw_set_datetime.isoformat()
+            if user.pw_set_datetime is not None else None
+        ),
         "role_id": user.role_id,
     }
 
@@ -62,12 +67,19 @@ def __get_cached_user(key: str, r: rds.RedisClient) -> models.User | None:
     if (cached_user_str := r.get(key)) is None:
         return None
     user_data = json.loads(cached_user_str)  # type: ignore
+    if "pw_set_datetime" not in user_data:
+        return None
+    pw_set_datetime = user_data["pw_set_datetime"]
     user = models.User(
         id=int(user_data["id"]),
         first_name=user_data["first_name"],
         last_name=user_data["last_name"],
         email=user_data["email"],
         password=user_data.get("password", ""),
+        pw_set_datetime=(
+            dt.datetime.fromisoformat(pw_set_datetime)
+            if pw_set_datetime is not None else None
+        ),
         role_id=int(user_data["role_id"]),
     )
     make_transient_to_detached(user)
@@ -136,9 +148,13 @@ def get_user_id(
         except (exc.OpeNGSyncServerException, ValueError, TypeError):
             pass
         else:
-            if auth_response.role == C.UserRole.DEACTIVATED:
+            user = _resolve_user(auth_response.id, session, r)
+            if user is None or not secrets.is_login_token_valid_after_password_change(payload, user.pw_set_datetime):
+                pass
+            elif auth_response.role == C.UserRole.DEACTIVATED:
                 raise exc.UserAccountSuspendedException()
-            return auth_response.id
+            else:
+                return auth_response.id
 
     if api_token:
         return _resolve_user_id_by_api_token(api_token, session, r)

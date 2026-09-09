@@ -2,7 +2,7 @@ import pandas as pd
 
 import sqlalchemy as sa
 
-from ... import models, categories as C, queries as Q
+from ... import categories as C, queries as Q
 from ..DBBlueprint import DBBlueprint
 
 
@@ -375,7 +375,7 @@ class PandasBP(DBBlueprint):
         if collapse_lanes:
             order = [
                 "sample_name", "library_name", "sample_pool",
-                "library_type", "genome_ref", "experiment_name", "lanes",
+                "library_type", "genome_ref", "experiment_name", "lanes", "pool_name",
                 "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
             ]
             lanes = lanes.sort_values("lane").groupby(
@@ -384,7 +384,7 @@ class PandasBP(DBBlueprint):
         else:
             order = [
                 "sample_name", "library_name", "sample_pool",
-                "library_type", "genome_ref", "experiment_name", "lane",
+                "library_type", "genome_ref", "experiment_name", "lane", "pool_name",
                 "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
             ]
 
