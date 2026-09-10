@@ -1,9 +1,9 @@
 import datetime as dt
 
-from fastapi import Request, Depends
+from fastapi import Depends
 from fastapi.responses import Response
 
-from opengsync_db import queries as Q, SyncSession, models
+from opengsync_db import queries as Q, SyncSession
 
 from ...core import responses, dependencies, exceptions as exc, secrets, redis as rds
 from ...components import inputs
@@ -22,12 +22,9 @@ class ResetPasswordForm(HTMXForm):
         self.token = token
         self.post_url = responses.url_for("ResetPasswordForm.ResetPassword", token=token)
 
-        user_id = secrets.verify_password_reset_token(token)
-        if user_id is None:
+        self.user_id = secrets.verify_password_reset_token(token)
+        if self.user_id is None:
             self.email.errors.append("Token expired or invalid.")
-            return
-
-        self.user_id = user_id
 
     @classmethod
     def Init(cls) -> FormFunc:
@@ -63,11 +60,18 @@ class ResetPasswordForm(HTMXForm):
                 form.email.errors.append("Token expired or invalid.")
                 raise exc.FormValidationException(form)
 
+            user = session.get_one(Q.user.select(id=user_id))
+            if secrets.verify_password_reset_token(
+                form.token,
+                pw_set_datetime=user.pw_set_datetime,
+            ) is None:
+                form.email.errors.append("Token expired or invalid.")
+                raise exc.FormValidationException(form)
+
             if form.password.data != form.confirm.data:
                 form.confirm.errors.append("Passwords must match.")
                 raise exc.FormValidationException(form)
 
-            user = session.get_one(Q.user.select(id=user_id))
             user.password = bcrypt.generate_password_hash(form.password.data)
             user.pw_set_datetime = dt.datetime.now(dt.timezone.utc)
             r.delete(f"user:{user.id}")

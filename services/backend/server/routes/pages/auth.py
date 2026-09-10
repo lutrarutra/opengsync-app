@@ -5,7 +5,7 @@ from ...core import dependencies, responses
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.get("/reset-password")
+@router.get("/reset-password/{token}")
 def reset_password_page(token: str):
     return responses.html_response("reset_password_page.html", token=token)
 

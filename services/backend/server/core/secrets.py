@@ -33,20 +33,30 @@ def url_safe_token(length: int = 32) -> str:
     return secrets.token_urlsafe(length)
 
 def create_password_reset_token(user_id: int, valid_minutes: int = 60 * 24) -> str:
-    expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(minutes=valid_minutes)
+    issued = dt.datetime.now(settings.TIMEZONE)
+    expire = issued + dt.timedelta(minutes=valid_minutes)
     payload = {
         "user_id": user_id,
         "exp": expire,
+        "iat": issued.timestamp(),
         "action": "password_reset"
     }
     if not settings.SECRET_KEY:
         raise ValueError("SECRET_KEY is not set in settings.")
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-def verify_password_reset_token(token: str) -> int | None:
+def verify_password_reset_token(
+    token: str,
+    pw_set_datetime: dt.datetime | None = None,
+) -> int | None:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         if payload.get("action") != "password_reset":
+            return None
+        if (
+            pw_set_datetime is not None
+            and not is_login_token_valid_after_password_change(payload, pw_set_datetime)
+        ):
             return None
         return payload.get("user_id")
     except jwt.ExpiredSignatureError:

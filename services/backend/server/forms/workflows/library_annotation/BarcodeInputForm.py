@@ -58,9 +58,7 @@ class BarcodeInputForm(BarcodeInputMixin, LibraryAnnotationWorkflowStep):
         self.spreadsheet.columns["kit_i7"].set_categories(i7_kit_mapping)
         self.spreadsheet.columns["kit_i5"].set_categories(i5_kit_mapping)
 
-        barcode_table = self.library_table[
-            self.library_table["library_type_id"] != C.LibraryType.TENX_SC_ATAC.id
-        ].copy()
+        barcode_table = self.library_table[self.library_table["library_type_id"] != C.LibraryType.TENX_SC_ATAC.id].copy()
         self.spreadsheet.set_data(barcode_table)
 
     @htmx_route("GET")
