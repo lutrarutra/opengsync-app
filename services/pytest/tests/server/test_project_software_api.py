@@ -62,6 +62,7 @@ def test_project_software_api_upserts_and_deletes(
         follow_redirects=False,
     )
     assert response.status_code == 404
+    assert response.json()["detail"] == f"Software 'atacseq_pipeline' not found on project '{project.id}'."
 
 
 def test_project_software_api_requires_insider(
@@ -79,6 +80,7 @@ def test_project_software_api_requires_insider(
     )
 
     assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
 
 
 def test_project_data_paths_api_filters_and_resolves(
@@ -105,20 +107,25 @@ def test_project_data_paths_api_filters_and_resolves(
             project_id=project.id,
             type_id=DataPathType.DIRECTORY.id,
         ),
+        models.DataPath(
+            path="BSF_SAMPLES/sample",
+            project_id=project.id,
+            type_id=DataPathType.DIRECTORY.id,
+        ),
     ])
     session.commit()
 
     from server.core import config
-    from server.core.config import SharePathMapping
 
     monkeypatch.setattr(
         config.settings.app_config,
         "share_path_mapping",
-        SharePathMapping(
-            BSF_PROJECTS="/projects",
-            BSF_SEQUENCES="/sequences",
-            BSF_SEQUENCES_10X="/sequences_10x",
-        ),
+        {
+            "BSF_PROJECTS": "/projects",
+            "BSF_SEQUENCES": "/sequences",
+            "BSF_SEQUENCES_10X": "/sequences_10x",
+            "BSF_SAMPLES": "/samples",
+        },
     )
 
     response = client.get(
@@ -127,7 +134,7 @@ def test_project_data_paths_api_filters_and_resolves(
     )
 
     assert response.status_code == 200
-    assert response.json() == ["/sequences/run", "/projects/project"]
+    assert response.json() == ["/sequences/run", "/samples/sample", "/projects/project"]
 
 
 def test_project_data_paths_api_handles_missing_project(
@@ -140,3 +147,4 @@ def test_project_data_paths_api_handles_missing_project(
     )
 
     assert response.status_code == 404
+    assert response.json()["detail"] == "Project with ID '999999' not found."

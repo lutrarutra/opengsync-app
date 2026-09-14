@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Literal
 
 from fastapi import HTTPException, status, Request, Response, exceptions as fastapi_exc
+from fastapi.responses import JSONResponse
 from loguru import logger
 
 from . import context, responses
@@ -15,7 +16,10 @@ def error_response(
     category: Literal["info", "success", "warning", "error"] = "error",
     redirect_endpoint: str | None = None,
 ) -> Response:
-    """Build a request-safe HTML or HTMX error response."""
+    """Build a request-safe JSON, HTML, or HTMX error response."""
+    if request.url.path == "/api" or request.url.path.startswith("/api/"):
+        return JSONResponse(content={"detail": message}, status_code=status_code)
+
     flash = responses.flash(message=message, category=category)
 
     with context.bind(request):
@@ -53,7 +57,8 @@ class OpeNGSyncServerException(Exception):
             message = e.detail
         else:
             message = "An unexpected error occurred. Please try again later."
-        return error_response(request, status.HTTP_500_INTERNAL_SERVER_ERROR, message)
+        status_code = e.status_code if isinstance(e, HTTPException) else status.HTTP_500_INTERNAL_SERVER_ERROR
+        return error_response(request, status_code, message)
     
 
 class FormValidationException(HTTPException):

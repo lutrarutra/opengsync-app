@@ -111,7 +111,7 @@ class Mailer:
             if (template_folder / internal_template).exists():
                 mapping = {}
                 if settings.app_config.share_path_mapping is not None:
-                    mapping = settings.app_config.share_path_mapping.model_dump()
+                    mapping = settings.app_config.share_path_mapping
                 internal_paths = parsing.filter_subpaths([data_path.path for data_path in project.data_paths])
                 internal_paths = [parsing.replace_substrings(path, mapping) for path in internal_paths]
                 internal_share_content = templates.render_template(

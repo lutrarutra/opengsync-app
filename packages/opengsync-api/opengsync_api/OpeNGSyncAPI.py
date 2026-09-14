@@ -12,13 +12,27 @@ class OpeNGSyncAPI:
     def _headers(self) -> dict[str, str]:
         return {"X-API-Token": self.api_token.get_secret_value()}
 
+    def _raise_for_status(self, response: requests.Response) -> None:
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            detail = response.text
+            try:
+                error = response.json()
+            except ValueError:
+                pass
+            else:
+                if isinstance(error, dict) and "detail" in error:
+                    detail = str(error["detail"])
+            raise requests.HTTPError(f"{response.status_code}: {detail}") from e
+
     def get_status(self):
         response = requests.get(f"{self.base_url}/api/status")
         return response
     
     def authenticate(self):
         response = requests.get(f"{self.base_url}/api/validate-api_token", headers=self._headers())
-        response.raise_for_status()
+        self._raise_for_status(response)
         return response.json()
     
     def add_data_path(
@@ -58,10 +72,7 @@ class OpeNGSyncAPI:
             "path_type_id": path_type.id if path_type is not None else None,
         }
         response = requests.post(f"{self.base_url}/api/shares/add-data_path", json=payload, headers=self._headers())
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
     
     def remove_data_paths(
@@ -92,10 +103,7 @@ class OpeNGSyncAPI:
             "library_id": library_id,
         }
         response = requests.delete(f"{self.base_url}/api/shares/remove-data_paths", json=payload, headers=self._headers())
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
 
     def query_barcode_sequence(self, sequence: str, limit: int = 5) -> pd.DataFrame:
@@ -104,10 +112,7 @@ class OpeNGSyncAPI:
             "limit": limit
         }
         response = requests.post(f"{self.base_url}/api/barcodes/query-barcode-sequence", json=payload, headers=self._headers())
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         data = response.json()
         fc_results = pd.DataFrame(data["fc_results"])
         fc_results["orientation"] = "forward"
@@ -138,10 +143,7 @@ class OpeNGSyncAPI:
             "qc": qc
         }
         response = requests.post(f"{self.base_url}/api/stats/set-library-lane-reads", json=payload, headers=self._headers())
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
 
     def add_project_software(
@@ -162,10 +164,7 @@ class OpeNGSyncAPI:
             json=payload,
             headers=self._headers(),
         )
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
 
     def delete_project_software(self, project_id: int, software: str):
@@ -178,10 +177,7 @@ class OpeNGSyncAPI:
             json=payload,
             headers=self._headers(),
         )
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
 
     def get_project_data_paths(self, project_id: int) -> list[str]:
@@ -189,10 +185,7 @@ class OpeNGSyncAPI:
             f"{self.base_url}/api/projects/{project_id}/data-paths",
             headers=self._headers(),
         )
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
     
     def release_project_data(
@@ -238,10 +231,7 @@ class OpeNGSyncAPI:
         if mark_project_delivered is not None:
             payload["mark_project_delivered"] = mark_project_delivered
         response = requests.post(f"{self.base_url}/api/shares/release-project_data", json=payload, headers=self._headers())
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        self._raise_for_status(response)
         return response.json()
     
     def __str__(self):

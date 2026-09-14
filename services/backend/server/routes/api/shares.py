@@ -24,7 +24,7 @@ def _share_path_mapping() -> dict[str, str]:
     mapping = config.settings.app_config.share_path_mapping
     if mapping is None:
         raise exc.BadRequestException("Share path mapping is not configured.")
-    return mapping.model_dump()
+    return mapping
 
 
 def get_share_path(real_path: str) -> Path | None:
@@ -47,7 +47,7 @@ def get_real_path(share_path: str) -> str | None:
     mapping = config.settings.app_config.share_path_mapping
     if mapping is None:
         return None
-    key_value = list(mapping.model_dump().items())
+    key_value = list(mapping.items())
     key_value.sort(key=lambda x: len(x[0]), reverse=True)
     sp = Path(share_path)
 

@@ -21,12 +21,6 @@ class DBConfig(BaseModel):
     lab_protocol_start_number: int
 
 
-class SharePathMapping(BaseModel):
-    BSF_PROJECTS: str
-    BSF_SEQUENCES: str
-    BSF_SEQUENCES_10X: str
-
-
 class SchedulerConfig(BaseModel):
     upload_folder_file_age_days: int
     upload_folder_clean_schedule: str
@@ -41,7 +35,7 @@ class AppConfig(BaseModel):
     email_domain_white_list: list[str] = []
     external_base_url: str | None = None
     db: DBConfig
-    share_path_mapping: SharePathMapping | None = None
+    share_path_mapping: dict[str, str] | None = None
     canary_files: dict[str, str] = {}
     app_root: str
     media_folder: str

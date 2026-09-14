@@ -1,3 +1,6 @@
+import pytest
+import requests
+
 from unittest.mock import Mock, patch
 
 from pydantic import SecretStr
@@ -46,3 +49,18 @@ def test_get_project_data_paths_client_method():
         "https://example.test/api/projects/12/data-paths",
         headers={"X-API-Token": "token"},
     )
+
+
+def test_client_parses_json_error_detail():
+    response = Mock()
+    response.status_code = 400
+    response.text = '{"detail":"Data path cannot be resolved."}'
+    response.json.return_value = {"detail": "Data path cannot be resolved."}
+    response.raise_for_status.side_effect = requests.HTTPError("400 Client Error")
+    api = OpeNGSyncAPI("https://example.test/", SecretStr("token"))
+
+    with (
+        patch("requests.get", return_value=response),
+        pytest.raises(requests.HTTPError, match="400: Data path cannot be resolved\\."),  # type: ignore[attr-defined]
+    ):
+        api.get_project_data_paths(12)
