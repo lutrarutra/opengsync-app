@@ -88,7 +88,7 @@ class LanePoolsSeparateAction(HTMXForm):
 
             counter = 0
 
-            for group, _df in parsing.safe_groupby(df, ["lane", "lane_id"], LanedGroupSchema):
+            for group, _df in parsing.safe_groupby(df, LanedGroupSchema):
                 lane_sub = form.lane_sub_forms.append_entry()
 
                 lane_sub.lane.data = group.lane

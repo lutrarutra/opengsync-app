@@ -358,7 +358,7 @@ def render_project_overview(
         seq_request_id: int
         experiment_name: str | None = None
 
-    for key, _ in parsing.safe_groupby(df, "experiment_name", ExperimentNameKey, dropna=True):
+    for key, _ in parsing.safe_groupby(df, ExperimentNameKey, dropna=True):
         node = {
             "node": idx,
             "name": key.experiment_name,
@@ -367,7 +367,7 @@ def render_project_overview(
         nodes.append(node)
         idx += 1
 
-    for key, _ in parsing.safe_groupby(df, "seq_request_id", SeqRequestIdKey):
+    for key, _ in parsing.safe_groupby(df, SeqRequestIdKey):
         node = {
             "node": idx,
             "name": f"Request {key.seq_request_id}",
@@ -376,7 +376,7 @@ def render_project_overview(
         nodes.append(node)
         idx += 1
 
-    for key, sample_df in parsing.safe_groupby(df, "sample_name", SampleNameKey):
+    for key, sample_df in parsing.safe_groupby(df, SampleNameKey):
         sample_node = {
             "node": idx,
             "name": key.sample_name,

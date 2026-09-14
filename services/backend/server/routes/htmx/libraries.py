@@ -284,7 +284,7 @@ def render_prep_feed_detail(
     class SeqRequestIdKey(BaseModel):
         seq_request_id: int
         
-    for key, _ in parsing.safe_groupby(df, "seq_request_id", SeqRequestIdKey, dropna=True):
+    for key, _ in parsing.safe_groupby(df, SeqRequestIdKey, dropna=True):
         seq_request = session.get_one(
             Q.seq_request.select(id=key.seq_request_id),
             options=[

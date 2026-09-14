@@ -61,7 +61,6 @@ class OligoMuxForm(MuxPrepWorkflowStep):
         }
         for key, _ in parsing.safe_groupby(
             df,
-            ["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read"],
             MuxGroupSchema,
             sort=False,
             dropna=False,

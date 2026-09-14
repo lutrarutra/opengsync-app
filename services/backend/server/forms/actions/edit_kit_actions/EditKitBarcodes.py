@@ -108,12 +108,12 @@ class EditKitBarcodesForm(HTMXForm):
         class SequenceKey(BaseModel):
             sequence: str
 
-        for _, group in parsing.safe_groupby(mapped.dropna(subset=["name"]), "name", NameKey):
+        for _, group in parsing.safe_groupby(mapped.dropna(subset=["name"]), NameKey):
             if group["sequence"].nunique(dropna=False) > 1:
                 for idx in group.index:
                     self.spreadsheet.add_error(idx, name_column, DuplicateCellValue(f"Duplicate name {index} with different sequence."))
 
-        for _, group in parsing.safe_groupby(mapped.dropna(subset=["sequence"]), "sequence", SequenceKey):
+        for _, group in parsing.safe_groupby(mapped.dropna(subset=["sequence"]), SequenceKey):
             if group["name"].nunique(dropna=False) > 1:
                 for idx in group.index:
                     self.spreadsheet.add_error(idx, sequence_column, DuplicateCellValue(f"Duplicate sequence {index} with different name."))

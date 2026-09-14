@@ -59,7 +59,6 @@ class ProtocolMappingForm(SelectLibraryProtocolsWorkflowStep):
         if not kit_rows.empty:
             for key, group in parsing.safe_groupby(
                 kit_rows,
-                ["protocol_id", "combination_num"],
                 ProtocolComboKey,
             ):
                 protocol_combos.append({

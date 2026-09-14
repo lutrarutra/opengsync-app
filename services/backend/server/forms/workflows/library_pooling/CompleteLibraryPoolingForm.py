@@ -73,7 +73,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                 pooling_table["pool"] = "1"
 
             experiment_mappings: dict[str, int] = {}
-            for key, group in parsing.safe_groupby(pooling_table, "pool", PoolGroupKey):
+            for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
                 experiment_ids = group["experiment_id"].unique()
                 if len(experiment_ids) == 1 and pd.notna(experiment_ids[0]):
                     experiment_mappings[key.pool] = int(experiment_ids[0])
@@ -83,7 +83,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
 
             unique_pools = pooling_table["pool"].unique()
             if len(unique_pools) > 1:
-                for key, group in parsing.safe_groupby(pooling_table, "pool", PoolGroupKey):
+                for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
                     pool_suffix = key.pool.strip().lower()
                     if pool_suffix in ("t", "skip"):
                         continue

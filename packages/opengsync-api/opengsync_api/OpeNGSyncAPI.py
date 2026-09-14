@@ -143,6 +143,46 @@ class OpeNGSyncAPI:
         except requests.HTTPError as e:
             raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         return response.json()
+
+    def add_project_software(
+        self,
+        project_id: int,
+        software: str,
+        version: str,
+        comment: str | None = None,
+    ):
+        payload = {
+            "project_id": project_id,
+            "software": software,
+            "version": version,
+            "comment": comment,
+        }
+        response = requests.post(
+            f"{self.base_url}/api/projects/add-software",
+            json=payload,
+            headers=self._headers(),
+        )
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        return response.json()
+
+    def delete_project_software(self, project_id: int, software: str):
+        payload = {
+            "project_id": project_id,
+            "software": software,
+        }
+        response = requests.delete(
+            f"{self.base_url}/api/projects/delete-software",
+            json=payload,
+            headers=self._headers(),
+        )
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        return response.json()
     
     def release_project_data(
         self,

@@ -369,22 +369,22 @@ def safe_iter(
 
 def safe_groupby(
     df: pd.DataFrame,
-    by: str | list[str],
     key_model: type[M],
     sort: bool = False,
     dropna: bool = False,
 ) -> Generator[tuple[M, pd.DataFrame], None, None]:
-    """Group DataFrame rows by column(s), validating the group key against a Pydantic model.
+    """Group DataFrame rows by ``key_model`` fields, validating each group key.
 
-    Works like :func:`pandas.DataFrame.groupby`, but the group key is
-    validated through ``key_model``.  The group DataFrame is returned
+    Works like :func:`pandas.DataFrame.groupby`, but the grouping columns
+    are taken from ``key_model`` field names and each group key is
+    validated through that model.  The group DataFrame is returned
     unchanged.
 
     Args:
         df: Source DataFrame.
-        by: Column name(s) to group by (passed to ``df.groupby(by)``).
-        key_model: Pydantic model class to validate each group key against.
-            The model's field names must match the ``by`` column names.
+        key_model: Pydantic model class whose field names are used as
+            grouping columns.  Each group key is validated against this
+            model.
 
     Yields:
         Tuples of ``(key, group_df)`` where ``key`` is the validated
@@ -395,7 +395,8 @@ def safe_groupby(
         pydantic.ValidationError: Immediately on the first group key that
             fails validation.
     """
-    by_cols = [by] if isinstance(by, str) else by
+    by_cols = list(key_model.model_fields)
+    by = by_cols[0] if len(by_cols) == 1 else by_cols
 
     for group_key, group_df in df.groupby(by, sort=sort, dropna=dropna):
         if isinstance(group_key, tuple):

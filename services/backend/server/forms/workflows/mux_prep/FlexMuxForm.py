@@ -50,7 +50,6 @@ class FlexMuxForm(MuxPrepWorkflowStep):
     def update_barcodes(session: SyncSession, sample_table: pd.DataFrame) -> None:
         for key, _df in parsing.safe_groupby(
             sample_table,
-            ["sample_id", "library_id", "mux_barcode"],
             FlexBarcodeKey,
             dropna=True,
         ):

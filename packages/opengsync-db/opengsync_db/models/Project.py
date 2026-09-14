@@ -334,6 +334,12 @@ class Project(Base):
         }
         if comment is not None:
             self.__software[software]["comment"] = comment
+
+    def delete_software(self, software: str) -> None:
+        software = software.strip().lower()
+        if self.__software is None or software not in self.__software:
+            raise KeyError(f"Software '{software}' does not exist.")
+        del self.__software[software]
     
     def search_value(self) -> int:
         return self.id
