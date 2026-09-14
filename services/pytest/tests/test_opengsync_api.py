@@ -32,3 +32,17 @@ def test_project_software_client_methods():
         json={"project_id": 12, "software": " Software "},
         headers={"X-API-Token": "token"},
     )
+
+
+def test_get_project_data_paths_client_method():
+    response = Mock()
+    response.json.return_value = ["/projects/project"]
+    api = OpeNGSyncAPI("https://example.test/", SecretStr("token"))
+
+    with patch("requests.get", return_value=response) as get:
+        assert api.get_project_data_paths(12) == ["/projects/project"]
+
+    get.assert_called_once_with(
+        "https://example.test/api/projects/12/data-paths",
+        headers={"X-API-Token": "token"},
+    )

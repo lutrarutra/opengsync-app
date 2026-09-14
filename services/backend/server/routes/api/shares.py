@@ -48,12 +48,14 @@ def get_real_path(share_path: str) -> str | None:
     if mapping is None:
         return None
     key_value = list(mapping.model_dump().items())
-    key_value.sort(key=lambda x: len(x[1]), reverse=True)
-    sp = Path(share_path).resolve()
+    key_value.sort(key=lambda x: len(x[0]), reverse=True)
+    sp = Path(share_path)
 
     for key, prefix in key_value:
-        if sp.is_relative_to(key):
-            return share_path.replace(key, prefix, 1)
+        key_path = Path(key)
+        if sp.is_relative_to(key_path):
+            real_path = Path(prefix) / sp.relative_to(key_path)
+            return real_path.as_posix() if real_path.is_absolute() else None
     return None
 
 

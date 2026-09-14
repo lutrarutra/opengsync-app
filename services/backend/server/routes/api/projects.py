@@ -2,10 +2,13 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy import orm
 
-from opengsync_db import SyncSession, queries as Q
+from opengsync_db import models, SyncSession, queries as Q
 
 from ...core import dependencies, exceptions as exc
+from ...utils import parsing
+from .shares import get_real_path
 
 router = APIRouter(prefix="/projects", tags=["api", "projects"])
 
@@ -57,3 +60,25 @@ def delete_project_software(
     session.save(project)
 
     return {"result": "success", "software": project.software}
+
+
+@router.get("/{project_id}/data-paths", dependencies=[Depends(dependencies.require_insider)])
+def get_project_data_paths(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+) -> list[str]:
+    project = session.first(
+        Q.project.select(id=project_id),
+        options=[orm.selectinload(models.Project.data_paths)],
+    )
+    if project is None:
+        raise exc.NotFoundException(f"Project with ID '{project_id}' not found.")
+
+    paths = parsing.filter_subpaths([data_path.path for data_path in project.data_paths])
+    resolved_paths: list[str] = []
+    for path in paths:
+        if (real_path := get_real_path(path)) is None:
+            raise exc.BadRequestException(f"Data path '{path}' cannot be resolved.")
+        resolved_paths.append(real_path)
+
+    return resolved_paths

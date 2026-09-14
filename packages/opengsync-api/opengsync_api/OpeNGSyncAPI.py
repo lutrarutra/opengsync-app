@@ -183,6 +183,17 @@ class OpeNGSyncAPI:
         except requests.HTTPError as e:
             raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         return response.json()
+
+    def get_project_data_paths(self, project_id: int) -> list[str]:
+        response = requests.get(
+            f"{self.base_url}/api/projects/{project_id}/data-paths",
+            headers=self._headers(),
+        )
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        return response.json()
     
     def release_project_data(
         self,
