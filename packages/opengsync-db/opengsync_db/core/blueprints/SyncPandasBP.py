@@ -72,7 +72,7 @@ class SyncPandas:
         return T.project_samples(df, pivot)
 
     def get_project_libraries(self, project_id: int, collapse_lanes: bool = True) -> pd.DataFrame:
-        libraries = self._read_sql(Q.pd.project_libraries_libraries(project_id))
+        libraries = self._read_sql(Q.pd.project_data(project_id))
         experiment_ids = libraries["experiment_id"].unique().tolist()
         libraries_ids = libraries["library_id"].unique().tolist()
         lanes = self._read_sql(Q.pd.project_libraries_lanes(experiment_ids, libraries_ids))

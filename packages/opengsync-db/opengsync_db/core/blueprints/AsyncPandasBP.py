@@ -82,7 +82,7 @@ class AsyncPandas:
         return T.project_samples(df, pivot)
 
     async def get_project_libraries(self, project_id: int, collapse_lanes: bool = True) -> pd.DataFrame:
-        libraries = await self._read_sql(Q.pd.project_libraries_libraries(project_id))
+        libraries = await self._read_sql(Q.pd.project_data(project_id))
         experiment_ids = libraries["experiment_id"].unique().tolist()
         libraries_ids = libraries["library_id"].unique().tolist()
         lanes = await self._read_sql(Q.pd.project_libraries_lanes(experiment_ids, libraries_ids))

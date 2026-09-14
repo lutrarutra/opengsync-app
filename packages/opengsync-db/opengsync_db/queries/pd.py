@@ -367,8 +367,8 @@ def project_seq_requests(project_id: int) -> sa.Select:
     return query
 
 
-def project_libraries_libraries(project_id: int) -> sa.Select:
-    """First query for project_libraries: fetches library metadata."""
+def project_data(project_id: int) -> sa.Select:
+    """First query for project_data: fetches library metadata."""
     query = sa.select(
         Library.experiment_id.label("experiment_id"),
         Library.id.label("library_id"),
@@ -381,6 +381,7 @@ def project_libraries_libraries(project_id: int) -> sa.Select:
 
         Sample.id.label("sample_id"),
         Sample.name.label("sample_name"),
+        Sample._attributes.label("attributes"),
 
         links.SampleLibraryLink.mux.label("mux"),
         Library.mux_type_id.label("mux_type_id"),

@@ -361,7 +361,7 @@ class PandasBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_project_libraries(self, project_id: int, collapse_lanes: bool = True) -> pd.DataFrame:
-        query = Q.pd.project_libraries_libraries(project_id)
+        query = Q.pd.project_data(project_id)
         libraries = pd.read_sql(query, self.db.session.connection())
         experiment_ids = libraries["experiment_id"].unique().tolist()
         libraries_ids = libraries["library_id"].unique().tolist()
@@ -376,7 +376,7 @@ class PandasBP(DBBlueprint):
             order = [
                 "sample_name", "library_name", "sample_pool",
                 "library_type", "genome_ref", "experiment_name", "lanes", "pool_name",
-                "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
+                "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id", "attributes"
             ]
             lanes = lanes.sort_values("lane").groupby(
                 lanes.columns.difference(["lane"]).tolist(), as_index=False, dropna=False,
@@ -385,7 +385,7 @@ class PandasBP(DBBlueprint):
             order = [
                 "sample_name", "library_name", "sample_pool",
                 "library_type", "genome_ref", "experiment_name", "lane", "pool_name",
-                "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
+                "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id", "attributes"
             ]
 
         merged = pd.merge(libraries, lanes, on=["library_id", "experiment_id"], how="left")
