@@ -1,5 +1,5 @@
 import time
-from typing import Callable, Awaitable
+from collections.abc import Callable, Awaitable
 
 from sqlalchemy import inspect
 from starlette.types import ASGIApp, Receive, Scope, Send, Message
@@ -10,7 +10,8 @@ from loguru import logger
 
 from opengsync_db import models, SyncSession
 
-from . import runtime, secrets, config
+from . import runtime, secrets, config, redis as rds
+from ..utils import share_fs_cache
 
 async def state_initialization_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     runtime.RequestState.apply_defaults(request.state)
@@ -89,13 +90,26 @@ async def timing_middleware(request: runtime.Request, call_next: Callable[[runti
     return response
 
 def __save_audit_log(request: runtime.Request, user_id, status_code: int):
+    share_key = getattr(request.state, "share_audit_key", None)
+    if share_key and status_code < 400:
+        ttl = getattr(request.state, "share_audit_ttl", None) or 3600
+        try:
+            with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
+                if not share_fs_cache.claim_share_audit(redis, share_key, ttl):
+                    return
+        except Exception:
+            logger.exception("Failed to debounce share audit for {}", share_key)
+
     route = request.scope.get("route")
+    audit_state = getattr(request.state, "audit", None)
     logger.bind(
         audit=True,
         user_id=user_id,
         method=request.method.upper(),
         path=request.url.path,
-        route=getattr(route, "path", request.url.path),
+        route=getattr(audit_state, "route", None) or getattr(route, "path", request.url.path),
+        resource_id=getattr(audit_state, "resource_id", None),
+        metadata=getattr(audit_state, "metadata", None) or {},
         query_params=dict(request.query_params),
         ip=request.headers.get("x-real-ip") or (request.client.host if request.client else "1.1.1.1"),
         agent=request.headers.get("user-agent", "unknown"),
@@ -106,7 +120,7 @@ def __save_audit_log(request: runtime.Request, user_id, status_code: int):
 async def audit_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     response = await call_next(request)
 
-    if response.status_code >= 400:
+    if response.status_code >= 400 or getattr(request.state, "audit", None) is not None:
 
         user_id = None
         if (current_user := getattr(request.state, "current_user", None)) is not None:

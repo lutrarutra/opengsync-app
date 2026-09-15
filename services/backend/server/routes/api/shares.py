@@ -19,6 +19,12 @@ from ...utils import share_fs_cache
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(prefix="/shares", tags=["api", "shares"])
+access_router = APIRouter(
+    dependencies=[
+        Depends(dependencies.rate_limit("20/minute")),
+        Depends(dependencies.audit_share_access),
+    ],
+)
 
 
 def _share_path_mapping() -> dict[str, str]:
@@ -370,7 +376,7 @@ def _subpath(subpath: str) -> Path:
     return Path(subpath)
 
 
-@router.get("/validate/{token}", name="file_share.validate")
+@access_router.get("/validate/{token}", name="file_share.validate")
 def validate(
     token: str,
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
@@ -378,8 +384,8 @@ def validate(
     return PlainTextResponse("OK")
 
 
-@router.get("/rclone/{token}", name="file_share.rclone", operation_id="file_share_rclone")
-@router.get("/rclone/{token}/{subpath:path}", name="file_share.rclone", operation_id="file_share_rclone_path")
+@access_router.get("/rclone/{token}", name="file_share.rclone", operation_id="file_share_rclone")
+@access_router.get("/rclone/{token}/{subpath:path}", name="file_share.rclone", operation_id="file_share_rclone_path")
 def rclone(
     token: str,
     subpath: str = "",
@@ -408,8 +414,8 @@ def rclone(
     )
 
 
-@router.get("/browse/{token}", name="file_share.browse", operation_id="file_share_browse")
-@router.get("/browse/{token}/{subpath:path}", name="file_share.browse", operation_id="file_share_browse_path")
+@access_router.get("/browse/{token}", name="file_share.browse", operation_id="file_share_browse")
+@access_router.get("/browse/{token}/{subpath:path}", name="file_share.browse", operation_id="file_share_browse_path")
 def browse(
     token: str,
     subpath: str = "",
@@ -440,7 +446,7 @@ def browse(
     )
 
 
-@router.get("/rclone_script/{token}", name="file_share.rclone_script")
+@access_router.get("/rclone_script/{token}", name="file_share.rclone_script")
 def rclone_script(
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
 ):
@@ -448,7 +454,7 @@ def rclone_script(
     return Response(content=sync_command, media_type="text/plain")
 
 
-@router.get("/curl_script/{token}/{platform}", name="file_share.curl_script")
+@access_router.get("/curl_script/{token}/{platform}", name="file_share.curl_script")
 def curl_script(
     token: str,
     platform: Literal["windows", "unix"],
@@ -489,4 +495,7 @@ def curl_script(
         media_type="text/x-shellscript",
         headers={"Content-Disposition": f"attachment; filename=sync_{current_path.name or 'all'}.sh"},
     )
+
+
+router.include_router(access_router)
 

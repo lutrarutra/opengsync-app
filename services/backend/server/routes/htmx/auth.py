@@ -7,6 +7,7 @@ from ...core import dependencies, responses, mailer, secrets, exceptions as exc,
 from ... import forms
 
 router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(dependencies.audit_log)])
+public_rate_limit = [Depends(dependencies.rate_limit("20/minute"))]
 
 @router.post("/logout")
 def logout(
@@ -106,8 +107,8 @@ def start_user_session(
         flash=responses.flash(message="User session started.", category="success")
     )
 
-router.include_router(forms.auth.LoginForm.Router())
-router.include_router(forms.auth.RegisterForm.Router())
-router.include_router(forms.auth.ResetPasswordForm.Router())
-router.include_router(forms.auth.CompleteRegistrationForm.Router())
+router.include_router(forms.auth.LoginForm.Router(dependencies=public_rate_limit))
+router.include_router(forms.auth.RegisterForm.Router(dependencies=public_rate_limit))
+router.include_router(forms.auth.ResetPasswordForm.Router(dependencies=public_rate_limit))
+router.include_router(forms.auth.CompleteRegistrationForm.Router(dependencies=public_rate_limit))
 router.include_router(forms.auth.ChangePasswordForm.Router())

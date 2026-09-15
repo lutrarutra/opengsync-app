@@ -129,6 +129,17 @@ def set_walk(
     _set(redis, _cache_key(token, "walk", subpath=subpath), value, WALK_TTL)
 
 
+def claim_share_audit(redis: RedisClient | None, key: str, ttl: int) -> bool:
+    """Return True if this caller should write the share-access audit log."""
+    if redis is None:
+        return True
+    try:
+        return bool(redis.set(key, "1", nx=True, ex=max(60, ttl)))
+    except (RedisError, TypeError, ValueError):
+        logger.exception("Failed to claim share audit key {}", key)
+        return True
+
+
 def invalidate(redis: RedisClient | None, token: str) -> None:
     if redis is None:
         return
@@ -136,5 +147,6 @@ def invalidate(redis: RedisClient | None, token: str) -> None:
     try:
         redis.delete(f"share-token:{token}")
         redis.delete_pattern(f"share-fs:{token}:*")
+        redis.delete_pattern(f"share-audit:{token}:*")
     except (RedisError, TypeError, ValueError):
         logger.exception("Failed to invalidate share cache for token {}", token)

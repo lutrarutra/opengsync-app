@@ -9,7 +9,15 @@ from opengsync_db import models
 from ...core import dependencies, exceptions as exc, config, responses, templates, redis as rds
 from ...utils.shared_file_browser import SharedFileBrowser
 
-router = APIRouter(prefix="/webdav", tags=["api", "webdav"], redirect_slashes=False)
+router = APIRouter(
+    prefix="/webdav",
+    tags=["api", "webdav"],
+    redirect_slashes=False,
+    dependencies=[
+        Depends(dependencies.rate_limit("200/minute", "5000/hour")),
+        Depends(dependencies.audit_share_access),
+    ],
+)
 
 WEBDAV_METHODS = ["GET", "PROPFIND", "OPTIONS", "HEAD", "LOCK", "UNLOCK"]
 

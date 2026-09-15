@@ -11,7 +11,14 @@ from ...utils.io import is_browser_friendly
 from ...core import redis as rds
 from ...utils.shared_file_browser import SharedFileBrowser
 
-router = APIRouter(prefix="/files/share/browse", tags=["file-share"])
+router = APIRouter(
+    prefix="/files/share/browse",
+    tags=["file-share"],
+    dependencies=[
+        Depends(dependencies.rate_limit("20/minute")),
+        Depends(dependencies.audit_share_access),
+    ],
+)
 PAGE_LIMIT = 50
 
 

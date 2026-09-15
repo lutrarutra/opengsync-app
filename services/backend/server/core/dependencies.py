@@ -1,5 +1,6 @@
 import json
 import datetime as dt
+import time
 from typing import TypeVar
 from collections.abc import Callable
 import hashlib
@@ -69,6 +70,70 @@ def redis(request: runtime.Request = TaskiqDepends(get_runtime_request)):
         yield redis
 
 
+_RATE_LIMIT_PERIODS = {
+    "second": 1,
+    "minute": 60,
+    "hour": 3600,
+}
+
+
+def _parse_rate_limit(value: str) -> tuple[int, int]:
+    try:
+        amount_text, period_name = value.strip().lower().split("/", maxsplit=1)
+        amount = int(amount_text)
+        period = _RATE_LIMIT_PERIODS[period_name]
+    except (AttributeError, KeyError, TypeError, ValueError):
+        raise ValueError(f"Invalid rate limit: {value!r}. Expected '<number>/<second|minute|hour>'.")
+
+    if amount <= 0:
+        raise ValueError("Rate limit amount must be positive.")
+    return amount, period
+
+
+def rate_limit(*limits: str):
+    parsed_limits = tuple(_parse_rate_limit(limit) for limit in limits)
+    if not parsed_limits:
+        raise ValueError("At least one rate limit is required.")
+
+    def dependency(
+        request: runtime.Request = TaskiqDepends(get_runtime_request),
+        r: rds.RedisClient = Depends(redis),
+    ):
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", request.url.path)
+        ip = request.headers.get("x-real-ip") or (
+            request.client.host if request.client else "1.1.1.1"
+        )
+        keys: list[str] = []
+
+        try:
+            try:
+                current_window = int(time.time())
+                for maximum, period in parsed_limits:
+                    window = current_window // period
+                    key = f"ratelimit:{ip}:{route_path}:{period}:{window}"
+                    count = int(str(r.incr(key)))
+                    keys.append(key)
+                    if count == 1:
+                        r.expire(key, period)
+                    if count > maximum:
+                        raise exc.TooManyRequestsException()
+            except (RedisError, TypeError, ValueError):
+                logger.exception("Rate limiter unavailable; allowing request for {}", route_path)
+
+            request.state.rate_limit_keys.extend(keys)
+            yield
+        finally:
+            if request.state.clear_rate_limit:
+                for key in keys:
+                    try:
+                        r.delete(key)
+                    except (RedisError, TypeError, ValueError):
+                        logger.exception("Failed to clear rate limit key {}", key)
+
+    return dependency
+
+
 def _share_token_cache_key(uuid: str) -> str:
     return f"share-token:{uuid}"
 
@@ -132,6 +197,7 @@ def _cache_share_token(share_token: models.ShareToken, r: rds.RedisClient) -> No
 
 def load_share_token(
     token: str,
+    request: runtime.Request = TaskiqDepends(get_runtime_request),
     r: rds.RedisClient = Depends(redis),
 ) -> models.ShareToken:
     if (share_token := _cached_share_token(token, r)) is None:
@@ -146,6 +212,7 @@ def load_share_token(
 
     if share_token.is_expired:
         raise exc.NoPermissionsException("Token expired")
+    request.state.clear_rate_limit = True
     return share_token
 
 
@@ -307,6 +374,28 @@ def get_bcrypt(request: runtime.Request = TaskiqDepends(get_runtime_request)):
 def audit_log(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     request.state.audit = audit.AuditLogger(request)
     return request.state.audit
+
+
+def audit_share_access(
+    request: runtime.Request = TaskiqDepends(get_runtime_request),
+    share_token: models.ShareToken = Depends(load_share_token),
+):
+    """Attach an audit logger for share-link access.
+
+    Recursive listing/download traffic is debounced in the audit middleware:
+    one success line per token and client IP until the share expires.
+    """
+    ip = request.headers.get("x-real-ip") or (request.client.host if request.client else "1.1.1.1")
+    remaining = share_token.expiration - dt.datetime.now(dt.timezone.utc)
+    audit_logger = audit_log(request)
+    audit_logger.resource_id = share_token.uuid
+    audit_logger.metadata = {
+        "owner_id": share_token.owner_id,
+        "path": request.url.path,
+    }
+    request.state.share_audit_key = f"share-audit:{share_token.uuid}:{ip}"
+    request.state.share_audit_ttl = max(60, int(remaining.total_seconds()))
+    return audit_logger
 
 def invalidate_cache(request: runtime.Request):
     substrings: list[str] = []

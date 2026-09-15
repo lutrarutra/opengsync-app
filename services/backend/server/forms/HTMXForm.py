@@ -92,9 +92,13 @@ class HTMXForm(ABC):
         cls._routes = list(merged.values())
 
     @classmethod
-    def Router(cls, prefix: str | None = None) -> APIRouter:
+    def Router(
+        cls,
+        prefix: str | None = None,
+        dependencies: list[Any] | None = None,
+    ) -> APIRouter:
         """Build an `APIRouter` from the routes registered via `@htmx_route`."""
-        router = APIRouter()
+        router = APIRouter(dependencies=dependencies or [])
         for rd in cls._routes:
             endpoint = getattr(cls, rd.func_name)()
             router.add_api_route(

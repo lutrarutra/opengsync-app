@@ -140,6 +140,14 @@ class BadRequestException(HTTPException):
     def Handler(request: Request, e: "BadRequestException") -> Response:
         return error_response(request, status.HTTP_400_BAD_REQUEST, e.detail)
 
+class TooManyRequestsException(HTTPException):
+    def __init__(self, detail: str = "Too many requests"):
+        super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)
+
+    @staticmethod
+    def Handler(request: Request, e: "TooManyRequestsException") -> Response:
+        return error_response(request, status.HTTP_429_TOO_MANY_REQUESTS, e.detail, category="warning")
+
 class MethodNotAllowedException(HTTPException):
     def __init__(self, detail: str = "Method not allowed"):
         super().__init__(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=detail)

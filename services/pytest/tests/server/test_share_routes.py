@@ -234,3 +234,21 @@ def test_share_and_webdav_listing_cache_returns_identical_response(
     second_propfind = client.request("PROPFIND", propfind_url, headers={"Depth": "1"})
     assert second_propfind.status_code == 207
     assert second_propfind.content == first_propfind.content
+
+
+def test_share_access_audit_is_debounced_per_token(
+    client: TestClient,
+    share_fixture: ShareFixture,
+):
+    token = share_fixture.token.uuid
+    redis = Redis(connection_pool=client.app.state.redis_pool)
+    assert not list(redis.scan_iter(match=f"share-audit:{token}:*"))
+
+    assert client.get(f"/api/shares/browse/{token}").status_code == 200
+    keys = list(redis.scan_iter(match=f"share-audit:{token}:*"))
+    assert len(keys) == 1
+
+    assert client.get(f"/api/shares/browse/{token}/shared").status_code == 200
+    assert client.get(f"/api/webdav/{token}/shared/root.txt").status_code == 200
+    assert client.get(f"/files/share/browse/{token}").status_code == 200
+    assert list(redis.scan_iter(match=f"share-audit:{token}:*")) == keys

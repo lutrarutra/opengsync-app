@@ -20,6 +20,7 @@ app.exception_handler(exc.UserNotAuthenticatedException)(exc.UserNotAuthenticate
 app.exception_handler(exc.FormValidationException)(exc.FormValidationException.Handler)
 app.exception_handler(exc.UserAccountSuspendedException)(exc.UserAccountSuspendedException.Handler)
 app.exception_handler(exc.NoPermissionsException)(exc.NoPermissionsException.Handler)
+app.exception_handler(exc.TooManyRequestsException)(exc.TooManyRequestsException.Handler)
 app.exception_handler(db_exc.NotFoundException)(exc.NotFoundException.Handler)
 app.exception_handler(exc.NotFoundException)(exc.NotFoundException.Handler)
 

@@ -2,7 +2,11 @@ from fastapi import APIRouter, Depends
 
 from ...core import dependencies, responses
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+    dependencies=[Depends(dependencies.rate_limit("20/minute"))],
+)
 
 
 @router.get("/reset-password/{token}")
