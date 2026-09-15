@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
+from opengsync_db import models
 
-from ...core import config, dependencies, exceptions as exc, responses
+from ...core import config, dependencies, responses
 from ...utils.file_browser import BrowserPath
 from ...utils.io import is_browser_friendly
+from ...core import redis as rds
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(prefix="/files/share/browse", tags=["file-share"])
@@ -19,20 +21,6 @@ def _subpath(subpath: str) -> Path:
     return Path(subpath)
 
 
-def _browser(token: str, session) -> SharedFileBrowser:
-    from opengsync_db import models, queries as Q
-    from sqlalchemy import orm
-
-    share_token = session.first(
-        Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths))
-    )
-    if share_token is None:
-        raise exc.NotFoundException("Token Not Found")
-    if share_token.is_expired:
-        raise exc.NoPermissionsException("Token expired")
-    return SharedFileBrowser(Path(config.settings.app_config.share_root), share_token)
-
-
 def _sort_value(value: str) -> Literal["name", "size", "mtime"]:
     return value if value in {"name", "size", "mtime"} else "name"  # type: ignore[return-value]
 
@@ -41,25 +29,27 @@ def _order_value(value: str) -> Literal["asc", "desc"]:
     return value if value in {"asc", "desc"} else "asc"  # type: ignore[return-value]
 
 
-def _browser_paths(paths: list[Path]) -> list[BrowserPath]:
-    root_dir = Path(config.settings.app_config.share_root)
-    return [
-        BrowserPath(path=path, rel_path=path.relative_to(root_dir), data_paths=[])
-        for path in paths
-    ]
+def _browser_paths(paths: list[BrowserPath]) -> list[BrowserPath]:
+    return paths
 
 
-@router.get("/{token}/entries/{subpath:path}")
+@router.get("/{token}/entries", name="shared_browser_entries")
+@router.get("/{token}/entries/{subpath:path}", name="shared_browser_entries")
 def shared_browser_entries(
     token: str,
     subpath: str = "",
     page: int = Query(0, ge=0),
     sort_by: str = Query("name"),
     sort_order: str = Query("asc"),
-    session=Depends(dependencies.db_session),
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
-    browser = _browser(token, session)
+    browser = SharedFileBrowser(
+        Path(config.settings.app_config.share_root),
+        share_token,
+        redis=redis,
+    )
     sort_by = _sort_value(sort_by)
     sort_order = _order_value(sort_order)
     paths = browser.list_contents(
@@ -82,15 +72,20 @@ def shared_browser_entries(
     )
 
 
-@router.get("/{token}")
-@router.get("/{token}/{subpath:path}")
+@router.get("/{token}", name="shared_browser_page")
+@router.get("/{token}/{subpath:path}", name="shared_browser_page_path")
 def shared_browser_page(
     token: str,
     subpath: str = "",
-    session=Depends(dependencies.db_session),
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
-    browser = _browser(token, session)
+    browser = SharedFileBrowser(
+        Path(config.settings.app_config.share_root),
+        share_token,
+        redis=redis,
+    )
 
     if not browser.list_contents(current_path):
         if (file := browser.get_file(current_path)) is not None:

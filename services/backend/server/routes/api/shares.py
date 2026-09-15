@@ -11,10 +11,11 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, exceptions as exc, config, responses, templates
+from ...core import dependencies, exceptions as exc, config, responses, templates, redis as rds
 from ...core.mailer import Mailer
 from ...utils import parsing
 from ...utils.io import is_browser_friendly
+from ...utils import share_fs_cache
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(prefix="/shares", tags=["api", "shares"])
@@ -261,6 +262,7 @@ def release_project_data(
     body: ReleaseProjectDataRequest,
     session: SyncSession = Depends(dependencies.db_session),
     mailer: Mailer = Depends(dependencies.mail_client),
+    redis: rds.RedisClient = Depends(dependencies.redis),
     current_user: models.User = Depends(dependencies.require_insider),
 ) -> dict[str, Any]:
 
@@ -285,6 +287,7 @@ def release_project_data(
     if (share_token := project.share_token) is not None and not share_token._expired:
         share_token._expired = True
         session.save(share_token)
+        share_fs_cache.invalidate(redis, share_token.uuid)
 
     share_token = session.save(Q.share_token.create(
         owner=current_user,
@@ -367,17 +370,11 @@ def _subpath(subpath: str) -> Path:
     return Path(subpath)
 
 
-def _load_share_token(session: SyncSession, token: str) -> models.ShareToken:
-    if (share_token := session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
-        raise exc.NotFoundException("Token Not Found")
-    if share_token.is_expired:
-        raise exc.NoPermissionsException("Token expired")
-    return share_token
-
-
 @router.get("/validate/{token}", name="file_share.validate")
-def validate(token: str, session: SyncSession = Depends(dependencies.db_session)):
-    _load_share_token(session, token)
+def validate(
+    token: str,
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+):
     return PlainTextResponse("OK")
 
 
@@ -386,12 +383,12 @@ def validate(token: str, session: SyncSession = Depends(dependencies.db_session)
 def rclone(
     token: str,
     subpath: str = "",
-    session: SyncSession = Depends(dependencies.db_session),
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
-    share_token = _load_share_token(session, token)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token)
+    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
 
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
@@ -416,12 +413,12 @@ def rclone(
 def browse(
     token: str,
     subpath: str = "",
-    session: SyncSession = Depends(dependencies.db_session),
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
-    share_token = _load_share_token(session, token)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token)
+    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
 
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
@@ -432,7 +429,7 @@ def browse(
             disposition="inline" if is_browser_friendly(mimetype) else "attachment",
         )
 
-    paths = sorted(paths, key=lambda p: p.name.lower())
+    paths = sorted(paths, key=lambda p: p.path.name.lower())
 
     return responses.html_response(
         "share/browse.html",
@@ -444,8 +441,10 @@ def browse(
 
 
 @router.get("/rclone_script/{token}", name="file_share.rclone_script")
-def rclone_script(token: str, session: SyncSession = Depends(dependencies.db_session)):
-    share_token = _load_share_token(session, token)
+def rclone_script(
+    token: str,
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+):
     sync_command = templates.render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir="BSF_DATA")
     return Response(content=sync_command, media_type="text/plain")
 
@@ -454,7 +453,8 @@ def rclone_script(token: str, session: SyncSession = Depends(dependencies.db_ses
 def curl_script(
     token: str,
     platform: Literal["windows", "unix"],
-    session: SyncSession = Depends(dependencies.db_session),
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     if platform == "unix":
         template = "snippets/curl-download.sh.j2"
@@ -463,9 +463,8 @@ def curl_script(
     else:
         raise exc.BadRequestException("Invalid platform")
 
-    share_token = _load_share_token(session, token)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token)
+    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
     current_path = Path()
     items = []
     for rel_path, is_dir in browser.walk_contents(current_path):

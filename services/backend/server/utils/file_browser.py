@@ -12,6 +12,9 @@ class BrowserPath:
     path: Path
     rel_path: Path
     data_paths: list[models.DataPath]
+    is_dir: bool | None = None
+    size: int | None = None
+    mtime: float | None = None
 
 
 class FileBrowser:

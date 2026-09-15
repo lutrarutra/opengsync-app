@@ -6,13 +6,18 @@ import hashlib
 
 from fastapi import Depends, Request, Header, Cookie, Query
 from fastapi_cache import FastAPICache
+from loguru import logger
+from redis.exceptions import RedisError
 from taskiq import TaskiqDepends
 
+from sqlalchemy import orm
 from sqlalchemy.orm import make_transient_to_detached
 
 from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, models, categories as C, utils
 
 from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache, responses, redis as rds
+from .context import ctx
+from ..utils import share_fs_cache
 
 _USER_CACHE_TTL = 300
 
@@ -62,6 +67,87 @@ def authenticate(token: str = Depends(auth.oauth2_scheme)):
 def redis(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
         yield redis
+
+
+def _share_token_cache_key(uuid: str) -> str:
+    return f"share-token:{uuid}"
+
+
+def _share_token_to_cache_dict(share_token: models.ShareToken) -> dict:
+    return {
+        "uuid": share_token.uuid,
+        "time_valid_min": share_token.time_valid_min,
+        "created_utc": share_token.created_utc.isoformat(),
+        "_expired": share_token._expired,
+        "owner_id": share_token.owner_id,
+        "paths": [
+            {"id": share_path.id, "uuid": share_path.uuid, "path": share_path.path}
+            for share_path in share_token.paths
+        ],
+    }
+
+
+def _cached_share_token(uuid: str, r: rds.RedisClient) -> models.ShareToken | None:
+    try:
+        value = r.get(_share_token_cache_key(uuid))
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+        if not isinstance(value, str):
+            return None
+        data = json.loads(value)
+        share_token = models.ShareToken(
+            uuid=data["uuid"],
+            time_valid_min=int(data["time_valid_min"]),
+            created_utc=dt.datetime.fromisoformat(data["created_utc"]),
+            _expired=bool(data.get("_expired", data.get("expired", False))),
+            owner_id=int(data["owner_id"]),
+        )
+        share_token.paths = [
+            models.SharePath(
+                id=int(path["id"]),
+                uuid=path["uuid"],
+                path=path["path"],
+            )
+            for path in data["paths"]
+        ]
+        make_transient_to_detached(share_token)
+        return share_token
+    except (RedisError, TypeError, ValueError, KeyError, UnicodeError):
+        logger.exception("Failed to read cached share token {}", uuid)
+        return None
+
+
+def _cache_share_token(share_token: models.ShareToken, r: rds.RedisClient) -> None:
+    try:
+        r.set(
+            _share_token_cache_key(share_token.uuid),
+            json.dumps(_share_token_to_cache_dict(share_token)),
+            ex=share_fs_cache.SHARE_TOKEN_TTL,
+        )
+    except (RedisError, TypeError, ValueError):
+        logger.exception("Failed to cache share token {}", share_token.uuid)
+
+
+def load_share_token(
+    token: str,
+    r: rds.RedisClient = Depends(redis),
+) -> models.ShareToken:
+    if (share_token := _cached_share_token(token, r)) is None:
+        share_token = ctx.session.first(
+            Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths))
+        )
+        if share_token is None:
+            raise exc.NotFoundException("Token Not Found")
+        if share_token.is_expired:
+            raise exc.NoPermissionsException("Token expired")
+        _cache_share_token(share_token, r)
+
+    if share_token.is_expired:
+        raise exc.NoPermissionsException("Token expired")
+    return share_token
+
 
 def __get_cached_user(key: str, r: rds.RedisClient) -> models.User | None:
     if (cached_user_str := r.get(key)) is None:

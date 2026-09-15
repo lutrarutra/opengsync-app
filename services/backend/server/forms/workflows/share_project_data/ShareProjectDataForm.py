@@ -8,10 +8,10 @@ from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
-from ....core import dependencies, config
+from ....core import dependencies, config, redis as rds
 from ....core.context import ctx
 from ....core.mailer import Mailer
-from ....utils import parsing
+from ....utils import parsing, share_fs_cache
 from ....components import inputs
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from .ShareProjectDataWorkflow import ShareProjectDataWorkflow, ShareProjectDataWorkflowStep
@@ -131,6 +131,7 @@ class ShareProjectDataForm(ShareProjectDataWorkflowStep):
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),
             mailer: Mailer = Depends(dependencies.mail_client),
+            redis: rds.RedisClient = Depends(dependencies.redis),
             _=Depends(dependencies.audit_log),
         ) -> Response:
             form._collect_recipients(current_user)
@@ -143,6 +144,7 @@ class ShareProjectDataForm(ShareProjectDataWorkflowStep):
                 if not share_token._expired:
                     share_token._expired = True
                     session.save(share_token)
+                    share_fs_cache.invalidate(redis, share_token.uuid)
 
             share_token = session.save(Q.share_token.create(
                 owner=current_user,

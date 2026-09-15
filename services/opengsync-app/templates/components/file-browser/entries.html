@@ -2,10 +2,11 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 {% for browser_path in paths %}
-{% set stat = browser_path.path.stat() %}
 {% set relative_path = browser_path.rel_path.as_posix() %}
 {% set entry_id = uuid4() %}
-{% set is_directory = browser_path.path.is_dir() %}
+{% set is_directory = browser_path.is_dir if browser_path.is_dir is not none else browser_path.path.is_dir() %}
+{% set entry_size = browser_path.size if browser_path.size is not none else browser_path.path.stat().st_size %}
+{% set entry_mtime = browser_path.mtime if browser_path.mtime is not none else browser_path.path.stat().st_mtime %}
 {% if current_path.parts %}
     {% set child_path = (current_path / browser_path.path.name).as_posix() %}
 {% else %}
@@ -44,8 +45,8 @@
             <span class="browser-entry-name">{{ browser_path.path.name }}</span>
         </span>
         {% endif %}
-        <span class="browser-entry-size">{{ stat.st_size | bytes_to_human }}</span>
-        <time class="browser-entry-mtime" datetime="{{ stat.st_mtime }}">{{ stat.st_mtime | from_timestamp }}</time>
+        <span class="browser-entry-size">{{ entry_size | bytes_to_human }}</span>
+        <time class="browser-entry-mtime" datetime="{{ entry_mtime }}">{{ entry_mtime | from_timestamp }}</time>
         <span class="browser-entry-associations">
             {% for data_path in browser_path.data_paths %}
             {% if data_path.project %}

@@ -3,11 +3,10 @@ import mimetypes
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
-from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q
+from opengsync_db import models
 
-from ...core import dependencies, exceptions as exc, config, responses, templates
+from ...core import dependencies, exceptions as exc, config, responses, templates, redis as rds
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(prefix="/webdav", tags=["api", "webdav"], redirect_slashes=False)
@@ -27,21 +26,13 @@ def share(
     request: Request,
     token: str,
     subpath: str = "",
-    session: SyncSession = Depends(dependencies.db_session),
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
 
-    if SharedFileBrowser.OS_JUNK_REGEX.search(current_path.as_posix()):
-        return Response(status_code=404)
-
-    if (share_token := session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
-        raise exc.NotFoundException("Invalid Token")
-
-    if share_token.is_expired:
-        raise exc.NoPermissionsException("Token expired")
-
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token)
+    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
 
     if request.method == "OPTIONS":
         response = Response()
@@ -64,7 +55,6 @@ def share(
             content_type=mimetype or "application/octet-stream",
             disposition=None,
             extra_headers={
-                "Content-Length": str(stat.st_size),
                 "Last-Modified": browser._format_date(stat.st_mtime),
                 "ETag": f'"{stat.st_ino}-{stat.st_mtime}-{stat.st_size}"',
             },
@@ -97,16 +87,22 @@ def share(
         if not mimetype:
             mimetype = "application/octet-stream"
 
-        stat = path.stat()
+        extra_headers = {
+            "Last-Modified": browser._format_date(path.stat().st_mtime),
+        }
+        if config.settings.ENVIRONMENT == "prod":
+            return responses.accel_redirect_response(
+                path,
+                filename=path.name,
+                content_type=mimetype,
+                disposition=None,
+                extra_headers=extra_headers,
+            )
         return responses.file_response(
             path,
             filename=path.name,
             content_type=mimetype,
-            disposition="attachment" if config.settings.ENVIRONMENT != "prod" else None,
-            extra_headers={
-                "Content-Length": str(stat.st_size),
-                "Last-Modified": browser._format_date(stat.st_mtime),
-            },
+            extra_headers=extra_headers,
         )
     else:
         raise exc.MethodNotAllowedException()

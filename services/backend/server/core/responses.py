@@ -149,6 +149,53 @@ def _x_accel_redirect(path: Path) -> str | None:
     return None
 
 
+def accel_redirect_response(
+    path: str | Path,
+    filename: str | None = None,
+    content_type: str | None = None,
+    disposition: Literal["inline", "attachment"] | None = "attachment",
+    extra_headers: dict[str, str] | None = None,
+) -> Response:
+    """Ask nginx to serve the file via X-Accel-Redirect.
+
+    The app response must be empty and must not set Content-Length; uvicorn
+    rejects a file-sized length on an empty body, and nginx sets the real
+    length when it serves the file.
+    """
+    path = Path(path)
+    if not path.is_file():
+        return HTMLResponse(content="File not found", status_code=404)
+
+    accel = _x_accel_redirect(path)
+    if accel is None:
+        return file_response(
+            path,
+            filename=filename,
+            content_type=content_type,
+            disposition=disposition,
+            extra_headers=extra_headers,
+        )
+
+    if filename is None:
+        filename = path.name
+
+    headers = dict(extra_headers or {})
+    headers.pop("Content-Length", None)
+    headers.pop("content-length", None)
+    if disposition is not None:
+        headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+    headers["X-Accel-Redirect"] = accel
+
+    response = Response(
+        content=b"",
+        media_type=content_type or "application/octet-stream",
+        headers=headers,
+    )
+    if "content-length" in response.headers:
+        del response.headers["content-length"]
+    return response
+
+
 def file_response(
     path: str | Path,
     filename: str | None = None,
@@ -161,6 +208,15 @@ def file_response(
     if not path.is_file():
         return HTMLResponse(content="File not found", status_code=404)
 
+    if send_body and config.settings.ENVIRONMENT == "prod" and _x_accel_redirect(path) is not None:
+        return accel_redirect_response(
+            path,
+            filename=filename,
+            content_type=content_type,
+            disposition=disposition,
+            extra_headers=extra_headers,
+        )
+
     if filename is None:
         filename = path.name
 
@@ -169,10 +225,6 @@ def file_response(
         headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
 
     media_type = content_type or "application/octet-stream"
-
-    if send_body and config.settings.ENVIRONMENT == "prod" and (accel := _x_accel_redirect(path)):
-        headers["X-Accel-Redirect"] = accel
-        return Response(content=b"", media_type=media_type, headers=headers)
 
     if not send_body:
         return Response(content=b"", media_type=media_type, headers=headers)
