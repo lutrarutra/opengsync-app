@@ -169,9 +169,9 @@ pg_basebackup \
 # Share
 
 ## Download shared file:
-- Rclone sync (WebDAV):
+- Rclone copy (WebDAV):
 ```sh
-rclone sync \
+rclone copy \
     ":webdav,url='https://<url>/api/webdav/share/<token>':/" \
     <outdir> \
     --progress \

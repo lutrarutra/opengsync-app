@@ -484,9 +484,10 @@ def render_share_project_data_email(
     from ..core import runtime
 
     http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+    sync_command = render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
     wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
-    style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
+    with open(os.path.join(runtime.app.static_folder, "style/compiled/email.css"), "r") as f:
+        style = f.read()
 
     browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
 

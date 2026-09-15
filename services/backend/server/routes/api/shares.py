@@ -442,10 +442,9 @@ def browse(
 
 @router.get("/rclone_script/{token}", name="file_share.rclone_script")
 def rclone_script(
-    token: str,
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
 ):
-    sync_command = templates.render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir="BSF_DATA")
+    sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir="BSF_DATA")
     return Response(content=sync_command, media_type="text/plain")
 
 

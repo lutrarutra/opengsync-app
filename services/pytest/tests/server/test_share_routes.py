@@ -81,7 +81,7 @@ def test_public_share_routes(
 
     rclone_script = client.get(f"/api/shares/rclone_script/{token}")
     assert rclone_script.status_code == 200
-    assert "rclone sync" in rclone_script.text
+    assert "rclone copy" in rclone_script.text
 
     curl_script = client.get(f"/api/shares/curl_script/{token}/unix")
     assert curl_script.status_code == 200

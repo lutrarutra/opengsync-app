@@ -73,7 +73,7 @@ class Mailer:
         style = self._get_email_style()
 
         http_command = self.j2_env.get_template("snippets/rclone-http.sh.j2").render(token=share_token.uuid, outdir=outdir)
-        sync_command = self.j2_env.get_template("snippets/rclone-sync.sh.j2").render(token=share_token.uuid, outdir=outdir)
+        sync_command = self.j2_env.get_template("snippets/rclone-copy.sh.j2").render(token=share_token.uuid, outdir=outdir)
         wget_command = self.j2_env.get_template("snippets/wget.sh.j2").render(token=share_token.uuid, outdir=outdir)
 
         body = self.j2_env.get_template("email/share-directory.html").render(
@@ -107,7 +107,7 @@ class Mailer:
     ):
         style = self._get_email_style()
         http_command = templates.render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-        sync_command = templates.render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+        sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
         wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
         browse_link = str(responses.url_for("file_share.browse", token=share_token.uuid))
 
