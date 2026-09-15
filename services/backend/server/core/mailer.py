@@ -27,9 +27,16 @@ class Mailer:
         self.use_tls = True
         self.j2_loader = j2.PackageLoader(package_name="server", package_path="/templates")
         self.j2_env = j2.Environment(loader=self.j2_loader, undefined=j2.StrictUndefined if settings.ENVIRONMENT != "prod" else j2.Undefined)
+        self._email_style: str | None = None
+
+    def _get_email_style(self) -> str:
+        if self._email_style is None:
+            path = Path(settings.app_config.static_folder) / "style" / "email.css"
+            self._email_style = path.read_text()
+        return self._email_style
 
     def send_welcome_back(self, recipient_email: str):
-        style = open("/static/style/compiled/email.css").read()
+        style = self._get_email_style()
         self.__send_email(
             recipients=recipient_email,
             subject="Welcome back to OpeNGSync!",
@@ -38,7 +45,7 @@ class Mailer:
         )
 
     def send_registration(self, recipient_email: str, verification_link: str | URL):
-        style = open("/static/style/compiled/email.css").read()
+        style = self._get_email_style()
         self.__send_email(
             recipients=recipient_email,
             subject="Welcome to OpeNGSync!",
@@ -47,7 +54,7 @@ class Mailer:
         )
 
     def send_password_reset(self, recipient_email: str, reset_link: str | URL):
-        style = open("/static/style/compiled/email.css").read()
+        style = self._get_email_style()
         self.__send_email(
             recipients=recipient_email,
             subject="OpeNGSync Password Reset",
@@ -63,7 +70,7 @@ class Mailer:
         browse_link: str,
     ):
         outdir = "BSF_DATA"
-        style = open("/static/style/compiled/email.css").read()
+        style = self._get_email_style()
 
         http_command = self.j2_env.get_template("snippets/rclone-http.sh.j2").render(token=share_token.uuid, outdir=outdir)
         sync_command = self.j2_env.get_template("snippets/rclone-sync.sh.j2").render(token=share_token.uuid, outdir=outdir)
@@ -98,7 +105,7 @@ class Mailer:
         outdir: str = "BSF_DATA",
         comment: str | None = None,
     ):
-        style = open("/static/style/compiled/email.css").read()
+        style = self._get_email_style()
         http_command = templates.render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
         sync_command = templates.render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
         wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)

@@ -52,6 +52,7 @@ COPY services/opengsync-app/templates /templates
 COPY services/opengsync-app/static/js /static/js
 COPY services/opengsync-app/static/images /static/images
 COPY services/opengsync-app/static/resources /static/resources
+COPY services/opengsync-app/static/style/email.css /static/style/email.css
 
 # --- CELERY BASE ---
 FROM builder AS celery-base

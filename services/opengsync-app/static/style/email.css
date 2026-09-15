@@ -1,58 +1,49 @@
-@import "./colors.css";
-
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #f4f4f4;
-    font-size: 16;
-    a {
-        text-decoration: none;
-        color: var(--color-cemm-blue);
-    }
+    font-size: 16px;
 }
-
+body a {
+    text-decoration: none;
+    color: #00aecc;
+}
 .header {
-    color: var(--color-cemm-blue);
+    color: #00aecc;
     padding: 10px 5vw 0 5vw;
 }
 .body {
     padding: 5px 5vw;
 }
 .footer {
-    color: var(--color-cemm-blue);
+    color: #00aecc;
     padding: 5px 5vw;
-    pre {
-        font-family: Arial, sans-serif;
-    }
 }
-
-ul.contents {
-    li {
-        margin-bottom: 10px;
-    }
+.footer pre {
+    font-family: Arial, sans-serif;
 }
-
+ul.contents li {
+    margin-bottom: 10px;
+}
 span.desc {
-    color: var(--color-gray-600);    
+    color: #6c757d;
 }
-
 span.path {
-    font-size: 14;
+    font-size: 14px;
     padding: 3px;
     border-radius: 5px;
-    background-color: var(--color-gray-300);
+    background-color: #dee2e6;
     font-family: monospace;
     font-style: italic;
 }
-
 div.code {
-    background-color: #e7e7e7; 
-    border: 1px solid #ddd; 
-    border-radius: 4px; 
+    background-color: #e7e7e7;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     padding: 5px 7px;
     margin: 10px 0;
-    font-family: Consolas, Courier, monospace; 
-    font-size: 14px; 
+    font-family: Consolas, Courier, monospace;
+    font-size: 14px;
     color: #333;
 }

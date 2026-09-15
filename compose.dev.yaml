@@ -35,6 +35,7 @@ services:
             - ./services/opengsync-app/static/images:/static/images:ro
             - ./services/opengsync-app/static/js:/static/js:ro
             - ./services/opengsync-app/static/resources:/static/resources:ro
+            - ./services/opengsync-app/static/style/email.css:/static/style/email.css:ro
             - ./services/opengsync-app/templates:/templates:ro
             - ${UPLOADS_DIR}:/uploads
             - ${MEDIA_DIR}:/media
