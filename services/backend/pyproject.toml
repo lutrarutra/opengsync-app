@@ -27,6 +27,7 @@ dependencies = [
     "boto3",
     "httpx",
     "premailer",
+    "pygments",
     "jinja2",
     "taskiq",
     "proxmoxer",
