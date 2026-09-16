@@ -4,7 +4,9 @@
 </div>
 <script>
     $(document).ready(function() {
-        load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+        // TODO: This is a temporary fix to allow the spreadsheet to load on staging (v2)
+        // load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+        load_jspreadsheet("https://biomedical-sequencing.at/opengsync/v2/static/js/jss-extended.js").then(() => {
             window.jspreadsheet(document.getElementById("{{ spreadsheet._id }}"), {
                 worksheets: [{
                     data: {{ spreadsheet._data | tojson }},
