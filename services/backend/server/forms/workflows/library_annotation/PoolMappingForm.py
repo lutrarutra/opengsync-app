@@ -93,9 +93,6 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
                 "pool_id": [],
                 "num_m_reads_requested": [],
             }
-            from loguru import logger
-            logger.debug(form.raw_data)
-            logger.debug(form.pool_forms.entries)
 
             def add_pool(name: str, label: str, pool_id: int | None, num_m_reads_requested: float | None) -> None:
                 pool_table_data["pool_name"].append(name)

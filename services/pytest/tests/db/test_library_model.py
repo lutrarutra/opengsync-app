@@ -1,9 +1,45 @@
+import pytest
+
 from opengsync_db import SyncSession, actions, categories as C, queries as Q
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
     create_feature, create_pool, create_experiment
 )  # noqa
+
+
+def test_library_qc_can_be_upserted_and_deleted(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
+
+    library.set_qc({"yield": 10, "purity": 0.95})
+    session.save(library)
+    session.commit()
+
+    library.set_qc({"yield": 12, "quality": "pass"})
+    session.save(library)
+    session.commit()
+    session.refresh(library)
+
+    assert library.qc == {"yield": 12, "purity": 0.95, "quality": "pass"}
+
+    library.delete_qc(["purity", "quality"])
+    session.save(library)
+    session.commit()
+    session.refresh(library)
+
+    assert library.qc == {"yield": 12}
+
+    library.delete_qc(["yield"])
+    session.save(library)
+    session.commit()
+    session.refresh(library)
+
+    assert library.qc is None
+
+    with pytest.raises(KeyError):
+        library.delete_qc(["yield"])
 
 
 def test_library_links(session: SyncSession):

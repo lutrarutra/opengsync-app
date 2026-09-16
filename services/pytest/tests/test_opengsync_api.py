@@ -37,6 +37,30 @@ def test_project_software_client_methods():
     )
 
 
+def test_library_qc_client_methods():
+    response = Mock()
+    response.json.return_value = {"result": "success", "qc": {"yield": 10}}
+    api = OpeNGSyncAPI("https://example.test/", SecretStr("token"))
+
+    with patch("requests.post", return_value=response) as post:
+        assert api.add_library_qc(12, {"yield": 10}) == {"result": "success", "qc": {"yield": 10}}
+
+    post.assert_called_once_with(
+        "https://example.test/api/libraries/add-qc",
+        json={"library_id": 12, "qc": {"yield": 10}},
+        headers={"X-API-Token": "token"},
+    )
+
+    with patch("requests.delete", return_value=response) as delete:
+        assert api.delete_library_qc(12, ["yield", "purity"]) == {"result": "success", "qc": {"yield": 10}}
+
+    delete.assert_called_once_with(
+        "https://example.test/api/libraries/delete-qc",
+        json={"library_id": 12, "keys": ["yield", "purity"]},
+        headers={"X-API-Token": "token"},
+    )
+
+
 def test_get_project_data_paths_client_method():
     response = Mock()
     response.json.return_value = ["/projects/project"]

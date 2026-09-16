@@ -8,6 +8,8 @@ from enum import Enum
 from types import UnionType
 from typing import Optional, TypeVar, Union, get_args, get_origin
 
+from typing_extensions import TypeForm
+
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, TypeAdapter
@@ -274,6 +276,11 @@ def _is_enum_annotation(annotation: object) -> bool:
     return isinstance(annotation, type) and issubclass(annotation, Enum)
 
 
+def _cell_value(row: Mapping[str, object] | pd.Series, col: object) -> object:
+    val = _unwrap_numpy_scalar(row[col])  # type: ignore[index]
+    return None if is_missing(val) else val
+
+
 def validate_row(row: Mapping[str, object] | pd.Series, model: type[M]) -> M:
     """Validate a mapping or Series against a Pydantic model.
 
@@ -290,6 +297,9 @@ def validate_row(row: Mapping[str, object] | pd.Series, model: type[M]) -> M:
             score: float | None
             bonus: int = 0
 
+    If ``model`` declares a private ``_raw_`` attribute, leftover
+    keys that are not model fields are stored there as a dict.
+
     Raises:
         pydantic.ValidationError: If the row fails validation or a
             required column is missing.
@@ -298,9 +308,16 @@ def validate_row(row: Mapping[str, object] | pd.Series, model: type[M]) -> M:
     for col in model.model_fields:
         if col not in row:
             continue
-        val = _unwrap_numpy_scalar(row[col])
-        data[col] = None if is_missing(val) else val
-    return model.model_validate(data)
+        data[col] = _cell_value(row, col)
+    instance = model.model_validate(data)
+    if "_raw_" in model.__private_attributes__:
+        model_fields = model.model_fields
+        instance._raw_ = {  # type: ignore[attr-defined]
+            col: _cell_value(row, col)
+            for col in row.keys()
+            if col not in model_fields and col != "_raw_"
+        }
+    return instance
 
 
 def validate(df: pd.DataFrame, model: type[M]) -> pd.DataFrame:
@@ -341,6 +358,9 @@ def safe_iter(
     NaN/NaT values are converted to ``None``, and numpy scalars are
     unwrapped to native Python types before validation.
 
+    If ``model`` declares a private ``_raw_`` attribute, remaining
+    DataFrame columns that are not model fields are stored there.
+
     Args:
         df: Source DataFrame.
         model: Pydantic model class to validate each row against.
@@ -365,6 +385,71 @@ def safe_iter(
         if _validate_index:
             idx = index_adapter.validate_python(idx)  # type: ignore[assignment]
         yield idx, validate_row(row, model)  # type: ignore[return-value]
+
+
+def safe_deduplicated(df: pd.DataFrame, model: type[M]) -> list[M]:
+    """Return unique combinations of ``model`` fields as validated instances.
+
+    Column names are taken from ``model`` field names. Duplicate rows
+    are collapsed with :meth:`pandas.DataFrame.drop_duplicates` (a
+    single-field model is just unique values of that column), then each
+    remaining row is validated through ``model``::
+
+        class Schema(BaseModel):
+            number: int
+            text: str | None
+
+        rows: list[Schema] = parsing.safe_deduplicated(df, Schema)
+
+    Args:
+        df: Source DataFrame.
+        model: Pydantic model class whose fields define the columns
+            to consider. Each unique combination is validated against
+            this model.
+
+    Returns:
+        A list of validated ``model`` instances, one per unique
+        combination, in first-seen order.
+
+    Raises:
+        pydantic.ValidationError: Immediately on the first unique row
+            that fails validation.
+    """
+    cols = list(model.model_fields)
+    unique_df = df.loc[:, cols].drop_duplicates()
+    return [validate_row(row, model) for _, row in unique_df.iterrows()]
+
+
+def safe_unique(df: pd.DataFrame, col: str, _type: TypeForm[T]) -> list[T]:
+    """Return unique values of ``col``, validated as ``_type``.
+
+    Missing values (``NaN``, ``NaT``, ``pd.NA``) are converted to
+    ``None`` before validation. Pass an optional type when the column
+    may contain empties::
+
+        names: list[str] = parsing.safe_unique(df, "name", str)
+        ids: list[int | None] = parsing.safe_unique(df, "id", int | None)
+
+    Duplicate values are collapsed in first-seen order. A non-optional
+    ``_type`` raises if the column contains missing values.
+
+    Raises:
+        pydantic.ValidationError: Immediately on the first unique value
+            that fails validation.
+    """
+    adapter = TypeAdapter(_type)
+    result: list[T] = []
+    seen: set[object] = set()
+    for val in df[col].unique():
+        raw = _unwrap_numpy_scalar(val)
+        if is_missing(raw):
+            raw = None
+        validated = adapter.validate_python(raw)
+        if validated in seen:
+            continue
+        seen.add(validated)
+        result.append(validated)
+    return result
 
 
 def safe_groupby(

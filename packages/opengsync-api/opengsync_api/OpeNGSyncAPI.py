@@ -146,6 +146,32 @@ class OpeNGSyncAPI:
         self._raise_for_status(response)
         return response.json()
 
+    def add_library_qc(self, library_id: int, qc: dict):
+        payload = {
+            "library_id": library_id,
+            "qc": qc,
+        }
+        response = requests.post(
+            f"{self.base_url}/api/libraries/add-qc",
+            json=payload,
+            headers=self._headers(),
+        )
+        self._raise_for_status(response)
+        return response.json()
+
+    def delete_library_qc(self, library_id: int, keys: list[str]):
+        payload = {
+            "library_id": library_id,
+            "keys": keys,
+        }
+        response = requests.delete(
+            f"{self.base_url}/api/libraries/delete-qc",
+            json=payload,
+            headers=self._headers(),
+        )
+        self._raise_for_status(response)
+        return response.json()
+
     def add_project_software(
         self,
         project_id: int,

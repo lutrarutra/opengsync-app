@@ -102,7 +102,26 @@ class Library(Base):
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan", order_by="SeqQuality.lane")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
-    qc: Mapped[dict[str, Any] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None) 
+    qc: Mapped[dict[str, Any] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+
+    def set_qc(self, qc: dict[str, Any]) -> None:
+        if self.qc is None:
+            self.qc = {}
+        self.qc.update(qc)
+
+    def delete_qc(self, keys: list[str]) -> None:
+        if self.qc is None:
+            raise KeyError(keys[0])
+
+        missing_key = next((key for key in keys if key not in self.qc), None)
+        if missing_key is not None:
+            raise KeyError(missing_key)
+
+        for key in keys:
+            del self.qc[key]
+
+        if not self.qc:
+            self.qc = None
 
     def get_num_sequenced_reads(self) -> int:
         if orm.object_session(self) is None:

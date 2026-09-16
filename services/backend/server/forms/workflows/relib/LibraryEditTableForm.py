@@ -69,9 +69,10 @@ class LibraryEditTableForm(RelibWorkflowStep):
 
             for _, row in parsing.safe_iter(form.spreadsheet.data, RowSchema):
                 library = session.get_one(Q.library.select(id=row.library_id))
-                library.name = row.library_name
+                new_library_type = C.LibraryType.get(row.library_type_id)
+                library.name = row.library_name.removesuffix(f"_{library.type.identifier}") + f"_{new_library_type.identifier}"
                 library.sample_name = row.sample_name
-                library.type = C.LibraryType.get(row.library_type_id)
+                library.type = new_library_type
                 library.genome_ref = C.GenomeRef.get(row.genome_id)
                 library.nuclei_isolation = row.nuclei_isolation == "Yes"
                 library.service_type = C.ServiceType.get(row.service_type_id)

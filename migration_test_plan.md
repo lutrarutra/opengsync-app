@@ -20,7 +20,11 @@
 - [ ] Add tests for `HTMXWorkflowStep.is_applicable()` and conditional step navigation.
 - [ ] Add tests for `BarcodeInputMixin` normalization, invalid sequences, duplicate barcodes, and reverse-complement behavior.
 
+
+
 ## 1. Authentication forms
+
+
 
 ### `LoginForm`
 
@@ -35,6 +39,8 @@
 - [x] CSRF failure.
 - [x] HTMX response versus browser redirect.
 
+
+
 ### `RegisterForm`
 
 - [x] Valid registration.
@@ -47,6 +53,8 @@
 - [x] CSRF failure.
 - [x] Persistence and rollback on failure.
 
+
+
 ### `CompleteRegistrationForm`
 
 - [x] Valid completion with a valid registration token.
@@ -56,6 +64,8 @@
 - [x] Duplicate/invalid user state.
 - [x] CSRF failure.
 - [x] Account activation persistence.
+
+
 
 ### `ChangePasswordForm`
 
@@ -68,6 +78,8 @@
 - [x] CSRF failure.
 - [x] Session/token behavior after password change. *(Cookie deletion covered; JWT revocation is not implemented.)*
 
+
+
 ### `ResetPasswordForm`
 
 - [ ] Valid reset request/token.
@@ -78,6 +90,8 @@
 - [ ] Unknown email behavior without account enumeration.
 - [ ] CSRF failure.
 - [ ] Password persistence and token invalidation.
+
+
 
 ### `APITokenForm`
 
@@ -90,6 +104,8 @@
 - [ ] Cannot access another user’s token.
 - [ ] CSRF failure.
 - [ ] Token value visibility and response behavior.
+
+
 
 ## 2. Model forms
 
@@ -106,6 +122,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Editing another user’s project.
 - [ ] Draft versus non-draft edit behavior.
 
+
+
 ### `SampleForm`
 
 - [ ] Create sample.
@@ -115,6 +133,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Genome/reference validation.
 - [ ] Required and maximum-length fields.
 - [ ] Library/project relationship persistence.
+
+
 
 ### `LibraryForm`
 
@@ -126,6 +146,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Invalid relationship IDs.
 - [ ] Protected status transition behavior.
 
+
+
 ### `SeqRequestForm`
 
 - [ ] Create sequencing request.
@@ -136,6 +158,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Owner/insider permission variants.
 - [ ] Persistence of submission state.
 
+
+
 ### `LabPrepForm`
 
 - [ ] Create lab prep.
@@ -144,6 +168,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Required name/type fields.
 - [ ] Insider-only behavior.
 - [ ] Checklist initialization and persistence.
+
+
 
 ### `ExperimentForm`
 
@@ -154,6 +180,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Invalid status transitions.
 - [ ] Insider/admin permission variants.
 - [ ] Deleteability interaction with form state.
+
+
 
 ### `PoolForm`
 
@@ -166,6 +194,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Experiment/sequence-request relationships.
 - [ ] Unauthorized and invalid relationship cases.
 
+
+
 ### `PlateForm`
 
 - [ ] Create plate with a pool.
@@ -175,6 +205,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] `flipped` orientation behavior.
 - [ ] Plate/sample-link persistence.
 - [ ] Insider permission checks.
+
+
 
 ### `GroupForm`
 
@@ -186,6 +218,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Group membership persistence.
 - [ ] Unauthorized access.
 
+
+
 ### `UserForm`
 
 - [ ] Create user.
@@ -195,6 +229,8 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 - [ ] Role/status changes.
 - [ ] Suspended/active transitions.
 - [ ] Invalid fields and maximum lengths.
+
+
 
 ### `CommentForm`
 
@@ -211,6 +247,8 @@ Test each target context separately:
 - [ ] Empty/maximum-length comment.
 - [ ] Delete behavior, if exposed.
 
+
+
 ### `TODOCommentForm`
 
 - [ ] Create TODO comment on flow-cell design.
@@ -221,6 +259,8 @@ Test each target context separately:
 - [ ] Invalid target/comment ID.
 - [ ] Permission variants.
 - [ ] Empty/maximum-length text.
+
+
 
 ### `MediaFileForm`
 
@@ -237,6 +277,8 @@ Test each attachment context separately:
 - [ ] Permission variants.
 - [ ] File persistence and cleanup on rollback.
 
+
+
 ### `ProtocolForm`
 
 - [ ] Create protocol.
@@ -246,6 +288,8 @@ Test each attachment context separately:
 - [ ] Insider/admin permission variants.
 - [ ] Invalid kit IDs.
 - [ ] Persistence and deletion restrictions.
+
+
 
 ### `FlowCellDesignForm`
 
@@ -257,6 +301,8 @@ Test each attachment context separately:
 - [ ] Permission variants.
 - [ ] Persistence and rollback.
 
+
+
 ### `PoolDesignForm`
 
 - [ ] Create design.
@@ -267,6 +313,8 @@ Test each attachment context separately:
 - [ ] Permission variants.
 - [ ] Persistence and rollback.
 
+
+
 ### `FeatureKitForm`
 
 - [ ] Create feature kit.
@@ -275,6 +323,8 @@ Test each attachment context separately:
 - [ ] Feature type and sequence validation.
 - [ ] Invalid feature relationships.
 - [ ] Admin/insider permissions.
+
+
 
 ### `IndexKitForm`
 
@@ -285,6 +335,8 @@ Test each attachment context separately:
 - [ ] Invalid kit type/barcode configuration.
 - [ ] Admin-only behavior.
 
+
+
 ### `KitForm`
 
 - [ ] Create generic kit.
@@ -293,6 +345,8 @@ Test each attachment context separately:
 - [ ] Duplicate identifier.
 - [ ] Admin/insider permissions.
 - [ ] Invalid kit relationships.
+
+
 
 ### `SeqRunForm`
 
@@ -304,6 +358,8 @@ Test each attachment context separately:
 - [ ] Insider-only behavior.
 - [ ] Deleteability interaction.
 
+
+
 ### `SequencerForm`
 
 - [ ] Create sequencer.
@@ -312,6 +368,8 @@ Test each attachment context separately:
 - [ ] Model validation.
 - [ ] Insider/admin permissions.
 - [ ] Delete behavior when referenced.
+
+
 
 ## 3. Standalone actions
 
@@ -329,6 +387,8 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path.
 - [ ] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure.
 
+
+
 ### Sample, library, pool, and prep actions
 
 - [ ] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback.
@@ -343,6 +403,8 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks.
 - [ ] `SelectExperimentPoolsAction`: select valid pools; already-associated pools; incompatible status; combined/separate workflow context; permission checks.
 
+
+
 ### Kit, protocol, barcode, and sequencing actions
 
 - [ ] `AddKitsToProtocolAction`: add kit combination; duplicate combination; invalid kit; incompatible kit types; protocol permissions; rollback.
@@ -354,22 +416,32 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output.
 - [ ] `ReseqAction`: indexed libraries; raw libraries; mixed selection; invalid status; duplicate resequencing; permission checks.
 
+
+
 ### Specialized action variants
+
+
 
 #### Lane pooling
 
 - [ ] `LanePoolsCombinedAction`: one combined lane; valid pool ratios; invalid/zero ratios; molarity warnings; qubit lookup; persistence.
 - [ ] `LanePoolsSeparateAction`: multiple lanes; per-lane pool assignments; missing lane; invalid ratios; molarity warnings; persistence.
 
+
+
 #### Read distribution
 
 - [ ] `DistributeReadsCombinedAction`: combined lanes; valid read allocation; totals mismatch; zero/negative reads; persistence.
 - [ ] `DistributeReadsSeparateAction`: separate lanes; per-lane allocation; missing lane; totals mismatch; persistence.
 
+
+
 #### Flow-cell loading
 
 - [ ] `LoadFlowCellCombinedAction`: combined-lane load; valid flow cell; missing/duplicate flow cell; status validation; persistence.
 - [ ] `LoadFlowCellSeparateAction`: separate-lane load; per-lane flow cells; duplicate flow cell; missing lane; persistence.
+
+
 
 #### Index-kit barcode editing
 
@@ -378,6 +450,8 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `EditCombinatorialKitBarcodes`: valid combinatorial matrix; duplicate combinations; invalid matrix dimensions; sequence validation; rollback.
 - [ ] `EditKitTENXATACBarcodes`: valid four-sequence ATAC rows; missing `sequence_1`–`sequence_4`; duplicate rows; sequence validation; rollback.
 - [ ] `EditKitBarcodes` base dispatch: supported kit-type selection; unsupported type; base-class methods never reached accidentally; controlled error.
+
+
 
 ## 4. Workflows
 
@@ -421,6 +495,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Completion failure rolls back all created records.
 - [ ] Expired workflow UUID and cross-user UUID isolation.
 
+
+
 ### `BAReportWorkflow`
 
 - [ ] Select one sample.
@@ -436,6 +512,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Back navigation and Redis cleanup.
 - [ ] Permission and insider-only variants.
 
+
+
 ### `QubitMeasureWorkflow`
 
 - [ ] Select one sample.
@@ -447,6 +525,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Persist measurements.
 - [ ] Back navigation, completion, rollback, and cleanup.
 
+
+
 ### `AddKitsToProtocolWorkflow`
 
 - [ ] Begin action-backed flow.
@@ -456,16 +536,28 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Invalid protocol and permission failures.
 - [ ] Completion persistence and rollback.
 
+
+
 ### `RelibWorkflow`
 
-- [ ] Select one eligible sample/library.
-- [ ] Select multiple libraries.
-- [ ] Empty/ineligible selection.
-- [ ] Edit library table with valid values.
-- [ ] Invalid dynamic library fields.
-- [ ] Back navigation preserves selection/table state.
-- [ ] Completion updates library state.
-- [ ] Unauthorized and expired-state behavior.
+- [x] Select one eligible sample/library.
+- [x] Select multiple libraries.
+- [x] Empty selection.
+- [x] Ineligible/forged selection regression test added (currently `xfail`; server-side context validation is missing).
+- [x] Edit library table with valid values.
+- [x] Invalid dynamic library fields.
+- [x] Back navigation preserves selection/table state.
+- [x] Completion updates library state and clears workflow Redis state.
+- [x] Unauthorized begin and invalid context behavior.
+- [ ] Expired/missing workflow-state rejection.
+
+Relib business-logic findings:
+
+- `SelectSamplesForm.Submit` accepts library IDs outside the requested sequence request or lab prep because the query parameters only filter the browse table.
+- `LibraryEditTableForm.Submit` trusts submitted `library_id` values instead of restricting rows to the libraries selected in the workflow; an insider can edit an unselected library.
+- A fresh or expired workflow UUID is not distinguished from a new workflow when the table endpoint is posted directly, so the missing-state path can still reach persistence.
+
+
 
 ### `MergePoolsWorkflow`
 
@@ -480,6 +572,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Back navigation.
 - [ ] Completion creates merged pool and updates source state.
 - [ ] Failure rolls back all changes.
+
+
 
 ### `ReindexWorkflow`
 
@@ -496,6 +590,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Back navigation through every branch.
 - [ ] Rollback and cleanup.
 
+
+
 ### `MuxPrepWorkflow`
 
 - [ ] Oligo mux flow.
@@ -511,6 +607,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Completion persists mux annotations.
 - [ ] Failure rolls back all changes.
 
+
+
 ### `LibraryPoolingWorkflow`
 
 - [ ] Select valid libraries.
@@ -522,6 +620,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Completion persists pools and library state.
 - [ ] Back navigation, rollback, and cleanup.
 
+
+
 ### `LibraryRemuxWorkflow`
 
 - [ ] Oligo remux flow.
@@ -531,6 +631,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Duplicate/invalid barcodes.
 - [ ] Permission and library-status failures.
 - [ ] Completion persistence and rollback.
+
+
 
 ### `SelectLibraryProtocolsWorkflow`
 
@@ -542,6 +644,8 @@ Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Ext
 - [ ] Empty/partial selection.
 - [ ] Completion persistence.
 - [ ] Back navigation and conditional-step behavior.
+
+
 
 ### `LaneQCWorkflow`
 
@@ -559,6 +663,8 @@ Test the two execution flavors separately:
 - [ ] Completion clears Redis state.
 - [ ] Failure rolls back lane updates.
 
+
+
 ### `ShareProjectDataWorkflow`
 
 - [ ] Share one project.
@@ -572,6 +678,8 @@ Test the two execution flavors separately:
 - [ ] Completion creates/updates share token and paths.
 - [ ] Rollback and duplicate submission behavior.
 
+
+
 ### `SelectExperimentPoolsWorkflow`
 
 - [ ] Select valid stored pools.
@@ -584,6 +692,8 @@ Test the two execution flavors separately:
 - [ ] Completion updates experiment checklist and associations.
 - [ ] Back navigation and cleanup.
 
+
+
 ### `MergeProjectsWorkflow`
 
 - [ ] Merge two compatible projects.
@@ -595,6 +705,8 @@ Test the two execution flavors separately:
 - [ ] Unauthorized project access.
 - [ ] Completion moves expected samples/libraries/requests.
 - [ ] Failure rolls back all changes.
+
+
 
 ## 5. Cross-cutting response and security tests
 

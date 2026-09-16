@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from opengsync_db import models, SyncSession
 from opengsync_db.categories import DataPathType
 
-from ..db.create_units import create_project
+from ..db.create_units import create_library, create_project, create_seq_request
 from ._http import auth
 
 
@@ -79,6 +79,105 @@ def test_project_software_api_requires_insider(
         headers=auth(user_token),
     )
 
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
+
+
+def test_library_qc_api_upserts_and_deletes(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    insider_token: str,
+):
+    seq_request = create_seq_request(session, insider)
+    library = create_library(session, insider, seq_request)
+    session.commit()
+
+    response = client.post(
+        "/api/libraries/add-qc",
+        json={
+            "library_id": library.id,
+            "qc": {"yield": 10, "purity": 0.95},
+        },
+        headers=auth(insider_token),
+    )
+    assert response.status_code == 200
+    assert response.json()["qc"] == {"yield": 10, "purity": 0.95}
+
+    response = client.post(
+        "/api/libraries/add-qc",
+        json={
+            "library_id": library.id,
+            "qc": {"yield": 12, "quality": "pass"},
+        },
+        headers=auth(insider_token),
+    )
+    assert response.status_code == 200
+    assert response.json()["qc"] == {"yield": 12, "purity": 0.95, "quality": "pass"}
+
+    response = client.request(
+        "DELETE",
+        "/api/libraries/delete-qc",
+        json={"library_id": library.id, "keys": ["purity", "quality"]},
+        headers=auth(insider_token),
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+    assert response.json()["qc"] == {"yield": 12}
+
+    response = client.request(
+        "DELETE",
+        "/api/libraries/delete-qc",
+        json={"library_id": library.id, "keys": ["missing"]},
+        headers=auth(insider_token),
+        follow_redirects=False,
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == f"QC key 'missing' not found on library '{library.id}'."
+
+    response = client.request(
+        "DELETE",
+        "/api/libraries/delete-qc",
+        json={"library_id": library.id, "keys": ["yield"]},
+        headers=auth(insider_token),
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+    assert response.json()["qc"] == {}
+
+
+def test_library_qc_api_handles_missing_values(
+    client: TestClient,
+    insider_token: str,
+):
+    response = client.post(
+        "/api/libraries/add-qc",
+        json={"library_id": 999999, "qc": {"yield": 10}},
+        headers=auth(insider_token),
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Library with ID '999999' not found."
+
+    response = client.request(
+        "DELETE",
+        "/api/libraries/delete-qc",
+        json={"library_id": 999999, "keys": ["yield"]},
+        headers=auth(insider_token),
+        follow_redirects=False,
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Library with ID '999999' not found."
+
+
+def test_library_qc_api_requires_insider(
+    client: TestClient,
+    user_token: str,
+):
+    response = client.post(
+        "/api/libraries/add-qc",
+        json={"library_id": 1, "qc": {"yield": 10}},
+        headers=auth(user_token),
+    )
     assert response.status_code == 403
     assert response.json()["detail"] == "Permission denied"
 
