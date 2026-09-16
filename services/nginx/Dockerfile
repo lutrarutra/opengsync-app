@@ -7,3 +7,8 @@ COPY services/opengsync-app/static/js /static/js
 COPY services/opengsync-app/static/images /static/images
 COPY services/opengsync-app/static/resources /static/resources
 COPY services/opengsync-app/static/robots.txt /usr/share/nginx/html/robots.txt
+
+ARG MEDIA_GID=1000
+
+# Add nginx user to the media group so it can read mounted media files
+RUN groupadd -g ${MEDIA_GID} mediagroup && usermod -aG mediagroup nginx
