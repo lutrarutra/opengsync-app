@@ -26,7 +26,7 @@ class AsyncSession(SQLAlchemyAsyncSession):
         self,
         statement: sa.Select,
         order_by: utils.OrderBy | None = None,
-        limit: int | None = DEFAULT_LIMIT,
+        limit: int | None = 5000,
         options: utils.QueryOptions | None = None,
         offset: int | None = None,
     ) -> pd.DataFrame:

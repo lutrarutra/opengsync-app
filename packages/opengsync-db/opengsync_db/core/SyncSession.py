@@ -22,7 +22,7 @@ class SyncSession(SQLAlchemySession):
         self,
         statement: sa.Select,
         order_by: sql.expression.UnaryExpression | None = None,
-        limit: int | None = DEFAULT_LIMIT,
+        limit: int | None = 5000,
         options: utils.QueryOptions | None = None,
         offset: int | None = None
     ) -> pd.DataFrame:
