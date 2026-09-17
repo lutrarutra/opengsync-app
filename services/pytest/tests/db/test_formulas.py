@@ -59,7 +59,7 @@ def test_separate_lane_molarity(session: SyncSession):
 
     session.flush()
     session.refresh(experiment)
-    df = session.pd.get_experiment_lanes(experiment.id).set_index("lane")
+    df = session.get_pandas(Q.pd.experiment_lanes(experiment.id), limit=None).set_index("lane")
     assert len(df) == experiment.num_lanes
     for lane in experiment.lanes:
         session.refresh(lane)
@@ -111,7 +111,7 @@ def test_separate_lane_molarity(session: SyncSession):
 
     session.flush()
     session.refresh(experiment)
-    df = session.pd.get_experiment_lanes(experiment.id).set_index("lane")
+    df = session.get_pandas(Q.pd.experiment_lanes(experiment.id), limit=None).set_index("lane")
     for lane in experiment.lanes:
         row = df.loc[lane.number]
         assert lane.molarity is not None

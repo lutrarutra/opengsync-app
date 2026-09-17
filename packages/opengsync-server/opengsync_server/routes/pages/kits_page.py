@@ -95,7 +95,9 @@ def export_features(feature_kit_id: int):
     if feature_kit is None:
         raise exceptions.NotFoundException()
 
-    features_df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit_id)
+    features_df = db.session.get_pandas(
+        Q.pd.feature_kit_features(feature_kit_id), limit=None
+    )
     features_df["feature_type"] = features_df["type"].apply(lambda x: x.modality)
 
     response = make_response(features_df.to_csv(index=False))

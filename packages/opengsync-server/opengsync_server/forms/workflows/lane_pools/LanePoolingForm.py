@@ -52,7 +52,9 @@ class LanePoolingForm(HTMXFlaskForm):
         self._context["error_max"] = models.Pool.error_max_molarity
         self._context["enumerate"] = enumerate
 
-        self.df = db.pd.get_experiment_laned_pools(experiment_id=self.experiment.id)
+        self.df = db.session.get_pandas(
+            Q.pd.experiment_laned_pools(self.experiment.id), limit=None
+        )
         self.df["dilutions"] = None
         self.df["sub_form_idx"] = None
 

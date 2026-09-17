@@ -12,6 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, logger
 from ...core import wrappers, exceptions, runtime
@@ -43,7 +44,9 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     request_args = request.get_json()
     width = request_args.get("width", 1000)
     
-    df = db.pd.get_experiment_seq_qualities(experiment_id)
+    df = T.experiment_seq_qualities(
+        db.session.get_pandas(Q.pd.experiment_seq_qualities(experiment_id), limit=None)
+    )
     if len(df) == 0:
         return make_response()
     
@@ -106,7 +109,12 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
     request_args = request.get_json()
     width = request_args.get("width", 1000)
     
-    df = db.pd.get_experiment_stats(experiment_id)
+    df = T.experiment_stats(
+        db.session.get_pandas(Q.pd.experiment_stats(experiment_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
     if len(df) == 0:
         return make_response()
     
@@ -169,7 +177,12 @@ def experiment_pool_per_library_reads(current_user: models.User, experiment_id: 
     request_args = request.get_json()
     width = request_args.get("width", 1000)
     
-    df = db.pd.get_experiment_stats(experiment_id)
+    df = T.experiment_stats(
+        db.session.get_pandas(Q.pd.experiment_stats(experiment_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
     if len(df) == 0:
         return make_response()
 

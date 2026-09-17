@@ -5,6 +5,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.categories import AttributeType
 
 from .. import logger, db
@@ -27,7 +28,10 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         self.project = project
 
         self._context["project"] = project
-        df = db.pd.get_project_samples(self.project.id).sort_values("sample_id").reset_index(drop=True)
+        df = T.project_samples(
+            db.session.get_pandas(Q.pd.project_samples(self.project.id), limit=None),
+            pivot=True,
+        ).sort_values("sample_id").reset_index(drop=True)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
 

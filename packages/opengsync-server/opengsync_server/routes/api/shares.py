@@ -4,8 +4,9 @@ import smtplib
 from flask import Blueprint, jsonify
 from sqlalchemy import orm
 
-from opengsync_db.categories import DataPathType, DataPathType, ProjectStatus, DeliveryStatus, LibraryStatus
+from opengsync_db.categories import DataPathType, ProjectStatus, DeliveryStatus, LibraryStatus
 from opengsync_db import models, queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...tools import utils
 from ...core import wrappers, exceptions, runtime
@@ -235,7 +236,11 @@ def release_project_data(
     ))
 
     if recipients is None:
-        _recipients: list[str] = db.pd.get_project_latest_request_share_emails(project.id)["email"].unique().tolist()
+        _recipients: list[str] = T.project_latest_request_share_emails(
+            db.session.get_pandas(
+                Q.pd.project_latest_request_share_emails(project.id), limit=None
+            )
+        )["email"].unique().tolist()
         recipients = _recipients
 
     recipients = list(set(recipients))

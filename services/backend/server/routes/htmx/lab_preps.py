@@ -8,6 +8,8 @@ from loguru import logger
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
 from ... import forms
@@ -200,7 +202,10 @@ def render_lab_prep_mux_spreadsheet(
     lab_prep_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    df = session.pd.get_lab_prep_pooling_table(lab_prep_id)
+    df = T.lab_prep_pooling_table(
+        session.get_pandas(Q.pd.lab_prep_pooling_table(lab_prep_id), limit=None),
+        expand_mux_=False,
+    )
 
     df = df.sort_values(by=["sample_id"])
 
@@ -214,7 +219,7 @@ def render_lab_prep_mux_spreadsheet(
     }
 
     for _, row in df.iterrows():
-        if row["mux_type_id"] is None:
+        if row["mux_type"] is None:
             continue
         
         mux_table["sample_name"].append(row["sample_name"])

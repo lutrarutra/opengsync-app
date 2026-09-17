@@ -3,7 +3,9 @@ from typing import Self
 import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import categories as C, models, SyncSession
+from opengsync_db import categories as C, models, SyncSession, queries as Q
+
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ....core import dependencies
 from ....utils import parsing
@@ -58,7 +60,13 @@ class OCMMuxForm(MuxPrepWorkflowStep):
 
     @classmethod
     def build(cls, workflow: MuxPrepWorkflow, session: SyncSession) -> Self:
-        sample_table = session.pd.get_lab_prep_pooling_table(workflow.lab_prep_id)
+        sample_table = T.lab_prep_pooling_table(
+            session.get_pandas(
+                Q.pd.lab_prep_pooling_table(workflow.lab_prep_id),
+                limit=None,
+            ),
+            expand_mux_=False,
+        )
         sample_table = sample_table[sample_table["mux_type"].isin([C.MUXType.TENX_ON_CHIP])]
         mux_table = sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 

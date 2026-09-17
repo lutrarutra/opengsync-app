@@ -4,6 +4,8 @@ from opengsync_db import SyncSession
 from opengsync_db import categories as C
 from opengsync_db import queries as Q
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...components import inputs
 from ...components.tables.spreadsheet import TextColumn
 from ...core import dependencies, responses
@@ -86,7 +88,12 @@ class BarcodeConstraintsAction(HTMXForm):
                     )
                     form.assert_valid()
 
-                barcodes_df = session.pd.get_index_kit_barcodes(kit.id, per_index=True)
+                barcodes_df = T.index_kit_barcodes(
+                    session.get_pandas(Q.pd.index_kit_barcodes(kit.id), limit=None),
+                    per_adapter=False,
+                    per_index=True,
+                )
+                barcodes_df = T.index_kit_barcodes_per_index(barcodes_df, kit.type)
                 if len(barcodes_df["sequence_i7"].str.len().unique()) != 1:
                     form.spreadsheet.add_general_error(
                         f"The selected kit '{kit.name}' has i7 index sequences of different lengths and cannot be used."

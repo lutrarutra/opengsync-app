@@ -54,7 +54,7 @@ class ProtocolMappingForm(SelectLibraryProtocolsWorkflowStep):
         if "library_kits" not in df.columns or df["library_kits"].isna().all():
             raise exc.BadRequestException("Prep file does not contain library kit information.")
 
-        kit_rows = session.pd.get_protocol_kits()
+        kit_rows = session.get_pandas(Q.pd.protocol_kits(), limit=None)
         protocol_combos: list[dict] = []
         if not kit_rows.empty:
             for key, group in parsing.safe_groupby(

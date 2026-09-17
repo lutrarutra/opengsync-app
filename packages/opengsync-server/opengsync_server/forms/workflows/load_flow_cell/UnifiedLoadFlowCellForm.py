@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import FloatField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ExperimentStatus
 
 from .... import db, logger 
@@ -38,7 +38,9 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         self._context["experiment"] = experiment
 
     def prepare(self):
-        df = db.pd.get_experiment_lanes(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         row = df.iloc[0]
 
         if pd.notna(row["total_volume_ul"]):
@@ -74,7 +76,9 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            self._context["df"] = db.pd.get_experiment_lanes(self.experiment.id)
+            self._context["df"] = db.session.get_pandas(
+                Q.pd.experiment_lanes(self.experiment.id), limit=None
+            )
             return self.make_response()
 
         loaded = True

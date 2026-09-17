@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 import pandas as pd
 
-from opengsync_db import models, SyncSession
+from opengsync_db import models, SyncSession, queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...core import dependencies
 
@@ -20,8 +21,8 @@ class QueryBarcodeSequenceRequest(BaseModel):
 def _barcode_records(df: pd.DataFrame) -> list[dict[str, Any]]:
     records = json.loads(df.to_json(orient="records"))
     for row in records:
-        type_id = row.get("type_id")
-        row["type"] = {"id": int(type_id)} if type_id is not None else None
+        barcode_type = row.get("type")
+        row["type"] = {"id": int(barcode_type)} if barcode_type is not None else None
     return records
 
 
@@ -31,8 +32,23 @@ def query_barcode_sequence(
     session: SyncSession = Depends(dependencies.db_session),
 ) -> dict[str, Any]:
     sequence = body.sequence.upper()
-    fc_df = session.pd.query_barcode_sequences(sequence, limit=body.limit)
-    rc_df = session.pd.query_barcode_sequences(models.Barcode.reverse_complement(sequence), limit=body.limit)
+    fc_df = T.query_barcode_sequences(
+        session.get_pandas(
+            Q.pd.query_barcode_sequences(sequence, limit=body.limit),
+            limit=None,
+        ),
+        sequence,
+        body.limit,
+    )
+    rc_sequence = models.Barcode.reverse_complement(sequence)
+    rc_df = T.query_barcode_sequences(
+        session.get_pandas(
+            Q.pd.query_barcode_sequences(rc_sequence, limit=body.limit),
+            limit=None,
+        ),
+        rc_sequence,
+        body.limit,
+    )
 
     return {
         "fc_results": _barcode_records(fc_df),

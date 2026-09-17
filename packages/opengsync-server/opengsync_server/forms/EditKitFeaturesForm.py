@@ -40,7 +40,9 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         )
 
     def __fill_form(self):
-        template = db.pd.get_feature_kit_features(self.feature_kit.id)
+        template = db.session.get_pandas(
+            Q.pd.feature_kit_features(self.feature_kit.id), limit=None
+        )
         return template
 
     def validate(self) -> bool:

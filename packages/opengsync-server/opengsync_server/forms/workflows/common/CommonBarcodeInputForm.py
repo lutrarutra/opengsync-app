@@ -6,6 +6,7 @@ from flask import url_for
 from opengsync_db import models
 from opengsync_db import queries as Q
 from opengsync_db.categories import LibraryType, IndexType, BarcodeOrientation
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ....core import exceptions
 from ....core.RunTime import runtime
@@ -225,7 +226,12 @@ class CommonBarcodeInputForm(MultiStepForm):
                 idx = (self.df["name_i5"].isna() & (self.df["kit_i7"] == identifier))
                 self.df.loc[idx, "name_i5"] = self.df.loc[idx, "name_i7"]
             
-            df = db.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
+            df = T.index_kit_barcodes(
+                db.session.get_pandas(Q.pd.index_kit_barcodes(kit.id), limit=None),
+                per_adapter=False,
+                per_index=True,
+            )
+            df = T.index_kit_barcodes_per_index(df, kit.type)
             kits[identifier] = (kit, df)
             self.df.loc[self.df["kit_i7"] == identifier, "kit_i7_id"] = kit.id
             self.df.loc[self.df["kit_i5"] == identifier, "kit_i5_id"] = kit.id

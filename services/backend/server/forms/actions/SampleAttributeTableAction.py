@@ -4,6 +4,8 @@ from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
 from ...components.tables.spreadsheet import (
@@ -52,7 +54,13 @@ class SampleAttributeTableAction(HTMXForm):
                 )
 
             # Get sample data from DB
-            df = session.pd.get_project_samples(project.id).sort_values("sample_id").reset_index(drop=True)
+            df = T.project_samples(
+                session.get_pandas(
+                    Q.pd.project_samples(project.id, with_libraries=False),
+                    limit=None,
+                ),
+                pivot=True,
+            ).sort_values("sample_id").reset_index(drop=True)
 
             # Add any extra columns from the data that aren't predefined
             for col in df.columns:

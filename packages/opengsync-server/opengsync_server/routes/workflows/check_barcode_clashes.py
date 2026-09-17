@@ -3,6 +3,7 @@ import pandas as pd
 from flask import Blueprint, request
 
 from opengsync_db import models, queries as Q, categories as C
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, logger
 from ...forms.workflows import check_barcode_clashes as wff
@@ -101,7 +102,11 @@ def check_experiment_barcode_clashes(current_user: models.User, experiment_id: i
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
 
-    library_df = db.pd.get_experiment_barcodes(experiment_id=experiment.id)
+    library_df = T.experiment_barcodes(
+        db.session.get_pandas(
+            Q.pd.experiment_barcodes(experiment.id), limit=None
+        )
+    )
     return wff.CheckBarcodeClashesForm(library_df, groupby="lane").process_request()
 
 

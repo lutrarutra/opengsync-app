@@ -5,6 +5,8 @@ import sqlalchemy as sa
 
 from opengsync_db import models, exceptions
 from opengsync_db.categories import LibraryType, MUXType
+from opengsync_db import queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db
 from ....tools.spread_sheet_components import DuplicateCellValue
@@ -48,7 +50,12 @@ class CommonFlexMuxForm(MultiStepForm):
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             
-            sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
+            sample_table = T.lab_prep_pooling_table(
+                db.session.get_pandas(
+                    Q.pd.lab_prep_pooling_table(self.lab_prep.id), limit=None
+                ),
+                expand_mux_=False,
+            )
             sample_table = sample_table[
                 sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])
             ]

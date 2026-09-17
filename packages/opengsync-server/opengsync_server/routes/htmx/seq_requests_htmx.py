@@ -8,6 +8,7 @@ from sqlalchemy import orm
 import pandas as pd
 
 from opengsync_db import models, queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.categories import (
     SeqRequestStatus, LibraryStatus,
     SampleStatus, SubmissionType, PoolStatus,
@@ -67,8 +68,17 @@ def export(current_user: models.User, seq_request_id: int):
         
     metadata_df = pd.DataFrame.from_records(metadata).T
 
-    libraries_df = db.pd.get_seq_request_libraries(seq_request_id, include_indices=True)
-    features_df = db.pd.get_seq_request_features(seq_request_id)
+    libraries_df = T.seq_request_libraries(
+        db.session.get_pandas(
+            Q.pd.seq_request_libraries(seq_request_id, include_indices=True),
+            limit=None,
+        ),
+        include_indices=True,
+        collapse_indicies=False,
+    )
+    features_df = T.seq_request_features(
+        db.session.get_pandas(Q.pd.seq_request_features(seq_request_id), limit=None)
+    )
 
     bytes_io = BytesIO()
     # TODO: export features, CMOs, VISIUM metadata, etc...
@@ -94,7 +104,14 @@ def export_libraries(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
         
     file_name = f"libraries_{seq_request.id}.tsv"
-    libraries_df = db.pd.get_seq_request_libraries(seq_request_id=seq_request_id, include_indices=True)
+    libraries_df = T.seq_request_libraries(
+        db.session.get_pandas(
+            Q.pd.seq_request_libraries(seq_request_id, include_indices=True),
+            limit=None,
+        ),
+        include_indices=True,
+        collapse_indicies=False,
+    )
 
     return Response(
         libraries_df.to_csv(sep="\t", index=False), mimetype="text/csv",
@@ -871,7 +888,11 @@ def get_sample_table(current_user: models.User, seq_request_id: int):
     if access_level < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
-    df = db.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
+    df = T.seq_request_sample_table(
+        db.session.get_pandas(
+            Q.pd.seq_request_sample_table(seq_request_id), limit=None
+        )
+    )
     df["project"] = df["project_identifier"]
     df.loc[df["project"].isna(), "project"] = df.loc[df["project"].isna(), "project_title"]
     df = df.drop(columns=["project_identifier", "project_title", "sample_id"])

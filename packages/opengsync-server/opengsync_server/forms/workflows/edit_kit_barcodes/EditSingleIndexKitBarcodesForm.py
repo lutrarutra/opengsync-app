@@ -4,6 +4,7 @@ from wtforms import BooleanField
 
 from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType, BarcodeType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import db, logger
 from ....core.RunTime import runtime
@@ -31,7 +32,16 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
 
         match self.index_kit.type:
             case IndexType.SINGLE_INDEX_I7:
-                df = db.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True).rename(columns={"sequence_i7": "sequence", "name_i7": "name"})
+                df = T.index_kit_barcodes_per_index(
+                    T.index_kit_barcodes(
+                        db.session.get_pandas(
+                            Q.pd.index_kit_barcodes(self.index_kit.id), limit=None
+                        ),
+                        per_adapter=False,
+                        per_index=True,
+                    ),
+                    self.index_kit.type,
+                ).rename(columns={"sequence_i7": "sequence", "name_i7": "name"})
             case _:
                 logger.error(f"Invalid index kit type: {self.index_kit.type}")
                 raise ValueError("This form is only for single index kits.")

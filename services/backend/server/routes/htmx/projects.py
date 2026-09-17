@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
@@ -199,11 +201,24 @@ def export_project_data(
         }  # type: ignore
     ).T
 
-    samples_df = session.pd.get_project_samples(project_id=project.id)
-    libraries_df = session.pd.get_project_libraries(project_id=project.id)
-    seq_requests_df = session.pd.get_project_seq_requests(project_id=project.id)
-    library_properties_df = session.pd.get_library_properties(
-        project_id=project.id
+    samples_df = T.project_samples(
+        session.get_pandas(Q.pd.project_samples(project.id, with_libraries=False), limit=None),
+        pivot=True,
+    )
+    libraries = session.get_pandas(Q.pd.project_data(project.id), limit=None)
+    experiment_ids = libraries["experiment_id"].unique().tolist()
+    library_ids = libraries["library_id"].unique().tolist()
+    lanes = session.get_pandas(
+        Q.pd.project_libraries_lanes(experiment_ids, library_ids),
+        limit=None,
+    )
+    libraries_df = T.project_libraries(libraries, lanes, collapse_lanes_=True)
+    seq_requests_df = T.project_seq_requests(
+        session.get_pandas(Q.pd.project_seq_requests(project.id), limit=None)
+    )
+    library_properties_df = T.library_properties(
+        session.get_pandas(Q.pd.library_properties(project_id=project.id), limit=None),
+        expand_properties=True,
     )
 
     software = pd.DataFrame.from_records(
@@ -303,7 +318,10 @@ def render_project_sample_attribute_spreadsheet(
     from ...components.tables import StaticSpreadsheet
 
     df = (
-        session.pd.get_project_samples(project_id=project_id)
+        T.project_samples(
+            session.get_pandas(Q.pd.project_samples(project_id), limit=None),
+            pivot=True,
+        )
         .sort_values("sample_id")
         .reset_index(drop=True)
         .rename(columns={"sample_id": "id", "sample_name": "name"})
@@ -330,7 +348,14 @@ def render_project_overview(
     project_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    df = session.pd.get_project_libraries(project_id=project_id)
+    libraries = session.get_pandas(Q.pd.project_data(project_id), limit=None)
+    experiment_ids = libraries["experiment_id"].unique().tolist()
+    library_ids = libraries["library_id"].unique().tolist()
+    lanes = session.get_pandas(
+        Q.pd.project_libraries_lanes(experiment_ids, library_ids),
+        limit=None,
+    )
+    df = T.project_libraries(libraries, lanes, collapse_lanes_=True)
 
     LINK_WIDTH_UNIT = 1
 

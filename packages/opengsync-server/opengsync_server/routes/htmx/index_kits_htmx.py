@@ -3,6 +3,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, logger, forms, logic
 from ...core import wrappers, exceptions
@@ -35,7 +36,14 @@ def render_table(index_kit_id: int):
     if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
+    df = T.index_kit_barcodes_per_index(
+        T.index_kit_barcodes(
+            db.session.get_pandas(Q.pd.index_kit_barcodes(index_kit_id), limit=None),
+            per_adapter=False,
+            per_index=True,
+        ),
+        index_kit.type,
+    )
     df = df.drop(columns=["adapter_id"])
 
     columns = []

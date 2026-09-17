@@ -4,6 +4,7 @@ from wtforms import BooleanField
 
 from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType, BarcodeType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import db, logger
 from ....tools import utils
@@ -42,7 +43,16 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata,
-            df=db.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True),
+            df=T.index_kit_barcodes_per_index(
+                T.index_kit_barcodes(
+                    db.session.get_pandas(
+                        Q.pd.index_kit_barcodes(self.index_kit.id), limit=None
+                    ),
+                    per_adapter=False,
+                    per_index=True,
+                ),
+                self.index_kit.type,
+            ),
             allow_new_rows=True
         )
 

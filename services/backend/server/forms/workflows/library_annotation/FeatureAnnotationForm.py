@@ -89,7 +89,10 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
             df["kit_id"] = None
             for identifier in kit_identifiers:
                 kit = session.get_one(Q.feature_kit.select(identifier=identifier))
-                kit_df = session.pd.get_feature_kit_features(kit.id)
+                kit_df = session.get_pandas(
+                    Q.pd.feature_kit_features(kit.id),
+                    limit=None,
+                )
                 kits[identifier] = (kit, kit_df)
                 df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 

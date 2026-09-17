@@ -6,6 +6,8 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, units, actions
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...components.tables import StaticSpreadsheet, TextColumn
@@ -144,7 +146,20 @@ def experiment_overview(
         raise exc.NotFoundException(f"Experiment with ID {experiment_id} not found.")
     
     LINK_WIDTH_UNIT = 1
-    df = session.pd.get_experiment_libraries(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
+    df = T.experiment_libraries(
+        session.get_pandas(
+            Q.pd.experiment_libraries(
+                experiment_id,
+                include_indices=False,
+                include_seq_request=True,
+            ),
+            limit=None,
+        ),
+        include_indices=False,
+        collapse_indicies=True,
+        drop_empty_columns=True,
+        collapse_lanes_=False,
+    )
 
     if df.empty:
         return responses.htmx_response("components/plots/experiment_overview.html", links=[], nodes=[])
@@ -229,7 +244,12 @@ def experiment_stats(
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
     
-    library_stats_df = session.pd.get_experiment_stats(experiment.id, per_lane=False).drop(columns=["library_id"])
+    library_stats_df = T.experiment_stats(
+        session.get_pandas(Q.pd.experiment_stats(experiment.id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    ).drop(columns=["library_id"])
     library_stats_df.loc[library_stats_df["library_name"].isna(), "library_name"] = "Undetermined"
     library_stats_df = library_stats_df.drop(columns=["pool_id", "pool_name"])
     library_stats_df = library_stats_df.sort_values(by="num_reads", ascending=False)
@@ -244,7 +264,15 @@ def experiment_stats(
 
     library_stats = StaticSpreadsheet(df=library_stats_df, columns=columns, id=f"experiment-{experiment_id}-stats")
 
-    pool_stats_df = session.pd.get_pool_num_reads_stats(experiment.id)
+    sequenced_df = session.get_pandas(
+        Q.pd.pool_num_reads_stats_sequenced(experiment.id),
+        limit=None,
+    )
+    planned_df = session.get_pandas(
+        Q.pd.pool_num_reads_stats_planned(experiment.id),
+        limit=None,
+    )
+    pool_stats_df = T.pool_num_reads_stats(sequenced_df, planned_df)
     pool_stats_df.loc[pool_stats_df["pool_id"].isna(), "pool_name"] = "Undetermined"
     pool_stats_df = pool_stats_df[["pool_name", "num_reads", "num_planned_reads", "sequenced_vs_planned", "num_reads_requested"]]
     pool_stats_df = pool_stats_df.sort_values(by="num_reads", ascending=False)

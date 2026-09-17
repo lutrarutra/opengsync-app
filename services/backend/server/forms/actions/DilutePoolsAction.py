@@ -3,6 +3,8 @@ from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, actions
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, exceptions as exc, responses
 from ...utils import parsing
 from ...components import inputs
@@ -42,7 +44,12 @@ class DilutePoolsAction(HTMXForm):
             form: "DilutePoolsAction" = Depends(DilutePoolsAction.Init()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            df = session.pd.get_experiment_pools(form.experiment.id)
+            df = T.experiment_pools(
+                session.get_pandas(
+                    Q.pd.experiment_pools(form.experiment.id),
+                    limit=None,
+                )
+            )
             df["molarity_color"] = "cemm-green"
             df.loc[(df["molarity"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["molarity"]), "molarity_color"] = "cemm-yellow"
             df.loc[(df["molarity"] < models.Pool.error_min_molarity) | (models.Pool.error_max_molarity < df["molarity"]), "molarity_color"] = "cemm-red"

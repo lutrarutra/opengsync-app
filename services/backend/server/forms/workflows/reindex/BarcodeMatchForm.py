@@ -1,7 +1,7 @@
 from fastapi import Depends, Response
 import pandas as pd
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
 from ....utils import barcodes
 from ....components import inputs
@@ -65,10 +65,57 @@ class BarcodeMatchForm(ReindexWorkflowStep):
         rc_sequences_i7 = [s for s in df["rc_sequence_i7"].tolist() if pd.notna(s)]
         rc_sequences_i5 = [s for s in df["rc_sequence_i5"].tolist() if pd.notna(s)]
 
-        kits_i7 = session.pd.match_barcodes_to_kit(sequences_i7, C.BarcodeType.INDEX_I7)
-        kits_i5 = session.pd.match_barcodes_to_kit(sequences_i5, C.BarcodeType.INDEX_I5)
-        kits_rc_i7 = session.pd.match_barcodes_to_kit(rc_sequences_i7, C.BarcodeType.INDEX_I7)
-        kits_rc_i5 = session.pd.match_barcodes_to_kit(rc_sequences_i5, C.BarcodeType.INDEX_I5)
+        unique_sequences_i7 = list(set(sequences_i7))
+        if unique_sequences_i7:
+            kits_i7 = session.get_pandas(
+                Q.pd.match_barcodes_to_kit(
+                    unique_sequences_i7,
+                    len(unique_sequences_i7),
+                    C.BarcodeType.INDEX_I7.id,
+                ),
+                limit=None,
+            )
+        else:
+            kits_i7 = pd.DataFrame()
+
+        unique_sequences_i5 = list(set(sequences_i5))
+        if unique_sequences_i5:
+            kits_i5 = session.get_pandas(
+                Q.pd.match_barcodes_to_kit(
+                    unique_sequences_i5,
+                    len(unique_sequences_i5),
+                    C.BarcodeType.INDEX_I5.id,
+                ),
+                limit=None,
+            )
+        else:
+            kits_i5 = pd.DataFrame()
+
+        unique_rc_sequences_i7 = list(set(rc_sequences_i7))
+        if unique_rc_sequences_i7:
+            kits_rc_i7 = session.get_pandas(
+                Q.pd.match_barcodes_to_kit(
+                    unique_rc_sequences_i7,
+                    len(unique_rc_sequences_i7),
+                    C.BarcodeType.INDEX_I7.id,
+                ),
+                limit=None,
+            )
+        else:
+            kits_rc_i7 = pd.DataFrame()
+
+        unique_rc_sequences_i5 = list(set(rc_sequences_i5))
+        if unique_rc_sequences_i5:
+            kits_rc_i5 = session.get_pandas(
+                Q.pd.match_barcodes_to_kit(
+                    unique_rc_sequences_i5,
+                    len(unique_rc_sequences_i5),
+                    C.BarcodeType.INDEX_I5.id,
+                ),
+                limit=None,
+            )
+        else:
+            kits_rc_i5 = pd.DataFrame()
 
         kit_i7s: list[tuple[int, str]] = []
         for _, row in kits_i7.iterrows():

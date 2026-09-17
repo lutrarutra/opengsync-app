@@ -29,9 +29,7 @@ class SyncDBHandler:
         self.default_limit = default_row_limit
         self._local = threading.local()
 
-        from .blueprints.PandasBP import PandasBP
         from .blueprints.ActionsBP import ActionsBP
-        self.pd = PandasBP("pd", self)
         self.actions = ActionsBP("actions", self)
 
     def connect(

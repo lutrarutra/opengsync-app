@@ -34,7 +34,9 @@ class AddKitCombinationsFrom(HTMXFlaskForm):
             IntegerColumn("combination_num", "Combination", 200, required=False),
         ]
 
-        self.kit_table = db.pd.get_protocol_kits(protocol_id=protocol.id)
+        self.kit_table = db.session.get_pandas(
+            Q.pd.protocol_kits(protocol_id=protocol.id), limit=None
+        )
         self.spreadsheet = SpreadsheetInput(
             columns=columns,
             csrf_token=self._csrf_token,

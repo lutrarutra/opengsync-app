@@ -110,8 +110,10 @@ def render_table(feature_kit_id: int):
     if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit.id)
-    df = df.drop(columns=["type", "type_id"])
+    df = db.session.get_pandas(
+        Q.pd.feature_kit_features(feature_kit.id), limit=None
+    )
+    df = df.drop(columns=["type"])
 
     columns = []
     for i, col in enumerate(df.columns):

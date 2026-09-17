@@ -47,7 +47,9 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.pd.get_experiment_laned_pools(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_laned_pools(self.experiment.id), limit=None
+        )
         df["original_qubit_concentration"] = df["qubit_concentration"]
         df["dilutions"] = None
 

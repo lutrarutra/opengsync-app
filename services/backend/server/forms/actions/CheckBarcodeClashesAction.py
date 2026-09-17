@@ -6,6 +6,8 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...components import inputs
 from ...core import barcode_utils, dependencies, exceptions as exc, responses
 from ..HTMXForm import HTMXForm, RouteFunc, htmx_route
@@ -105,7 +107,12 @@ class CheckBarcodeClashesAction(HTMXForm):
             elif experiment_id is not None:
                 if not current_user.is_insider:
                     raise exc.NoPermissionsException("You do not have permission to view libraries for this experiment.")
-                libraries_df = session.pd.get_experiment_barcodes(experiment_id=experiment_id)
+                libraries_df = T.experiment_barcodes(
+                    session.get_pandas(
+                        Q.pd.experiment_barcodes(experiment_id),
+                        limit=None,
+                    )
+                )
                 groupby = "lane"
             else:
                 raise exc.BadRequestException("Must provide either seq_request_id, pool_id, or experiment_id to check barcodes for.")

@@ -18,8 +18,11 @@ def prepare_pandas_statement(statement: sa.Select) -> tuple[sa.Select, list[sa.C
     """Label mapped columns with their Python keys before reading into pandas."""
     selected_columns: list[sa.ColumnElement[Any]] = []
     for column in statement.selected_columns:
-        key = column.key
-        selected_columns.append(column.label(key) if key != column.name else column)
+        key = getattr(column, "key", None)
+        name = getattr(column, "name", None)
+        selected_columns.append(
+            column.label(key) if key is not None and key != name else column
+        )
     return (
         statement.with_only_columns(*selected_columns, maintain_column_froms=True),
         selected_columns,
@@ -30,7 +33,9 @@ def map_pandas_enum_columns(dataframe: Any, columns: list[sa.ColumnElement[Any]]
     """Apply EnumColumn result conversion to DataFrame columns."""
     for column in columns:
         if isinstance(column.type, EnumColumn):
-            dataframe[column.name] = column.type.enum_class.map_series(dataframe[column.name])
+            name = getattr(column, "name", None)
+            if name is not None and name in dataframe:
+                dataframe[name] = column.type.enum_class.map_series(dataframe[name])
     return dataframe
 
 

@@ -3,6 +3,7 @@ from opengsync_db import queries as Q
 from flask_htmx import make_response
 
 from opengsync_db import models, exceptions, categories as C
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db
 from ....tools import utils
@@ -30,7 +31,12 @@ class SamplePoolingForm(HTMXFlaskForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
+        sample_table = T.lab_prep_pooling_table(
+            db.session.get_pandas(
+                Q.pd.lab_prep_pooling_table(self.lab_prep.id), limit=None
+            ),
+            expand_mux_=False,
+        )
         self.sample_table = sample_table[sample_table["mux_type"].notna()]
         self.mux_table = self.sample_table[["sample_id", "sample_name", "sample_pool"]].drop_duplicates()
 

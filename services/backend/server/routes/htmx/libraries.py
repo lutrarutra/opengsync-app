@@ -8,6 +8,8 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses, exceptions as exc
 from ...utils import parsing
 from ... import forms
@@ -203,8 +205,18 @@ def render_library_reads(
     if not library.read_qualities:
         raise exc.BadRequestException("No read quality data available for this library.")
     
-    library_stats_per_lane = session.pd.get_library_stats(library_id, per_lane=True)
-    library_stats_average = session.pd.get_library_stats(library_id, per_lane=False)
+    library_stats_per_lane = T.library_stats(
+        session.get_pandas(Q.pd.library_stats(library_id), limit=None),
+        per_lane=True,
+        expand_qc_=True,
+        weighted_average=True,
+    )
+    library_stats_average = T.library_stats(
+        session.get_pandas(Q.pd.library_stats(library_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
 
     per_lane_columns = []
     for col in library_stats_per_lane.columns:
@@ -227,7 +239,7 @@ def render_library_reads(
 def render_prep_feed(
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    df = session.pd.query(
+    df = session.get_pandas(
         sa.select(
             models.Library.id,
             models.Library.service_type.label("service_type"),
@@ -239,7 +251,8 @@ def render_prep_feed(
                 C.LibraryStatus.PREPARING,
                 C.LibraryStatus.STORED,
             ]),
-        )
+        ),
+        limit=None,
     )
     return responses.htmx_response("components/dashboard/preps-feed.html", df=df)
 
@@ -254,7 +267,7 @@ def render_prep_feed_detail(
     except ValueError:
         raise exc.BadRequestException()
 
-    df = session.pd.query(
+    df = session.get_pandas(
         sa.select(
             models.Library.id,
             models.Library.seq_request_id,
@@ -268,7 +281,8 @@ def render_prep_feed_detail(
                 C.LibraryStatus.STORED,
             ]),
             models.Library.service_type == service_type,
-        ).order_by(models.Library.seq_request_id, models.Library.id)
+        ).order_by(models.Library.seq_request_id, models.Library.id),
+        limit=None,
     )
 
     data: dict[str, list] = {

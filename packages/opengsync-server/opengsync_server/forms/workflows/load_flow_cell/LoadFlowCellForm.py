@@ -1,13 +1,11 @@
 import pandas as pd
-from opengsync_db import queries as Q
-
 from flask import Response, flash, url_for
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
 from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ExperimentStatus
 
 from .... import db, logger 
@@ -39,7 +37,9 @@ class LoadFlowCellForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
         self._context["experiment"] = experiment
 
-        self.lane_table = db.pd.get_experiment_lanes(self.experiment.id)
+        self.lane_table = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         self.lane_table["library_volume"] = None
         self.lane_table["eb_volume"] = None
 

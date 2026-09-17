@@ -1,7 +1,9 @@
 import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import models, categories as C, SyncSession
+from opengsync_db import models, categories as C, SyncSession, queries as Q
+
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ....core import dependencies
 from .... import utils
@@ -60,7 +62,12 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             df = form.spreadsheet.data
-            seq_request_samples = session.pd.get_seq_request_samples(form.workflow.seq_request_id)
+            seq_request_samples = T.seq_request_samples(
+                session.get_pandas(
+                    Q.pd.seq_request_samples(form.workflow.seq_request_id),
+                    limit=None,
+                )
+            )
 
             selected_library_types = [t.abbreviation for t in form.service_type.library_types]
             if form.antibody_capture:

@@ -8,6 +8,7 @@ from wtforms import FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db.categories import IndexType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import logger, db
 from ...core import exceptions
@@ -85,7 +86,16 @@ class BarcodeConstraintsForm(HTMXFlaskForm):
                 self.spreadsheet.add_general_error("10x ATAC index kits are not supported. 10X ATAC kits should be safe!")
                 return False
 
-            barcodes_df = db.pd.get_index_kit_barcodes(kit.id, per_index=True)
+            barcodes_df = T.index_kit_barcodes_per_index(
+                T.index_kit_barcodes(
+                    db.session.get_pandas(
+                        Q.pd.index_kit_barcodes(kit.id), limit=None
+                    ),
+                    per_adapter=False,
+                    per_index=True,
+                ),
+                kit.type,
+            )
             if len(barcodes_df["sequence_i7"].str.len().unique()) != 1:
                 self.spreadsheet.add_general_error(f"The selected kit '{kit.name}' has i7 index sequences of different lengths and cannot be used.")
                 return False

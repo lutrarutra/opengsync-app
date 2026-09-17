@@ -7,6 +7,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryStatus, MUXType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, tools, db
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, SpreadSheetColumn, DuplicateCellValue
@@ -57,7 +58,10 @@ class OCMMuxForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        self.sample_table = db.pd.get_lab_prep_pooling_table(lab_prep.id)
+        self.sample_table = T.lab_prep_pooling_table(
+            db.session.get_pandas(Q.pd.lab_prep_pooling_table(lab_prep.id), limit=None),
+            expand_mux_=False,
+        )
         self.sample_table = self.sample_table[(self.sample_table["mux_type"].isin([MUXType.TENX_ON_CHIP]))]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 

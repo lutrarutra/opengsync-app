@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 from collections.abc import Sequence, Iterator
 
 import sqlalchemy as sa
@@ -9,9 +8,6 @@ from sqlalchemy.orm import Session as SQLAlchemySession
 from . import utils
 from .exceptions import NotFoundException
 
-if TYPE_CHECKING:
-    from .blueprints.SyncPandasBP import SyncPandas
-
 class _DefaultLimitSentinel(int):
     pass
 
@@ -20,15 +16,7 @@ DEFAULT_LIMIT = _DefaultLimitSentinel()
 class SyncSession(SQLAlchemySession):
     def __init__(self, *args, default_limit: int, **kwargs):
         self.default_limit = default_limit
-        self._pd: "SyncPandas | None" = None
         super().__init__(*args, **kwargs)
-
-    @property
-    def pd(self) -> "SyncPandas":
-        if self._pd is None:
-            from .blueprints.SyncPandasBP import SyncPandas
-            self._pd = SyncPandas(self)
-        return self._pd
 
     def get_pandas(
         self,
@@ -42,7 +30,7 @@ class SyncSession(SQLAlchemySession):
             limit = self.default_limit
         statement = utils.apply_settings(statement, order_by=order_by, limit=limit, options=options, offset=offset)
         statement, columns = utils.prepare_pandas_statement(statement)
-        df = pd.read_sql(statement, self.bind)
+        df = pd.read_sql(statement, self.connection())
         return utils.map_pandas_enum_columns(df, columns)
 
 

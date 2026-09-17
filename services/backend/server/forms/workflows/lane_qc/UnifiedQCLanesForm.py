@@ -52,7 +52,10 @@ class UnifiedQCLanesForm(LaneQCWorkflowStep):
         form = cls(workflow=workflow)
         form._set_context(experiment)
 
-        df = session.pd.get_experiment_lanes(experiment.id)
+        df = session.get_pandas(
+            Q.pd.experiment_lanes(experiment.id),
+            limit=None,
+        )
         rows = list(parsing.safe_iter(df, LaneQCRow))
         if rows:
             _, row = rows[0]

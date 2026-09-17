@@ -63,7 +63,10 @@ def export_feature_kit_features(
 ) -> Response:
     feature_kit = session.get_one(Q.feature_kit.select(id=feature_kit_id))
 
-    features_df = session.pd.get_feature_kit_features(feature_kit_id=feature_kit_id)
+    features_df = session.get_pandas(
+        Q.pd.feature_kit_features(feature_kit_id),
+        limit=None,
+    )
     features_df["feature_type"] = features_df["type"].apply(lambda x: x.modality)
 
     return responses.file_response(
@@ -78,8 +81,11 @@ def render_feature_kit_spreadsheet(
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     feature_kit = session.get_one(Q.feature_kit.select(id=feature_kit_id))
-    df = session.pd.get_feature_kit_features(feature_kit_id=feature_kit.id)
-    df = df.drop(columns=["type", "type_id"])
+    df = session.get_pandas(
+        Q.pd.feature_kit_features(feature_kit.id),
+        limit=None,
+    )
+    df = df.drop(columns=["type"])
 
     columns = []
     for col in df.columns:

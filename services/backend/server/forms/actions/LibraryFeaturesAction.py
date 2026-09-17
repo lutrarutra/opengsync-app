@@ -5,6 +5,8 @@ from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, exceptions as exc, responses
 from ...utils import parsing
 from ...components import inputs
@@ -57,7 +59,9 @@ class LibraryFeaturesAction(HTMXForm):
             form.spreadsheet.columns["kit"].set_categories(kit_mapping)
 
             # Pre-fill with existing features
-            df = session.pd.get_library_features(library.id).rename(columns={
+            df = T.library_features(
+                session.get_pandas(Q.pd.library_features(library.id), limit=None)
+            ).rename(columns={
                 "feature_name": "feature",
                 "kit_identifier": "kit",
             })
@@ -102,7 +106,10 @@ class LibraryFeaturesAction(HTMXForm):
 
             for identifier in kit_identifiers:
                 kit = session.get_one(Q.feature_kit.select(identifier=identifier))
-                kit_df = session.pd.get_feature_kit_features(kit.id)
+                kit_df = session.get_pandas(
+                    Q.pd.feature_kit_features(kit.id),
+                    limit=None,
+                )
                 kits[identifier] = (kit, kit_df)
                 df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 

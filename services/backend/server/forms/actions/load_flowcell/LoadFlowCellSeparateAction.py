@@ -65,7 +65,10 @@ class LoadFlowCellSeparateAction(HTMXForm):
             form: "LoadFlowCellSeparateAction" = Depends(LoadFlowCellSeparateAction.Init()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            lane_table = session.pd.get_experiment_lanes(form.experiment.id)
+            lane_table = session.get_pandas(
+                Q.pd.experiment_lanes(form.experiment.id),
+                limit=None,
+            )
             lane_table["library_volume"] = None
             lane_table["eb_volume"] = None
 

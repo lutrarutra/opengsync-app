@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, exceptions as exc, responses
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
 from ... import forms
@@ -123,7 +125,9 @@ def render_sample_attribute_spreadsheet(
     if seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user_id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        df = session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
+        df = T.seq_request_sample_table(
+            session.get_pandas(Q.pd.seq_request_sample_table(seq_request_id), limit=None)
+        )
     else:
         raise exc.BadRequestException("seq_request_id must be provided.")
 

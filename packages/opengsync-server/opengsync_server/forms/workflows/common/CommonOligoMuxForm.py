@@ -5,6 +5,7 @@ from flask import url_for
 from opengsync_db import models
 from opengsync_db import queries as Q
 from opengsync_db.categories import LibraryType, FeatureType, MUXType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, tools, db
 from ...MultiStepForm import MultiStepForm
@@ -82,8 +83,15 @@ class CommonOligoMuxForm(MultiStepForm):
             if self.lab_prep is None:
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
-            self.pooling_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id, expand_mux=True)
-            self.pooling_table = self.pooling_table[self.pooling_table["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])]
+            self.pooling_table = T.lab_prep_pooling_table(
+                db.session.get_pandas(
+                    Q.pd.lab_prep_pooling_table(self.lab_prep.id), limit=None
+                ),
+                expand_mux_=True,
+            )
+            self.pooling_table = self.pooling_table[
+                self.pooling_table["mux_type"].isin([MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH])
+            ]
             self.mux_table = CommonOligoMuxForm.get_mux_table(self.pooling_table)
         elif workflow == "library_annotation":
             self.index_col = "sample_name"
@@ -176,7 +184,9 @@ class CommonOligoMuxForm(MultiStepForm):
         self.df["kit_id"] = None
         for identifier in kit_identifiers:
             kit = db.session.get_one(Q.feature_kit.select(identifier=identifier))
-            kit_df = db.pd.get_feature_kit_features(kit.id)
+            kit_df = db.session.get_pandas(
+                Q.pd.feature_kit_features(kit.id), limit=None
+            )
             kits[identifier] = (kit, kit_df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
 

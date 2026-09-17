@@ -102,7 +102,10 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
                 var_value = subform.param_value.data
                 template_context[var_key] = var_value
 
-            df = session.pd.get_experiment_laned_pools(form.experiment.id)[["lane", "pool_name"]]
+            df = session.get_pandas(
+                Q.pd.experiment_laned_pools(form.experiment.id),
+                limit=None,
+            )[["lane", "pool_name"]]
             df["lane"] = df["lane"].astype(str)
             df = df.groupby("lane", sort=True).agg(lambda x: ";".join(sorted(x))).reset_index()
             df = df.groupby("pool_name", sort=False).agg(lambda x: ",".join(sorted(x))).reset_index()

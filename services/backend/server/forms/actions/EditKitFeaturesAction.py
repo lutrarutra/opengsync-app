@@ -42,7 +42,10 @@ class EditKitFeaturesAction(HTMXForm):
                 options=[orm.selectinload(models.FeatureKit.features)],
             )
             form = EditKitFeaturesAction(feature_kit=feature_kit)
-            df = session.pd.get_feature_kit_features(feature_kit.id)
+            df = session.get_pandas(
+                Q.pd.feature_kit_features(feature_kit.id),
+                limit=None,
+            )
             form.spreadsheet.configure(
                 csrf_token=form.csrf_token_value,
                 post_url=form.post_url,

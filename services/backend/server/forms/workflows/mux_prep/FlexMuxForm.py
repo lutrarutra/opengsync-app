@@ -7,6 +7,8 @@ from pydantic import BaseModel
 
 from opengsync_db import categories as C, models, SyncSession, queries as Q
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....core import dependencies, exceptions as exc
 from ....utils import parsing
 from ....components import inputs
@@ -70,7 +72,13 @@ class FlexMuxForm(MuxPrepWorkflowStep):
 
     @classmethod
     def build(cls, workflow: MuxPrepWorkflow, session: SyncSession) -> Self:
-        sample_table = session.pd.get_lab_prep_pooling_table(workflow.lab_prep_id)
+        sample_table = T.lab_prep_pooling_table(
+            session.get_pandas(
+                Q.pd.lab_prep_pooling_table(workflow.lab_prep_id),
+                limit=None,
+            ),
+            expand_mux_=False,
+        )
         sample_table = sample_table[sample_table["mux_type"].isin([C.MUXType.TENX_FLEX_PROBE])]
         flex_table = sample_table[
             (sample_table["mux_type"].isin([C.MUXType.TENX_FLEX_PROBE]))

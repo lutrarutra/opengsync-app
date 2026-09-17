@@ -1,7 +1,8 @@
 from fastapi import Depends, Query
 from fastapi.responses import Response
 
-from opengsync_db import SyncSession
+from opengsync_db import SyncSession, queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...core import dependencies, responses
 from ...utils import parsing, barcodes
@@ -40,8 +41,23 @@ class QueryBarcodeSequencesAction(HTMXForm):
 
             sequence = sequence.upper()
 
-            fc_df = session.pd.query_barcode_sequences(sequence, limit=30)
-            rc_df = session.pd.query_barcode_sequences(barcodes.reverse_complement(sequence), limit=30)
+            fc_df = T.query_barcode_sequences(
+                session.get_pandas(
+                    Q.pd.query_barcode_sequences(sequence, limit=30),
+                    limit=None,
+                ),
+                sequence,
+                30,
+            )
+            rc_sequence = barcodes.reverse_complement(sequence)
+            rc_df = T.query_barcode_sequences(
+                session.get_pandas(
+                    Q.pd.query_barcode_sequences(rc_sequence, limit=30),
+                    limit=None,
+                ),
+                rc_sequence,
+                30,
+            )
 
             return responses.htmx_response(template="components/barcode_results.html",fc_df=fc_df, rc_df=rc_df)
         return route

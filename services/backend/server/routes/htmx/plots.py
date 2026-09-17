@@ -10,6 +10,8 @@ from pydantic import BaseModel
 
 from opengsync_db import SyncSession, queries as Q
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses
 
 router = APIRouter(prefix="/plots", tags=["plots"])
@@ -80,7 +82,9 @@ def experiment_library_reads_data(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
-    df = session.pd.get_experiment_seq_qualities(experiment_id)
+    df = T.experiment_seq_qualities(
+        session.get_pandas(Q.pd.experiment_seq_qualities(experiment_id), limit=None)
+    )
     if len(df) == 0:
         return responses.htmx_response()
 
@@ -138,7 +142,12 @@ def experiment_pool_reads_data(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
-    df = session.pd.get_experiment_stats(experiment_id)
+    df = T.experiment_stats(
+        session.get_pandas(Q.pd.experiment_stats(experiment_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
     if len(df) == 0:
         return responses.htmx_response()
 
@@ -191,7 +200,12 @@ def experiment_pool_per_library_reads_data(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
-    df = session.pd.get_experiment_stats(experiment_id)
+    df = T.experiment_stats(
+        session.get_pandas(Q.pd.experiment_stats(experiment_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
     if len(df) == 0:
         return responses.htmx_response()
 

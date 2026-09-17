@@ -7,6 +7,8 @@ from pydantic import BaseModel
 
 from opengsync_db import categories as C, models, SyncSession, queries as Q
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....core import dependencies, exceptions as exc
 from ....utils import parsing
 from ....components import inputs
@@ -82,8 +84,16 @@ class OligoMuxForm(MuxPrepWorkflowStep):
                 limit=None,
             )
         }
-        pooling_table = session.pd.get_lab_prep_pooling_table(workflow.lab_prep_id, expand_mux=True)
-        pooling_table = pooling_table[pooling_table["mux_type_id"].isin([C.MUXType.TENX_OLIGO.id, C.MUXType.TENX_ABC_HASH.id])]
+        pooling_table = T.lab_prep_pooling_table(
+            session.get_pandas(
+                Q.pd.lab_prep_pooling_table(workflow.lab_prep_id),
+                limit=None,
+            ),
+            expand_mux_=True,
+        )
+        pooling_table = pooling_table[
+            pooling_table["mux_type"].isin([C.MUXType.TENX_OLIGO, C.MUXType.TENX_ABC_HASH])
+        ]
         mux_table = cls.get_mux_table(pooling_table)
 
         form = cls(workflow=workflow)
@@ -133,7 +143,10 @@ class OligoMuxForm(MuxPrepWorkflowStep):
             df["kit_id"] = None
             for identifier in kit_identifiers:
                 kit = session.get_one(Q.feature_kit.select(identifier=identifier))
-                kit_df = session.pd.get_feature_kit_features(kit.id)
+                kit_df = session.get_pandas(
+                    Q.pd.feature_kit_features(kit.id),
+                    limit=None,
+                )
                 kits[identifier] = (kit, kit_df)
                 df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 
@@ -191,9 +204,15 @@ class OligoMuxForm(MuxPrepWorkflowStep):
 
             form.assert_valid()
 
-            pooling_table = session.pd.get_lab_prep_pooling_table(form.workflow.lab_prep_id, expand_mux=True)
+            pooling_table = T.lab_prep_pooling_table(
+                session.get_pandas(
+                    Q.pd.lab_prep_pooling_table(form.workflow.lab_prep_id),
+                    limit=None,
+                ),
+                expand_mux_=True,
+            )
             pooling_table = pooling_table[
-                pooling_table["mux_type_id"].isin([C.MUXType.TENX_OLIGO.id, C.MUXType.TENX_ABC_HASH.id])
+                pooling_table["mux_type"].isin([C.MUXType.TENX_OLIGO, C.MUXType.TENX_ABC_HASH])
             ]
             pooling_table["mux_read"] = parsing.map_columns(pooling_table, df, ["sample_name", "sample_pool"], "read")
             pooling_table["mux_barcode"] = parsing.map_columns(pooling_table, df, ["sample_name", "sample_pool"], "barcode")

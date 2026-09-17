@@ -32,7 +32,7 @@ class ProtocolMappingForm(MultiStepForm):
 
         self.post_url = url_for("select_library_protocols_workflow.map_protocols", uuid=self.uuid, lab_prep_id=lab_prep.id)
         
-        protocols = db.pd.get_protocol_kits()
+        protocols = db.session.get_pandas(Q.pd.protocol_kits(), limit=None)
         self.protocols = (
             protocols.groupby(['protocol_id', 'combination_num'])
             .agg(identifiers=('kit_identifier', lambda x: ';'.join(sorted(x))))

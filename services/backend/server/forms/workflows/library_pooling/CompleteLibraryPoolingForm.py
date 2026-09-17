@@ -5,6 +5,8 @@ from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....core import dependencies, responses
 from ....core.context import ctx
 from ....utils import parsing, barcodes
@@ -33,7 +35,12 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
         session = ctx.session
         self.lab_prep = session.get_one(Q.lab_prep.select(id=self.workflow.lab_prep_id))
         pooling_table = self.workflow.tables["pooling_table"]
-        barcode_table = session.pd.get_lab_prep_barcodes(self.workflow.lab_prep_id)
+        barcode_table = T.lab_prep_barcodes(
+            session.get_pandas(
+                Q.pd.lab_prep_barcodes(self.workflow.lab_prep_id),
+                limit=None,
+            )
+        )
         barcode_table["pool"] = parsing.map_columns(barcode_table, pooling_table, "library_id", "pool")
         self.barcode_table = barcodes.check_indices(barcode_table, groupby="pool")
         self._context["lab_prep"] = self.lab_prep

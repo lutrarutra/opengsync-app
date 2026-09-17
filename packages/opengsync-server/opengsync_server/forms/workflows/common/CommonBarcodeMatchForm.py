@@ -6,7 +6,8 @@ from wtforms import SelectField, RadioField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import IndexType, IndexType, BarcodeOrientation, BarcodeType
+from opengsync_db.categories import IndexType, BarcodeOrientation, BarcodeType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm
@@ -108,10 +109,21 @@ class CommonBarcodeMatchForm(MultiStepForm):
         sequences_i5 = [s for s in df["sequence_i5"].tolist() if pd.notna(s)]
         rc_sequences_i7 = [s for s in df["rc_sequence_i7"].tolist() if pd.notna(s)]
         rc_sequences_i5 = [s for s in df["rc_sequence_i5"].tolist() if pd.notna(s)]
-        kits_i7 = db.pd.match_barcodes_to_kit(sequences_i7, BarcodeType.INDEX_I7)
-        kits_i5 = db.pd.match_barcodes_to_kit(sequences_i5, BarcodeType.INDEX_I5)
-        kits_rc_i7 = db.pd.match_barcodes_to_kit(rc_sequences_i7, BarcodeType.INDEX_I7)
-        kits_rc_i5 = db.pd.match_barcodes_to_kit(rc_sequences_i5, BarcodeType.INDEX_I5)
+        def match_barcodes(sequences: list[str], barcode_type: BarcodeType) -> pd.DataFrame:
+            unique_sequences = list(set(sequences))
+            if not unique_sequences:
+                return pd.DataFrame()
+            return db.session.get_pandas(
+                Q.pd.match_barcodes_to_kit(
+                    unique_sequences, len(unique_sequences), barcode_type.id
+                ),
+                limit=None,
+            )
+
+        kits_i7 = match_barcodes(sequences_i7, BarcodeType.INDEX_I7)
+        kits_i5 = match_barcodes(sequences_i5, BarcodeType.INDEX_I5)
+        kits_rc_i7 = match_barcodes(rc_sequences_i7, BarcodeType.INDEX_I7)
+        kits_rc_i5 = match_barcodes(rc_sequences_i5, BarcodeType.INDEX_I5)
 
         kit_i7s = []
         for _, row in kits_i7.iterrows():
@@ -184,7 +196,15 @@ class CommonBarcodeMatchForm(MultiStepForm):
                 logger.error(f"Invalid i7 kit ID: {kit_i7_id}")
                 raise Exception(f"Invalid i7 kit ID: {kit_i7_id}")
             
-            if len(kit_i7_df := db.pd.get_index_kit_barcodes(kit_i7.id, per_index=True)) == 0:
+            kit_i7_df = T.index_kit_barcodes(
+                db.session.get_pandas(
+                    Q.pd.index_kit_barcodes(kit_i7.id), limit=None
+                ),
+                per_adapter=False,
+                per_index=True,
+            )
+            kit_i7_df = T.index_kit_barcodes_per_index(kit_i7_df, kit_i7.type)
+            if len(kit_i7_df) == 0:
                 logger.error(f"No barcodes found for i7 kit ID: {kit_i7_id}")
                 raise Exception(f"No barcodes found for i7 kit ID: {kit_i7_id}")
             
@@ -213,7 +233,15 @@ class CommonBarcodeMatchForm(MultiStepForm):
                 if (kit_i5 := db.session.first(Q.index_kit.select(id=kit_i5_id))) is None:
                     logger.error(f"Invalid i5 kit ID: {kit_i5_id}")
                     raise Exception(f"Invalid i5 kit ID: {kit_i5_id}")
-                if len(kit_i5_df := db.pd.get_index_kit_barcodes(kit_i5.id, per_index=True)) == 0:
+                kit_i5_df = T.index_kit_barcodes(
+                    db.session.get_pandas(
+                        Q.pd.index_kit_barcodes(kit_i5.id), limit=None
+                    ),
+                    per_adapter=False,
+                    per_index=True,
+                )
+                kit_i5_df = T.index_kit_barcodes_per_index(kit_i5_df, kit_i5.type)
+                if len(kit_i5_df) == 0:
                     logger.error(f"No barcodes found for i5 kit ID: {kit_i5_id}")
                     raise Exception(f"No barcodes found for i5 kit ID: {kit_i5_id}")
             

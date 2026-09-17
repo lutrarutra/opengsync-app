@@ -1,9 +1,4 @@
-"""Shared post-processing transforms for pandas DataFrame queries.
-
-Each function takes a raw DataFrame (from pd.read_sql) and returns a
-processed DataFrame.  These are pure functions with no session awareness —
-they are consumed by both SyncPandas and AsyncPandas.
-"""
+"""Shared post-processing transforms for pandas DataFrame queries."""
 
 from __future__ import annotations
 
@@ -32,7 +27,7 @@ def expand_json_column_raw(df: pd.DataFrame, column: str) -> pd.DataFrame:
         return df
     expanded = df[column].apply(pd.Series)
     for col in expanded.columns:
-        expanded[col] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+        expanded[col] = expanded[col].apply(lambda x: x)
     return pd.concat([df, expanded], axis=1)
 
 
@@ -74,7 +69,7 @@ def expand_qc(df: pd.DataFrame) -> pd.DataFrame:
         return df
     expanded = df["qc"].apply(pd.Series)
     for col in expanded.columns:
-        expanded[col] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+        expanded[col] = expanded[col].apply(lambda x: x)
     df = pd.concat([df.drop(columns=["qc"]), expanded], axis=1)
     return df
 
@@ -108,13 +103,10 @@ def experiment_libraries(
     drop_empty_columns: bool,
     collapse_lanes_: bool,
 ) -> pd.DataFrame:
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["reference"] = C.GenomeRef.map_series(df["reference_id"], na_action="ignore")
-    df["mux_type"] = C.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
     order = [
         "lane", "library_id", "sample_name", "library_name", "library_type", "reference", "pool_name",
-        "pool_id", "library_type_id", "reference_id",
+        "pool_id",
     ]
     order += [c for c in df.columns if c not in order]
     df = df[order]
@@ -134,20 +126,15 @@ def experiment_libraries(
 
 
 def flowcell(df: pd.DataFrame) -> pd.DataFrame:
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["reference"] = C.GenomeRef.map_series(df["reference_id"], na_action="ignore")
-    df["orientation"] = C.BarcodeOrientation.map_series(df["orientation_id"], na_action="ignore")
     df = df[["lane", "sample_name", "library_name", "library_type", "reference", "seq_request_id", "sequence_i7", "sequence_i5", "orientation", "read_structure", "protocol_name", "pool_name", "library_id"]]
     return df
 
 
 def experiment_barcodes(df: pd.DataFrame) -> pd.DataFrame:
-    df["orientation"] = C.BarcodeOrientation.map_series(df["orientation_id"], na_action="ignore")
     return df
 
 
 def experiment_pools(df: pd.DataFrame) -> pd.DataFrame:
-    df["status"] = C.PoolStatus.map_series(df["status_id"], na_action="ignore")
     return df
 
 
@@ -181,24 +168,18 @@ def project_samples(df: pd.DataFrame, pivot: bool) -> pd.DataFrame:
 
 
 def project_seq_requests(df: pd.DataFrame) -> pd.DataFrame:
-    df["status"] = C.SeqRequestStatus.map_series(df["status_id"], na_action="ignore")
     return df
 
 
 def project_features(df: pd.DataFrame) -> pd.DataFrame:
-    df["type"] = C.FeatureType.map_series(df["type_id"], na_action="ignore")
     return df
 
 
 def project_latest_request_share_emails(df: pd.DataFrame) -> pd.DataFrame:
-    df["status"] = C.DeliveryStatus.map_series(df["status_id"], na_action="ignore")
     return df
 
 
 def project_libraries(libraries: pd.DataFrame, lanes: pd.DataFrame, collapse_lanes_: bool) -> pd.DataFrame:
-    libraries["mux_type"] = C.MUXType.map_series(libraries["mux_type_id"], na_action="ignore")
-    libraries["genome_ref"] = C.GenomeRef.map_series(libraries["genome_ref_id"], na_action="ignore")
-    libraries["library_type"] = C.LibraryType.map_series(libraries["library_type_id"], na_action="ignore")
 
     if collapse_lanes_:
         order = [
@@ -221,7 +202,6 @@ def project_libraries(libraries: pd.DataFrame, lanes: pd.DataFrame, collapse_lan
 
 
 def seq_requestor(df: pd.DataFrame) -> pd.DataFrame:
-    df["role"] = C.UserRole.map_series(df["role_id"], na_action="ignore")
     return df
 
 
@@ -230,15 +210,10 @@ def seq_request_libraries(
 ) -> pd.DataFrame:
     if include_indices and collapse_indicies:
         df = collapse_indices(df)
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["genome_ref"] = C.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
     return df
 
 
 def seq_request_samples(df: pd.DataFrame) -> pd.DataFrame:
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["genome_ref"] = C.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
-    df["mux_type"] = C.MUXType.map_series(df["mux_type_id"], na_action="ignore")
     return df
 
 
@@ -249,12 +224,10 @@ def seq_request_sample_table(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def seq_request_features(df: pd.DataFrame) -> pd.DataFrame:
-    df["type"] = C.FeatureType.map_series(df["type_id"], na_action="ignore")
     return df
 
 
 def seq_request_share_emails(df: pd.DataFrame) -> pd.DataFrame:
-    df["status"] = C.DeliveryStatus.map_series(df["status_id"], na_action="ignore")
     return df
 
 
@@ -294,7 +267,6 @@ def pool_num_reads_stats(
 
 
 def library_features(df: pd.DataFrame) -> pd.DataFrame:
-    df["feature_type"] = C.FeatureType.map_series(df["feature_type_id"], na_action="ignore")
     return df
 
 
@@ -305,13 +277,11 @@ def library_samples(df: pd.DataFrame, expand_attributes: bool) -> pd.DataFrame:
 
 
 def library_sample_pool(df: pd.DataFrame, expand_mux_: bool) -> pd.DataFrame:
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["mux_type"] = C.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
     if expand_mux_ and not df.empty:
         expanded = df["mux"].apply(pd.Series)
         for col in expanded.columns:
-            expanded[f"mux_{col}"] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+            expanded[f"mux_{col}"] = expanded[col].apply(lambda x: x)
         df = pd.concat([df, expanded], axis=1)
     return df
 
@@ -350,45 +320,35 @@ def library_properties(df: pd.DataFrame, expand_properties: bool) -> pd.DataFram
 
 
 def library_data_qc(df: pd.DataFrame, expand: bool) -> pd.DataFrame:
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"])
-    df["pool_type"] = C.PoolType.map_series(df["pool_type_id"])
     if expand and not df.empty:
         expanded = df["qc"].apply(pd.Series)
         for col in expanded.columns:
-            expanded[col] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+            expanded[col] = expanded[col].apply(lambda x: x)
         df = pd.concat([df.drop(columns=["qc"]), expanded], axis=1)
     return df
 
 
 def lab_prep_libraries(df: pd.DataFrame) -> pd.DataFrame:
-    df["status"] = C.LibraryStatus.map_series(df["status_id"], na_action="ignore")
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["genome_ref"] = C.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
-    df["index_type"] = C.IndexType.map_series(df["index_type_id"], na_action="ignore")
     return df
 
 
 def lab_prep_barcodes(df: pd.DataFrame) -> pd.DataFrame:
-    df["index_type"] = C.IndexType.map_series(df["index_type_id"], na_action="ignore")
     return df
 
 
 def lab_prep_pooling_table(df: pd.DataFrame, expand_mux_: bool) -> pd.DataFrame:
     df = df.sort_values(["library_id", "sample_id"])
-    df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
-    df["mux_type"] = C.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
     if expand_mux_ and not df.empty:
         expanded = df["mux"].apply(pd.Series)
         for col in expanded.columns:
-            expanded[f"mux_{col}"] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+            expanded[f"mux_{col}"] = expanded[col].apply(lambda x: x)
         df = pd.concat([df, expanded], axis=1)
     return df
 
 
 def query_barcode_sequences(df: pd.DataFrame, sequence: str, limit: int) -> pd.DataFrame:
     df["hamming"] = df["sequence"].apply(lambda x: hamming_distance(x, sequence))
-    df["type"] = C.BarcodeType.map_series(df["type_id"], na_action="ignore")
     return df
 
 
@@ -396,16 +356,15 @@ def index_kit_barcodes(df: pd.DataFrame, per_adapter: bool, per_index: bool) -> 
     """Base transform for index kit barcodes (before per_index ORM lookup)."""
     df["name"] = df["name"].astype(str)
     df["well"] = df["well"].astype(str)
-    df["type"] = C.BarcodeType.map_series(df["type_id"], na_action="ignore")
 
     if per_adapter or per_index:
         df = df.groupby(
-            df.columns.difference(["id", "sequence", "name", "type_id", "type"]).tolist(),
+            df.columns.difference(["id", "sequence", "name", "type"]).tolist(),
             as_index=False, dropna=False,
         ).agg(
-            {"id": list, "sequence": list, "name": list, "type_id": list, "type": list}
+            {"id": list, "sequence": list, "name": list, "type": list}
         ).rename(
-            columns={"id": "ids", "sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"}
+            columns={"id": "ids", "sequence": "sequences", "name": "names", "type": "types"}
         )
 
     return df

@@ -7,6 +7,8 @@ from loguru import logger
 
 from opengsync_db import models, SyncSession, queries as Q
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....core import dependencies, responses, config
 from ....components import inputs
 from ....components.tables.spreadsheet import TextColumn, IntegerColumn, InvalidCellValue
@@ -35,7 +37,9 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
     @classmethod
     def build(cls, workflow: LibraryPoolingWorkflow, session: SyncSession) -> Self:
         lab_prep = session.get_one(Q.lab_prep.select(id=workflow.lab_prep_id))
-        library_table = session.pd.get_lab_prep_libraries(lab_prep_id=lab_prep.id)
+        library_table = T.lab_prep_libraries(
+            session.get_pandas(Q.pd.lab_prep_libraries(lab_prep.id), limit=None)
+        )
         flash = None
 
         if library_table["pool"].isna().any() and lab_prep.prep_file is not None:

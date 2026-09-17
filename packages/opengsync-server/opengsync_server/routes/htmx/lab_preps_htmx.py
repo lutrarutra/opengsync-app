@@ -14,6 +14,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q
 from opengsync_db.categories import PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, LabChecklistType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
@@ -425,7 +426,12 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_lab_prep_pooling_table(lab_prep.id)
+    df = T.lab_prep_pooling_table(
+        db.session.get_pandas(
+            Q.pd.lab_prep_pooling_table(lab_prep.id), limit=None
+        ),
+        expand_mux_=False,
+    )
 
     df = df.sort_values(by=["library_name", "sample_pool", "sample_name"])
 
@@ -439,7 +445,7 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
     }
 
     for _, row in df.iterrows():
-        if row["mux_type_id"] is None:
+        if row["mux_type"] is None:
             continue
         
         mux_table["sample_name"].append(row["sample_name"])

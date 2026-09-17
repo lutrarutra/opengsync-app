@@ -11,6 +11,8 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, exceptions as exc, config, responses, templates, redis as rds
 from ...core.mailer import Mailer
 from ...utils import parsing
@@ -303,7 +305,12 @@ def release_project_data(
 
     recipients = body.recipients
     if recipients is None:
-        recipients = session.pd.get_project_latest_request_share_emails(project.id)["email"].unique().tolist()
+        recipients = T.project_latest_request_share_emails(
+            session.get_pandas(
+                Q.pd.project_latest_request_share_emails(project.id),
+                limit=None,
+            )
+        )["email"].unique().tolist()
 
     recipients = list(set(recipients))
     if len(recipients) == 0:

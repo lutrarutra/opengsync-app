@@ -32,7 +32,9 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.pd.get_experiment_lanes(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
         df = df.drop(columns=["lane"]).reset_index(drop=True)
 
@@ -44,7 +46,9 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            df = db.pd.get_experiment_lanes(self.experiment.id)
+            df = db.session.get_pandas(
+                Q.pd.experiment_lanes(self.experiment.id), limit=None
+            )
             self._context["df"] = df
             return self.make_response()
 
@@ -82,7 +86,9 @@ class QCLanesForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.pd.get_experiment_lanes(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
 
         for i, (_, row) in enumerate(df.iterrows()):
@@ -104,7 +110,9 @@ class QCLanesForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            df = db.pd.get_experiment_lanes(self.experiment.id)
+            df = db.session.get_pandas(
+                Q.pd.experiment_lanes(self.experiment.id), limit=None
+            )
             self._context["df"] = df
             return self.make_response()
         

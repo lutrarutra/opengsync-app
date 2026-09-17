@@ -4,6 +4,8 @@ from loguru import logger
 
 from opengsync_db import models, categories as C, queries as Q, SyncSession
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....core import dependencies, exceptions as exc
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown, InvalidCellValue, MissingCellValue
@@ -200,7 +202,12 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                     logger.error(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")
                     raise exc.OpeNGSyncServerException(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")
                 
-                kit_df = session.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
+                kit_df = T.index_kit_barcodes(
+                    session.get_pandas(Q.pd.index_kit_barcodes(kit.id), limit=None),
+                    per_adapter=False,
+                    per_index=True,
+                )
+                kit_df = T.index_kit_barcodes_per_index(kit_df, kit.type)
                 kits[identifier] = (kit, kit_df)
                 df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 

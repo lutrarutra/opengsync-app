@@ -9,6 +9,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessLevel, SampleStatus, PoolStatus
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions
@@ -37,8 +38,10 @@ def render_feature_table(current_user: models.User, library_id: int):
     if db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.get_library_features(library_id=library.id)
-    df = df.drop(columns=["feature_type", "feature_type_id", "feature_kit_id"])
+    df = T.library_features(
+        db.session.get_pandas(Q.pd.library_features(library.id), limit=None)
+    )
+    df = df.drop(columns=["feature_type", "feature_kit_id"])
 
     columns = []
     for i, col in enumerate(df.columns):
@@ -96,8 +99,18 @@ def reads_tab(current_user: models.User, library_id: int):
     if not library.read_qualities:
         raise exceptions.BadRequestException("No read quality data available for this library.")
     
-    library_stats_per_lane = db.pd.get_library_stats(library_id, per_lane=True)
-    library_stats_average = db.pd.get_library_stats(library_id, per_lane=False)
+    library_stats_per_lane = T.library_stats(
+        db.session.get_pandas(Q.pd.library_stats(library_id), limit=None),
+        per_lane=True,
+        expand_qc_=True,
+        weighted_average=True,
+    )
+    library_stats_average = T.library_stats(
+        db.session.get_pandas(Q.pd.library_stats(library_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
 
     per_lane_columns = []
     for col in library_stats_per_lane.columns:
@@ -282,7 +295,7 @@ def get_todo_libraries(current_user: models.User):
     if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.query(
+    df = db.session.get_pandas(
         sa.select(
             models.Library.id,
             models.Library.service_type.label("service_type"),
@@ -291,6 +304,8 @@ def get_todo_libraries(current_user: models.User):
         ).where(
             models.Library.status.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
         )
+        ,
+        limit=None,
     )
     
     return make_response(
@@ -310,7 +325,7 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
     except ValueError:
         raise exceptions.BadRequestException()
     
-    df = db.pd.query(
+    df = db.session.get_pandas(
         sa.select(
             models.Library.id,
             models.Library.seq_request_id,
@@ -321,6 +336,8 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
             models.Library.status.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
             models.Library.service_type == service_type,
         ).order_by(models.Library.seq_request_id, models.Library.id)
+        ,
+        limit=None,
     )
 
     data = {

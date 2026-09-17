@@ -4,6 +4,8 @@ import pandas as pd
 
 from opengsync_db import models, queries as Q, categories as C
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...components import inputs
 from ...components.tables import MissingCellValue, InvalidCellValue
 from ...components.tables.spreadsheet import CategoricalDropDown, SpreadSheetColumn, TextColumn
@@ -91,7 +93,12 @@ class BarcodeInputMixin:
                 df.loc[df["kit_i5"].isna() & (df["kit_i7"] == identifier), "kit_i5"] = identifier
             if kit.type == C.IndexType.DUAL_INDEX:
                 df.loc[df["name_i5"].isna() & (df["kit_i7"] == identifier), "name_i5"] = df.loc[df["name_i5"].isna() & (df["kit_i7"] == identifier), "name_i7"]
-            kit_df = session.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
+            kit_df = T.index_kit_barcodes(
+                session.get_pandas(Q.pd.index_kit_barcodes(kit.id), limit=None),
+                per_adapter=False,
+                per_index=True,
+            )
+            kit_df = T.index_kit_barcodes_per_index(kit_df, kit.type)
 
 
             kits[identifier] = (kit, kit_df)

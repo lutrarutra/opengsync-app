@@ -75,7 +75,10 @@ class LanePoolsCombinedAction(HTMXForm):
             form: "LanePoolsCombinedAction" = Depends(LanePoolsCombinedAction.Init()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            df = session.pd.get_experiment_laned_pools(form.experiment.id)
+            df = session.get_pandas(
+                Q.pd.experiment_laned_pools(form.experiment.id),
+                limit=None,
+            )
             df["original_qubit_concentration"] = df["qubit_concentration"]
             df["dilutions"] = None
             df = df.drop(columns=["lane"]).drop_duplicates(subset=["pool_id"]).reset_index(drop=True)

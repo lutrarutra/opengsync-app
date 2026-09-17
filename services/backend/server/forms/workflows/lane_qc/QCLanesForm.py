@@ -35,7 +35,10 @@ class QCLanesForm(LaneQCWorkflowStep):
     def _set_context(self, experiment: models.Experiment, session: SyncSession) -> None:
         self.experiment = experiment
         self._context["experiment"] = experiment
-        self._context["df"] = session.pd.get_experiment_lanes(experiment.id)
+        self._context["df"] = session.get_pandas(
+            Q.pd.experiment_lanes(experiment.id),
+            limit=None,
+        )
         self._context["warning_min"] = models.Lane.warning_min_molarity
         self._context["warning_max"] = models.Lane.warning_max_molarity
         self._context["error_min"] = models.Lane.error_min_molarity

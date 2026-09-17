@@ -5,6 +5,7 @@ from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import queries as Q, models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import db
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -32,7 +33,9 @@ class DilutePoolsForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
         self.experiment = experiment
         self._context["experiment"] = experiment
-        self.df = db.pd.get_experiment_pools(experiment.id)
+        self.df = T.experiment_pools(
+            db.session.get_pandas(Q.pd.experiment_pools(experiment.id), limit=None)
+        )
         
     def prepare(self):
         self.df["molarity"] = self.df["qubit_concentration"] / (self.df["avg_fragment_size"] * 660) * 1_000_000

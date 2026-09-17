@@ -22,9 +22,9 @@ def experiment_libraries(
     columns = [
         Experiment.id.label("experiment_id"), Experiment.name.label("experiment_name"),
         Lane.number.label("lane"), Pool.id.label("pool_id"), Pool.name.label("pool_name"),
-        Library.id.label("library_id"), Library.name.label("library_name"), Library.type.label("library_type_id"),
-        Library.genome_ref.label("reference_id"), Library.sample_name.label("sample_name"),
-        Library.mux_type.label("mux_type_id"),
+        Library.id.label("library_id"), Library.name.label("library_name"), Library.type.label("library_type"),
+        Library.genome_ref.label("reference"), Library.sample_name.label("sample_name"),
+        Library.mux_type.label("mux_type"),
     ]
 
     if include_indices:
@@ -100,12 +100,12 @@ def flowcell(experiment_id: int | str) -> sa.Select:
         Pool.id.label("pool_id"), Pool.name.label("pool_name"),
         Library.sample_name.label("sample_name"),
         Library.id.label("library_id"), Library.name.label("library_name"),
-        Library.type.label("library_type_id"),
-        Library.genome_ref.label("reference_id"),
+        Library.type.label("library_type"),
+        Library.genome_ref.label("reference"),
         Library.seq_request_id.label("seq_request_id"),
         LibraryIndex.sequence_i7.label("sequence_i7"), LibraryIndex.sequence_i5.label("sequence_i5"),
         LibraryIndex.name_i7.label("name_i7"), LibraryIndex.name_i5.label("name_i5"),
-        LibraryIndex.orientation.label("orientation_id"),
+        LibraryIndex.orientation.label("orientation"),
         Protocol.read_structure.label("read_structure"), Protocol.name.label("protocol_name"),
     ]
 
@@ -144,7 +144,7 @@ def experiment_barcodes(experiment_id: int) -> sa.Select:
         Pool.id.label("pool_id"), Pool.name.label("pool_name"),
         LibraryIndex.sequence_i7.label("sequence_i7"), LibraryIndex.sequence_i5.label("sequence_i5"),
         LibraryIndex.name_i7.label("name_i7"), LibraryIndex.name_i5.label("name_i5"),
-        LibraryIndex.orientation.label("orientation_id"),
+        LibraryIndex.orientation.label("orientation"),
         LibraryIndex.index_kit_i7_id.label("kit_i7_id"),
         LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
     ).where(
@@ -168,7 +168,7 @@ def experiment_barcodes(experiment_id: int) -> sa.Select:
 
 def experiment_pools(experiment_id: int) -> sa.Select:
     query = sa.select(
-        Pool.id, Pool.name, Pool.status.label("status_id"),
+        Pool.id, Pool.name, Pool.status.label("status"),
         Pool.num_m_reads_requested, Pool.qubit_concentration,
         Pool.avg_fragment_size, Pool.molarity.label("molarity"),
     ).where(
@@ -283,7 +283,7 @@ def project_features(project_id: int) -> sa.Select:
     query = sa.select(
         Feature.name.label("feature"), Feature.identifier.label("identifier"),
         Feature.sequence.label("sequence"), Feature.pattern.label("pattern"), Feature.read.label("read"),
-        Feature.type.label("type_id"), Feature.target_name.label("target_name"), Feature.target_id.label("target_id"),
+        Feature.type.label("type"), Feature.target_name.label("target_name"), Feature.target_id.label("target_id"),
         Library.sample_name.label("sample_pool"),
         FeatureKit.identifier.label("kit")
     ).where(
@@ -321,8 +321,8 @@ def project_samples(project_id: int, with_libraries: bool = False) -> sa.Select:
             Library.id.label("library_id"),
             Library.name.label("library_name"),
             Library.sample_name.label("sample_pool"),
-            Library.type.label("library_type_id"),
-            Library.genome_ref.label("genome_ref_id"),
+            Library.type.label("library_type"),
+            Library.genome_ref.label("genome_ref"),
             Library.seq_request_id.label("seq_request_id"),
         ])
 
@@ -344,7 +344,7 @@ def project_seq_requests(project_id: int) -> sa.Select:
     query = sa.select(
         SeqRequest.id.label("seq_request_id"),
         SeqRequest.name.label("seq_request_name"),
-        SeqRequest.status.label("status_id"),
+        SeqRequest.status.label("status"),
         Contact.name.label("contact_name"),
         Contact.email.label("contact_email"),
         Contact.phone.label("contact_phone"),
@@ -374,8 +374,8 @@ def project_data(project_id: int) -> sa.Select:
         Library.id.label("library_id"),
         Library.name.label("library_name"),
         Library.sample_name.label("sample_pool"),
-        Library.type.label("library_type_id"),
-        Library.genome_ref.label("genome_ref_id"),
+        Library.type.label("library_type"),
+        Library.genome_ref.label("genome_ref"),
         Library.seq_request_id.label("seq_request_id"),
         Library.properties.label("properties"),
 
@@ -384,7 +384,7 @@ def project_data(project_id: int) -> sa.Select:
         Sample._attributes.label("attributes"),
 
         links.SampleLibraryLink.mux.label("mux"),
-        Library.mux_type.label("mux_type_id"),
+        Library.mux_type.label("mux_type"),
     ).where(
         Sample.project_id == project_id
     ).join(
@@ -427,7 +427,7 @@ def project_latest_request_share_emails(project_id: int) -> sa.Select:
     query = sa.select(
         links.SeqRequestDeliveryEmailLink.seq_request_id.label("seq_request_id"),
         links.SeqRequestDeliveryEmailLink.email.label("email"),
-        links.SeqRequestDeliveryEmailLink.status.label("status_id"),
+        links.SeqRequestDeliveryEmailLink.status.label("status"),
     ).where(
         links.SeqRequestDeliveryEmailLink.seq_request_id == sa.select(
             sa.func.max(SeqRequest.id)
@@ -450,7 +450,7 @@ def project_latest_request_share_emails(project_id: int) -> sa.Select:
 
 def library_features(library_id: int) -> sa.Select:
     query = sa.select(
-        Feature.id.label("feature_id"), Feature.name.label("feature_name"), Feature.type.label("feature_type_id"),
+        Feature.id.label("feature_id"), Feature.name.label("feature_name"), Feature.type.label("feature_type"),
         Feature.identifier.label("identifier"),
         Feature.target_id.label("target_id"), Feature.target_name.label("target_name"),
         Feature.sequence.label("sequence"), Feature.pattern.label("pattern"), Feature.read.label("read"),
@@ -541,10 +541,10 @@ def library_stats(library_id: int) -> sa.Select:
 def library_data_qc(library_id: int | None = None) -> sa.Select:
     query = sa.select(
         Library.name.label("library_name"),
-        Library.type.label("library_type_id"),
+        Library.type.label("library_type"),
         Library.id.label("library_id"),
         Library.qc,
-        Pool.type.label("pool_type_id"),
+        Pool.type.label("pool_type"),
     ).where(
         Library.qc.isnot(None)
     ).join(
@@ -564,10 +564,10 @@ def library_sample_pool(library_id: int) -> sa.Select:
         Sample.name.label("sample_name"),
         Library.id.label("library_id"),
         Library.name.label("library_name"),
-        Library.type.label("library_type_id"),
+        Library.type.label("library_type"),
         Library.sample_name.label("sample_pool"),
         links.SampleLibraryLink.mux.label("mux"),
-        Library.mux_type.label("mux_type_id"),
+        Library.mux_type.label("mux_type"),
     ).join(
         links.SampleLibraryLink,
         links.SampleLibraryLink.library_id == Library.id
@@ -594,7 +594,7 @@ def seq_requestor(seq_request_id: int) -> sa.Select:
         SeqRequest.name.label("seq_request_name"),
         User.id.label("user_id"), User.email.label("email"),
         User.first_name.label("first_name"), User.last_name.label("last_name"),
-        User.role.label("role_id")
+        User.role.label("role")
     ).join(
         User,
         User.id == SeqRequest.requestor_id,
@@ -611,8 +611,8 @@ def seq_request_libraries(
 ) -> sa.Select:
     columns = [
         SeqRequest.id.label("seq_request_id"),
-        Library.id.label("library_id"), Library.name.label("library_name"), Library.type.label("library_type_id"),
-        Library.genome_ref.label("genome_ref_id"),
+        Library.id.label("library_id"), Library.name.label("library_name"), Library.type.label("library_type"),
+        Library.genome_ref.label("genome_ref"),
         Pool.id.label("pool_id"), Pool.name.label("pool_name"),
     ]
 
@@ -648,9 +648,9 @@ def seq_request_samples(seq_request_id: int) -> sa.Select:
         SeqRequest.id.label("seq_request_id"),
         Sample.id.label("sample_id"), Sample.name.label("sample_name"),
         links.SampleLibraryLink.mux.label("mux"),
-        Library.id.label("library_id"), Library.name.label("library_name"), Library.type.label("library_type_id"),
-        Library.mux_type.label("mux_type_id"),
-        Library.genome_ref.label("genome_ref_id"),
+        Library.id.label("library_id"), Library.name.label("library_name"), Library.type.label("library_type"),
+        Library.mux_type.label("mux_type"),
+        Library.genome_ref.label("genome_ref"),
         Pool.id.label("pool_id"), Pool.name.label("pool_name"),
     ).where(
         SeqRequest.id == seq_request_id
@@ -699,7 +699,7 @@ def seq_request_features(seq_request_id: int) -> sa.Select:
         Library.sample_name.label("sample_pool"),
         Feature.id.label("feature_id"), Feature.name.label("feature_name"),
         Feature.sequence.label("sequence"), Feature.pattern.label("pattern"), Feature.read.label("read"),
-        Feature.type.label("type_id"), Feature.target_name.label("target_name"), Feature.target_id.label("target_id"),
+        Feature.type.label("type"), Feature.target_name.label("target_name"), Feature.target_id.label("target_id"),
     )
 
     query = query.where(
@@ -718,7 +718,7 @@ def seq_request_features(seq_request_id: int) -> sa.Select:
 def seq_request_share_emails(seq_request_id: int) -> sa.Select:
     query = sa.select(
         links.SeqRequestDeliveryEmailLink.email.label("email"),
-        links.SeqRequestDeliveryEmailLink.status.label("status_id"),
+        links.SeqRequestDeliveryEmailLink.status.label("status"),
     ).where(
         links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id
     )
@@ -734,7 +734,7 @@ def pool_libraries(pool_id: int) -> sa.Select:
     columns = [
         Pool.id.label("pool_id"), Pool.name.label("pool"),
         Library.id.label("library_id"), Library.name.label("library_name"),
-        Library.index_type.label("index_type_id"),
+        Library.index_type.label("index_type"),
     ]
     query = sa.select(*columns).where(
         Pool.id == pool_id
@@ -751,7 +751,7 @@ def pool_barcodes(pool_id: int) -> sa.Select:
     columns = [
         Pool.id.label("pool_id"), Pool.name.label("pool"),
         Library.id.label("library_id"), Library.name.label("library_name"),
-        Library.index_type.label("index_type_id"),
+        Library.index_type.label("index_type"),
         LibraryIndex.name_i7.label("name_i7"), LibraryIndex.name_i5.label("name_i5"),
         LibraryIndex.sequence_i7.label("sequence_i7"), LibraryIndex.sequence_i5.label("sequence_i5"),
         LibraryIndex.index_kit_i7_id.label("kit_i7_id"), LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
@@ -813,7 +813,7 @@ def index_kit_barcodes(index_kit_id: int) -> sa.Select:
     query = sa.select(
         Barcode.id, Barcode.sequence.label("sequence"), Barcode.well.label("well"),
         Barcode.name.label("name"), Barcode.adapter_id.label("adapter_id"),
-        Barcode.type.label("type_id"),
+        Barcode.type.label("type"),
     ).where(
         Barcode.index_kit_id == index_kit_id
     )
@@ -825,7 +825,7 @@ def feature_kit_features(feature_kit_id: int) -> sa.Select:
     query = sa.select(
         Feature.id.label("feature_id"), Feature.name.label("name"), Feature.identifier.label("identifier"),
         Feature.sequence.label("sequence"), Feature.pattern.label("pattern"), Feature.read.label("read"),
-        Feature.type.label("type_id"),
+        Feature.type.label("type"),
         Feature.target_name.label("target_name"), Feature.target_id.label("target_id"),
     ).where(
         Feature.feature_kit_id == feature_kit_id
@@ -891,12 +891,12 @@ def lab_prep_libraries(lab_prep_id: int) -> sa.Select:
     query = sa.select(
         Library.id.label("library_id"),
         Library.name.label("library_name"),
-        Library.status.label("status_id"),
-        Library.type.label("library_type_id"),
+        Library.status.label("status"),
+        Library.type.label("library_type"),
         Library.seq_request_id.label("seq_request_id"),
-        Library.genome_ref.label("genome_ref_id"),
+        Library.genome_ref.label("genome_ref"),
         Pool.id.label("pool_id"), Pool.name.label("pool"),
-        Library.index_type.label("index_type_id"),
+        Library.index_type.label("index_type"),
     ).where(
         Library.lab_prep_id == lab_prep_id
     ).outerjoin(
@@ -911,10 +911,10 @@ def lab_prep_barcodes(lab_prep_id: int) -> sa.Select:
     query = sa.select(
         Library.sample_name.label("sample_name"),
         Library.id.label("library_id"), Library.name.label("library_name"),
-        Library.type.label("library_type_id"),
-        Library.genome_ref.label("reference_id"),
+        Library.type.label("library_type"),
+        Library.genome_ref.label("reference"),
         Library.seq_request_id.label("seq_request_id"),
-        Library.index_type.label("index_type_id"),
+        Library.index_type.label("index_type"),
         LibraryIndex.name_i7.label("name_i7"), LibraryIndex.name_i5.label("name_i5"),
         LibraryIndex.index_kit_i7_id.label("kit_i7_id"), LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
         LibraryIndex.sequence_i7.label("sequence_i7"), LibraryIndex.sequence_i5.label("sequence_i5"),
@@ -937,8 +937,8 @@ def lab_prep_barcodes(lab_prep_id: int) -> sa.Select:
 def lab_prep_pooling_table(lab_prep_id: int) -> sa.Select:
     query = sa.select(
         Library.id.label("library_id"), Library.name.label("library_name"),
-        Library.type.label("library_type_id"), Library.sample_name.label("sample_pool"),
-        Library.mux_type.label("mux_type_id"),
+        Library.type.label("library_type"), Library.sample_name.label("sample_pool"),
+        Library.mux_type.label("mux_type"),
         Sample.id.label("sample_id"), Sample.name.label("sample_name"),
         links.SampleLibraryLink.mux.label("mux"),
     ).where(
@@ -962,7 +962,7 @@ def query_barcode_sequences(sequence: str, limit: int = 10) -> sa.Select:
     query = sa.select(
         Barcode.id.label("id"), Barcode.sequence.label("sequence"),
         Barcode.well.label("well"), Barcode.name.label("name"),
-        Barcode.type.label("type_id"),
+        Barcode.type.label("type"),
         IndexKit.id.label("kit_id"), IndexKit.name.label("kit_name"),
         IndexKit.identifier.label("kit_identifier"),
     ).join(

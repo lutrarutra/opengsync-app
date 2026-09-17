@@ -3,6 +3,8 @@ from fastapi.responses import Response
 
 from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
 from ...forms.actions.edit_kit_actions import EditKitBarcodesForm
@@ -65,7 +67,13 @@ def render_index_kit_spreadsheet(
     index_kit_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    df = session.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
+    df = T.index_kit_barcodes(
+        session.get_pandas(Q.pd.index_kit_barcodes(index_kit_id), limit=None),
+        per_adapter=False,
+        per_index=True,
+    )
+    index_kit = session.get_one(Q.index_kit.select(id=index_kit_id))
+    df = T.index_kit_barcodes_per_index(df, index_kit.type)
     df = df.drop(columns=["adapter_id"])
 
     columns = []

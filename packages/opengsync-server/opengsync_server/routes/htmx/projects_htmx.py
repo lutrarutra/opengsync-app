@@ -7,6 +7,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, queries as Q
 from opengsync_db.categories import ProjectStatus, LibraryStatus, AccessLevel
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions
@@ -110,7 +111,10 @@ def get_sample_attributes(current_user: models.User, project_id: int):
     if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.get_project_samples(project_id=project.id).sort_values("sample_id").reset_index(drop=True).rename(columns={"sample_id": "id", "sample_name": "name"})
+    df = T.project_samples(
+        db.session.get_pandas(Q.pd.project_samples(project.id), limit=None),
+        pivot=True,
+    ).sort_values("sample_id").reset_index(drop=True).rename(columns={"sample_id": "id", "sample_name": "name"})
 
     columns = []
     for col in df.columns:
@@ -137,7 +141,10 @@ def render_sample_table(current_user: models.User, project_id: int):
     if project.status != ProjectStatus.DRAFT and access_type < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.get_project_samples(project_id=project.id)
+    df = T.project_samples(
+        db.session.get_pandas(Q.pd.project_samples(project.id), limit=None),
+        pivot=True,
+    )
 
     columns: list = [
         TextColumn("sample_name", "Sample Name", 400, read_only=True),
@@ -233,7 +240,13 @@ def overview(current_user: models.User, project_id: int):
     if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
         
-    df = db.pd.get_project_libraries(project_id=project.id)
+    libraries = db.session.get_pandas(Q.pd.project_data(project.id), limit=None)
+    experiment_ids = libraries["experiment_id"].unique().tolist()
+    library_ids = libraries["library_id"].unique().tolist()
+    lanes = db.session.get_pandas(
+        Q.pd.project_libraries_lanes(experiment_ids, library_ids), limit=None
+    )
+    df = T.project_libraries(libraries, lanes, collapse_lanes_=True)
 
     LINK_WIDTH_UNIT = 1
 
@@ -463,15 +476,33 @@ def export(current_user: models.User, project_id: int):
         "Number of Samples": [project.num_samples],
     }).T
 
-    samples_df = db.pd.get_project_samples(project_id=project.id)
-    libraries_df = db.pd.get_project_libraries(project_id=project.id).astype(str)
-    seq_requests_df = db.pd.get_project_seq_requests(project_id=project.id)
+    samples_df = T.project_samples(
+        db.session.get_pandas(Q.pd.project_samples(project.id), limit=None),
+        pivot=True,
+    )
+    libraries = db.session.get_pandas(Q.pd.project_data(project.id), limit=None)
+    experiment_ids = libraries["experiment_id"].unique().tolist()
+    library_ids = libraries["library_id"].unique().tolist()
+    lanes = db.session.get_pandas(
+        Q.pd.project_libraries_lanes(experiment_ids, library_ids), limit=None
+    )
+    libraries_df = T.project_libraries(
+        libraries, lanes, collapse_lanes_=True
+    ).astype(str)
+    seq_requests_df = T.project_seq_requests(
+        db.session.get_pandas(Q.pd.project_seq_requests(project.id), limit=None)
+    )
     
     software = pd.DataFrame.from_records(
         {name: [data] for name, data in (project.software or {}).items()}
     ).T
 
-    library_properties_df = db.pd.get_library_properties(project_id=project.id)
+    library_properties_df = T.library_properties(
+        db.session.get_pandas(
+            Q.pd.library_properties(project_id=project.id), limit=None
+        ),
+        expand_properties=True,
+    )
 
     bytes_io = BytesIO()
 

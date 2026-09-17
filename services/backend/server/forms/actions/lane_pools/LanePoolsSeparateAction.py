@@ -82,7 +82,10 @@ class LanePoolsSeparateAction(HTMXForm):
             form: "LanePoolsSeparateAction" = Depends(LanePoolsSeparateAction.Init()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            df = session.pd.get_experiment_laned_pools(form.experiment.id)
+            df = session.get_pandas(
+                Q.pd.experiment_laned_pools(form.experiment.id),
+                limit=None,
+            )
             df["dilutions"] = None
             df["sub_form_idx"] = None
 

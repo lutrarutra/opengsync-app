@@ -5,6 +5,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .. import logger, db
 from ..core import exceptions
@@ -35,10 +36,21 @@ class LibraryPropertyForm(HTMXFlaskForm):
 
         if self.seq_request is not None:
             self.post_url = url_for("libraries_htmx.properties", seq_request_id=self.seq_request.id)
-            df = db.pd.get_library_properties(seq_request_id=self.seq_request.id)
+            df = T.library_properties(
+                db.session.get_pandas(
+                    Q.pd.library_properties(seq_request_id=self.seq_request.id),
+                    limit=None,
+                ),
+                expand_properties=True,
+            )
         elif self.project is not None:
             self.post_url = url_for("libraries_htmx.properties", project_id=self.project.id)
-            df = db.pd.get_library_properties(project_id=self.project.id)
+            df = T.library_properties(
+                db.session.get_pandas(
+                    Q.pd.library_properties(project_id=self.project.id), limit=None
+                ),
+                expand_properties=True,
+            )
         else:
             logger.error("Either project or seq_request must be provided.")
             raise ValueError("Either project or seq_request must be provided.")

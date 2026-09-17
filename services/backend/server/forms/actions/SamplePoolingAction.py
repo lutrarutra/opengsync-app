@@ -3,6 +3,8 @@ from loguru import logger
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
 from ...components.tables.spreadsheet import TextColumn, IntegerColumn
@@ -42,7 +44,10 @@ class SamplePoolingAction(HTMXForm):
 
             form = cls(lab_prep_id=lab_prep_id)
 
-            sample_table = session.pd.get_lab_prep_pooling_table(lab_prep_id)
+            sample_table = T.lab_prep_pooling_table(
+                session.get_pandas(Q.pd.lab_prep_pooling_table(lab_prep_id), limit=None),
+                expand_mux_=False,
+            )
             sample_table = sample_table[sample_table["mux_type"].notna()]
             mux_table = sample_table[["sample_id", "sample_name", "sample_pool"]].drop_duplicates()
 
@@ -76,7 +81,13 @@ class SamplePoolingAction(HTMXForm):
             df = form.spreadsheet.data
             assert df is not None
 
-            sample_table = session.pd.get_lab_prep_pooling_table(form.lab_prep_id)
+            sample_table = T.lab_prep_pooling_table(
+                session.get_pandas(
+                    Q.pd.lab_prep_pooling_table(form.lab_prep_id),
+                    limit=None,
+                ),
+                expand_mux_=False,
+            )
             sample_table = sample_table[sample_table["mux_type"].notna()]
 
             sample_table["new_sample_pool"] = map_columns(sample_table, df, "sample_id", "sample_pool")

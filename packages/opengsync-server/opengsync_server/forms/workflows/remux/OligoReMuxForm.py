@@ -4,7 +4,9 @@ from wtforms import BooleanField
 import sqlalchemy as sa
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 from opengsync_db.categories import MUXType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db
 from ....tools import utils, StaticSpreadSheet
@@ -28,7 +30,12 @@ class OligoReMuxForm(CommonOligoMuxForm):
             uuid=uuid, formdata=formdata, workflow=OligoReMuxForm._workflow_name,
             additional_columns=[]
         )
-        self.library_sample_pool_table = db.pd.get_library_sample_pool(self.library.id, expand_mux=True).sort_values(
+        self.library_sample_pool_table = T.library_sample_pool(
+            db.session.get_pandas(
+                Q.pd.library_sample_pool(self.library.id), limit=None
+            ),
+            expand_mux_=True,
+        ).sort_values(
             by=["sample_name", "library_name", "sample_pool"]
         )
         self._context["library_sample_pool_table"] = StaticSpreadSheet(df=self.library_sample_pool_table, columns=[

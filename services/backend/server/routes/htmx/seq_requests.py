@@ -16,6 +16,8 @@ from opengsync_db import (
     utils,
 )
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ...core import dependencies, responses, exceptions as exc, config
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
@@ -345,10 +347,17 @@ def export_seq_request(
 
     metadata_df = pd.DataFrame.from_records(metadata).T
 
-    libraries_df = session.pd.get_seq_request_libraries(
-        seq_request_id, include_indices=True
+    libraries_df = T.seq_request_libraries(
+        session.get_pandas(
+            Q.pd.seq_request_libraries(seq_request_id, include_indices=True),
+            limit=None,
+        ),
+        include_indices=True,
+        collapse_indicies=False,
     )
-    features_df = session.pd.get_seq_request_features(seq_request_id)
+    features_df = T.seq_request_features(
+        session.get_pandas(Q.pd.seq_request_features(seq_request_id), limit=None)
+    )
 
     bytes_io = BytesIO()
     with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:
@@ -376,8 +385,13 @@ def export_seq_request_libraries(
         raise exc.NoPermissionsException()
 
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-    libraries_df = session.pd.get_seq_request_libraries(
-        seq_request_id, include_indices=True
+    libraries_df = T.seq_request_libraries(
+        session.get_pandas(
+            Q.pd.seq_request_libraries(seq_request_id, include_indices=True),
+            limit=None,
+        ),
+        include_indices=True,
+        collapse_indicies=False,
     )
 
     return Response(
@@ -729,7 +743,9 @@ def get_seq_request_sample_table(
         raise exc.NoPermissionsException()
 
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-    df = session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
+    df = T.seq_request_sample_table(
+        session.get_pandas(Q.pd.seq_request_sample_table(seq_request_id), limit=None)
+    )
     df["project"] = df["project_identifier"]
     df.loc[df["project"].isna(), "project"] = df.loc[
         df["project"].isna(), "project_title"

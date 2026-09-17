@@ -83,8 +83,12 @@ def select(current_user: models.User) -> Response:
     barcodes = []
     libraries = []
     for pool in form.get_pools():
-        libraries.append(db.pd.get_pool_libraries(pool.id))
-        barcodes.append(db.pd.get_pool_barcodes(pool.id))
+        libraries.append(
+            db.session.get_pandas(Q.pd.pool_libraries(pool.id), limit=None)
+        )
+        barcodes.append(
+            db.session.get_pandas(Q.pd.pool_barcodes(pool.id), limit=None)
+        )
 
     barcode_table = pd.concat(barcodes, ignore_index=True)
     library_table = pd.concat(libraries, ignore_index=True)

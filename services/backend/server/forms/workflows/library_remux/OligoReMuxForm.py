@@ -8,6 +8,8 @@ from sqlalchemy import orm
 
 from opengsync_db import categories as C, models, SyncSession, queries as Q
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....core import dependencies, exceptions as exc
 from ....core.context import ctx
 from ....utils import parsing
@@ -117,7 +119,10 @@ class OligoReMuxForm(LibraryRemuxWorkflowStep):
         )
         mux_table = pooling_table[["sample_name", "sample_pool", "barcode", "pattern", "read"]].copy()
 
-        pool_table = session.pd.get_library_sample_pool(library.id, expand_mux=True)
+        pool_table = T.library_sample_pool(
+            session.get_pandas(Q.pd.library_sample_pool(library.id), limit=None),
+            expand_mux_=True,
+        )
         if not pool_table.empty:
             pool_table = pool_table.sort_values(by=["sample_name", "library_name", "sample_pool"])
         for col in ("barcode", "pattern", "read"):
@@ -182,7 +187,10 @@ class OligoReMuxForm(LibraryRemuxWorkflowStep):
             df["kit_id"] = None
             for identifier in kit_identifiers:
                 kit = session.get_one(Q.feature_kit.select(identifier=identifier))
-                kit_df = session.pd.get_feature_kit_features(kit.id)
+                kit_df = session.get_pandas(
+                    Q.pd.feature_kit_features(kit.id),
+                    limit=None,
+                )
                 kits[identifier] = (kit, kit_df)
                 df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 

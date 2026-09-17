@@ -70,7 +70,10 @@ class LoadFlowCellCombinedAction(HTMXForm):
             form: "LoadFlowCellCombinedAction" = Depends(LoadFlowCellCombinedAction.Init()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            df = session.pd.get_experiment_lanes(form.experiment.id)
+            df = session.get_pandas(
+                Q.pd.experiment_lanes(form.experiment.id),
+                limit=None,
+            )
             _, row = next(iter(parsing.safe_iter(df, LaneRowSchema)))
 
             if row.total_volume_ul is not None:

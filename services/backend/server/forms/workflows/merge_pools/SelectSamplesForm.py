@@ -2,7 +2,7 @@ from fastapi import Depends, Response
 from sqlalchemy import orm
 import pandas as pd
 
-from opengsync_db import SyncSession, models, categories as C
+from opengsync_db import SyncSession, models, categories as C, queries as Q
 
 from ....core import dependencies, exceptions as exc
 from ....components import inputs
@@ -66,8 +66,12 @@ class SelectSamplesForm(MergePoolsWorkflowStep):
                 pool_table_data["pool_id"].append(pool.id)
                 pool_table_data["pool_name"].append(pool.name)
                 pool_table_data["status_id"].append(pool.status.id)
-                library_dfs.append(session.pd.get_pool_libraries(pool.id))
-                barcode_dfs.append(session.pd.get_pool_barcodes(pool.id))
+                library_dfs.append(
+                    session.get_pandas(Q.pd.pool_libraries(pool.id), limit=None)
+                )
+                barcode_dfs.append(
+                    session.get_pandas(Q.pd.pool_barcodes(pool.id), limit=None)
+                )
 
             form.workflow.tables["pool_table"] = pd.DataFrame(pool_table_data)
             form.workflow.tables["library_table"] = pd.concat(library_dfs, ignore_index=True)

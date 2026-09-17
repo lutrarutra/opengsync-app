@@ -6,6 +6,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db
 from ....tools import utils
@@ -26,7 +27,11 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
         self.pooling_table = self.tables["pooling_table"]
-        self.barcode_table = db.pd.get_lab_prep_barcodes(self.lab_prep.id)
+        self.barcode_table = T.lab_prep_barcodes(
+            db.session.get_pandas(
+                Q.pd.lab_prep_barcodes(self.lab_prep.id), limit=None
+            )
+        )
         self.barcode_table["pool"] = utils.map_columns(self.barcode_table, self.pooling_table, "library_id", "pool")
         self.barcode_table = utils.check_indices(self.barcode_table, groupby="pool")
 

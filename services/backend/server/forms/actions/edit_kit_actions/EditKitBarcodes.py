@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, actions, SyncSession
 
+from opengsync_db.core.blueprints import pd_transforms as T
+
 from ....components import inputs
 from ....components.tables import DuplicateCellValue
 from ....core import dependencies, exceptions as exc, responses
@@ -32,7 +34,15 @@ class EditKitBarcodesForm(HTMXForm):
         self.post_url = responses.url_for("EditKitBarcodesForm.Submit", index_kit_id=index_kit.id)
 
     def barcode_table(self, session: SyncSession) -> pd.DataFrame:
-        return session.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True)
+        df = T.index_kit_barcodes(
+            session.get_pandas(
+                Q.pd.index_kit_barcodes(self.index_kit.id),
+                limit=None,
+            ),
+            per_adapter=False,
+            per_index=True,
+        )
+        return T.index_kit_barcodes_per_index(df, self.index_kit.type)
 
     @classmethod
     def Init(cls) -> FormFunc:
