@@ -203,7 +203,7 @@ class ActionsBP(DBBlueprint):
             sequence_i5=sequence_i5,
             index_kit_i7_id=index_kit_i7_id,
             index_kit_i5_id=index_kit_i5_id,
-            _orientation=orientation.id if orientation is not None else None,
+            orientation=orientation,
         ))
 
         self.db.session.add(library)

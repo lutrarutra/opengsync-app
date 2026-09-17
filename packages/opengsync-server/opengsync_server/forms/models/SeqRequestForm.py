@@ -496,13 +496,13 @@ class SeqRequestForm(HTMXFlaskForm):
 
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
             email=contact_person.email or seq_request.requestor.email,
-            status_id=DeliveryStatus.PENDING.id,
+            status=DeliveryStatus.PENDING,
         ))
 
         if seq_request.bioinformatician_contact is not None:
             seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
                 email=seq_request.bioinformatician_contact.email,
-                status_id=DeliveryStatus.PENDING.id,
+                status=DeliveryStatus.PENDING,
             ))
 
         db.session.save(seq_request)

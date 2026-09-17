@@ -41,14 +41,14 @@ class PoolDesignBP(DBBlueprint):
                 query = query.where(
                     sa.exists(
                         models.PoolDesign.flow_cell_design_id == models.FlowCellDesign.id &
-                        models.FlowCellDesign.task_status_id >= TaskStatus.COMPLETED.id
+                        models.FlowCellDesign.task_status >= TaskStatus.COMPLETED
                     )
                 )
             else:
                 query = query.where(
                     sa.exists(
                         models.PoolDesign.flow_cell_design_id == models.FlowCellDesign.id &
-                        models.FlowCellDesign.task_status_id < TaskStatus.COMPLETED.id
+                        models.FlowCellDesign.task_status < TaskStatus.COMPLETED
                     )
                 )
 

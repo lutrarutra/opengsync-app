@@ -19,7 +19,7 @@ class ProtocolBP(DBBlueprint):
 
         protocol = models.Protocol(
             name=name,
-            service_type_id=service_type.id,
+            service_type=service_type,
             read_structure=read_structure
         )
         self.db.session.add(protocol)
@@ -51,10 +51,10 @@ class ProtocolBP(DBBlueprint):
         query = self.db.session.query(models.Protocol)
 
         if service_type is not None:
-            query = query.where(models.Protocol.service_type_id == service_type.id)
+            query = query.where(models.Protocol.service_type == service_type)
 
         if service_type_in is not None:
-            query = query.where(models.Protocol.service_type_id.in_([t.id for t in service_type_in]))
+            query = query.where(models.Protocol.service_type.in_(service_type_in))
 
         if sort_by is not None:
             if sort_by not in models.Protocol.sortable_fields:
@@ -98,7 +98,7 @@ class ProtocolBP(DBBlueprint):
         query = self.db.session.query(models.Protocol)
 
         if service_type is not None:
-            query = query.where(models.Protocol.service_type_id == service_type.id)
+            query = query.where(models.Protocol.service_type == service_type)
 
         query = query.order_by(sa.func.similarity(models.Protocol.name, word).desc())
 

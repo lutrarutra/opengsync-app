@@ -21,7 +21,7 @@ def create(
         last_name=last_name.strip(),
         password=hashed_password,
         pw_set_datetime=pw_set_datetime,
-        role_id=role.id,
+        role=role,
     )
     return user
 
@@ -98,14 +98,14 @@ def where_clauses(
     if email is not None:
         clauses.append(sa.func.lower(User.email) == email.lower())
     if role is not None:
-        clauses.append(User.role_id == role.id)
+        clauses.append(User.role == role)
     if role_in is not None:
-        clauses.append(User.role_id.in_([r.id for r in role_in]))
+        clauses.append(User.role.in_(role_in))
     if insider is not None:
         if insider:
-            clauses.append(User.role_id.in_([role.id for role in UserRole.insiders()]))
+            clauses.append(User.role.in_(UserRole.insiders()))
         else:
-            clauses.append(User.role_id == UserRole.CLIENT.id)
+            clauses.append(User.role == UserRole.CLIENT)
 
     if group_id is not None:
         clauses.append(sa.select(1).where(

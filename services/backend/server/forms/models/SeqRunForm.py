@@ -95,11 +95,11 @@ class SeqRunForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Seq run ID must be provided for edit form.")
 
             form.experiment_name.data = form.seq_run.experiment_name
-            form.status.data = form.seq_run.status_id
+            form.status.data = form.seq_run.status.id
             form.instrument_name.data = form.seq_run.instrument_name
             form.run_folder.data = form.seq_run.run_folder
             form.flowcell_id.data = form.seq_run.flowcell_id
-            form.read_type.data = form.seq_run.read_type_id
+            form.read_type.data = form.seq_run.read_type.id
             form.rta_version.data = form.seq_run.rta_version
             form.recipe_version.data = form.seq_run.recipe_version
             form.side.data = form.seq_run.side

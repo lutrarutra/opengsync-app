@@ -13,7 +13,7 @@ class SeqRunTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Experiment", label="experiment", col_size=2, searchable=True, sortable=True, sort_by="experiment_name"),
-        TableCol(title="Status", label="status", col_size=1, choices=C.RunStatus.as_selectable(), sortable=True, sort_by="status_id"),
+        TableCol(title="Status", label="status", col_size=1, choices=C.RunStatus.as_selectable(), sortable=True, sort_by="status"),
         TableCol(title="Cycles", label="cycles", col_size=1),
         TableCol(title="Flow Cell ID", label="flow_cell_id", searchable=True, col_size=1),
         TableCol(title="Run Folder", label="run_folder", col_size=4, searchable=True),

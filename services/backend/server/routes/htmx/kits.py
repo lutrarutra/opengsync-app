@@ -23,7 +23,7 @@ class KitTable(HTMXTable):
             col_size=2,
             choices=C.KitType.as_selectable(),
             sortable=True,
-            sort_by="kit_type_id",
+            sort_by="kit_type",
         ),
     ]
 

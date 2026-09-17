@@ -19,8 +19,8 @@ def create(
         name=name,
         creator_id=creator.id,
         prep_number=number,
-        checklist_type_id=checklist_type.id,
-        service_type_id=service_type.id,
+        checklist_type=checklist_type,
+        service_type=service_type,
     )
 
 
@@ -98,20 +98,20 @@ def where_clauses(
     if id is not None:
         clauses.append(LabPrep.id == id)
     if status is not None:
-        clauses.append(LabPrep.status_id == status.id)
+        clauses.append(LabPrep.status == status)
     if status_in is not None:
-        clauses.append(LabPrep.status_id.in_([s.id for s in status_in]))
+        clauses.append(LabPrep.status.in_(status_in))
     if creator is not None:
         clauses.append(LabPrep.creator_id == creator.id)
     if creator_id is not None:
         clauses.append(LabPrep.creator_id == creator_id)
     if checklist_type is not None:
-        clauses.append(LabPrep.checklist_type_id == checklist_type.id)
+        clauses.append(LabPrep.checklist_type == checklist_type)
     if service_type is not None:
-        clauses.append(LabPrep.service_type_id == service_type.id)
+        clauses.append(LabPrep.service_type == service_type)
     if checklist_type_in is not None:
-        clauses.append(LabPrep.checklist_type_id.in_([c.id for c in checklist_type_in]))
+        clauses.append(LabPrep.checklist_type.in_(checklist_type_in))
     if service_type_in is not None:
-        clauses.append(LabPrep.service_type_id.in_([s.id for s in service_type_in]))
+        clauses.append(LabPrep.service_type.in_(service_type_in))
 
     return clauses

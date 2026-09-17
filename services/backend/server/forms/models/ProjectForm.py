@@ -122,7 +122,7 @@ class ProjectForm(HTMXForm):
             form.project.identifier = form.identifier.data
             form.project.title = form.title.data
             form.project.description = form.description.data
-            form.project.status_id = form.status.data
+            form.project.status = C.ProjectStatus.get(form.status.data)
             form.project.owner_id = form.owner.data
             form.project.group_id = form.group.data
 

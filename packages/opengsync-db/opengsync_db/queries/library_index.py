@@ -22,7 +22,7 @@ def create(
         index_kit_i7_id=index_kit_i7_id,
         index_kit_i5_id=index_kit_i5_id,
         library_id=library_id,
-        _orientation=orientation.id if orientation else None,
+        orientation=orientation,
     )
 
 

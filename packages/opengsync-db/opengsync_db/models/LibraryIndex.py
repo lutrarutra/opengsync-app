@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
+from ..core.EnumColumn import EnumColumn
 from ..categories import BarcodeOrientation, BarcodeOrientation, IndexType
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ class LibraryIndex(Base):
     sequence_i7: Mapped[str] = mapped_column(sa.String(32), nullable=True)
     sequence_i5: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
 
-    _orientation: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True, name="orientation")
+    orientation: Mapped[BarcodeOrientation | None] = mapped_column(EnumColumn[BarcodeOrientation](BarcodeOrientation), nullable=True, name="orientation", key="orientation")
 
     def __str__(self) -> str:
         return f"LibraryIndex({self.name_i7}: {self.sequence_i7}, {self.name_i5}: {self.sequence_i5})"
@@ -47,22 +48,9 @@ class LibraryIndex(Base):
         
         # if dual index, kit i5 and name i5 must be present
         return self.index_kit_i5_id is not None and bool(self.name_i5)
-    
+
     @property
     def type(self) -> IndexType:
         if self.sequence_i5 is None:
             return IndexType.SINGLE_INDEX_I7
         return IndexType.DUAL_INDEX
-            
-    @property
-    def orientation(self) -> BarcodeOrientation | None:
-        if self._orientation is None:
-            return None
-        return BarcodeOrientation.get(self._orientation)
-    
-    @orientation.setter
-    def orientation(self, value: BarcodeOrientation | None) -> None:
-        if value is None:
-            self._orientation = None
-        else:
-            self._orientation = value.id

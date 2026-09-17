@@ -54,7 +54,7 @@ class PoolForm(HTMXFlaskForm):
             if self.form_type == "clone":
                 self.status.data = PoolStatus.STORED.id
             else:
-                self.status.data = self.pool.status_id
+                self.status.data = self.pool.status.id
             self.num_m_reads_requested.data = self.pool.num_m_reads_requested
             if self.pool.contact is not None:
                 self.contact_name.data = self.pool.contact.name

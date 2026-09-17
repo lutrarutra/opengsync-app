@@ -11,8 +11,8 @@ def create(
 ) -> FlowCellDesign:
     return FlowCellDesign(
         name=name,
-        task_status_id=task_status.id,
-        flow_cell_type_id=flow_cell_type.id if flow_cell_type else None,
+        task_status=task_status,
+        stored_flow_cell_type=flow_cell_type,
     )
 
 
@@ -28,22 +28,22 @@ def select(
 
     if status is not None:
         statement = statement.where(
-            FlowCellDesign.task_status_id == status.id
+            FlowCellDesign.task_status == status
         )
 
     if status_in is not None:
         statement = statement.where(
-            FlowCellDesign.task_status_id.in_([s.id for s in status_in])
+            FlowCellDesign.task_status.in_(status_in)
         )
 
     if archived is not None:
         if archived:
             statement = statement.where(
-                FlowCellDesign.task_status_id >= TaskStatus.COMPLETED.id
+                FlowCellDesign.task_status >= TaskStatus.COMPLETED
             )
         else:
             statement = statement.where(
-                FlowCellDesign.task_status_id < TaskStatus.COMPLETED.id
+                FlowCellDesign.task_status < TaskStatus.COMPLETED
             )
 
     return statement

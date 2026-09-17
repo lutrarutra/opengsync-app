@@ -66,7 +66,7 @@ class UserForm(HTMXForm):
             form.user.first_name = form.first_name.data
             form.user.last_name = form.last_name.data
             form.user.email = form.email.data
-            form.user.role_id = form.role.data
+            form.user.role = C.UserRole.get(form.role.data)
 
             return responses.htmx_response(
                 redirect=responses.url_for("user_page", user_id=form.user.id),

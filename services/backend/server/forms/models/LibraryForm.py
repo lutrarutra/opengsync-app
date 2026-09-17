@@ -48,10 +48,10 @@ class LibraryForm(HTMXForm):
             form: "LibraryForm" = Depends(LibraryForm.Init())
         ):
             form.name.data = form.library.sample_name
-            form.library_type.data = form.library.type_id
-            form.genome.data = form.library.genome_ref_id
-            form.status.data = form.library.status_id
-            form.mux_type.data = form.library.mux_type_id
+            form.library_type.data = form.library.type.id
+            form.genome.data = form.library.genome_ref.id
+            form.status.data = form.library.status.id
+            form.mux_type.data = form.library.mux_type.id if form.library.mux_type is not None else -1
             form.nuclei_isolation.data = form.library.nuclei_isolation
             return form.make_response()
         return route

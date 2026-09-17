@@ -214,7 +214,7 @@ def test_user_hybrid_properties(session: SyncSession):
     create_seq_request(session, user)
     group = create_group(session)
     session.add(links.UserAffiliation(
-        user_id=user.id, group_id=group.id, affiliation_type_id=AffiliationType.MEMBER.id,
+        user_id=user.id, group_id=group.id, affiliation_type=AffiliationType.MEMBER,
     ))
     session.flush()
 
@@ -224,7 +224,7 @@ def test_user_hybrid_properties(session: SyncSession):
     create_seq_request(session, other)
     session.add(models.APIToken(time_valid_min=10, owner_id=other.id))
     session.add(links.UserAffiliation(
-        user_id=other.id, group_id=group.id, affiliation_type_id=AffiliationType.MEMBER.id,
+        user_id=other.id, group_id=group.id, affiliation_type=AffiliationType.MEMBER,
     ))
 
     assert_hybrids(session, user, models.User, {
@@ -255,7 +255,7 @@ def test_project_hybrid_properties(session: SyncSession):
     seq_request = create_seq_request(session, user)
     library = create_library(session, user, seq_request)
     actions.link_sample_library(session, sample.id, library.id)
-    session.add(models.DataPath(path="test_path", project_id=project.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="test_path", project_id=project.id, type=DataPathType.CUSTOM))
     session.add(links.ProjectAssigneeLink(project_id=project.id, user_id=user.id))
     experiment = create_experiment(session, user, ExperimentWorkFlow.MISEQ_v2)
     pool = create_pool(session, user, seq_request)
@@ -273,7 +273,7 @@ def test_project_hybrid_properties(session: SyncSession):
     other_library.pool_id = other_pool.id
     session.flush()
     actions.link_pool_experiment(session, pool=other_pool, experiment=other_experiment)
-    session.add(models.DataPath(path="other_path", project_id=other.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="other_path", project_id=other.id, type=DataPathType.CUSTOM))
     session.add(links.ProjectAssigneeLink(project_id=other.id, user_id=user.id))
 
     assert_hybrids(session, project, models.Project, {
@@ -312,7 +312,7 @@ def test_seq_request_hybrid_properties(session: SyncSession):
     session.add(links.SeqRequestAssigneeLink(seq_request_id=seq_request.id, user_id=user.id))
     session.add(models.Comment(text="test comment", author_id=user.id, seq_request_id=seq_request.id))
     create_file(session, seq_request=seq_request)
-    session.add(models.DataPath(path="test_path", seq_request_id=seq_request.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="test_path", seq_request_id=seq_request.id, type=DataPathType.CUSTOM))
     session.add(links.SeqRequestDeliveryEmailLink(seq_request_id=seq_request.id, email="test@email.com"))
 
     other = create_seq_request(session, user)
@@ -324,7 +324,7 @@ def test_seq_request_hybrid_properties(session: SyncSession):
     session.add(links.SeqRequestAssigneeLink(seq_request_id=other.id, user_id=user.id))
     session.add(models.Comment(text="other", author_id=user.id, seq_request_id=other.id))
     create_file(session, seq_request=other)
-    session.add(models.DataPath(path="other_path", seq_request_id=other.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="other_path", seq_request_id=other.id, type=DataPathType.CUSTOM))
     session.add(links.SeqRequestDeliveryEmailLink(seq_request_id=other.id, email="other@email.com"))
 
     assert_hybrids(session, seq_request, models.SeqRequest, {
@@ -367,13 +367,13 @@ def test_experiment_hybrid_properties(session: SyncSession):
     project = create_project(session, user)
     sample = create_sample(session, user, project)
     actions.link_sample_library(session, sample.id, library.id)
-    session.add(models.DataPath(path="test_path", experiment_id=experiment.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="test_path", experiment_id=experiment.id, type=DataPathType.CUSTOM))
     session.add(models.MediaFile(
-        name="lane_pooling_table", type_id=MediaFileType.LANE_POOLING_TABLE.id, extension=".txt",
+        name="lane_pooling_table", type=MediaFileType.LANE_POOLING_TABLE, extension=".txt",
         uploader_id=user.id, size_bytes=1, uuid=str(uuid.uuid4()), experiment_id=experiment.id,
     ))
     session.add(models.MediaFile(
-        name="sequencer_loading_checklist", type_id=MediaFileType.SEQUENCER_LOADING_CHECKLIST.id,
+        name="sequencer_loading_checklist", type=MediaFileType.SEQUENCER_LOADING_CHECKLIST,
         extension=".txt", uploader_id=user.id, size_bytes=1, uuid=str(uuid.uuid4()),
         experiment_id=experiment.id,
     ))
@@ -390,7 +390,7 @@ def test_experiment_hybrid_properties(session: SyncSession):
     actions.link_sample_library(session, other_sample.id, other_library.id)
     create_file(session, experiment=other)
     session.add(models.Comment(text="other", author_id=user.id, experiment_id=other.id))
-    session.add(models.DataPath(path="other_path", experiment_id=other.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="other_path", experiment_id=other.id, type=DataPathType.CUSTOM))
 
     assert_hybrids(session, experiment, models.Experiment, {
         "library_types": [LibraryType.BULK_RNA_SEQ],
@@ -422,14 +422,14 @@ def test_library_hybrid_properties(session: SyncSession):
     actions.link_sample_library(session, sample.id, library.id)
     feature = create_feature(session)
     actions.link_feature_library(session, feature.id, library.id)
-    session.add(models.DataPath(path="test_path", library_id=library.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="test_path", library_id=library.id, type=DataPathType.CUSTOM))
 
     other = create_library(session, user, seq_request)
     other_sample = create_sample(session, user, project)
     actions.link_sample_library(session, other_sample.id, other.id)
     other_feature = create_feature(session)
     actions.link_feature_library(session, other_feature.id, other.id)
-    session.add(models.DataPath(path="other_path", library_id=other.id, type_id=DataPathType.CUSTOM.id))
+    session.add(models.DataPath(path="other_path", library_id=other.id, type=DataPathType.CUSTOM))
 
     assert_hybrids(session, library, models.Library, {
         "num_samples": 1,
@@ -484,7 +484,7 @@ def test_group_hybrid_properties(session: SyncSession):
 
     user = create_user(session)
     session.add(links.UserAffiliation(
-        user_id=user.id, group_id=group.id, affiliation_type_id=AffiliationType.MEMBER.id,
+        user_id=user.id, group_id=group.id, affiliation_type=AffiliationType.MEMBER,
     ))
     project = create_project(session, user)
     project.group_id = group.id
@@ -494,7 +494,7 @@ def test_group_hybrid_properties(session: SyncSession):
     other = create_group(session)
     other_user = create_user(session)
     session.add(links.UserAffiliation(
-        user_id=other_user.id, group_id=other.id, affiliation_type_id=AffiliationType.MEMBER.id,
+        user_id=other_user.id, group_id=other.id, affiliation_type=AffiliationType.MEMBER,
     ))
     other_project = create_project(session, other_user)
     other_project.group_id = other.id
@@ -593,9 +593,9 @@ def test_lab_prep_hybrid_properties(session: SyncSession):
     lab_prep = models.LabPrep(
         name="test_lab_prep",
         prep_number=1,
-        status_id=PrepStatus.PREPARING.id,
-        checklist_type_id=LabChecklistType.SMART_SEQ.id,
-        service_type_id=ServiceType.CUSTOM.id,
+        status=PrepStatus.PREPARING,
+        checklist_type=LabChecklistType.SMART_SEQ,
+        service_type=ServiceType.CUSTOM,
         creator_id=user.id,
     )
     session.add(lab_prep)
@@ -627,9 +627,9 @@ def test_lab_prep_hybrid_properties(session: SyncSession):
     other = models.LabPrep(
         name="other_lab_prep",
         prep_number=2,
-        status_id=PrepStatus.PREPARING.id,
-        checklist_type_id=LabChecklistType.SMART_SEQ.id,
-        service_type_id=ServiceType.CUSTOM.id,
+        status=PrepStatus.PREPARING,
+        checklist_type=LabChecklistType.SMART_SEQ,
+        service_type=ServiceType.CUSTOM,
         creator_id=user.id,
     )
     session.add(other)

@@ -72,14 +72,18 @@ class FlowCellDesignForm(HTMXForm):
         if self.flow_cell_design is None:
             return
         self.name.data = self.flow_cell_design.name
-        self.flow_cell_type_id.data = self.flow_cell_design.flow_cell_type_id or -1
+        self.flow_cell_type_id.data = (
+            self.flow_cell_design.stored_flow_cell_type.id
+            if self.flow_cell_design.stored_flow_cell_type is not None else -1
+        )
 
     def _set_design_values(self) -> None:
         if self.flow_cell_design is None:
             raise exc.OpeNGSyncServerException("Flow cell design must be provided for edit.")
         self.flow_cell_design.name = self.name.data
-        self.flow_cell_design.flow_cell_type_id = (
-            None if self.flow_cell_type_id.data == -1 else self.flow_cell_type_id.data
+        self.flow_cell_design.stored_flow_cell_type = (
+            C.FlowCellType.get(self.flow_cell_type_id.data)
+            if self.flow_cell_type_id.data != -1 else None
         )
 
     def edit(self, session: SyncSession) -> models.FlowCellDesign:

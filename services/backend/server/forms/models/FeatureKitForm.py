@@ -77,7 +77,7 @@ class FeatureKitForm(HTMXForm):
 
             form.name.data = form.feature_kit.name
             form.identifier.data = form.feature_kit.identifier
-            form.feature_type_id.data = form.feature_kit.type_id
+            form.feature_type_id.data = form.feature_kit.type.id
             return form.make_response()
 
         return route

@@ -125,7 +125,7 @@ def test_insider_can_create_deactivated_user_as_requestor(
     assert created_user is not None
     assert created_user.first_name == "New"
     assert created_user.last_name == "Requestor"
-    assert created_user.role_id == C.UserRole.DEACTIVATED.id
+    assert created_user.role == C.UserRole.DEACTIVATED
     assert created_user.password
     assert request.requestor_id == created_user.id
 

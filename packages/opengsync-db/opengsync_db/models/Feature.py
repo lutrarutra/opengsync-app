@@ -1,11 +1,12 @@
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from ..categories import FeatureType
+from ..core.EnumColumn import EnumColumn
 
 if TYPE_CHECKING:
     from .FeatureKit import FeatureKit
@@ -19,18 +20,14 @@ class Feature(Base):
     sequence: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     pattern: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     read: Mapped[str] = mapped_column(sa.String(8), nullable=False)
-    target_name: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, index=True)
-    target_id: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, index=True)
+    target_name: Mapped[str | None] = mapped_column(sa.String(64), nullable=True, index=True)
+    target_id: Mapped[str | None] = mapped_column(sa.String(64), nullable=True, index=True)
 
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[FeatureType] = mapped_column(EnumColumn[FeatureType](FeatureType), nullable=False, name="type_id", key="type")
 
-    feature_kit_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("feature_kit.id"), nullable=True)
-    feature_kit: Mapped[Optional["FeatureKit"]] = relationship("FeatureKit", back_populates="features", lazy="select")
+    feature_kit_id: Mapped[int | None] = mapped_column(sa.ForeignKey("feature_kit.id"), nullable=True)
+    feature_kit: Mapped["FeatureKit | None"] = relationship("FeatureKit", back_populates="features", lazy="select")
 
-    @property
-    def type(self) -> FeatureType:
-        return FeatureType.get(self.type_id)
-    
     def search_name(self) -> str:
         return self.name
     

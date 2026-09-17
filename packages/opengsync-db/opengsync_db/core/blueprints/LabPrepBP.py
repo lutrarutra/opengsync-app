@@ -32,8 +32,8 @@ class LabPrepBP(DBBlueprint):
             name=name.strip(),
             prep_number=number,
             creator_id=creator.id,
-            checklist_type_id=checklist_type.id,
-            service_type_id=service_type.id,
+            checklist_type=checklist_type,
+            service_type=service_type,
         )
 
         self.db.session.add(lab_prep)
@@ -67,14 +67,14 @@ class LabPrepBP(DBBlueprint):
         query = self.db.session.query(models.LabPrep)
 
         if checklist_type is not None:
-            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+            query = query.where(models.LabPrep.checklist_type == checklist_type)
         elif checklist_type_in is not None:
-            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
+            query = query.where(models.LabPrep.checklist_type.in_(checklist_type_in))
 
         if status is not None:
-            query = query.where(models.LabPrep.status_id == status.id)
+            query = query.where(models.LabPrep.status == status)
         elif status_in is not None:
-            query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.LabPrep.status.in_(status_in))
 
         if options is not None:
             query = query.options(options)
@@ -148,14 +148,14 @@ class LabPrepBP(DBBlueprint):
         query = self.db.session.query(models.LabPrep)
 
         if checklist_type is not None:
-            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+            query = query.where(models.LabPrep.checklist_type == checklist_type)
         elif checklist_type_in is not None:
-            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
+            query = query.where(models.LabPrep.checklist_type.in_(checklist_type_in))
 
         if status is not None:
-            query = query.where(models.LabPrep.status_id == status.id)
+            query = query.where(models.LabPrep.status == status)
         elif status_in is not None:
-            query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.LabPrep.status.in_(status_in))
 
         if name is not None:
             query = query.order_by(
@@ -184,7 +184,7 @@ class LabPrepBP(DBBlueprint):
             raise TypeError(f"Pool type {checklist_type} does not have an identifier")
 
         if (latest_prep := self.db.session.query(models.LabPrep).where(
-            models.LabPrep.checklist_type_id == checklist_type.id
+            models.LabPrep.checklist_type == checklist_type
         ).order_by(
             models.LabPrep.prep_number.desc()
         ).first()) is not None:

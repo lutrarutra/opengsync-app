@@ -56,7 +56,7 @@ class SequencerForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Sequencer ID must be provided for edit form.")
 
             form.name.data = form.sequencer.name
-            form.model.data = form.sequencer.model_id
+            form.model.data = form.sequencer.model.id
             form.ip_address.data = form.sequencer.ip
             return form.make_response()
         return route

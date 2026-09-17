@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..categories import MediaFileType, MediaFileType
+from ..core.EnumColumn import EnumColumn
 from .User import User
 
 if TYPE_CHECKING:
@@ -25,7 +26,7 @@ class MediaFile(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     extension: Mapped[str] = mapped_column(sa.String(16), nullable=False)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[MediaFileType] = mapped_column(EnumColumn[MediaFileType](MediaFileType), nullable=False, name="type_id", key="type")
     uuid: Mapped[str] = mapped_column(sa.CHAR(36), nullable=False, default=lambda: uuid7().__str__(), unique=True)
     size_bytes: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
@@ -42,14 +43,6 @@ class MediaFile(Base):
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", back_populates="media_files", lazy="select")
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="media_files", lazy="select")
 
-    @property
-    def type(self) -> MediaFileType:
-        return MediaFileType.get(self.type_id)
-
-    @type.setter
-    def type(self, value: MediaFileType) -> None:
-        self.type_id = value.id
-    
     @property
     def path(self) -> str:
         return os.path.join(self.type.dir, f"{self.uuid}{self.extension}")

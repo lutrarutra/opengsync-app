@@ -110,7 +110,7 @@ class MediaFileTable(HTMXTable):
             col_size=2,
             choices=C.MediaFileType.as_selectable(),
             sortable=True,
-            sort_by="type_id",
+            sort_by="type",
         ),
         TableCol(title="Uploader", label="uploader", col_size=2, searchable=True),
         TableCol(title="Size", label="size_bytes", col_size=1, sortable=True),

@@ -13,7 +13,7 @@ class FeatureKitTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Identifier", label="identifier", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type_id"),
+        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type"),
     ]
 
 

@@ -62,10 +62,10 @@ class ProjectBP(DBBlueprint):
             )
 
         if status is not None:
-            query = query.where(models.Project.status_id == status.id)
+            query = query.where(models.Project.status == status)
 
         if status_in is not None:
-            query = query.where(models.Project.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.Project.status.in_(status_in))
 
         if library_types_in is not None:
             query = query.where(
@@ -73,7 +73,7 @@ class ProjectBP(DBBlueprint):
                     (models.Sample.project_id == models.Project.id) &
                     (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
                     (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                    (models.Library.type_id.in_([lt.id for lt in library_types_in]))
+                    (models.Library.type.in_(library_types_in))
                 )
             )
 
@@ -101,7 +101,7 @@ class ProjectBP(DBBlueprint):
             description=description.strip(),
             owner_id=owner_id,
             group_id=group_id,
-            status_id=status.id,
+            status=status,
         )
 
         self.db.session.add(project)

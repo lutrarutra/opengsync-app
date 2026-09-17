@@ -35,12 +35,12 @@ class SeqRequestBP(DBBlueprint):
     ) -> Query:
         if status is not None:
             query = query.where(
-                models.SeqRequest.status_id == status.id
+                models.SeqRequest.status == status
             )
 
         if submission_type is not None:
             query = query.where(
-                models.SeqRequest.submission_type_id == submission_type.id
+                models.SeqRequest.submission_type == submission_type
             )
 
         if user_id is not None:
@@ -55,29 +55,27 @@ class SeqRequestBP(DBBlueprint):
             )
 
         if status_in is not None:
-            status_ids = [status.id for status in status_in]
             query = query.where(
-                models.SeqRequest.status_id.in_(status_ids)  # type: ignore
+                models.SeqRequest.status.in_(status_in)
             )
         
         if submission_type_in is not None:
-            submission_type_ids = [submission_type.id for submission_type in submission_type_in]
             query = query.where(
-                models.SeqRequest.submission_type_id.in_(submission_type_ids)  # type: ignore
+                models.SeqRequest.submission_type.in_(submission_type_in)
             )
 
         if library_types_in is not None:
             query = query.where(
                 sa.exists().where(
                     (models.Library.seq_request_id == models.SeqRequest.id) &
-                    (models.Library.type_id.in_([lt.id for lt in library_types_in]))  # type: ignore
+                    (models.Library.type.in_(library_types_in))  # type: ignore
                 )
             )
 
         if not show_drafts:
             query = query.where(
                 sa.or_(
-                    models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
+                    models.SeqRequest.status != SeqRequestStatus.DRAFT,
                     models.SeqRequest.requestor_id == user_id
                 )
             )
@@ -128,15 +126,15 @@ class SeqRequestBP(DBBlueprint):
             requestor=requestor,
             read_length=read_length,
             num_lanes=num_lanes,
-            read_type_id=read_type.id,
+            read_type=read_type,
             special_requirements=special_requirements,
             billing_contact=billing_contact,
-            submission_type_id=submission_type.id,
+            submission_type=submission_type,
             contact_person=contact_person,
             organization_contact=organization_contact,
             bioinformatician_contact=bioinformatician_contact,
-            status_id=SeqRequestStatus.DRAFT.id,
-            data_delivery_mode_id=data_delivery_mode.id,
+            status=SeqRequestStatus.DRAFT,
+            data_delivery_mode=data_delivery_mode,
             billing_code=billing_code.strip() if billing_code else None,
         )
 
@@ -339,7 +337,7 @@ class SeqRequestBP(DBBlueprint):
             raise exceptions.LinkAlreadyExists(f"SeqRequest with id '{seq_request_id}' already has a share link with email '{email}'.")
 
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
-            email=email, status_id=DeliveryStatus.PENDING.id
+            email=email, status=DeliveryStatus.PENDING
         ))
 
         self.db.session.add(seq_request)

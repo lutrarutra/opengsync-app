@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..categories import TaskStatus, TaskStatus
+from ..core.EnumColumn import EnumColumn
 
 if TYPE_CHECKING:
     from .User import User
@@ -19,7 +20,7 @@ class TODOComment(Base):
     text: Mapped[str] = mapped_column(sa.Text, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     
-    task_status_id: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True, default=0)
+    task_status: Mapped[TaskStatus | None] = mapped_column(EnumColumn[TaskStatus](TaskStatus), nullable=True, default=0, name="task_status_id", key="task_status")
     
     author_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     author: Mapped["User"] = relationship("User", lazy="joined")
@@ -45,16 +46,3 @@ class TODOComment(Base):
     
     def __repr__(self) -> str:
         return f"TODOComment(id={self.id}, text={self.text}, timestamp={self.timestamp}, author_id={self.author_id})"
-
-    @property
-    def task_status(self) -> TaskStatus | None:
-        if self.task_status_id is None:
-            return None
-        return TaskStatus.get(self.task_status_id)
-    
-    @task_status.setter
-    def task_status(self, status: TaskStatus | None) -> None:
-        if status is None:
-            self.task_status_id = None
-        else:
-            self.task_status_id = status.id

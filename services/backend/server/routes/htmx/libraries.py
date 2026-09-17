@@ -41,7 +41,7 @@ class LibraryTable(HTMXTable):
             label="status",
             col_size=1,
             sortable=True,
-            sort_by="status_id",
+            sort_by="status",
             choices=C.LibraryStatus.as_selectable(),
         ),
         TableCol(title="Request", label="seq_request", col_size=2),
@@ -230,11 +230,11 @@ def render_prep_feed(
     df = session.pd.query(
         sa.select(
             models.Library.id,
-            models.Library.service_type_id.label("service_type"),
+            models.Library.service_type.label("service_type"),
             models.Library.name.label("library_name"),
-            models.Library.status_id.label("status"),
+            models.Library.status.label("status"),
         ).where(
-            models.Library.status_id.in_([
+            models.Library.status.in_([
                 C.LibraryStatus.ACCEPTED,
                 C.LibraryStatus.PREPARING,
                 C.LibraryStatus.STORED,
@@ -258,16 +258,16 @@ def render_prep_feed_detail(
         sa.select(
             models.Library.id,
             models.Library.seq_request_id,
-            models.Library.service_type_id.label("service_type"),
+            models.Library.service_type.label("service_type"),
             models.Library.name.label("library_name"),
-            models.Library.status_id.label("status"),
+            models.Library.status.label("status"),
         ).where(
-            models.Library.status_id.in_([
+            models.Library.status.in_([
                 C.LibraryStatus.ACCEPTED,
                 C.LibraryStatus.PREPARING,
                 C.LibraryStatus.STORED,
             ]),
-            models.Library.service_type_id == service_type.id,
+            models.Library.service_type == service_type,
         ).order_by(models.Library.seq_request_id, models.Library.id)
     )
 

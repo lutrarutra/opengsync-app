@@ -33,9 +33,9 @@ class LabPrepForm(HTMXFlaskForm):
     
     def prepare(self):
         if self.lab_prep is not None:
-            self.checklist_type.data = self.lab_prep.checklist_type_id
+            self.checklist_type.data = self.lab_prep.checklist_type.id
             self.name.data = self.lab_prep.name
-            self.service_type.data = self.lab_prep.service_type_id
+            self.service_type.data = self.lab_prep.service_type.id
 
     def validate(self) -> bool:
         if (validated := super().validate()) is False:

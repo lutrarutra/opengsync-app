@@ -79,14 +79,17 @@ class TODOCommentForm(HTMXForm):
         if self.todo_comment is None:
             return
         self.text.data = self.todo_comment.text
-        self.status_id.data = self.todo_comment.task_status_id
+        self.status_id.data = self.todo_comment.task_status.id if self.todo_comment.task_status is not None else None
 
     @staticmethod
     def _set_comment_values(form: "TODOCommentForm") -> None:
         if form.todo_comment is None:
             raise exc.OpeNGSyncServerException("TODO comment must be provided for edit.")
         form.todo_comment.text = form.text.data
-        form.todo_comment.task_status_id = form.status_id.data
+        form.todo_comment.task_status = (
+            C.TaskStatus.get(form.status_id.data)
+            if form.status_id.data is not None else None
+        )
 
     @htmx_route("GET", "/form", name="Render")
     def Render(cls) -> RouteFunc:

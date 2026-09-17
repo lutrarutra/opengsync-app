@@ -19,9 +19,9 @@ class LabPrepTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Checklist", label="checklist", col_size=2, choices=C.LabChecklistType.as_selectable(), sortable=True, sort_by="checklist_type_id"),
-        TableCol(title="Service", label="service", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type_id"),
-        TableCol(title="Status", label="status", col_size=2, choices=C.PrepStatus.as_selectable(), sortable=True, sort_by="status_id"),
+        TableCol(title="Checklist", label="checklist", col_size=2, choices=C.LabChecklistType.as_selectable(), sortable=True, sort_by="checklist_type"),
+        TableCol(title="Service", label="service", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type"),
+        TableCol(title="Status", label="status", col_size=2, choices=C.PrepStatus.as_selectable(), sortable=True, sort_by="status"),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
         TableCol(title="Creator", label="creator", col_size=2, searchable=True),
@@ -128,7 +128,7 @@ def uncomplete_lab_prep(
 ):
     """Revert a completed lab prep back to preparing."""
     lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
-    lab_prep.status_id = C.PrepStatus.PREPARING.id
+    lab_prep.status = C.PrepStatus.PREPARING
 
     return responses.htmx_response(
         redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
@@ -144,7 +144,7 @@ def delete_lab_prep(
     """Delete a lab prep (only if still in PREPARING status)."""
     lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
 
-    if lab_prep.status_id != C.PrepStatus.PREPARING.id:
+    if lab_prep.status != C.PrepStatus.PREPARING:
         return responses.htmx_response(
             redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
             flash=responses.flash("Cannot delete completed prep.", "warning"),
@@ -166,7 +166,7 @@ def remove_library_from_prep(
     """Remove a library from a lab prep."""
     lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
 
-    if lab_prep.status_id != C.PrepStatus.PREPARING.id:
+    if lab_prep.status != C.PrepStatus.PREPARING:
         raise exc.BadRequestException("Cannot remove libraries from a completed prep.")
 
     library = session.get_one(Q.library.select(id=library_id))
@@ -422,7 +422,7 @@ def complete_lab_prep(
         if is_prepared:
             library.seq_request.status = C.SeqRequestStatus.PREPARED
 
-    lab_prep.status_id = C.PrepStatus.COMPLETED.id
+    lab_prep.status = C.PrepStatus.COMPLETED
 
     return responses.htmx_response(
         redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),

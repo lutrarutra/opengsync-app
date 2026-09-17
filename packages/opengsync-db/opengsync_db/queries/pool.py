@@ -24,7 +24,7 @@ def create(
     return Pool(
         name=name.strip(),
         owner_id=owner_id,
-        type_id=pool_type.id,
+        type=pool_type,
         seq_request_id=seq_request_id,
         num_m_reads_requested=num_m_reads_requested,
         contact=Contact(
@@ -33,7 +33,7 @@ def create(
             phone=contact_phone.strip() if contact_phone else None
         ),
         lab_prep_id=lab_prep_id,
-        status_id=status.id,
+        status=status,
         timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None,
         clone_number=clone_number,
         original_pool_id=original_pool_id,
@@ -50,7 +50,7 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     has_write_access = sa.and_(
         sa.select(1).where(
             Pool.seq_request_id == SeqRequest.id,
-            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+            SeqRequest.status == SeqRequestStatus.DRAFT,
             sa.or_(
                 SeqRequest.requestor_id == user_id,
                 sa.select(1).where(
@@ -185,16 +185,16 @@ def where_clauses(
     if lab_prep_id is not None:
         clauses.append(Pool.lab_prep_id == lab_prep_id)
     if status is not None:
-        clauses.append(Pool.status_id == status.id)
+        clauses.append(Pool.status == status)
     if status_in is not None:
-        clauses.append(Pool.status_id.in_([s.id for s in status_in]))
+        clauses.append(Pool.status.in_(status_in))
     if type_in is not None:
-        clauses.append(Pool.type_id.in_([t.id for t in type_in]))
+        clauses.append(Pool.type.in_(type_in))
     if library_types_in is not None:
         clauses.append(
             sa.select(1).where(
                 (Library.pool_id == Pool.id) &
-                (Library.type_id.in_([lt.id for lt in library_types_in]))
+                (Library.type.in_(library_types_in))
             ).correlate_except(Library).exists()
         )
     if associated_to_experiment is not None:

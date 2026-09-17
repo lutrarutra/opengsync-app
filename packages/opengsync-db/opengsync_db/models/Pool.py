@@ -11,6 +11,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from .Base import Base
 from . import links
 from ..categories import PoolStatus, PoolType, LibraryType, MUXType
+from ..core.EnumColumn import EnumColumn
 from .Experiment import Experiment
 
 if TYPE_CHECKING:
@@ -28,8 +29,8 @@ class Pool(Base):
     __tablename__ = "pool"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status: Mapped[PoolStatus] = mapped_column(EnumColumn[PoolStatus](PoolStatus), nullable=False, default=0, name="status_id", key="status")
+    type: Mapped[PoolType] = mapped_column(EnumColumn[PoolType](PoolType), nullable=False, name="type_id", key="type")
 
     timestamp_stored_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
@@ -92,12 +93,12 @@ class Pool(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
         
-        mux_type_ids = session.query(Library.mux_type_id).where(
+        mux_types = session.query(Library.mux_type).where(
             (Library.pool_id == self.id) &
-            Library.mux_type_id.isnot(None)
+            Library.mux_type.isnot(None)
         ).distinct().all()
 
-        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
+        return [MUXType.get(mux_type) for (mux_type,) in mux_types]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
@@ -138,13 +139,13 @@ class Pool(Base):
     @hybrid_property
     def library_types(self) -> list[LibraryType]:  # type: ignore[override]
         if self._library_types is not None:
-            return [LibraryType.get(type_id) for type_id in self._library_types]
+            return [LibraryType.get(library_type) for library_type in self._library_types]
 
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                types.add(lib.type_id)
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+                types.add(lib.type)
+            return sorted(types)
 
         if self._is_async_context():
             raise RuntimeError(
@@ -159,40 +160,24 @@ class Pool(Base):
         from .. import queries as Q
         from .Library import Library
         result = session.scalar(sa.select(
-            sa.func.array_agg(sa.distinct(Library.type_id))
+            sa.func.array_agg(sa.distinct(Library.type))
         ).where(
             *Q.library.where_clauses(pool_id=self.id)
         ))
         if result is None:
             return []
-        return [LibraryType.get(type_id) for type_id in result]
+        return [LibraryType.get(library_type) for library_type in result]
 
     @library_types.expression
     def library_types(cls):
         from .. import queries as Q
         from .Library import Library
         return sa.select(
-            sa.func.array_agg(sa.distinct(Library.type_id))
+            sa.func.array_agg(sa.distinct(Library.type))
         ).where(
             *Q.library.where_clauses(pool_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    @property
-    def status(self) -> PoolStatus:
-        return PoolStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: PoolStatus):
-        self.status_id = value.id
-    
-    @property
-    def type(self) -> PoolType:
-        return PoolType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: PoolType):
-        self.type_id = value.id
-    
     @hybrid_property
     def molarity(self) -> float | None:  # type: ignore[override]
         if self.avg_fragment_size is None or self.qubit_concentration is None:

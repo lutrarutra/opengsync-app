@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any
 from collections.abc import AsyncIterator, Sequence
 
 import sqlalchemy as sa
+import pandas as pd
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import sql
 from sqlalchemy.ext.asyncio import AsyncSession as SQLAlchemyAsyncSession
@@ -31,6 +32,25 @@ class AsyncSession(SQLAlchemyAsyncSession):
             from .blueprints.AsyncPandasBP import AsyncPandas
             self._pd = AsyncPandas(self)
         return self._pd
+
+    async def get_pandas(
+        self,
+        statement: sa.Select,
+        order_by: utils.OrderBy | None = None,
+        limit: int | None = DEFAULT_LIMIT,
+        options: utils.QueryOptions | None = None,
+        offset: int | None = None,
+    ) -> pd.DataFrame:
+        if limit is DEFAULT_LIMIT:
+            limit = self.default_limit
+        statement = utils.apply_settings(statement, order_by=order_by, limit=limit, options=options, offset=offset)
+
+        def _read_pandas(sync_session) -> pd.DataFrame:
+            statement_for_pandas, columns = utils.prepare_pandas_statement(statement)
+            dataframe = pd.read_sql(statement_for_pandas, sync_session.connection())
+            return utils.map_pandas_enum_columns(dataframe, columns)
+
+        return await self.run_sync(_read_pandas)
 
     async def get_all(
         self,

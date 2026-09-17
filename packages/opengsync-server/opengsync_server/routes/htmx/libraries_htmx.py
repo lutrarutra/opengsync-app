@@ -285,11 +285,11 @@ def get_todo_libraries(current_user: models.User):
     df = db.pd.query(
         sa.select(
             models.Library.id,
-            models.Library.service_type_id.label("service_type"),
+            models.Library.service_type.label("service_type"),
             models.Library.name.label("library_name"),
-            models.Library.status_id.label("status")
+            models.Library.status.label("status")
         ).where(
-            models.Library.status_id.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
+            models.Library.status.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
         )
     )
     
@@ -314,12 +314,12 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
         sa.select(
             models.Library.id,
             models.Library.seq_request_id,
-            models.Library.service_type_id.label("service_type"),
+            models.Library.service_type.label("service_type"),
             models.Library.name.label("library_name"),
-            models.Library.status_id.label("status")
+            models.Library.status.label("status")
         ).where(
-            models.Library.status_id.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
-            models.Library.service_type_id == service_type.id,
+            models.Library.status.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
+            models.Library.service_type == service_type,
         ).order_by(models.Library.seq_request_id, models.Library.id)
     )
 

@@ -63,10 +63,10 @@ class ExperimentForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Experiment ID must be provided for edit form.")
             
             form.name.data = form.experiment.name
-            form.workflow.data = form.experiment.workflow_id
+            form.workflow.data = form.experiment.workflow.id
             form.sequencer.data = form.experiment.sequencer_id
             form.operator.data = form.experiment.operator_id
-            form.status.data = form.experiment.status_id
+            form.status.data = form.experiment.status.id
             form.r1_cycles.data = form.experiment.r1_cycles
             form.r2_cycles.data = form.experiment.r2_cycles
             form.i1_cycles.data = form.experiment.i1_cycles
@@ -108,16 +108,14 @@ class ExperimentForm(HTMXForm):
                 raise exc.FormValidationException(form)
 
             form.experiment.name = form.name.data
-            form.experiment.workflow_id = form.workflow.data
+            form.experiment.workflow = workflow
             form.experiment.sequencer_id = form.sequencer.data
             form.experiment.operator_id = form.operator.data
-            form.experiment.status_id = form.status.data
+            form.experiment.status = status
             form.experiment.r1_cycles = form.r1_cycles.data
             form.experiment.r2_cycles = form.r2_cycles.data
             form.experiment.i1_cycles = form.i1_cycles.data
             form.experiment.i2_cycles = form.i2_cycles.data
-            form.experiment.workflow = workflow
-            form.experiment.status = status
             session.save(form.experiment)
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=form.experiment.id),

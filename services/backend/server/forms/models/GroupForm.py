@@ -57,7 +57,7 @@ class GroupForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Group ID must be provided for edit form.")
 
             form.name.data = form.group.name
-            form.group_type.data = form.group.type_id
+            form.group_type.data = form.group.type.id
             return form.make_response()
         return route
 
@@ -91,7 +91,7 @@ class GroupForm(HTMXForm):
                 raise exc.FormValidationException(form)
 
             form.group.name = form.name.data
-            form.group.type_id = form.group_type.data
+            form.group.type = C.GroupType.get(form.group_type.data)
 
             return responses.htmx_response(
                 redirect=responses.url_for("group_page", group_id=form.group.id),

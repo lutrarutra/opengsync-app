@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
 from ..categories import SampleStatus, SampleStatus, AttributeType, AttributeType
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 from . import links
 
@@ -47,7 +48,7 @@ class Sample(Base):
     
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True)
+    status: Mapped[SampleStatus | None] = mapped_column(EnumColumn[SampleStatus](SampleStatus), nullable=True, name="status_id", key="status")
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
@@ -113,19 +114,6 @@ class Sample(Base):
 
     _num_libraries: Mapped[int | None] = orm.query_expression()
 
-    @property
-    def status(self) -> SampleStatus | None:
-        if self.status_id is None:
-            return None
-        return SampleStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: SampleStatus | None):
-        if value is None:
-            self.status_id = None
-        else:
-            self.status_id = value.id
-    
     @property
     def timestamp_stored_str(self) -> str:
         return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""

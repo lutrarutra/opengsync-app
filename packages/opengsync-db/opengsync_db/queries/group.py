@@ -10,7 +10,7 @@ def create(
 ) -> Group:
     return Group(
         name=name.strip(),
-        type_id=type.id
+        type=type
     )
 
 def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
@@ -21,8 +21,8 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
         (links.UserAffiliation.user_id == user_id) &
         (links.UserAffiliation.group_id == Group.id) &
         sa.or_(
-            (links.UserAffiliation.affiliation_type_id == AffiliationType.OWNER.id),
-            (links.UserAffiliation.affiliation_type_id == AffiliationType.MANAGER.id)
+            (links.UserAffiliation.affiliation_type == AffiliationType.OWNER),
+            (links.UserAffiliation.affiliation_type == AffiliationType.MANAGER)
         )
     ).correlate_except(links.UserAffiliation)
 
@@ -68,9 +68,9 @@ def select(
     if name is not None:
         statement = statement.where(Group.name == name)
     if type is not None:
-        statement = statement.where(Group.type_id == type.id)
+        statement = statement.where(Group.type == type)
     if type_in is not None:
-        statement = statement.where(Group.type_id.in_([t.id for t in type_in]))
+        statement = statement.where(Group.type.in_(type_in))
     return statement
 
 

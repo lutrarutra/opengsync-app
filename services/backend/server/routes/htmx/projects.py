@@ -38,7 +38,7 @@ class ProjectTable(HTMXTable):
             title="Status",
             label="status",
             col_size=1,
-            sort_by="status_id",
+            sort_by="status",
             sortable=True,
             choices=C.ProjectStatus.as_selectable(),
         ),
@@ -483,7 +483,7 @@ def render_project_feed(
 
     projects, _ = session.page(
         Q.project.select(user_id=user_id, status_in=status_in).order_by(
-            models.Project.status_id.desc(), models.Project.id.desc()
+            models.Project.status.desc(), models.Project.id.desc()
         ),
         page=page,
         limit=PAGE_LIMIT,

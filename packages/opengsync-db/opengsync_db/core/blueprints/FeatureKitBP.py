@@ -22,8 +22,8 @@ class FeatureKitBP(DBBlueprint):
         feature_kit = models.FeatureKit(
             name=name.strip(),
             identifier=identifier.strip(),
-            type_id=type.id,
-            kit_type_id=KitType.FEATURE_KIT.id,
+            type=type,
+            kit_type=KitType.FEATURE_KIT,
         )
         self.db.session.add(feature_kit)
 
@@ -61,10 +61,10 @@ class FeatureKitBP(DBBlueprint):
         
         query = self.db.session.query(models.FeatureKit)
         if type is not None:
-            query = query.filter(models.FeatureKit.type_id == type.id)
+            query = query.filter(models.FeatureKit.type == type)
 
         if type_in is not None:
-            query = query.filter(models.FeatureKit.type_id.in_([t.id for t in type_in]))
+            query = query.filter(models.FeatureKit.type.in_(type_in))
 
         if sort_by is not None:
             sort_attr = getattr(models.FeatureKit, sort_by)

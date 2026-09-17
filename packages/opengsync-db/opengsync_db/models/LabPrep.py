@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from opengsync_db.categories import LabChecklistType, PrepStatus, MediaFileType, ServiceType, MUXType, LibraryStatus, LibraryType
 
 from .Base import Base
+from opengsync_db.core.EnumColumn import EnumColumn
 
 if TYPE_CHECKING:
     from .User import User
@@ -25,9 +26,9 @@ class LabPrep(Base):
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     prep_number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    checklist_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    checklist_type: Mapped[LabChecklistType] = mapped_column(EnumColumn[LabChecklistType](LabChecklistType), nullable=False, name="checklist_type_id", key="checklist_type")
+    status: Mapped[PrepStatus] = mapped_column(EnumColumn[PrepStatus](PrepStatus), nullable=False, default=0, name="status_id", key="status")
+    service_type: Mapped[ServiceType] = mapped_column(EnumColumn[ServiceType](ServiceType), nullable=False, name="service_type_id", key="service_type")
 
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="select")
@@ -36,7 +37,7 @@ class LabPrep(Base):
 
     prep_file: Mapped[Optional["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True,
-        primaryjoin=f"and_(LabPrep.id == MediaFile.lab_prep_id, MediaFile.type_id == {MediaFileType.LIBRARY_PREP_FILE.id})",
+        primaryjoin=f"and_(LabPrep.id == MediaFile.lab_prep_id, MediaFile.type == {MediaFileType.LIBRARY_PREP_FILE.id})",
     )
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="lab_prep", lazy="select", order_by="Library.id")
@@ -94,7 +95,7 @@ class LabPrep(Base):
 
         if samples_pooled is False:
             for library in self.libraries:
-                if library.mux_type_id is not None:
+                if library.mux_type is not None:
                     samples_pooled = True
                     break
                 
@@ -149,12 +150,12 @@ class LabPrep(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
         
-        mux_type_ids = session.query(Library.mux_type_id).where(
+        mux_types = session.query(Library.mux_type).where(
             (Library.lab_prep_id == self.id) &
-            Library.mux_type_id.isnot(None)
+            Library.mux_type.isnot(None)
         ).distinct().all()
 
-        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
+        return [MUXType.get(mux_type) for (mux_type,) in mux_types]
     
     @hybrid_property
     def library_types(self) -> list[LibraryType]:  # type: ignore[override]
@@ -164,9 +165,9 @@ class LabPrep(Base):
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                types.add(lib.type_id)
+                types.add(lib.type)
 
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+            return sorted(types)
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
 
@@ -178,8 +179,8 @@ class LabPrep(Base):
             )
 
         from .Library import Library
-        type_ids = session.query(Library.type_id).filter(Library.lab_prep_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+        library_types = session.query(Library.type).filter(Library.lab_prep_id == self.id).distinct().order_by(Library.type).all()
+        return [LibraryType.get(library_type) for (library_type,) in library_types]
 
     @library_types.expression
     def library_types(cls):
@@ -187,7 +188,7 @@ class LabPrep(Base):
         from .Library import Library
         return sa.select(
             sa.func.coalesce(
-                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.func.array_agg(sa.distinct(Library.type)),
                 sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
             )
         ).where(
@@ -402,30 +403,6 @@ class LabPrep(Base):
 
     _num_plates: Mapped[int | None] = orm.query_expression()
     
-    @property
-    def checklist_type(self) -> LabChecklistType:
-        return LabChecklistType.get(self.checklist_type_id)
-    
-    @checklist_type.setter
-    def checklist_type(self, value: LabChecklistType):
-        self.checklist_type_id = value.id
-
-    @property
-    def status(self) -> PrepStatus:
-        return PrepStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: PrepStatus):
-        self.status_id = value.id
-
-    @property
-    def service_type(self) -> ServiceType:
-        return ServiceType.get(self.service_type_id)
-    
-    @service_type.setter
-    def service_type(self, value: ServiceType):
-        self.service_type_id = value.id
-
     @property
     def identifier(self) -> str:
         return f"{self.checklist_type.identifier}{self.prep_number:04d}"

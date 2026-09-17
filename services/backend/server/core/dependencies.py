@@ -34,7 +34,7 @@ def _user_to_cache_dict(user: models.User) -> dict:
             user.pw_set_datetime.isoformat()
             if user.pw_set_datetime is not None else None
         ),
-        "role_id": user.role_id,
+        "role_id": user.role.id,
     }
 
 
@@ -233,7 +233,7 @@ def __get_cached_user(key: str, r: rds.RedisClient) -> models.User | None:
             dt.datetime.fromisoformat(pw_set_datetime)
             if pw_set_datetime is not None else None
         ),
-        role_id=int(user_data["role_id"]),
+        role=C.UserRole.get(int(user_data["role_id"])),
     )
     make_transient_to_detached(user)
     return user

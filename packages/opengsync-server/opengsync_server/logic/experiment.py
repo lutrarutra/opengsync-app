@@ -15,8 +15,8 @@ class ExperimentTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Workflow", label="workflow", col_size=2, choices=C.ExperimentWorkFlow.as_selectable(), sortable=True, sort_by="workflow_id"),
-        TableCol(title="Status", label="status", col_size=2, choices=C.ExperimentStatus.as_selectable(), sortable=True, sort_by="status_id"),
+        TableCol(title="Workflow", label="workflow", col_size=2, choices=C.ExperimentWorkFlow.as_selectable(), sortable=True, sort_by="workflow"),
+        TableCol(title="Status", label="status", col_size=2, choices=C.ExperimentStatus.as_selectable(), sortable=True, sort_by="status"),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=3, choices=C.LibraryType.as_selectable()),
         TableCol(title="Operator", label="operator", col_size=2, searchable=True),

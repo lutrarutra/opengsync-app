@@ -21,7 +21,7 @@ class PooledLibraryAnnotationForm(LibraryAnnotationWorkflow):
 
     @staticmethod
     def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
-        return current_step.seq_request.submission_type_id == SubmissionType.POOLED_LIBRARIES.id
+        return current_step.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,

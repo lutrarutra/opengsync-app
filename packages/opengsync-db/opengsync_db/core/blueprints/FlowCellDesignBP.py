@@ -23,22 +23,22 @@ class FlowCellDesignBP(DBBlueprint):
     ) -> Query:
         if status is not None:
             query = query.where(
-                models.FlowCellDesign.task_status_id == status.id
+                models.FlowCellDesign.task_status == status
             )
 
         if status_in is not None:
             query = query.where(
-                models.FlowCellDesign.task_status_id.in_([status.id for status in status_in])
+                models.FlowCellDesign.task_status.in_(status_in)
             )
 
         if archived is not None:
             if archived:
                 query = query.where(
-                    models.FlowCellDesign.task_status_id >= TaskStatus.COMPLETED.id
+                    models.FlowCellDesign.task_status >= TaskStatus.COMPLETED
                 )
             else:
                 query = query.where(
-                    models.FlowCellDesign.task_status_id < TaskStatus.COMPLETED.id
+                    models.FlowCellDesign.task_status < TaskStatus.COMPLETED
                 )
 
         if custom_query is not None:
@@ -57,8 +57,8 @@ class FlowCellDesignBP(DBBlueprint):
         
         flow_cell_design = models.FlowCellDesign(
             name=name,
-            task_status_id=task_status.id,
-            flow_cell_type_id=flow_cell_type.id if flow_cell_type else None
+            task_status=task_status,
+            stored_flow_cell_type=flow_cell_type
         )
 
         self.db.session.add(flow_cell_design)

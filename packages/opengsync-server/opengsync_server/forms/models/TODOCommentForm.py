@@ -55,7 +55,7 @@ class TODOCommentForm(HTMXFlaskForm):
         
         new_todo_comment = models.TODOComment(
             text=self.text.data,  # type: ignore
-            task_status_id=self.status_id.data if self.status_id.data != -1 else None,
+            task_status=C.TaskStatus.get(self.status_id.data) if self.status_id.data != -1 else None,
             pool_design_id=self.pool_design.id if self.pool_design else None,
             flow_cell_design_id=self.flow_cell_design.id if self.flow_cell_design else None,
             author=current_user,

@@ -276,7 +276,7 @@ class SelectSamplesForm(MultiStepForm):
             
             sample_data["id"].append(sample.id)
             sample_data["name"].append(sample.name)
-            sample_data["status_id"].append(sample.status_id)
+            sample_data["status_id"].append(sample.status.id if sample.status is not None else None)
             if self.workflow == "qubit_measure":
                 sample_data["qubit_concentration"].append(sample.qubit_concentration)
             elif self.workflow == "ba_report":
@@ -289,7 +289,7 @@ class SelectSamplesForm(MultiStepForm):
 
             library_data["id"].append(library.id)
             library_data["name"].append(library.name)
-            library_data["status_id"].append(library.status_id)
+            library_data["status_id"].append(library.status.id)
             if self.workflow == "qubit_measure":
                 library_data["qubit_concentration"].append(library.qubit_concentration)
             elif self.workflow == "ba_report":
@@ -302,7 +302,7 @@ class SelectSamplesForm(MultiStepForm):
 
             pool_data["id"].append(pool.id)
             pool_data["name"].append(pool.name)
-            pool_data["status_id"].append(pool.status_id)
+            pool_data["status_id"].append(pool.status.id)
             if self.workflow == "qubit_measure":
                 pool_data["qubit_concentration"].append(pool.qubit_concentration)
             elif self.workflow == "ba_report":

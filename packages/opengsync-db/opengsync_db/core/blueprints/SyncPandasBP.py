@@ -193,7 +193,6 @@ class SyncPandas:
 
     def get_feature_kit_features(self, feature_kit_id: int) -> pd.DataFrame:
         df = self._read_sql(Q.pd.feature_kit_features(feature_kit_id))
-        df["type"] = C.FeatureType.map_series(df["type_id"], na_action="ignore")
         return df
 
     def get_protocol_kits(self, protocol_id: int | None = None) -> pd.DataFrame:

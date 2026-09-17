@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from . import links
 from ..categories import GroupType, AffiliationType
+from ..core.EnumColumn import EnumColumn
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ class Group(Base):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True, unique=True)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[GroupType] = mapped_column(EnumColumn[GroupType](GroupType), nullable=False, name="type_id", key="type")
 
     user_links: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="group", lazy="select", cascade="all, save-update, merge")
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="group", lazy="select")
@@ -28,7 +29,7 @@ class Group(Base):
     owner: Mapped["User"] = relationship(
         "User",
         secondary="join(links.UserAffiliation, User, links.UserAffiliation.user_id == User.id)",
-        primaryjoin=f"and_(Group.id == links.UserAffiliation.group_id, links.UserAffiliation.affiliation_type_id == {AffiliationType.OWNER.id})",
+        primaryjoin=f"and_(Group.id == links.UserAffiliation.group_id, links.UserAffiliation.affiliation_type == {AffiliationType.OWNER.id})",
         secondaryjoin="User.id == links.UserAffiliation.user_id",
         uselist=False,
         viewonly=True,
@@ -129,14 +130,6 @@ class Group(Base):
 
     _num_users: Mapped[int | None] = orm.query_expression()
 
-    @property
-    def type(self) -> GroupType:
-        return GroupType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: GroupType):
-        self.type_id = value.id
-    
     def __str__(self) -> str:
         return f"Group(id: {self.id}, name: {self.name}, type: {self.type})"
     

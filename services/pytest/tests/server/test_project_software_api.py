@@ -194,22 +194,22 @@ def test_project_data_paths_api_filters_and_resolves(
         models.DataPath(
             path="BSF_PROJECTS/project",
             project_id=project.id,
-            type_id=DataPathType.DIRECTORY.id,
+            type=DataPathType.DIRECTORY,
         ),
         models.DataPath(
             path="BSF_PROJECTS/project/subdirectory",
             project_id=project.id,
-            type_id=DataPathType.DIRECTORY.id,
+            type=DataPathType.DIRECTORY,
         ),
         models.DataPath(
             path="BSF_SEQUENCES/run",
             project_id=project.id,
-            type_id=DataPathType.DIRECTORY.id,
+            type=DataPathType.DIRECTORY,
         ),
         models.DataPath(
             path="BSF_SAMPLES/sample",
             project_id=project.id,
-            type_id=DataPathType.DIRECTORY.id,
+            type=DataPathType.DIRECTORY,
         ),
     ])
     session.commit()

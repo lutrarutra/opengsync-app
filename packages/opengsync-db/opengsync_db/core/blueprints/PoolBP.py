@@ -52,20 +52,20 @@ class PoolBP(DBBlueprint):
             query = query.where(models.Pool.lab_prep_id == lab_prep_id)
 
         if status is not None:
-            query = query.where(models.Pool.status_id == status.id)
+            query = query.where(models.Pool.status == status)
 
         if status_in is not None:
-            query = query.where(models.Pool.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.Pool.status.in_(status_in))
 
         if type_in is not None:
-            query = query.where(models.Pool.type_id.in_([t.id for t in type_in]))
+            query = query.where(models.Pool.type.in_(type_in))
 
         if library_types_in is not None:
             query = query.join(
                 models.Library,
                 models.Library.pool_id == models.Pool.id
             ).where(
-                models.Library.type_id.in_([lt.id for lt in library_types_in])
+                models.Library.type.in_(library_types_in)
             )
 
         if associated_to_experiment is not None:
@@ -118,7 +118,7 @@ class PoolBP(DBBlueprint):
         pool = models.Pool(
             name=name.strip(),
             owner_id=owner_id,
-            type_id=pool_type.id,
+            type=pool_type,
             seq_request_id=seq_request_id,
             num_m_reads_requested=num_m_reads_requested,
             contact=models.Contact(
@@ -127,7 +127,7 @@ class PoolBP(DBBlueprint):
                 phone=contact_phone.strip() if contact_phone else None
             ),
             lab_prep_id=lab_prep_id,
-            status_id=status.id,
+            status=status,
             timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None,
             clone_number=clone_number,
             original_pool_id=original_pool_id,
@@ -306,7 +306,7 @@ class PoolBP(DBBlueprint):
 
         if status_in is not None:
             query = query.where(
-                models.Pool.status_id.in_([s.id for s in status_in])
+                models.Pool.status.in_(status_in)
             )
 
         query = query.order_by(

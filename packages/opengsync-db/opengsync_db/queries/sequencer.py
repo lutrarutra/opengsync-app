@@ -12,7 +12,7 @@ def create(
 ) -> Sequencer:
     return Sequencer(
         name=name.strip(),
-        model_id=model.id,
+        model=model,
         ip=ip.strip() if ip else None
     )
 
@@ -40,9 +40,9 @@ def select(
     if id is not None:
         statement = statement.where(Sequencer.id == id)
     if model is not None:
-        statement = statement.where(Sequencer.model_id == model.id)
+        statement = statement.where(Sequencer.model == model)
     if model_in is not None:
-        statement = statement.where(Sequencer.model_id.in_([m.id for m in model_in]))
+        statement = statement.where(Sequencer.model.in_(model_in))
     if name is not None:
         statement = statement.where(Sequencer.name == name.strip())
     return statement

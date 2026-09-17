@@ -15,11 +15,11 @@ def create(
 ) -> SeqRun:
     run = SeqRun(
         experiment_name=experiment_name.strip(),
-        status_id=status.id,
+        status=status,
         instrument_name=instrument_name.strip(),
         run_folder=run_folder.strip(),
         flowcell_id=flowcell_id.strip(),
-        read_type_id=read_type.id,
+        read_type=read_type,
         rta_version=rta_version.strip() if rta_version else None,
         recipe_version=recipe_version.strip() if recipe_version else None,
         side=side.strip() if side else None,
@@ -81,9 +81,9 @@ def select(
     if id is not None:
         statement = statement.where(SeqRun.id == id)
     if status is not None:
-        statement = statement.where(SeqRun.status_id == status.id)
+        statement = statement.where(SeqRun.status == status)
     if status_in is not None:
-        statement = statement.where(SeqRun.status_id.in_([s.id for s in status_in]))
+        statement = statement.where(SeqRun.status.in_(status_in))
     if experiment_name is not None:
         statement = statement.where(SeqRun.experiment_name == experiment_name)
 
@@ -94,9 +94,9 @@ def select(
         )
 
         if experiment_status is not None:
-            statement = statement.where(Experiment.status_id == experiment_status.id)
+            statement = statement.where(Experiment.status == experiment_status)
             
         if experiment_status_in is not None:
-            statement = statement.where(Experiment.status_id.in_([s.id for s in experiment_status_in]))
+            statement = statement.where(Experiment.status.in_(experiment_status_in))
 
     return statement

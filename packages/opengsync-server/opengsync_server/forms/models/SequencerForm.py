@@ -33,7 +33,7 @@ class SequencerForm(HTMXFlaskForm):
 
     def __fill_form(self, sequencer: models.Sequencer):
         self.name.data = sequencer.name
-        self.model.data = sequencer.model_id
+        self.model.data = sequencer.model.id
         self.ip_address.data = sequencer.ip
 
     def validate(self, sequencer: Optional[models.Sequencer]) -> bool:

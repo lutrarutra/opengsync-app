@@ -59,7 +59,10 @@ class ConfirmSplitForm(SplitProjectWorkflowStep):
                 options=options,
             )
 
-        source_status_id = self.source_project.status_id if self.source_project is not None else C.ProjectStatus.DRAFT.id
+        source_status_id = (
+            self.source_project.status.id
+            if self.source_project is not None else C.ProjectStatus.DRAFT.id
+        )
         selected_status_id = workflow.metadata.get("destination_status_id", source_status_id)
         self.destination_status.default = selected_status_id
         self.destination_status.data = selected_status_id

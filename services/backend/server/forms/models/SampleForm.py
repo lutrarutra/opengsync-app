@@ -48,7 +48,7 @@ class SampleForm(HTMXForm):
             form: "SampleForm" = Depends(SampleForm.Init())
         ):
             form.name.data = form.sample.name
-            form.status.data = form.sample.status_id
+            form.status.data = form.sample.status.id if form.sample.status is not None else None
             return form.make_response()
         return route
 
@@ -69,7 +69,7 @@ class SampleForm(HTMXForm):
                     raise exc.FormValidationException(form)
 
             form.sample.name = form.name.data
-            form.sample.status_id = form.status.data
+            form.sample.status = C.SampleStatus.get(form.status.data) if form.status.data is not None else None
             session.save(form.sample)
 
             return responses.htmx_response(

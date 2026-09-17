@@ -12,7 +12,7 @@ def create(
 ) -> Protocol:
     return Protocol(
         name=name,
-        service_type_id=service_type.id,
+        service_type=service_type,
         read_structure=read_structure,
     )
 
@@ -40,7 +40,7 @@ def select(
     if name is not None:
         statement = statement.where(Protocol.name == name)
     if service_type is not None:
-        statement = statement.where(Protocol.service_type_id == service_type.id)
+        statement = statement.where(Protocol.service_type == service_type)
     if service_type_in is not None:
-        statement = statement.where(Protocol.service_type_id.in_([t.id for t in service_type_in]))
+        statement = statement.where(Protocol.service_type.in_(service_type_in))
     return statement

@@ -65,7 +65,7 @@ class SelectSamplesForm(MergePoolsWorkflowStep):
             for pool in pools:
                 pool_table_data["pool_id"].append(pool.id)
                 pool_table_data["pool_name"].append(pool.name)
-                pool_table_data["status_id"].append(pool.status_id)
+                pool_table_data["status_id"].append(pool.status.id)
                 library_dfs.append(session.pd.get_pool_libraries(pool.id))
                 barcode_dfs.append(session.pd.get_pool_barcodes(pool.id))
 

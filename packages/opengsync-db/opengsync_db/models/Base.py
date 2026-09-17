@@ -1,5 +1,3 @@
-from typing import Union
-
 from sqlalchemy import orm
 from sqlalchemy.orm import DeclarativeBase
 
@@ -35,7 +33,7 @@ class Base(DeclarativeBase):
 
         return res
 
-    def search_value(self) -> Union[int, str]:
+    def search_value(self) -> int | str:
         raise NotImplementedError()
     
     def search_name(self) -> str:

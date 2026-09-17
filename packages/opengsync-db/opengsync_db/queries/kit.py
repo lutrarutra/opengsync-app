@@ -13,7 +13,7 @@ def create(
     return Kit(
         name=name,
         identifier=identifier,
-        kit_type_id=kit_type.id,
+        kit_type=kit_type,
     )
 
 
@@ -63,10 +63,10 @@ def select(
         statement = statement.where(Kit.identifier == identifier)
 
     if type is not None:
-        statement = statement.where(Kit.kit_type_id == type.id)
+        statement = statement.where(Kit.kit_type == type)
 
     if type_in is not None:
-        statement = statement.where(Kit.kit_type_id.in_([t.id for t in type_in]))
+        statement = statement.where(Kit.kit_type.in_(type_in))
 
     if protocol_id is not None:
         statement = statement.where(

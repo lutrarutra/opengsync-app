@@ -9,6 +9,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from .Base import Base
 from . import links
 from ..categories import UserRole
+from ..core.EnumColumn import EnumColumn
 
 
 if TYPE_CHECKING:
@@ -80,7 +81,7 @@ class User(Base, UserMixin):
     pw_set_datetime: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True, default=None,
     )
-    role_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    role: Mapped[UserRole] = mapped_column(EnumColumn[UserRole](UserRole), nullable=False, name="role_id", key="role")
 
     affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
@@ -284,7 +285,7 @@ class User(Base, UserMixin):
 
     @is_insider.expression
     def is_insider(cls) -> sa.ColumnElement[bool]:
-        return cls.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id, UserRole.ADMIN.id])  # type: ignore[arg-type]
+        return cls.role.in_([UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN, UserRole.ADMIN])  # type: ignore[arg-type]
 
     @hybrid_property
     def is_admin(self) -> bool:  # type: ignore[override]
@@ -292,16 +293,8 @@ class User(Base, UserMixin):
 
     @is_admin.expression
     def is_admin(cls) -> sa.ColumnElement[bool]:
-        return cls.role_id == UserRole.ADMIN.id  # type: ignore[arg-type]
+        return cls.role == UserRole.ADMIN  # type: ignore[arg-type]
 
-    @property
-    def role(self) -> UserRole:
-        return UserRole.get(self.role_id)
-    
-    @role.setter
-    def role(self, value: UserRole):
-        self.role_id = value.id
-    
     @hybrid_property
     def name(self) -> str:  # type: ignore[override]
         return self.first_name + " " + self.last_name

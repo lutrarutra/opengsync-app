@@ -29,7 +29,7 @@ class FeatureBP(DBBlueprint):
             sequence=sequence.strip(),
             pattern=pattern.strip(),
             read=read.strip(),
-            type_id=type.id,
+            type=type,
             target_name=target_name.strip() if target_name else None,
             target_id=target_id.strip() if target_id else None,
             feature_kit_id=feature_kit_id

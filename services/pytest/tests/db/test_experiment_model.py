@@ -99,7 +99,7 @@ def test_experiment_lanes(session: SyncSession):
     assert counter == len(pools)
 
     # Decrease number of lanes
-    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S2_XP.id
+    experiment.workflow = ExperimentWorkFlow.NOVASEQ_6K_S2_XP
     session.flush()
     session.save(experiment)
     session.refresh(experiment)
@@ -112,7 +112,7 @@ def test_experiment_lanes(session: SyncSession):
     assert experiment.num_lanes == len(experiment.lanes)
 
     # Increase number of lanes
-    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S4_XP.id
+    experiment.workflow = ExperimentWorkFlow.NOVASEQ_6K_S4_XP
     session.save(experiment)
     session.flush()
     session.refresh(experiment)
@@ -125,7 +125,7 @@ def test_experiment_lanes(session: SyncSession):
     assert experiment.num_lanes == len(experiment.lanes)
 
     # STD workflow - combined lanes
-    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S4_STD.id
+    experiment.workflow = ExperimentWorkFlow.NOVASEQ_6K_S4_STD
     session.save(experiment)
     session.flush()
     session.refresh(experiment)
@@ -140,7 +140,7 @@ def test_experiment_lanes(session: SyncSession):
         assert len(pool.lane_links) == ExperimentWorkFlow.NOVASEQ_6K_S4_STD.flow_cell_type.num_lanes
 
     # Decrease Lanes
-    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S1_STD.id
+    experiment.workflow = ExperimentWorkFlow.NOVASEQ_6K_S1_STD
     session.save(experiment)
 
     assert session.count(Q.lane.select()) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S1_STD.flow_cell_type.num_lanes

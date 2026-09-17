@@ -36,8 +36,8 @@ def after_seq_request_delete(mapper: orm.Mapper, connection: Connection, target:
         if pool.type == C.PoolType.EXTERNAL:
             connection.execute(sa.delete(models.Pool).where(models.Pool.id == pool.id))
 
-@event.listens_for(models.Experiment.workflow_id, "set")
-def on_experiment_workflow_changed(target: models.Experiment, value: int, oldvalue: int, initiator):
+@event.listens_for(models.Experiment.workflow, "set")
+def on_experiment_workflow_changed(target: models.Experiment, value: C.ExperimentWorkFlow, oldvalue: C.ExperimentWorkFlow, initiator):
     if oldvalue is NEVER_SET or oldvalue is NO_VALUE:
         return
     if value == oldvalue:

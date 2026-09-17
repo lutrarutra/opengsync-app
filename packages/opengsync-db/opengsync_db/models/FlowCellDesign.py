@@ -6,7 +6,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import ExperimentWorkFlow, ExperimentWorkFlow, FlowCellType, FlowCellType, TaskStatus, TaskStatus
+from ..categories import FlowCellType, TaskStatus
+from ..core.EnumColumn import EnumColumn
 
 if TYPE_CHECKING:
     from .PoolDesign import PoolDesign
@@ -18,8 +19,8 @@ class FlowCellDesign(Base):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True)
 
-    task_status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    flow_cell_type_id: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True, default=None)
+    task_status: Mapped[TaskStatus] = mapped_column(EnumColumn[TaskStatus](TaskStatus), nullable=False, default=0, name="task_status_id", key="task_status")
+    stored_flow_cell_type: Mapped[FlowCellType | None] = mapped_column(EnumColumn[FlowCellType](FlowCellType), nullable=True, default=None, name="flow_cell_type_id", key="stored_flow_cell_type")
 
     pool_designs: Mapped[list["PoolDesign"]] = relationship("PoolDesign", lazy="select", back_populates="flow_cell_design")
     comments: Mapped[list["TODOComment"]] = relationship("TODOComment", lazy="select", cascade="all, delete-orphan", order_by="TODOComment.timestamp_utc.desc()")
@@ -214,25 +215,9 @@ class FlowCellDesign(Base):
         return f"{r1}-{i1}-{i2}-{r2}"
 
     @property
-    def workflow(self) -> ExperimentWorkFlow:
-        return ExperimentWorkFlow.get(self.workflow_id)
-    
-    @property
     def num_lanes(self) -> int:
-        return self.workflow.flow_cell_type.num_lanes
+        return self.flow_cell_type.num_lanes
     
-    @workflow.setter
-    def workflow(self, value: ExperimentWorkFlow):
-        self.workflow_id = value.id
-
-    @property
-    def task_status(self) -> TaskStatus:
-        return TaskStatus.get(self.task_status_id)
-    
-    @task_status.setter
-    def task_status(self, status: TaskStatus) -> None:
-        self.task_status_id = status.id
-
     __table_args__ = (
         sa.Index(
             "trgm_fc_design_name_idx",
@@ -243,7 +228,7 @@ class FlowCellDesign(Base):
 
     @property
     def flow_cell_type(self) -> FlowCellType | None:
-        if self.flow_cell_type_id is None:
+        if self.stored_flow_cell_type is None:
             num_m_reads = self.num_m_reads
             diff = float('inf')
 
@@ -258,11 +243,8 @@ class FlowCellDesign(Base):
                     selected_type = fc_type
 
             return selected_type
-        return FlowCellType.get(self.flow_cell_type_id)
+        return self.stored_flow_cell_type
     
     @flow_cell_type.setter
     def flow_cell_type(self, fc_type: FlowCellType | None) -> None:
-        if fc_type is None:
-            self.flow_cell_type_id = None
-        else:
-            self.flow_cell_type_id = fc_type.id
+        self.stored_flow_cell_type = fc_type

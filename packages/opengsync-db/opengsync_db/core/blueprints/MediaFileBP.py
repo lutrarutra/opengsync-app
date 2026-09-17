@@ -44,7 +44,7 @@ class MediaFileBP(DBBlueprint):
 
         file = models.MediaFile(
             name=name,
-            type_id=type.id,
+            type=type,
             extension=extension.lower().strip(),
             uuid=uuid,
             uploader_id=uploader_id,

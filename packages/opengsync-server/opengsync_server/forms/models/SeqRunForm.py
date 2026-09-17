@@ -39,10 +39,10 @@ class SeqRunForm(HTMXFlaskForm):
 
     def __fill_form(self, seq_run: models.SeqRun):
         self.experiment_name.data = seq_run.experiment_name
-        self.status.data = seq_run.status_id
+        self.status.data = seq_run.status.id
         self.run_folder.data = seq_run.run_folder
         self.flowcell_id.data = seq_run.flowcell_id
-        self.read_type.data = seq_run.read_type_id
+        self.read_type.data = seq_run.read_type.id
         self.rta_version.data = seq_run.rta_version
         self.recipe_version.data = seq_run.recipe_version
         self.side.data = seq_run.side

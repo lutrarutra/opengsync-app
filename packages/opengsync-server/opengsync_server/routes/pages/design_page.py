@@ -13,10 +13,10 @@ def design(current_user: models.User):
         raise exceptions.NoPermissionsException()
     
     num_flowcell_designs = db.session.query(models.FlowCellDesign).filter(
-        models.FlowCellDesign.task_status_id < C.TaskStatus.COMPLETED.id
+        models.FlowCellDesign.task_status < C.TaskStatus.COMPLETED
     ).count()
 
     num_archived_flowcell_designs = db.session.query(models.FlowCellDesign).filter(
-        models.FlowCellDesign.task_status_id >= C.TaskStatus.COMPLETED.id
+        models.FlowCellDesign.task_status >= C.TaskStatus.COMPLETED
     ).count()
     return render_template("design_page.html", num_flowcell_designs=num_flowcell_designs, num_archived_flowcell_designs=num_archived_flowcell_designs, title="Design")

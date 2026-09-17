@@ -23,8 +23,8 @@ class IndexKitBP(DBBlueprint):
         seq_kit = models.IndexKit(
             identifier=identifier.strip(),
             name=name.strip(),
-            type_id=type.id,
-            kit_type_id=KitType.INDEX_KIT.id,
+            type=type,
+            kit_type=KitType.INDEX_KIT,
             supported_protocol_ids=[p.id for p in supported_protocols]
         )
         self.db.session.add(seq_kit)
@@ -57,13 +57,13 @@ class IndexKitBP(DBBlueprint):
         index_type_in: Optional[list[IndexType]] = None
     ) -> list[models.IndexKit]:
         query = self.db.session.query(models.IndexKit)
-        query = query.where(models.IndexKit.kit_type_id == KitType.INDEX_KIT.id)
+        query = query.where(models.IndexKit.kit_type == KitType.INDEX_KIT)
 
         if index_type is not None:
-            query = query.where(models.IndexKit.type_id == index_type.id)
+            query = query.where(models.IndexKit.type == index_type)
 
         if index_type_in is not None:
-            query = query.where(models.IndexKit.type_id.in_([t.id for t in index_type_in]))
+            query = query.where(models.IndexKit.type.in_(index_type_in))
 
         query = query.order_by(
             sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
@@ -109,7 +109,7 @@ class IndexKitBP(DBBlueprint):
         query = self.db.session.query(models.IndexKit)
 
         if type_in is not None:
-            query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
+            query = query.where(models.IndexKit.type.in_(type_in))
 
         if sort_by is not None:
             attr = getattr(models.IndexKit, sort_by)

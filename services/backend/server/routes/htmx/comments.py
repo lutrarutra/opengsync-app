@@ -55,7 +55,7 @@ def edit_todo_comment_status(
     if todo_comment is None:
         raise exc.NotFoundException("TODO Comment not found")
 
-    todo_comment.task_status_id = new_status_id
+    todo_comment.task_status = C.TaskStatus.get(new_status_id) if new_status_id is not None else None
 
     # Re-render the full flow cell design list to reflect the change
     stmt = Q.flow_cell_design.select(archived=False).order_by(models.FlowCellDesign.id.desc())

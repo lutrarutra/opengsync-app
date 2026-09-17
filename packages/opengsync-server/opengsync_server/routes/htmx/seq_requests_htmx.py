@@ -702,7 +702,7 @@ def get_recent(current_user: models.User, page: int = 0):
             Q.seq_request.select(
                 status_in=[SeqRequestStatus.SUBMITTED, SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING]
             ).order_by(
-                models.SeqRequest.status_id,
+                models.SeqRequest.status,
                 models.SeqRequest.timestamp_submitted_utc.desc()
             )
             , limit=PAGE_LIMIT, offset=PAGE_LIMIT * page

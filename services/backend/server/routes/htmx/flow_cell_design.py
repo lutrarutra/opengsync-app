@@ -79,7 +79,7 @@ def set_flow_cell_type(
     if flow_cell_type_id == -1:
         design.flow_cell_type = None
     else:
-        design.flow_cell_type = C.FlowCellType.get(flow_cell_type_id)
+        design.stored_flow_cell_type = C.FlowCellType.get(flow_cell_type_id)
 
     return responses.htmx_response(redirect=responses.url_for("design"))
 

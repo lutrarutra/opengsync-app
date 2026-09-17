@@ -3,6 +3,13 @@
 
 {% set entity = field.entity_type %}
 {% set Entity = entity | capitalize %}
+{% set entity_label = {
+    "sample": "Samples",
+    "library": "Libraries",
+    "pool": "Pools",
+    "lane": "Lanes",
+    "experiment": "Experiments"
+}.get(entity, Entity + "s") %}
 {% set uid = field._uid %}
 
 <div class="{{ entity }}-select-input {{ container_class }} {% if field.hidden %}d-none{% endif %}" id="{{ field.id }}-container">
@@ -29,7 +36,7 @@
         const fieldId = "{{ field.id }}";
         const selectAll = {{ "true" if field.select_all else "false" }};
         const entity = "{{ entity }}";
-        const Entity = "{{ Entity }}";
+        const entityLabel = "{{ entity_label }}";
 
         // State
         let selected{{ uid }} = {{ field.data | tojson if field.data else "[]" }};
@@ -41,16 +48,13 @@
         // DOM refs
         const $container{{ uid }} = $("#" + containerId + "-container");
         const $hiddenInput{{ uid }} = $("#" + fieldId);
-        const $selectedCount{{ uid }} = $("#" + fieldId + "-selected-count");
-        const $selectedTableBody{{ uid }} = $("#" + fieldId + "-selected-table-body");
 
         function syncHiddenInput{{ uid }}() {
             $hiddenInput{{ uid }}.val(JSON.stringify(selected{{ uid }}));
         }
 
         function updateCount{{ uid }}() {
-            $selectedCount{{ uid }}.text(selected{{ uid }}.length);
-            $("#" + fieldId + "-tab-btn").text("Selected " + Entity + "s (" + selected{{ uid }}.length + ")");
+            $("#" + fieldId + "-tab-btn").text("Selected " + entityLabel + " (" + selected{{ uid }}.length + ")");
         }
 
         function add{{ uid }}(id, rowElement) {
@@ -61,8 +65,7 @@
 
             const $cloned = $(rowElement).clone();
             $cloned.attr("id", "selected-" + entity + "-row-" + id);
-            $cloned.on("click", function() { remove{{ uid }}(id); });
-            $selectedTableBody{{ uid }}.append($cloned);
+            $("#" + fieldId + "-selected-table-body").append($cloned);
 
             syncHiddenInput{{ uid }}();
             updateCount{{ uid }}();
@@ -75,6 +78,15 @@
             $("#selected-" + entity + "-row-" + id).remove();
             syncHiddenInput{{ uid }}();
             updateCount{{ uid }}();
+        }
+
+        function getSelectedRowId{{ uid }}(rowElement) {
+            const dataId = $(rowElement).data("id");
+            if (dataId !== undefined) return dataId;
+
+            const rowId = $(rowElement).attr("id") || "";
+            const prefix = "selected-" + entity + "-row-";
+            return rowId.indexOf(prefix) === 0 ? rowId.slice(prefix.length) : null;
         }
 
         function toggle{{ uid }}(id, rowElement) {
@@ -115,6 +127,13 @@
             }
         });
 
+        const selectedRowSelector{{ uid }} = "#" + fieldId + "-selected-table-body ." + entity + "-row";
+        $(document).off("click.tableSelect", selectedRowSelector{{ uid }})
+            .on("click.tableSelect", selectedRowSelector{{ uid }}, function() {
+                const id = getSelectedRowId{{ uid }}(this);
+                if (id !== null) remove{{ uid }}(id);
+            });
+
         $(document).on("mouseup", function(e) {
             isMouseDown{{ uid }} = false;
             dragging{{ uid }} = false;
@@ -153,6 +172,8 @@
                 });
             }
         });
+
+        updateCount{{ uid }}();
     })();
 </script>
 {% endif %}

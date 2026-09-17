@@ -10,10 +10,10 @@ router = APIRouter(prefix="/design", tags=["design"])
 @router.get("/")
 def design(session: SyncSession = Depends(dependencies.db_session)):
     num_flowcell_designs = session.count(Q.flow_cell_design.select().where(
-        models.FlowCellDesign.task_status_id < C.TaskStatus.COMPLETED.id
+        models.FlowCellDesign.task_status < C.TaskStatus.COMPLETED
     ))
     num_archived_flowcell_designs = session.count(Q.flow_cell_design.select().where(
-        models.FlowCellDesign.task_status_id >= C.TaskStatus.COMPLETED.id
+        models.FlowCellDesign.task_status >= C.TaskStatus.COMPLETED
     ))
 
     return responses.html_response(

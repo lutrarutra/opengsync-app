@@ -8,6 +8,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from ..categories import RunStatus, RunStatus, ReadType, ReadType
 from ..core import units
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -19,12 +20,12 @@ class SeqRun(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
     experiment_name: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True, index=True)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status: Mapped[RunStatus] = mapped_column(EnumColumn[RunStatus](RunStatus), nullable=False, name="status_id", key="status")
 
     instrument_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     run_folder: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     flowcell_id: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    read_type: Mapped[ReadType] = mapped_column(EnumColumn[ReadType](ReadType), nullable=False, name="read_type_id", key="read_type")
     rta_version: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     recipe_version: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     side: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
@@ -40,22 +41,6 @@ class SeqRun(Base):
     _quantities: Mapped[Optional[dict[str, dict[str, Any]]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="quantities")
 
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name)
-
-    @property
-    def status(self) -> RunStatus:
-        return RunStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: RunStatus):
-        self.status_id = value.id
-    
-    @property
-    def read_type(self) -> ReadType:
-        return ReadType.get(self.read_type_id)
-    
-    @read_type.setter
-    def read_type(self, value: ReadType):
-        self.read_type_id = value.id
 
     @property
     def quantities(self) -> dict[str, units.Quantity]:

@@ -10,7 +10,7 @@ def __find_stored_samples(q):
         ~sa.exists().where(
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id < C.LibraryStatus.STORED.id)
+            (models.Library.status < C.LibraryStatus.STORED)
         )
     )
 
@@ -27,13 +27,13 @@ def __find_seq_requests_with_stored_samples(q):
                 (models.Library.seq_request_id == models.SeqRequest.id) &
                 (models.links.SampleLibraryLink.library_id == models.Library.id) &
                 (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
-                (models.Sample.status_id < C.SampleStatus.STORED.id)
+                (models.Sample.status < C.SampleStatus.STORED)
             ),
             ~sa.exists().where(
                 (models.Library.seq_request_id == models.SeqRequest.id) &
                 (models.links.SampleLibraryLink.library_id == models.Library.id) &
                 (models.Library.pool_id == models.Pool.id) &
-                (models.Pool.status_id < C.PoolStatus.STORED.id)
+                (models.Pool.status < C.PoolStatus.STORED)
             )
         )
     )
@@ -42,12 +42,12 @@ def __find_seq_requests_with_pooled_libraries(q):
     return q.where(
         sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id == C.LibraryStatus.POOLED.id)
+            (models.Library.status == C.LibraryStatus.POOLED)
         )
     ).where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id < C.LibraryStatus.POOLED.id)
+            (models.Library.status < C.LibraryStatus.POOLED)
         )
     )
 
@@ -57,8 +57,8 @@ def __find_finished_experiments(q):
         models.SeqRun,
         models.SeqRun.experiment_name == models.Experiment.name,
     ).where(
-        models.SeqRun.status_id.in_([
-            C.RunStatus.FINISHED.id, C.RunStatus.ARCHIVED.id,
+        models.SeqRun.status.in_([
+            C.RunStatus.FINISHED, C.RunStatus.ARCHIVED,
         ])
     )
 
@@ -68,10 +68,10 @@ def __find_finished_libraries(q):
         models.Experiment,
         models.Experiment.id == models.Library.experiment_id,
     ).where(
-        models.Experiment.status_id.in_([
-            C.ExperimentStatus.SEQUENCED.id,
-            C.ExperimentStatus.DEMULTIPLEXED.id,
-            C.ExperimentStatus.ARCHIVED.id,
+        models.Experiment.status.in_([
+            C.ExperimentStatus.SEQUENCED,
+            C.ExperimentStatus.DEMULTIPLEXED,
+            C.ExperimentStatus.ARCHIVED,
         ])
     )
 
@@ -81,10 +81,10 @@ def __find_sequenced_pools(q):
         models.Experiment,
         models.Experiment.id == models.Pool.experiment_id,
     ).where(
-        models.Experiment.status_id.in_([
-            C.ExperimentStatus.SEQUENCED.id,
-            C.ExperimentStatus.DEMULTIPLEXED.id,
-            C.ExperimentStatus.ARCHIVED.id,
+        models.Experiment.status.in_([
+            C.ExperimentStatus.SEQUENCED,
+            C.ExperimentStatus.DEMULTIPLEXED,
+            C.ExperimentStatus.ARCHIVED,
         ])
     )
 
@@ -93,16 +93,16 @@ def __find_sequenced_seq_requests(q):
     return q.where(
         sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id.in_([
-                C.LibraryStatus.SEQUENCED.id,
-                C.LibraryStatus.SHARED.id,
-                C.LibraryStatus.ARCHIVED.id,
+            (models.Library.status.in_([
+                C.LibraryStatus.SEQUENCED,
+                C.LibraryStatus.SHARED,
+                C.LibraryStatus.ARCHIVED,
             ]))
         )
     ).where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id < C.LibraryStatus.SEQUENCED.id)
+            (models.Library.status < C.LibraryStatus.SEQUENCED)
         )
     )
 
@@ -113,14 +113,14 @@ def __find_sequenced_projects(q):
             (models.Sample.project_id == models.Project.id) &
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id >= C.LibraryStatus.SEQUENCED.id)
+            (models.Library.status >= C.LibraryStatus.SEQUENCED)
         )
     ).where(
         ~sa.exists().where(
             (models.Sample.project_id == models.Project.id) &
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id < C.LibraryStatus.SEQUENCED.id)
+            (models.Library.status < C.LibraryStatus.SEQUENCED)
         )
     )
 
@@ -129,7 +129,7 @@ def __find_finished_seq_requests(q):
     return q.where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id < C.LibraryStatus.SHARED.id)
+            (models.Library.status < C.LibraryStatus.SHARED)
         )
     )
 

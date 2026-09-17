@@ -55,7 +55,7 @@ class ExperimentForm(HTMXFlaskForm):
                 raise ValueError("Experiment must be provided for edit form type")
             
             self.name.data = self.experiment.name
-            self.workflow.data =  self.experiment.workflow_id
+            self.workflow.data = self.experiment.workflow.id
             self.sequencer.selected.data =  self.experiment.sequencer.id
             self.sequencer.search_bar.data =  self.experiment.sequencer.name
             self.r1_cycles.data =  self.experiment.r1_cycles
@@ -64,7 +64,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.i2_cycles.data =  self.experiment.i2_cycles
             self.operator.selected.data =  self.experiment.operator_id
             self.operator.search_bar.data =  self.experiment.operator.search_name()
-            self.status.data =  self.experiment.status_id
+            self.status.data = self.experiment.status.id
 
     def validate(self) -> bool:
         if (validated := super().validate()) is False:

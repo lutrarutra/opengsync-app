@@ -14,7 +14,7 @@ def create(
 ) -> DataPath:
     return DataPath(
         path=path,
-        type_id=type.id,
+        type=type,
         project=project,
         seq_request=seq_request,
         library=library,
@@ -61,9 +61,9 @@ def where_clauses(
     if path is not None:
         clauses.append(DataPath.path == path)
     if type is not None:
-        clauses.append(DataPath.type_id == type.id)
+        clauses.append(DataPath.type == type)
     if type_in is not None:
-        clauses.append(DataPath.type_id.in_([t.id for t in type_in]))
+        clauses.append(DataPath.type.in_(type_in))
     if project_id is not None:
         clauses.append(DataPath.project_id == project_id)
     if seq_request_id is not None:

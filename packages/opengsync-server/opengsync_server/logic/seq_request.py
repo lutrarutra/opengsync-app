@@ -16,7 +16,7 @@ class SeqRequestTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=4, searchable=True, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=3, choices=C.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status_id", choices=C.SeqRequestStatus.as_selectable()),
+        TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status", choices=C.SeqRequestStatus.as_selectable()),
         TableCol(title="Submission Type", label="submission_type", col_size=1, choices=C.SubmissionType.as_selectable()),
         TableCol(title="Group", label="group", col_size=2, searchable=True),
         TableCol(title="Requestor", label="requestor", col_size=2, searchable=True),

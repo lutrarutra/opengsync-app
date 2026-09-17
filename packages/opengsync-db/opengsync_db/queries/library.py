@@ -31,19 +31,19 @@ def create(
         name=name.strip(),
         sample_name=sample_name,
         seq_request_id=seq_request_id,
-        genome_ref_id=genome_ref.id if genome_ref is not None else None,
-        type_id=library_type.id,
-        service_type_id=service_type.id,
+        genome_ref=genome_ref,
+        type=library_type,
+        service_type=service_type,
         owner_id=owner_id,
         pool_id=pool_id,
         lab_prep_id=lab_prep_id,
-        status_id=status.id,
+        status=status,
         clone_number=clone_number,
-        index_type_id=index_type.id if index_type is not None else None,
+        index_type=index_type,
         properties=properties if properties is not None and len(properties) > 0 else None,
         seq_depth_requested=seq_depth_requested,
         nuclei_isolation=nuclei_isolation,
-        mux_type_id=mux_type.id if mux_type is not None else None,
+        mux_type=mux_type,
         original_library_id=original_library_id,
     )
 
@@ -54,7 +54,7 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
 
     has_write_access = sa.select(1).where(
         Library.seq_request_id == SeqRequest.id,
-        SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+        SeqRequest.status == SeqRequestStatus.DRAFT,
         sa.or_(
             SeqRequest.requestor_id == user_id,
             sa.select(1).where(
@@ -216,11 +216,11 @@ def where_clauses(
         else:
             clauses.append(Library.is_indexed.is_(False))
     if status is not None:
-        clauses.append(Library.status_id == status.id)
+        clauses.append(Library.status == status)
     if pool_id is not None:
         clauses.append(Library.pool_id == pool_id)
     if service_type is not None:
-        clauses.append(Library.service_type_id == service_type.id)
+        clauses.append(Library.service_type == service_type)
     if lab_prep_id is not None:
         clauses.append(Library.lab_prep_id == lab_prep_id)
     if in_lab_prep is not None:
@@ -229,9 +229,9 @@ def where_clauses(
         else:
             clauses.append(Library.lab_prep_id == None)  # noqa
     if type_in is not None:
-        clauses.append(Library.type_id.in_([t.id for t in type_in]))
+        clauses.append(Library.type.in_(type_in))
     if status_in is not None:
-        clauses.append(Library.status_id.in_([s.id for s in status_in]))
+        clauses.append(Library.status.in_(status_in))
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)
     return clauses

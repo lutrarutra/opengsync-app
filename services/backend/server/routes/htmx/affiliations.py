@@ -14,7 +14,7 @@ class AffiliationTable(HTMXTable):
         TableCol(title="User", label="user_name", col_size=3, searchable=True),
         TableCol(title="Group", label="group_name", col_size=3, searchable=True),
         TableCol(title="Email", label="email", col_size=3),
-        TableCol(title="Affiliation", label="affiliation", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
+        TableCol(title="Affiliation", label="affiliation", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="affiliation_type"),
     ]
 
 

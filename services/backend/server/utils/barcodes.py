@@ -126,7 +126,9 @@ def get_barcode_table(session: SyncSession, libraries: Sequence[models.Library])
     }
     
     for library in libraries:
-        library_data["index_type_id"].append(library.index_type_id)
+        library_data["index_type_id"].append(
+            library.index_type.id if library.index_type is not None else None
+        )
         library_data["library_id"].append(library.id)
         library_data["library_name"].append(library.name)
         library_data["library_type_id"].append(library.type.id)

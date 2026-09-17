@@ -18,7 +18,7 @@ class GroupBP(DBBlueprint):
         type_in: Optional[list[GroupType]] = None
     ) -> Query:
         if type is not None:
-            query = query.where(models.Group.type_id == type.id)
+            query = query.where(models.Group.type == type)
         if user_id is not None:
             query = query.join(
                 models.links.UserAffiliation,
@@ -27,7 +27,7 @@ class GroupBP(DBBlueprint):
                 models.links.UserAffiliation.user_id == user_id
             )
         if type_in is not None:
-            query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
+            query = query.where(models.Group.type.in_(type_in))
 
         return query
 
@@ -43,11 +43,11 @@ class GroupBP(DBBlueprint):
         
         group = models.Group(
             name=name.strip(),
-            type_id=type.id
+            type=type
         )
         group.user_links = [models.links.UserAffiliation(
             user_id=user_id,
-            affiliation_type_id=AffiliationType.OWNER.id
+            affiliation_type=AffiliationType.OWNER
         )]
 
         self.db.session.add(group)
@@ -156,10 +156,10 @@ class GroupBP(DBBlueprint):
         )
 
         if type is not None:
-            query = query.where(models.links.UserAffiliation.affiliation_type_id == type.id)
+            query = query.where(models.links.UserAffiliation.affiliation_type == type)
 
         if type_in is not None:
-            query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
+            query = query.where(models.links.UserAffiliation.affiliation_type.in_(type_in))
 
         if sort_by is not None:
             attr = getattr(models.links.UserAffiliation, sort_by)
@@ -213,7 +213,7 @@ class GroupBP(DBBlueprint):
         group.user_links.append(models.links.UserAffiliation(
             user_id=user_id,
             group_id=group_id,
-            affiliation_type_id=affiliation_type.id
+            affiliation_type=affiliation_type
         ))
 
         self.db.session.add(group)

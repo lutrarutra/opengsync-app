@@ -31,10 +31,10 @@ class DataPathBP(DBBlueprint):
             query = query.filter(models.DataPath.path == path)
 
         if type is not None:
-            query = query.filter(models.DataPath.type_id == type.id)
+            query = query.filter(models.DataPath.type == type)
 
         if type_in is not None:
-            query = query.filter(models.DataPath.type_id.in_([t.id for t in type_in]))
+            query = query.filter(models.DataPath.type.in_(type_in))
 
         if project_id is not None:
             query = query.filter(models.DataPath.project_id == project_id)
@@ -83,7 +83,7 @@ class DataPathBP(DBBlueprint):
         
         data_path = models.DataPath(
             path=path,
-            type_id=type.id,
+            type=type,
             project=project,
             seq_request=seq_request,
             library=library,

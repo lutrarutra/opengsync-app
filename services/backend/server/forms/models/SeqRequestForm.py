@@ -389,7 +389,7 @@ class SeqRequestForm(HTMXForm):
 
             # If not draft, only insiders can edit
             if (
-                seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+                seq_request.status != C.SeqRequestStatus.DRAFT
                 and access_level < C.AccessLevel.INSIDER
             ):
                 raise exc.NoPermissionsException(

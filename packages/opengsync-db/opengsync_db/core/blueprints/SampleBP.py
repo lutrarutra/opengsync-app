@@ -68,10 +68,10 @@ class SampleBP(DBBlueprint):
             )
 
         if status is not None:
-            query = query.where(models.Sample.status_id == status.id)
+            query = query.where(models.Sample.status == status)
 
         if status_in is not None:
-            query = query.where(models.Sample.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.Sample.status.in_(status_in))
 
         if custom_query is not None:
             query = custom_query(query)
@@ -88,7 +88,7 @@ class SampleBP(DBBlueprint):
             name=name.strip(),
             project_id=project_id,
             owner_id=owner_id,
-            status_id=status.id if status is not None else None
+            status=status
         )
 
         self.db.session.add(sample)

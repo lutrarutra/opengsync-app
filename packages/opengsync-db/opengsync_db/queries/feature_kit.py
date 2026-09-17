@@ -14,8 +14,8 @@ def create(
     return FeatureKit(
         name=name.strip(),
         identifier=identifier.strip(),
-        type_id=type.id,
-        kit_type_id=KitType.FEATURE_KIT.id,
+        type=type,
+        kit_type=KitType.FEATURE_KIT,
     )
 
 
@@ -62,7 +62,7 @@ def select(
     if identifier is not None:
         statement = statement.where(FeatureKit.identifier == identifier)
     if type is not None:
-        statement = statement.where(FeatureKit.type_id == type.id)
+        statement = statement.where(FeatureKit.type == type)
     if type_in is not None:
-        statement = statement.where(FeatureKit.type_id.in_([t.id for t in type_in]))
+        statement = statement.where(FeatureKit.type.in_(type_in))
     return statement

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .links import ProtocolKitLink
 from ..categories import KitType, KitType
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 
 class Kit(Base):
@@ -14,7 +15,7 @@ class Kit(Base):
     name: Mapped[str] = mapped_column(sa.String(256), nullable=False, index=True, unique=True)
     identifier: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True, unique=True)
 
-    kit_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    kit_type: Mapped[KitType] = mapped_column(EnumColumn[KitType](KitType), nullable=False, name="kit_type_id", key="kit_type")
 
     protocol_links: Mapped[list[ProtocolKitLink]] = relationship(
         ProtocolKitLink, lazy="select", cascade="save-update, merge, delete, delete-orphan",
@@ -23,16 +24,8 @@ class Kit(Base):
 
     __mapper_args__ = {
         "polymorphic_identity": KitType.LIBRARY_KIT.id,
-        "polymorphic_on": "kit_type_id",
+        "polymorphic_on": "kit_type",
     }
-
-    @property
-    def kit_type(self) -> KitType:
-        return KitType.get(self.kit_type_id)
-    
-    @kit_type.setter
-    def kit_type(self, value: KitType):
-        self.kit_type_id = value.id
 
     def search_value(self) -> int:
         return self.id

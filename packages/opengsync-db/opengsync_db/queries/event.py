@@ -13,7 +13,7 @@ def create(
     event = Event(
         title=title.strip(),
         timestamp_utc=timestamp_utc,
-        type_id=type.id,
+        type=type,
         note=note,
         creator_id=user_id,
     )
@@ -31,9 +31,9 @@ def select(
     if id is not None:
         statement = statement.where(Event.id == id)
     if type is not None:
-        statement = statement.where(Event.type_id == type.id)
+        statement = statement.where(Event.type == type)
     if type_in is not None:
-        statement = statement.where(Event.type_id.in_([t.id for t in type_in]))
+        statement = statement.where(Event.type.in_(type_in))
     if start_date is not None:
         statement = statement.where(Event.timestamp_utc >= start_date)
     if end_date is not None:

@@ -20,7 +20,7 @@ def create(
         description=(description.strip() or None) if description is not None else None,
         owner_id=owner_id,
         group_id=group_id,
-        status_id=status.id,
+        status=status,
     )
 
 
@@ -37,7 +37,7 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     )
 
     has_write_access = sa.and_(
-        Project.status_id == ProjectStatus.DRAFT.id,
+        Project.status == ProjectStatus.DRAFT,
         is_owner_or_group_member,
     )
 
@@ -151,9 +151,9 @@ def where_clauses(
     if group_id is not None:
         clauses.append(Project.group_id == group_id)
     if status is not None:
-        clauses.append(Project.status_id == status.id)
+        clauses.append(Project.status == status)
     if status_in is not None:
-        clauses.append(Project.status_id.in_([s.id for s in status_in]))
+        clauses.append(Project.status.in_(status_in))
     if user_id is not None:
         clauses.append(
             sa.or_(
@@ -192,7 +192,7 @@ def where_clauses(
                 (Sample.project_id == Project.id) &
                 (links.SampleLibraryLink.sample_id == Sample.id) &
                 (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.type_id.in_([lt.id for lt in library_types_in]))
+                (Library.type.in_(library_types_in))
             ).correlate_except(Sample, links.SampleLibraryLink, Library).exists()
         )
     if viewer_id is not None:

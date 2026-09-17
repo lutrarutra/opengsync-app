@@ -16,8 +16,8 @@ def create(
     return IndexKit(
         identifier=identifier.strip(),
         name=name.strip(),
-        type_id=type.id,
-        kit_type_id=KitType.INDEX_KIT.id,
+        type=type,
+        kit_type=KitType.INDEX_KIT,
         supported_protocol_ids=supported_protocol_ids,
     )
 
@@ -59,16 +59,16 @@ def select(
     identifier: str | None = None,
     statement: sql.Select[tuple[IndexKit]] = sa.select(IndexKit),
 ) -> sql.Select[tuple[IndexKit]]:
-    statement = statement.where(IndexKit.kit_type_id == KitType.INDEX_KIT.id)
+    statement = statement.where(IndexKit.kit_type == KitType.INDEX_KIT)
 
     if id is not None:
         statement = statement.where(IndexKit.id == id)
     if name is not None:
         statement = statement.where(IndexKit.name == name.strip())
     if type_in is not None:
-        statement = statement.where(IndexKit.type_id.in_([t.id for t in type_in]))
+        statement = statement.where(IndexKit.type.in_(type_in))
     if type is not None:
-        statement = statement.where(IndexKit.type_id == type.id)
+        statement = statement.where(IndexKit.type == type)
     if identifier is not None:
         statement = statement.where(IndexKit.identifier == identifier.strip())
     if protocol_id is not None:

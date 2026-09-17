@@ -26,10 +26,10 @@ class SeqRunBP(DBBlueprint):
     ) -> Query:
 
         if status is not None:
-            query = query.where(models.SeqRun.status_id == status.id)
+            query = query.where(models.SeqRun.status == status)
 
         if status_in is not None:
-            query = query.where(models.SeqRun.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.SeqRun.status.in_(status_in))
 
         if experiment_status is not None or experiment_status_in is not None:
             query = query.join(
@@ -38,10 +38,10 @@ class SeqRunBP(DBBlueprint):
             )
 
             if experiment_status is not None:
-                query = query.where(models.Experiment.status_id == experiment_status.id)
+                query = query.where(models.Experiment.status == experiment_status)
                 
             if experiment_status_in is not None:
-                query = query.where(models.Experiment.status_id.in_([s.id for s in experiment_status_in]))
+                query = query.where(models.Experiment.status.in_(experiment_status_in))
 
         if custom_query is not None:
             query = custom_query(query)
@@ -59,11 +59,11 @@ class SeqRunBP(DBBlueprint):
     ) -> models.SeqRun:
         seq_run = models.SeqRun(
             experiment_name=experiment_name.strip(),
-            status_id=status.id,
+            status=status,
             instrument_name=instrument_name.strip(),
             run_folder=run_folder.strip(),
             flowcell_id=flowcell_id.strip(),
-            read_type_id=read_type.id,
+            read_type=read_type,
             rta_version=rta_version.strip() if rta_version else None,
             recipe_version=recipe_version.strip() if recipe_version else None,
             side=side.strip() if side else None,

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 from ..categories import DataPathType
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ class DataPath(Base):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
     path: Mapped[str] = mapped_column(sa.String(2048), nullable=False, unique=False, index=True)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[DataPathType] = mapped_column(EnumColumn[DataPathType](DataPathType), nullable=False, name="type_id", key="type")
 
     library_id: Mapped[int | None] = mapped_column(sa.ForeignKey("library.id"), nullable=True)
     library: Mapped["Library | None"] = relationship("Library", back_populates="data_paths", lazy="select")
@@ -32,14 +33,6 @@ class DataPath(Base):
 
     seq_request_id: Mapped[int | None] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
     seq_request: Mapped["SeqRequest | None"] = relationship("SeqRequest", back_populates="data_paths", lazy="select")
-
-    @property
-    def type(self) -> DataPathType:
-        return DataPathType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: DataPathType) -> None:
-        self.type_id = value.id
 
     def __str__(self):
         return f"DataPath(id={self.id}, path='{self.path}', type={self.type.name})"

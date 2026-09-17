@@ -22,7 +22,7 @@ class BarcodeBP(DBBlueprint):
             name=name.strip(),
             sequence=sequence.strip(),
             well=well,
-            type_id=type.id,
+            type=type,
             adapter_id=adapter_id,
             index_kit_id=adapter.index_kit_id
         )
@@ -54,7 +54,7 @@ class BarcodeBP(DBBlueprint):
             query = query.filter(models.Barcode.index_kit_id == index_kit_id)
 
         if type is not None:
-            query = query.filter(models.Barcode.type_id == type.id)
+            query = query.filter(models.Barcode.type == type)
 
         if adapter_id is not None:
             query = query.filter(models.Barcode.adapter_id == adapter_id)
@@ -81,7 +81,7 @@ class BarcodeBP(DBBlueprint):
         barcode = self.db.session.query(models.Barcode).where(
             models.Barcode.index_kit_id == index_kit_id,
             models.Barcode.name == name,
-            models.Barcode.type_id == type.id
+            models.Barcode.type == type
         ).first()
         return barcode
 

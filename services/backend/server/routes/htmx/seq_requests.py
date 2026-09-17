@@ -39,7 +39,7 @@ class SeqRequestTable(HTMXTable):
             label="status",
             col_size=1,
             sortable=True,
-            sort_by="status_id",
+            sort_by="status",
             choices=C.SeqRequestStatus.as_selectable(),
         ),
         TableCol(
@@ -217,7 +217,7 @@ def render_seq_request_feed(
                 C.SeqRequestStatus.DATA_PROCESSING,
             ]
         ).order_by(
-            models.SeqRequest.status_id,
+                models.SeqRequest.status,
             models.SeqRequest.timestamp_submitted_utc.desc(),
         )
     else:
@@ -248,7 +248,7 @@ def delete_seq_request(
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException(
@@ -275,12 +275,12 @@ def archive_seq_request(
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException()
 
-    seq_request.status_id = C.SeqRequestStatus.ARCHIVED.id
+    seq_request.status = C.SeqRequestStatus.ARCHIVED
     session.save(seq_request)
 
     return responses.htmx_response(
@@ -300,7 +300,7 @@ def unarchive_seq_request(
 ):
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    seq_request.status_id = C.SeqRequestStatus.DRAFT.id
+    seq_request.status = C.SeqRequestStatus.DRAFT
     seq_request.timestamp_submitted_utc = None
     session.save(seq_request)
 
@@ -420,7 +420,7 @@ def remove_all_seq_request_libraries(
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException()
@@ -865,7 +865,7 @@ def delete_file(
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException()
@@ -907,13 +907,13 @@ def remove_auth_form(
         raise exc.NoPermissionsException()
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException()
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and not current_user.is_insider
     ):
         raise exc.NoPermissionsException()
@@ -944,7 +944,7 @@ def remove_library_from_request(
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException()
@@ -975,7 +975,7 @@ def reseq_library(
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        seq_request.status != C.SeqRequestStatus.DRAFT
         and access_level < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException()

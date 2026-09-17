@@ -19,7 +19,7 @@ def create(
 
     return MediaFile(
         name=name,
-        type_id=type.id,
+        type=type,
         extension=extension.lower().strip(),
         uuid=uuid or uuid7().__str__(),
         uploader_id=uploader_id,
@@ -97,9 +97,9 @@ def where_clauses(
     if lab_prep_id is not None:
         clauses.append(MediaFile.lab_prep_id == lab_prep_id)
     if type_in is not None:
-        clauses.append(MediaFile.type_id.in_([t.id for t in type_in]))
+        clauses.append(MediaFile.type.in_(type_in))
     if type is not None:
-        clauses.append(MediaFile.type_id == type.id)
+        clauses.append(MediaFile.type == type)
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)
 

@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableDict
 
 from . import links
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
@@ -50,33 +51,33 @@ class Library(Base):
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
-    index_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
+    type: Mapped[LibraryType] = mapped_column(EnumColumn[LibraryType](LibraryType), nullable=False, name="type_id", key="type")
+    status: Mapped[LibraryStatus] = mapped_column(EnumColumn[LibraryStatus](LibraryStatus), nullable=False, name="status_id", key="status")
+    genome_ref: Mapped[GenomeRef] = mapped_column(EnumColumn[GenomeRef](GenomeRef), nullable=False, name="genome_ref_id", key="genome_ref")
+    service_type: Mapped[ServiceType] = mapped_column(EnumColumn[ServiceType](ServiceType), nullable=False, name="service_type_id", key="service_type")
+    mux_type: Mapped[MUXType | None] = mapped_column(EnumColumn[MUXType](MUXType), nullable=True, name="mux_type_id", key="mux_type")
+    index_type: Mapped[IndexType | None] = mapped_column(EnumColumn[IndexType](IndexType), nullable=True, name="index_type_id", key="index_type")
 
-    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
 
     nuclei_isolation: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
-    seq_depth_requested: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
-    volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    seq_depth_requested: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
+    avg_fragment_size: Mapped[int | None] = mapped_column(sa.Float, nullable=True, default=None)
+    volume: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
+    qubit_concentration: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
 
-    properties: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+    properties: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
-    ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select")
+    ba_report_id: Mapped[int | None] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
+    ba_report: Mapped["MediaFile | None"] = relationship("MediaFile", lazy="select")
 
-    pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
-    pool: Mapped[Optional["Pool"]] = relationship(
+    pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
+    pool: Mapped["Pool | None"] = relationship(
         "Pool", back_populates="libraries", lazy="select", cascade="save-update, merge"
     )
 
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
-    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="libraries")
+    experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
+    experiment: Mapped["Experiment | None"] = relationship("Experiment", lazy="select", back_populates="libraries")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="select")
@@ -84,14 +85,14 @@ class Library(Base):
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
     
-    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
-    lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
+    lab_prep_id: Mapped[int | None] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep: Mapped["LabPrep | None"] = relationship("LabPrep", back_populates="libraries", lazy="select")
 
-    protocol_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("protocol.id", ondelete="SET NULL"), nullable=True)
-    protocol: Mapped[Optional["Protocol"]] = relationship("Protocol", lazy="select")
+    protocol_id: Mapped[int | None] = mapped_column(sa.ForeignKey("protocol.id", ondelete="SET NULL"), nullable=True)
+    protocol: Mapped["Protocol | None"] = relationship("Protocol", lazy="select")
 
-    original_library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
-    original_library: Mapped[Optional["Library"]] = relationship("Library", remote_side=[id], lazy="select")
+    original_library_id: Mapped[int | None] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
+    original_library: Mapped["Library | None"] = relationship("Library", remote_side=[id], lazy="select")
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
@@ -237,64 +238,6 @@ class Library(Base):
     _num_data_paths: Mapped[int | None] = orm.query_expression()
 
     @property
-    def status(self) -> LibraryStatus:
-        return LibraryStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: LibraryStatus):
-        self.status_id = value.id
-
-    @property
-    def type(self) -> LibraryType:
-        return LibraryType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: LibraryType):
-        self.type_id = value.id
-    
-    @property
-    def genome_ref(self) -> GenomeRef:
-        return GenomeRef.get(self.genome_ref_id)
-    
-    @genome_ref.setter
-    def genome_ref(self, value: GenomeRef):
-        self.genome_ref_id = value.id
-
-    @property
-    def service_type(self) -> ServiceType:
-        return ServiceType.get(self.service_type_id)
-    
-    @service_type.setter
-    def service_type(self, value: ServiceType):
-        self.service_type_id = value.id
-
-    @property
-    def mux_type(self) -> MUXType | None:
-        if self.mux_type_id is None:
-            return None
-        return MUXType.get(self.mux_type_id)
-    
-    @mux_type.setter
-    def mux_type(self, value: MUXType | None):
-        if value is None:
-            self.mux_type_id = None
-        else:
-            self.mux_type_id = value.id
-
-    @property
-    def index_type(self) -> IndexType | None:
-        if self.index_type_id is None:
-            return None
-        return IndexType.get(self.index_type_id)
-    
-    @index_type.setter
-    def index_type(self, value: IndexType | None):
-        if value is None:
-            self.index_type_id = None
-        else:
-            self.index_type_id = value.id
-    
-    @property
     def qubit_concentration_str(self) -> str:
         if (q := self.qubit_concentration) is None:
             return ""
@@ -320,11 +263,11 @@ class Library(Base):
     def is_multiplexed(self) -> bool:  # type: ignore[override]
         if self._is_multiplexed is not None:
             return self._is_multiplexed
-        return self.mux_type_id is not None
+        return self.mux_type is not None
 
     @is_multiplexed.expression
     def is_multiplexed(cls) -> sa.ColumnElement[bool]:
-        return cls.mux_type_id.isnot(None)  # type: ignore[union-attr]
+        return cls.mux_type.isnot(None)  # type: ignore[union-attr]
 
     _is_multiplexed: Mapped[bool | None] = orm.query_expression()
 
@@ -336,7 +279,7 @@ class Library(Base):
 
     @is_editable.expression
     def is_editable(cls) -> sa.ColumnElement[bool]:
-        return cls.status_id == LibraryStatus.DRAFT.id  # type: ignore[return-value]
+        return cls.status == LibraryStatus.DRAFT  # type: ignore[return-value]
 
     _is_editable: Mapped[bool | None] = orm.query_expression()
 
@@ -383,7 +326,7 @@ class Library(Base):
 
     @is_pooled.expression
     def is_pooled(cls) -> sa.ColumnElement[bool]:
-        return cls.status_id == LibraryStatus.POOLED.id  # type: ignore[return-value]
+        return cls.status == LibraryStatus.POOLED  # type: ignore[return-value]
 
     _is_pooled: Mapped[bool | None] = orm.query_expression()
     

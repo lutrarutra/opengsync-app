@@ -17,7 +17,7 @@ def create(
         name=name.strip(),
         project_id=project_id,
         owner_id=owner_id,
-        status_id=status.id if status is not None else None,
+        status=status,
     )
 
 
@@ -38,7 +38,7 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
 
     has_write_access = sa.select(1).where(
         Sample.project_id == Project.id,
-        Project.status_id == ProjectStatus.DRAFT.id,
+        Project.status == ProjectStatus.DRAFT,
         sa.or_(
             Project.owner_id == user_id,
             sa.select(1).where(
@@ -186,10 +186,10 @@ def where_clauses(
         )
 
     if status is not None:
-        clauses.append(Sample.status_id == status.id)
+        clauses.append(Sample.status == status)
 
     if status_in is not None:
-        clauses.append(Sample.status_id.in_([s.id for s in status_in]))
+        clauses.append(Sample.status.in_(status_in))
 
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)

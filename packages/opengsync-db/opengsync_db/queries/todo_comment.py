@@ -13,7 +13,7 @@ def create(
     return TODOComment(
         text=text.strip(),
         author=author,
-        task_status_id=status.id if status is not None else None,
+        task_status=status,
         flow_cell_design_id=flow_cell_design_id,
         pool_design_id=pool_design_id,
     )

@@ -17,7 +17,7 @@ class EventBP(DBBlueprint):
         event = models.Event(
             title=title.strip(),
             timestamp_utc=timestamp_utc,
-            type_id=type.id,
+            type=type,
             note=note,
             creator_id=user_id,
         )
@@ -45,9 +45,9 @@ class EventBP(DBBlueprint):
         query = self.db.session.query(models.Event)
 
         if type is not None:
-            query = query.where(models.Event.type_id == type.id)
+            query = query.where(models.Event.type == type)
         if type_in is not None:
-            query = query.where(models.Event.type_id.in_([t.id for t in type_in]))
+            query = query.where(models.Event.type.in_(type_in))
         if start_date is not None:
             query = query.where(models.Event.timestamp_utc >= start_date)
         if end_date is not None:

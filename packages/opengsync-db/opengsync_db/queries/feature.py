@@ -22,7 +22,7 @@ def create(
         sequence=sequence.strip(),
         pattern=pattern.strip(),
         read=read.strip(),
-        type_id=type.id,
+        type=type,
         target_name=target_name.strip() if target_name else None,
         target_id=target_id.strip() if target_id else None,
         feature_kit_id=feature_kit_id
@@ -94,8 +94,8 @@ def where_clauses(
             ).correlate_except(links.LibraryFeatureLink).exists()
         )
     if type is not None:
-        clauses.append(Feature.type_id == type.id)
+        clauses.append(Feature.type == type)
     if type_in is not None:
-        clauses.append(Feature.type_id.in_([t.id for t in type_in]))
+        clauses.append(Feature.type.in_(type_in))
 
     return clauses

@@ -52,14 +52,14 @@ def select(
             statement = statement.where(
                 sa.select(1).where(
                     (PoolDesign.flow_cell_design_id == FlowCellDesign.id) &
-                    (FlowCellDesign.task_status_id >= TaskStatus.COMPLETED.id)
+                    (FlowCellDesign.task_status >= TaskStatus.COMPLETED)
                 ).correlate_except(FlowCellDesign).exists()
             )
         else:
             statement = statement.where(
                 sa.select(1).where(
                     (PoolDesign.flow_cell_design_id == FlowCellDesign.id) &
-                    (FlowCellDesign.task_status_id < TaskStatus.COMPLETED.id)
+                    (FlowCellDesign.task_status < TaskStatus.COMPLETED)
                 ).correlate_except(FlowCellDesign).exists()
             )
 

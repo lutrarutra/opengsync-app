@@ -33,15 +33,15 @@ def create(
         requestor=requestor,
         read_length=read_length,
         num_lanes=num_lanes,
-        read_type_id=read_type.id,
+        read_type=read_type,
         special_requirements=special_requirements,
         billing_contact=billing_contact,
-        submission_type_id=submission_type.id,
+        submission_type=submission_type,
         contact_person=contact_person,
         organization_contact=organization_contact,
         bioinformatician_contact=bioinformatician_contact,
-        status_id=SeqRequestStatus.DRAFT.id,
-        data_delivery_mode_id=data_delivery_mode.id,
+        status=SeqRequestStatus.DRAFT,
+        data_delivery_mode=data_delivery_mode,
         billing_code=billing_code.strip() if billing_code else None,
         pi_contact=pi_contact,
     )
@@ -52,7 +52,7 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
     has_write_access = sa.and_(
-        SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+        SeqRequest.status == SeqRequestStatus.DRAFT,
         sa.or_(
             SeqRequest.requestor_id == user_id,
             sa.select(1).where(
@@ -175,9 +175,9 @@ def where_clauses(
     if name is not None:
         clauses.append(SeqRequest.name == name)
     if status is not None:
-        clauses.append(SeqRequest.status_id == status.id)
+        clauses.append(SeqRequest.status == status)
     if submission_type is not None:
-        clauses.append(SeqRequest.submission_type_id == submission_type.id)
+        clauses.append(SeqRequest.submission_type == submission_type)
     if requestor_id is not None:
         clauses.append(
             sa.or_(
@@ -189,22 +189,20 @@ def where_clauses(
             )
         )
     if status_in is not None:
-        status_ids = [status.id for status in status_in]
-        clauses.append(SeqRequest.status_id.in_(status_ids))  # type: ignore
+        clauses.append(SeqRequest.status.in_(status_in))
     if submission_type_in is not None:
-        submission_type_ids = [submission_type.id for submission_type in submission_type_in]
-        clauses.append(SeqRequest.submission_type_id.in_(submission_type_ids))  # type: ignore
+        clauses.append(SeqRequest.submission_type.in_(submission_type_in))
     if library_types_in is not None:
         clauses.append(
             sa.select(1).where(
                 (Library.seq_request_id == SeqRequest.id) &
-                (Library.type_id.in_([lt.id for lt in library_types_in]))  # type: ignore
+                (Library.type.in_(library_types_in))  # type: ignore
             ).correlate_except(Library).exists()
         )
     if not show_drafts:
         clauses.append(
             sa.or_(
-                SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
+                SeqRequest.status != SeqRequestStatus.DRAFT,
                 SeqRequest.requestor_id == requestor_id
             )
         )

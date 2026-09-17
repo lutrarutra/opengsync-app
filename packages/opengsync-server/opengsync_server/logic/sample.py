@@ -17,7 +17,7 @@ class SampleTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Project", label="project", col_size=2),
-        TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status_id", choices=C.SampleStatus.as_selectable()),
+        TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status", choices=C.SampleStatus.as_selectable()),
         TableCol(title="Owner", label="owner", col_size=1),
         TableCol(title="# Libraries", label="num_libraries", col_size=1),
         TableCol(title="Library Types", label="library_types", col_size=4),

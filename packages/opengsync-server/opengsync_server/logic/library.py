@@ -19,7 +19,7 @@ class LibraryTable(HTMXTable):
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Pool", label="pool_name", col_size=1, searchable=True, sortable=True, sort_by="pool_id"),
         TableCol(title="Library Type", label="type", col_size=1, choices=C.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status_id", choices=C.LibraryStatus.as_selectable()),
+        TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status", choices=C.LibraryStatus.as_selectable()),
         TableCol(title="Request", label="seq_request", col_size=2),
         TableCol(title="Owner", label="owner", col_size=1),
     ]

@@ -15,9 +15,9 @@ class LabPrepTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Checklist", label="checklist", col_size=2, choices=C.LabChecklistType.as_selectable(), sortable=True, sort_by="checklist_type_id"),
-        TableCol(title="Service", label="service", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type_id"),
-        TableCol(title="Status", label="status", col_size=2, choices=C.PrepStatus.as_selectable(), sortable=True, sort_by="status_id"),
+        TableCol(title="Checklist", label="checklist", col_size=2, choices=C.LabChecklistType.as_selectable(), sortable=True, sort_by="checklist_type"),
+        TableCol(title="Service", label="service", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type"),
+        TableCol(title="Status", label="status", col_size=2, choices=C.PrepStatus.as_selectable(), sortable=True, sort_by="status"),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
         TableCol(title="Creator", label="creator", col_size=2, searchable=True),

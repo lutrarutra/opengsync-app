@@ -21,7 +21,7 @@ class FeatureTable(HTMXTable):
         TableCol(title="Sequence", label="sequence", col_size=2),
         TableCol(title="Pattern", label="pattern", col_size=2),
         TableCol(title="Read", label="read", col_size=2),
-        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type_id"),
+        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type"),
     ]
 
 

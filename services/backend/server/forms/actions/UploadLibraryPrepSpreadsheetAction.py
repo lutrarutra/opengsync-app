@@ -205,7 +205,7 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
                     pool_val = row.get("pool")
                     pool_val = str(pool_val).strip().lower() if pd.notna(pool_val) else ""
                     if pool_val == "x":
-                        library.status_id = C.LibraryStatus.FAILED.id
+                        library.status = C.LibraryStatus.FAILED
                         session.save(library)
 
                     # Update qubit concentration

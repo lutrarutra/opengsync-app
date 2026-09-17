@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
+from ..core.EnumColumn import EnumColumn
 from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType
 from . import links
 
@@ -36,10 +37,10 @@ class SeqRequest(Base):
     special_requirements: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
     billing_code: Mapped[str | None] = mapped_column(sa.String(256), nullable=True)
     
-    data_delivery_mode_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
+    data_delivery_mode: Mapped[DataDeliveryMode] = mapped_column(EnumColumn[DataDeliveryMode](DataDeliveryMode), nullable=False, name="data_delivery_mode_id", key="data_delivery_mode")
+    read_type: Mapped[ReadType] = mapped_column(EnumColumn[ReadType](ReadType), nullable=False, name="read_type_id", key="read_type")
+    submission_type: Mapped[SubmissionType] = mapped_column(EnumColumn[SubmissionType](SubmissionType), nullable=False, name="submission_type_id", key="submission_type")
+    status: Mapped[SeqRequestStatus] = mapped_column(EnumColumn[SeqRequestStatus](SeqRequestStatus), nullable=False, default=SeqRequestStatus.DRAFT.id, name="status_id", key="status")
 
     timestamp_submitted_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     timestamp_finished_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
@@ -70,7 +71,7 @@ class SeqRequest(Base):
 
     seq_auth_form_file: Mapped["MediaFile | None"] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=False,
-        primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {MediaFileType.SEQ_AUTH_FORM.id})",
+        primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type == {MediaFileType.SEQ_AUTH_FORM.id})",
     )
 
     sample_submission_event_id: Mapped[int | None] = mapped_column(sa.ForeignKey("event.id"), nullable=True)
@@ -425,8 +426,8 @@ class SeqRequest(Base):
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                types.add(lib.type_id)
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+                types.add(lib.type)
+            return sorted(types)
 
         if self._is_async_context():
             raise RuntimeError(
@@ -441,13 +442,13 @@ class SeqRequest(Base):
         from .. import queries as Q
         from .Library import Library
         result = session.scalar(sa.select(
-            sa.func.array_agg(sa.distinct(Library.type_id))
+            sa.func.array_agg(sa.distinct(Library.type))
         ).where(
             *Q.library.where_clauses(seq_request_id=self.id)
         ))
         if result is None:
             return []
-        return [LibraryType.get(type_id) for type_id in result]
+        return [LibraryType.get(library_type) for library_type in result]
 
     @library_types.expression
     def library_types(cls):
@@ -455,7 +456,7 @@ class SeqRequest(Base):
         from .Library import Library
         return sa.select(
             sa.func.coalesce(
-                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.func.array_agg(sa.distinct(Library.type)),
                 sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
             )
         ).where(
@@ -473,9 +474,9 @@ class SeqRequest(Base):
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                if lib.mux_type_id is not None:
-                    types.add(lib.mux_type_id)
-            return [MUXType.get(type_id) for type_id in sorted(types)]
+                if lib.mux_type is not None:
+                    types.add(lib.mux_type)
+            return sorted(types)
 
         if self._is_async_context():
             raise RuntimeError(
@@ -490,14 +491,14 @@ class SeqRequest(Base):
         from .. import queries as Q
         from .Library import Library
         result = session.scalar(sa.select(
-            sa.func.array_agg(sa.distinct(Library.mux_type_id))
+            sa.func.array_agg(sa.distinct(Library.mux_type))
         ).where(
             *Q.library.where_clauses(seq_request_id=self.id),
-            Library.mux_type_id.isnot(None)
+            Library.mux_type.isnot(None)
         ))
         if result is None:
             return []
-        return [MUXType.get(type_id) for type_id in result]
+        return [MUXType.get(mux_type) for mux_type in result]
 
     @mux_types.expression
     def mux_types(cls):
@@ -505,12 +506,12 @@ class SeqRequest(Base):
         from .Library import Library
         return sa.select(
             sa.func.coalesce(
-                sa.func.array_agg(sa.distinct(Library.mux_type_id)),
+                sa.func.array_agg(sa.distinct(Library.mux_type)),
                 sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
             )
         ).where(
             *Q.library.where_clauses(seq_request_id=cls.id),
-            Library.mux_type_id.isnot(None)
+            Library.mux_type.isnot(None)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
@@ -524,7 +525,7 @@ class SeqRequest(Base):
 
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             for lib in self.libraries:
-                lib_type = LibraryType.get(lib.type_id)
+                lib_type = LibraryType.get(lib.type)
                 counts[lib_type] = counts.get(lib_type, 0) + 1
             return counts
 
@@ -538,9 +539,9 @@ class SeqRequest(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_type_counts' attribute.")
         from .Library import Library
-        results = session.query(Library.type_id, sa.func.count(Library.id)).filter(Library.seq_request_id == self.id).group_by(Library.type_id).all()
-        for type_id, count in results:
-            lib_type = LibraryType.get(type_id)
+        results = session.query(Library.type, sa.func.count(Library.id)).filter(Library.seq_request_id == self.id).group_by(Library.type).all()
+        for library_type, count in results:
+            lib_type = LibraryType.get(library_type)
             counts[lib_type] = count
         return counts
 
@@ -552,11 +553,11 @@ class SeqRequest(Base):
 
         count_subq = (
             sa.select(
-                Library.type_id.label("type_id"),
+                Library.type.label("type_id"),
                 sa.func.count(Library.id).label("cnt"),
             )
             .where(Library.seq_request_id == sr_alias.c.id)
-            .group_by(Library.type_id)
+            .group_by(Library.type)
             .lateral("s")
         )
 
@@ -605,38 +606,6 @@ class SeqRequest(Base):
             links.SeqRequestDeliveryEmailLink.seq_request_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    @property
-    def status(self) -> SeqRequestStatus:
-        return SeqRequestStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: SeqRequestStatus):
-        self.status_id = value.id
-    
-    @property
-    def submission_type(self) -> SubmissionType:
-        return SubmissionType.get(self.submission_type_id)
-    
-    @submission_type.setter
-    def submission_type(self, value: SubmissionType):
-        self.submission_type_id = value.id
-    
-    @property
-    def data_delivery_mode(self) -> DataDeliveryMode:
-        return DataDeliveryMode.get(self.data_delivery_mode_id)
-    
-    @data_delivery_mode.setter
-    def data_delivery_mode(self, value: DataDeliveryMode):
-        self.data_delivery_mode_id = value.id
-    
-    @property
-    def read_type(self) -> ReadType:
-        return ReadType.get(self.read_type_id)
-    
-    @read_type.setter
-    def read_type(self, value: ReadType):
-        self.read_type_id = value.id
-    
     @property
     def timestamp_submitted(self) -> datetime | None:
         if self.timestamp_submitted_utc is None:

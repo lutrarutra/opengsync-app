@@ -32,10 +32,10 @@ class LibraryForm(HTMXFlaskForm):
 
     def __fill_form(self, library: models.Library):
         self.name.data = library.sample_name
-        self.library_type.data = library.type_id
-        self.genome.data = library.genome_ref_id
-        self.status.data = library.status_id
-        self.mux_type.data = library.mux_type_id
+        self.library_type.data = library.type.id
+        self.genome.data = library.genome_ref.id
+        self.status.data = library.status.id
+        self.mux_type.data = library.mux_type.id if library.mux_type is not None else -1
         self.nuclei_isolation.data = library.nuclei_isolation
 
     def validate(self) -> bool:

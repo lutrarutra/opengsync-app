@@ -16,7 +16,7 @@ class UserTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True),
         TableCol(title="Email", label="email", col_size=3, sortable=True),
-        TableCol(title="Role", label="role", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
+        TableCol(title="Role", label="role", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role"),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
         TableCol(title="# Projects", label="num_projects", col_size=1, sortable=True),
     ]

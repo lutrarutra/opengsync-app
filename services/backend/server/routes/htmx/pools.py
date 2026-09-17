@@ -17,8 +17,8 @@ class PoolTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=2, choices=C.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=1, sort_by="status_id", sortable=True, choices=C.PoolStatus.as_selectable()),
-        TableCol(title="Type", label="type", col_size=1, sort_by="type_id", sortable=True, choices=C.PoolType.as_selectable()),
+        TableCol(title="Status", label="status", col_size=1, sort_by="status", sortable=True, choices=C.PoolStatus.as_selectable()),
+        TableCol(title="Type", label="type", col_size=1, sort_by="type", sortable=True, choices=C.PoolType.as_selectable()),
         TableCol(title="Owner", label="owner", col_size=2, searchable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
     ]

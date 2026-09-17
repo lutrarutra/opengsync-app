@@ -77,7 +77,7 @@ class IndexKitForm(HTMXForm):
 
             form.name.data = form.index_kit.name
             form.identifier.data = form.index_kit.identifier
-            form.index_type_id.data = form.index_kit.type_id
+            form.index_type_id.data = form.index_kit.type.id
             return form.make_response()
 
         return route

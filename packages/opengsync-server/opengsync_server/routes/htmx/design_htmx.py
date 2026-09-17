@@ -148,7 +148,7 @@ def edit_comment_status(current_user: models.User, todo_comment_id: int, new_sta
     if (todo_comment := db.session.first(Q.todo_comment.select(id=todo_comment_id))) is None:
         raise exceptions.NotFoundException("TODO Comment not found")
     
-    todo_comment.task_status_id = new_status_id
+    todo_comment.task_status = C.TaskStatus.get(new_status_id) if new_status_id is not None else None
     db.session.save(todo_comment)
     
     return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
@@ -182,9 +182,9 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
         raise exceptions.NotFoundException("Flow Cell Design not found")
     
     if flow_cell_type_id == -1:
-        flow_cell_design.flow_cell_type = None
+        flow_cell_design.stored_flow_cell_type = None
     else:
-        flow_cell_design.flow_cell_type = C.FlowCellType.get(flow_cell_type_id)
+        flow_cell_design.stored_flow_cell_type = C.FlowCellType.get(flow_cell_type_id)
     
     db.session.save(flow_cell_design)
     

@@ -23,13 +23,13 @@ class ExperimentBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if status is not None:
-            query = query.where(models.Experiment.status_id == status.id)
+            query = query.where(models.Experiment.status == status)
 
         if status_in is not None:
-            query = query.where(models.Experiment.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.Experiment.status.in_(status_in))
 
         if workflow_in is not None:
-            query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
+            query = query.where(models.Experiment.workflow.in_(workflow_in))
 
         if project_id is not None:
             query = query.where(
@@ -60,12 +60,12 @@ class ExperimentBP(DBBlueprint):
         experiment = models.Experiment(
             name=name.strip(),
             sequencer_id=sequencer_id,
-            workflow_id=workflow.id,
+            workflow=workflow,
             r1_cycles=r1_cycles,
             r2_cycles=r2_cycles,
             i1_cycles=i1_cycles,
             i2_cycles=i2_cycles,
-            status_id=status.id,
+            status=status,
             operator_id=operator_id,
         )
 
@@ -182,12 +182,12 @@ class ExperimentBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def update(self, experiment: models.Experiment):
-        if (prev_workflow_id := self.db.session.query(models.Experiment.workflow_id).where(
+        if (prev_workflow := self.db.session.query(models.Experiment.workflow).where(
             models.Experiment.id == experiment.id,
         ).first()) is None:
             raise exceptions.NotFoundException(f"Experiment with id {experiment.id} does not exist")
         
-        prev_workflow = ExperimentWorkFlow.get(prev_workflow_id[0])
+        prev_workflow = prev_workflow[0]
 
         if experiment.workflow != prev_workflow:
             if len(experiment.lanes) > experiment.num_lanes:
@@ -230,7 +230,7 @@ class ExperimentBP(DBBlueprint):
         query = self.db.session.query(models.Experiment)
 
         if workflow_in is not None:
-            query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
+            query = query.where(models.Experiment.workflow.in_(workflow_in))
 
         query = query.order_by(
             sa.func.similarity(models.Experiment.name, word).desc()

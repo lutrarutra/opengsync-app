@@ -15,7 +15,7 @@ def create(
         name=name.strip(),
         sequence=sequence.strip(),
         well=well,
-        type_id=type.id,
+        type=type,
         adapter_id=adapter.id,
         index_kit_id=adapter.index_kit_id,
     )
@@ -34,7 +34,7 @@ def select(
     if index_kit_id is not None:
         statement = statement.where(Barcode.index_kit_id == index_kit_id)
     if type is not None:
-        statement = statement.where(Barcode.type_id == type.id)
+        statement = statement.where(Barcode.type == type)
     if adapter_id is not None:
         statement = statement.where(Barcode.adapter_id == adapter_id)
 

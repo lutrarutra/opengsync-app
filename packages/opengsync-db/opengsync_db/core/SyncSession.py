@@ -1,9 +1,8 @@
-
-
 from typing import TYPE_CHECKING
 from collections.abc import Sequence, Iterator
 
 import sqlalchemy as sa
+import pandas as pd
 from sqlalchemy import sql
 from sqlalchemy.orm import Session as SQLAlchemySession
 
@@ -30,6 +29,22 @@ class SyncSession(SQLAlchemySession):
             from .blueprints.SyncPandasBP import SyncPandas
             self._pd = SyncPandas(self)
         return self._pd
+
+    def get_pandas(
+        self,
+        statement: sa.Select,
+        order_by: sql.expression.UnaryExpression | None = None,
+        limit: int | None = DEFAULT_LIMIT,
+        options: utils.QueryOptions | None = None,
+        offset: int | None = None
+    ) -> pd.DataFrame:
+        if limit is DEFAULT_LIMIT:
+            limit = self.default_limit
+        statement = utils.apply_settings(statement, order_by=order_by, limit=limit, options=options, offset=offset)
+        statement, columns = utils.prepare_pandas_statement(statement)
+        df = pd.read_sql(statement, self.bind)
+        return utils.map_pandas_enum_columns(df, columns)
+
 
     def get_all(
         self,

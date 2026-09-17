@@ -118,9 +118,9 @@ class PoolForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Pool must be provided for edit form.")
 
             form.name.data = form.pool.name
-            form.pool_type.data = form.pool.type_id
+            form.pool_type.data = form.pool.type.id
             form.num_m_reads_requested.data = form.pool.num_m_reads_requested
-            form.status.data = form.pool.status_id
+            form.status.data = form.pool.status.id
 
             if form.pool.contact is not None:
                 form.contact_name.data = form.pool.contact.name
@@ -144,8 +144,8 @@ class PoolForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Pool must be provided for edit form.")
 
             form.pool.name = form.name.data
-            form.pool.status_id = form.status.data
-            form.pool.type_id = form.pool_type.data
+            form.pool.status = C.PoolStatus.get(form.status.data)
+            form.pool.type = C.PoolType.get(form.pool_type.data)
             form.pool.num_m_reads_requested = form.num_m_reads_requested.data
             form.pool.contact.name = form.contact_name.data
             form.pool.contact.email = form.contact_email.data
@@ -167,7 +167,7 @@ class PoolForm(HTMXForm):
                 raise exc.OpeNGSyncServerException("Pool must be provided for clone form.")
 
             form.name.data = form.pool.name
-            form.pool_type.data = form.pool.type_id
+            form.pool_type.data = form.pool.type.id
             form.num_m_reads_requested.data = form.pool.num_m_reads_requested
             form.status.data = C.PoolStatus.STORED.id
 

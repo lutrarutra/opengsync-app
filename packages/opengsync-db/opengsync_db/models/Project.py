@@ -12,6 +12,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 from ..categories import ProjectStatus, LibraryType
+from ..core.EnumColumn import EnumColumn
 from . import links
 
 if TYPE_CHECKING:
@@ -35,7 +36,7 @@ class Project(Base):
 
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status: Mapped[ProjectStatus] = mapped_column(EnumColumn[ProjectStatus](ProjectStatus), nullable=False, name="status_id", key="status")
 
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="project", lazy="select")
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
@@ -109,8 +110,8 @@ class Project(Base):
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                types.add(lib.type_id)
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+                types.add(lib.type)
+            return sorted(types)
 
         if self._is_async_context():
             raise RuntimeError(
@@ -125,7 +126,7 @@ class Project(Base):
         from .. import queries as Q
         from .Library import Library
         result = session.scalar(sa.select(
-            sa.func.array_agg(sa.distinct(Library.type_id))
+            sa.func.array_agg(sa.distinct(Library.type))
         ).where(
             *Q.library.where_clauses(project_id=self.id)
         ))
@@ -139,7 +140,7 @@ class Project(Base):
         from .Library import Library
         return sa.select(
             sa.func.coalesce(
-                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.func.array_agg(sa.distinct(Library.type)),
                 sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
             )
         ).where(
@@ -349,14 +350,6 @@ class Project(Base):
             return self.identifier + (f" ({self.title})" if self.title else "")
         return self.title
     
-    @property
-    def status(self) -> ProjectStatus:
-        return ProjectStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: ProjectStatus):
-        self.status_id = value.id
-
     @property
     def timestamp_created(self) -> datetime:
         from .. import localize

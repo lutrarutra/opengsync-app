@@ -35,7 +35,7 @@ class FeatureKitForm(HTMXFlaskForm):
     def __fill_form(self, feature_kit: models.FeatureKit):
         self.name.data = feature_kit.name
         self.identifier.data = feature_kit.identifier
-        self.feature_type_id.data = feature_kit.type_id
+        self.feature_type_id.data = feature_kit.type.id
 
     def validate(self) -> bool:
         if not super().validate():
@@ -97,7 +97,7 @@ class FeatureKitForm(HTMXFlaskForm):
         
         self.feature_kit.name = self.name.data  # type: ignore
         self.feature_kit.identifier = self.identifier.data  # type: ignore
-        self.feature_kit.type_id = self.feature_type_id.data  # type: ignore
+        self.feature_kit.type = FeatureType.get(self.feature_type_id.data)
         
         flash("Index kit updated successfully.", "success")
         return make_response(redirect=url_for("kits_page.feature_kit", feature_kit_id=self.feature_kit.id))

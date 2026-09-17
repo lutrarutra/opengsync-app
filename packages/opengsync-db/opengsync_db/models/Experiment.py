@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 from . import links
 
@@ -37,8 +38,8 @@ class Experiment(Base):
     i1_cycles: Mapped[int | None] = mapped_column(nullable=True)
     i2_cycles: Mapped[int | None] = mapped_column(nullable=True)
 
-    workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    workflow: Mapped[ExperimentWorkFlow] = mapped_column(EnumColumn[ExperimentWorkFlow](ExperimentWorkFlow), name="workflow_id", key="workflow")
+    status: Mapped[ExperimentStatus] = mapped_column(EnumColumn[ExperimentStatus](ExperimentStatus), nullable=False, default=0, name="status_id", key="status")
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="select")
@@ -49,12 +50,12 @@ class Experiment(Base):
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name, post_update=True)
     lane_pooling_tables: Mapped[list["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=True,
-        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.LANE_POOLING_TABLE.id})",
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type == {MediaFileType.LANE_POOLING_TABLE.id})",
         order_by="desc(MediaFile.id)",
     )
     sequencer_loading_checklists: Mapped[list["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=True,
-        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.SEQUENCER_LOADING_CHECKLIST.id})",
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type == {MediaFileType.SEQUENCER_LOADING_CHECKLIST.id})",
         order_by="desc(MediaFile.id)",
     )
 
@@ -196,8 +197,8 @@ class Experiment(Base):
             return [LibraryType.get(type_id) for type_id in self._library_types]
 
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
-            types = {library.type_id for library in self.libraries}
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+            types = {library.type for library in self.libraries}
+            return sorted(types)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'library_types' attribute.")
@@ -210,15 +211,15 @@ class Experiment(Base):
             )
 
         from .Library import Library
-        type_ids = session.query(Library.type_id).filter(Library.experiment_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+        library_types = session.query(Library.type).filter(Library.experiment_id == self.id).distinct().order_by(Library.type).all()
+        return [LibraryType.get(library_type) for (library_type,) in library_types]
 
     @library_types.expression
     def library_types(cls):
         from .Library import Library
         return sa.select(
             sa.func.coalesce(
-                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.func.array_agg(sa.distinct(Library.type)),
                 sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
             )
         ).where(
@@ -446,7 +447,7 @@ class Experiment(Base):
         from .MediaFile import MediaFile
         return session.query(MediaFile).filter(
             MediaFile.experiment_id == self.id,
-            MediaFile.type_id == MediaFileType.LANE_POOLING_TABLE.id
+            MediaFile.type == MediaFileType.LANE_POOLING_TABLE
         ).order_by(MediaFile.id.desc()).first()
     
     @property
@@ -459,32 +460,12 @@ class Experiment(Base):
         from .MediaFile import MediaFile
         return session.query(MediaFile).filter(
             MediaFile.experiment_id == self.id,
-            MediaFile.type_id == MediaFileType.SEQUENCER_LOADING_CHECKLIST.id
+            MediaFile.type == MediaFileType.SEQUENCER_LOADING_CHECKLIST
         ).order_by(MediaFile.id.desc()).first()
 
     @property
-    def status(self) -> ExperimentStatus:
-        return ExperimentStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: ExperimentStatus):
-        self.status_id = value.id
-    
-    @property
     def flowcell_type(self) -> FlowCellType:
         return self.workflow.flow_cell_type
-    
-    @flowcell_type.setter
-    def flowcell_type(self, value: FlowCellType):
-        self.workflow_id = value.id
-    
-    @property
-    def workflow(self) -> ExperimentWorkFlow:
-        return ExperimentWorkFlow.get(self.workflow_id)
-    
-    @workflow.setter
-    def workflow(self, value: ExperimentWorkFlow):
-        self.workflow_id = value.id
     
     @property
     def timestamp_created(self) -> datetime:

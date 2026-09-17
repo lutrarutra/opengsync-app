@@ -20,12 +20,12 @@ def create(
     experiment = Experiment(
         name=name.strip(),
         sequencer_id=sequencer_id,
-        workflow_id=workflow.id,
+        workflow=workflow,
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
-        status_id=status.id,
+        status=status,
         operator_id=operator_id,
     )
 
@@ -97,11 +97,11 @@ def where_clauses(
     if name is not None:
         clauses.append(Experiment.name == name)
     if status is not None:
-        clauses.append(Experiment.status_id == status.id)
+        clauses.append(Experiment.status == status)
     if status_in is not None:
-        clauses.append(Experiment.status_id.in_([s.id for s in status_in]))
+        clauses.append(Experiment.status.in_(status_in))
     if workflow_in is not None:
-        clauses.append(Experiment.workflow_id.in_([w.id for w in workflow_in]))
+        clauses.append(Experiment.workflow.in_(workflow_in))
     if project_id is not None:
         clauses.append(
             sa.select(1).where(
