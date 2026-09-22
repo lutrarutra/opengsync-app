@@ -1,10 +1,11 @@
 services:
     db-migrator:
+        image: ghcr.io/lutrarutra/opengsync-app/migrator:${APP_VERSION:-latest}
         container_name: opengsync-db-migrator
         platform: linux/amd64
         build:
             context: .
-            dockerfile: ./services/Dockerfile
+            dockerfile: ./services/backend/Dockerfile
             target: migrator
         environment:
             TZ: ${TIMEZONE}
@@ -20,7 +21,7 @@ services:
         command: alembic --config /app/alembic.ini upgrade head
 
     opengsync-app:
-        image: opengsync-app:${APP_VERSION:-latest}
+        image: ghcr.io/lutrarutra/opengsync-app/backend:${APP_VERSION:-latest}
         platform: linux/amd64
         user: "${PUID:-1000}:${PGID:-1000}"
         container_name: opengsync-app
@@ -30,7 +31,7 @@ services:
                 order: start-first
         build:
             context: .
-            dockerfile: ./services/Dockerfile
+            dockerfile: ./services/backend/Dockerfile
             target: opengsync-app
         volumes:
             - compiled_css:/static/style/compiled:ro
@@ -54,7 +55,6 @@ services:
             SECRET_KEY: ${SECRET_KEY}
             MAIL_USER: ${MAIL_USER}
             ENVIRONMENT: prod
-            OPENGSYNC_DEBUG: 0
         expose:
             - "5000"
         depends_on:
@@ -75,13 +75,14 @@ services:
             gunicorn -w 4 --preload --bind 0.0.0.0:5000 'scripts.wsgi:create_app(config_path="/app/opengsync.yaml")'
 
     opengsync-celery-worker:
+        image: ghcr.io/lutrarutra/opengsync-app/worker:${APP_VERSION:-latest}
         platform: linux/amd64
         user: "${PUID:-1000}:${PGID:-1000}"
         container_name: opengsync-celery-worker
         restart: unless-stopped
         build:
             context: .
-            dockerfile: ./services/Dockerfile
+            dockerfile: ./services/backend/Dockerfile
             target: celery-worker
         environment:
             TZ: ${TIMEZONE}
@@ -93,7 +94,7 @@ services:
             POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
             - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
-            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
+            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder:ro
             - ${LOG_DIR}/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
         depends_on:
@@ -110,13 +111,14 @@ services:
             celery -A opengsync_worker.celery worker --loglevel=info
 
     opengsync-celery-beat:
+        image: ghcr.io/lutrarutra/opengsync-app/worker:${APP_VERSION:-latest}
         platform: linux/amd64
         user: "${PUID:-1000}:${PGID:-1000}"
         container_name: opengsync-celery-beat
         restart: unless-stopped
         build:
             context: .
-            dockerfile: ./services/Dockerfile
+            dockerfile: ./services/backend/Dockerfile
             target: celery-worker
         environment:
             TZ: ${TIMEZONE}
@@ -139,27 +141,6 @@ services:
         command: >
             celery -A opengsync_worker.celery beat --loglevel=info
 
-    backup-service:
-        platform: linux/amd64
-        container_name: backup-service
-        restart: unless-stopped
-        build:
-            context: ./services/opengsync-backup
-        environment:
-            TZ: ${TIMEZONE}
-            POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_PASSWORD: ${POSTGRES_REPLICATOR_PASSWORD:-replicator}
-            POSTGRES_USER: replicator
-            POSTGRES_PORT: ${POSTGRES_PORT}
-            POSTGRES_HOST: ${POSTGRES_HOST}
-        volumes:
-            - ${DB_DIR}/backup/dump:/backups/dump
-            - ${DB_DIR}/backup/base:/backups/base
-            - ${LOG_DIR}/backup:/var/log
-        depends_on:
-            postgres:
-                condition: service_healthy
-
     tailwind-compiler:
         platform: linux/amd64
         container_name: tailwind-compiler
@@ -175,6 +156,7 @@ services:
         command: "tailwindcss -i /app/style/style.css -o /app/static/style/compiled/style.css --minify"
 
     nginx:
+        image: ghcr.io/lutrarutra/opengsync-app/nginx:${APP_VERSION:-latest}
         platform: linux/amd64
         container_name: nginx-proxy
         build:
@@ -220,9 +202,12 @@ services:
         command: --port ${REDIS_PORT} --maxmemory 2048mb --maxmemory-policy volatile-lru --save 900 1 --save 300 10 --save 60 1000
 
     postgres:
+        image: ghcr.io/lutrarutra/opengsync-app/postgres:${APP_VERSION:-latest}
         platform: linux/amd64
         container_name: postgres
-        image: postgres:17-alpine
+        build:
+            context: .
+            dockerfile: ./services/db/Dockerfile
         restart: unless-stopped
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
@@ -230,14 +215,22 @@ services:
             POSTGRES_DB: ${POSTGRES_DB}
             PGPORT: ${POSTGRES_PORT}
             TZ: ${TIMEZONE}
+            # pgBackRest SCP repository
+            PGBACKREST_REPO1_TYPE: scp
+            PGBACKREST_REPO1_HOST: ${PGBACKREST_REPO1_HOST}
+            PGBACKREST_REPO1_USER: ${PGBACKREST_REPO1_USER}
+            PGBACKREST_REPO1_PATH: ${PGBACKREST_REPO1_PATH}
+            PGBACKREST_REPO1_SSH_KEY: /etc/pgbackrest/id_ed25519
         expose:
             - ${POSTGRES_PORT}
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         volumes:
-            - ${POSTGRES_CONFIG}:/etc/postgresql.conf
+            - ./services/db/postgresql.prod.conf:/etc/postgresql.conf:ro
+            - ./services/db/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
             - postgres_data:/var/lib/postgresql/data
-            - postgres_archive:/var/lib/postgresql/archive
+            - ${PGBACKREST_SSH_KEY}:/etc/pgbackrest/id_ed25519:ro
+            - ${PGBACKREST_KNOWN_HOSTS}:/etc/ssh/ssh_known_hosts:ro
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -271,6 +264,3 @@ volumes:
     postgres_data:
         external: true
         name: opengsync-prod_postgres_data
-    postgres_archive:
-        external: true
-        name: opengsync-prod_postgres_archive

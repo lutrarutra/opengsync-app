@@ -1,9 +1,10 @@
 services:
     db-migrator:
+        profiles: ["tools"]
         container_name: opengsync-db-migrator-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: migrator
         environment:
             TZ: ${TIMEZONE}
@@ -16,16 +17,15 @@ services:
             postgres:
                 condition: service_healthy
         volumes:
-            - ./alembic:/app/alembic
-            - ./alembic.ini:/app/alembic.ini:ro
+            - ./services/db/alembic:/app/alembic
         restart: "no"
-        command: alembic --config /app/alembic.ini upgrade head
+        command: alembic --config /app/alembic/alembic.ini upgrade head
 
     opengsync-app:
         container_name: opengsync-app-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: opengsync-app
         volumes:
             - ./packages/opengsync-server:/app/packages/opengsync-server
@@ -58,7 +58,6 @@ services:
             MAIL_PASSWORD: ${MAIL_PASSWORD}
             SECRET_KEY: ${SECRET_KEY}
             MAIL_USER: ${MAIL_USER}
-            OPENGSYNC_DEBUG: 1
             ENVIRONMENT: dev
         ports:
             - ${OPENGSYNC_PORT:-5000}:${OPENGSYNC_PORT:-5000}
@@ -83,7 +82,7 @@ services:
         container_name: opengsync-celery-worker-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: celery-worker
         environment:
             TZ: ${TIMEZONE}
@@ -113,7 +112,7 @@ services:
         container_name: opengsync-celery-beat-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: celery-worker
         environment:
             TZ: ${TIMEZONE}
@@ -144,8 +143,6 @@ services:
         ports:
             - ${REDIS_PORT}:${REDIS_PORT}
         restart: on-failure
-        volumes:
-            - redis_data:/data
         healthcheck:
             test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
             interval: 10s
@@ -169,7 +166,9 @@ services:
 
     postgres:
         container_name: postgres-dev
-        image: postgres:17-alpine
+        build:
+            context: .
+            dockerfile: ./services/db/Dockerfile
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -182,9 +181,8 @@ services:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         restart: on-failure
         volumes:
-            - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
+            - ./services/db/postgresql.conf:/etc/postgresql.conf:ro
             - postgres_data:/var/lib/postgresql/data
-            - postgres_archive:/var/lib/postgresql/archive
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -213,10 +211,6 @@ services:
 volumes:
     compiled_css:
     pgadmin_data:
-    redis_data:
     postgres_data:
         external: true
         name: opengsync-dev_postgres_data
-    postgres_archive:
-        external: true
-        name: opengsync-dev_postgres_archive

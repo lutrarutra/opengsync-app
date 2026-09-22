@@ -395,14 +395,9 @@ session.delete(existing_project, flush=True)
 ### WAL Archiving
 - Enabled by default in `templates/postgresql.conf`: `archive_command = 'cp %p /var/lib/postgresql/wal/%f'` (mounted on `${DB_DIR}/archive/wal`)
 
-### Nightly Base Backups (and DB Dumps)
-- Service: `backup-service` handles nightly base backups and dumps at 2:00 AM every day.
-- Base backup stored in `${DB_DIR}/archive/base`
-- DB dump stored in `${DB_DIR}/archive/dump`
-
-### Restore from Base Backup + WAL
-1. `tar -xzf <date>.tar.gz`
-2. `cp backups/base/<date> db/postgres/`
+### Restore from pgBackRest
+- pgBackRest handles nightly backups and WAL archiving via SCP to a remote backup server.
+- See `services/db/pgbackrest.conf` and `services/db/pgbackrest-backup.sh` for details.
 5. `docker compose -f compose.yaml -p opengsync run --rm postgres` # should start the postgres successfully
 
 

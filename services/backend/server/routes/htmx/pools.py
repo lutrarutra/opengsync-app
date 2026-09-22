@@ -123,6 +123,7 @@ def search_pools(
     pools, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/pool.html", pools=pools)
 
+
 @router.delete("/{pool_id}/remove-library/{library_id}")
 def remove_library_from_pool(
     pool_id: int,
@@ -152,6 +153,7 @@ def remove_library_from_pool(
         flash=responses.flash(f"Library {library.name} removed from pool", "success")
     )
 
+
 @router.delete("/{pool_id}/remove-libraries")
 def remove_libraries_from_pool(
     pool_id: int,
@@ -170,14 +172,13 @@ def remove_libraries_from_pool(
         if library.status == C.LibraryStatus.POOLED:
             library.status = C.LibraryStatus.STORED
 
-    
     session.save(pool)
-    
     
     return responses.htmx_response(
         redirect=responses.url_for("pool_page", pool_id=pool_id),
         flash=responses.flash("Libraries removed from pool", "success")
     )
+
 
 @router.delete("/{pool_id}/delete", dependencies=[Depends(dependencies.require_insider)])
 def delete_pool(

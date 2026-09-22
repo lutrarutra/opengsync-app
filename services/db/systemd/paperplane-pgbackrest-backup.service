@@ -1,0 +1,14 @@
+[Unit]
+Description=pgBackRest backup for the opengsync Postgres container
+Documentation=https://pgbackrest.org/
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=<changeme>
+ExecStart=<changeme>
+# Backups are I/O heavy; keep them below normal priority so query traffic wins.
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

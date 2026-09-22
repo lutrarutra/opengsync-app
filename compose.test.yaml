@@ -3,7 +3,7 @@ services:
         container_name: opengsync-pytest
         build:
             context: .
-            dockerfile: ./services/Dockerfile
+            dockerfile: ./services/backend/Dockerfile
             target: pytest
         command: "pytest tests/ -W always"
         volumes:
@@ -31,8 +31,10 @@ services:
 
     postgres:
         container_name: opengsync-postgres-db-test
-        image: postgres:17-alpine
         command: "-c logging_collector=off"
+        build:
+            context: .
+            dockerfile: ./services/db/Dockerfile
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password

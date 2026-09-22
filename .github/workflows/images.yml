@@ -1,0 +1,315 @@
+name: Container images
+
+on:
+  pull_request:
+  push:
+    branches: [fastapi]
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      worker: ${{ steps.filter.outputs.worker }}
+      postgres: ${{ steps.filter.outputs.postgres }}
+      migrator: ${{ steps.filter.outputs.migrator }}
+      nginx: ${{ steps.filter.outputs.nginx }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - "services/backend/**"
+              - "packages/opengsync-db/**"
+              - "packages/opengsync-worker/**"
+              - "services/db/**"
+              - "services/pytest/**"
+              - "compose.test.yaml"
+              - "uv.lock"
+              - "pyproject.toml"
+              - ".github/workflows/images.yml"
+            worker:
+              - "services/backend/Dockerfile"
+              - "packages/opengsync-worker/**"
+              - "packages/opengsync-db/**"
+              - "uv.lock"
+              - "pyproject.toml"
+              - ".github/workflows/images.yml"
+            postgres:
+              - "services/db/Dockerfile"
+              - "services/db/entrypoint.sh"
+              - "services/db/postgresql.prod.conf"
+              - "services/db/pgbackrest.conf"
+              - "services/db/init.sh"
+              - ".github/workflows/images.yml"
+            migrator:
+              - "services/db/alembic/**"
+              - "packages/opengsync-db/**"
+              - "services/backend/Dockerfile"
+              - "uv.lock"
+              - "pyproject.toml"
+              - ".github/workflows/images.yml"
+            nginx:
+              - "services/nginx/**"
+              - "services/opengsync-app/static/**"
+              - ".github/workflows/images.yml"
+
+  # Backend-only: pytest gates the API image.
+  test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run pytest
+        run: docker compose -f compose.test.yaml up --build --abort-on-container-exit --exit-code-from opengsync-pytest
+      - name: Tear down
+        if: always()
+        run: docker compose -f compose.test.yaml down -v
+
+  publish-backend:
+    needs: [changes, test]
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Fetch version tags
+        run: git fetch --tags --force
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Latest version tag
+        id: version
+        run: |
+          TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.tag }},enable=${{ steps.version.outputs.tag != '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync FastAPI backend
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/backend/Dockerfile
+          target: opengsync-app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=0.0.0+${{ github.sha }}
+
+  # Worker-only: independent of backend tests and of backend changes.
+  # Builds on PRs when worker inputs change; pushes only on main.
+  publish-worker:
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.worker == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Fetch version tags
+        run: git fetch --tags --force
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Latest version tag
+        id: version
+        run: |
+          TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/worker
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.tag }},enable=${{ steps.version.outputs.tag != '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync Taskiq worker and scheduler
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/backend/Dockerfile
+          target: celery-worker
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=0.0.0+${{ github.sha }}
+
+  # Postgres + pgBackRest. No test gate: the image is validated by building it
+  # (pgBackRest is installed and run at build time), and a change to services/db
+  # also trips the backend filter, so the test suite runs separately.
+  publish-postgres:
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.postgres == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Fetch version tags
+        run: git fetch --tags --force
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Latest version tag
+        id: version
+        run: |
+          TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/postgres
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.tag }},enable=${{ steps.version.outputs.tag != '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=PostgreSQL with pgBackRest for opengsync
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/db/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Nginx reverse proxy. No test gate: it's a thin nginx layer with static
+  # assets baked in. Triggers on nginx config or static file changes.
+  publish-nginx:
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.nginx == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/nginx
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync nginx reverse proxy
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/nginx/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Alembic migrator. Gated on the test suite like the backend image, because a
+  # bad migration is the one artifact that can damage data.
+  publish-migrator:
+    needs: [changes, test]
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && needs.test.result == 'success'
+      && needs.changes.outputs.migrator == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Fetch version tags
+        run: git fetch --tags --force
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Latest version tag
+        id: version
+        run: |
+          TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/migrator
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.tag }},enable=${{ steps.version.outputs.tag != '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync Alembic migrator
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/backend/Dockerfile
+          target: migrator
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=0.0.0+${{ github.sha }}

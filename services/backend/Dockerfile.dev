@@ -29,8 +29,7 @@ RUN uv sync --frozen --no-install-project
 # --- ALEMBIC MIGRATOR ---
 FROM builder AS migrator
 COPY packages/opengsync-db /app/packages/opengsync-db
-COPY alembic /app/alembic
-COPY alembic.ini /app/alembic.ini
+COPY services/db/alembic /app/alembic
 RUN uv sync --frozen --no-editable --no-dev
 RUN uv pip install alembic
 

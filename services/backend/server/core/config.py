@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, PrivateAttr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Personalization(BaseModel):
     organization: str
     email: str
@@ -47,6 +48,7 @@ class AppConfig(BaseModel):
     log_folder: str
     illumina_run_folder: str
     scheduler: SchedulerConfig
+
 
 class Settings(BaseSettings):
     SECRET_KEY: str = ""

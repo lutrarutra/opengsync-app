@@ -2,13 +2,12 @@
 
 help:
 	@echo "Error: Please specify a target."
-	@echo "Usage: make [deploy|test|debug|prod-build|prod-migrate|prod-downgrade|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
+	@echo "Usage: make [deploy|test|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
-CLEAN_VERSION := $(shell echo $(VERSION) | sed 's/^v//')
 OVERRIDE_FILE := $(wildcard compose.override.yaml)
 
 OVERRIDE_FILE ?= compose.override.yaml
@@ -43,22 +42,18 @@ dev-migrate:
 dev-downgrade:
 	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
 
-dev-run:
-	$(COMPOSE_DEV) up -d --remove-orphans
-
-dev-attach:
-	$(COMPOSE_DEV) up --remove-orphans
-
-dev-logs:
-	$(COMPOSE_DEV) logs -f $(LOGS)
-
 dev-logs-all:
 	$(COMPOSE_DEV) logs -f
+
+dev:
+	$(COMPOSE_DEV) run --rm --build db-migrator
+	$(COMPOSE_DEV) up --remove-orphans --attach opengsync-app
 
 dev-stop:
 	$(COMPOSE_DEV) stop
 
-debug: dev-build dev-run dev-logs
+dev-down:
+	$(COMPOSE_DEV) down --remove-orphans
 
 prod-build:
 	$(COMPOSE_PROD) build --build-arg VERSION=$(VERSION)
@@ -68,7 +63,7 @@ prod-build-logs:
 
 prod-migrate:
 	$(MAKE) test
-	$(COMPOSE_PROD) run --build --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null; alembic --config /app/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null'
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null; alembic --config /app/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null'
 
 prod-downgrade:
 	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
@@ -85,11 +80,11 @@ prod-logs-all:
 prod-stop:
 	$(COMPOSE_PROD) stop
 
-prod-tag:
-	docker tag opengsync-app:latest opengsync-app:$(CLEAN_VERSION)
-
-deploy: prod-build prod-run
+deploy: prod-pull prod-run
 	docker system prune -f --filter "until=24h"
+
+prod-pull:
+	$(COMPOSE_PROD) pull --ignore-pull-failures
 
 test:
 	$(COMPOSE_TEST) down -v --remove-orphans
