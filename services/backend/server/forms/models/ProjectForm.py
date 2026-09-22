@@ -52,11 +52,15 @@ class ProjectForm(HTMXForm):
     @htmx_route("GET", "/{project_id}/edit", name="Edit")
     def RenderEdit(cls) -> RouteFunc:
         def route(
+            access_level: C.AccessLevel = Depends(dependencies.project_permissions),
             form: "ProjectForm" = Depends(ProjectForm.Init(form_type="edit"))
         ):
             if form.project is None:
                 raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
-            
+
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this project.")
+
             form.identifier.data = form.project.identifier
             form.title.data = form.project.title
             form.description.data = form.project.description
@@ -88,6 +92,23 @@ class ProjectForm(HTMXForm):
             
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this project.")
+
+            owner = session.first(Q.user.select(id=form.owner.data))
+            if owner is None:
+                form.owner.errors.append("Selected user does not exist.")
+                raise exc.FormValidationException(form)
+
+            group = None
+            if form.group.data is not None:
+                group = session.first(Q.group.select(id=form.group.data))
+                if group is None:
+                    form.group.errors.append("Selected group does not exist.")
+                    raise exc.FormValidationException(form)
+                if not owner.is_insider and session.first(
+                    Q.affiliation.select(user_id=owner.id, group_id=group.id)
+                ) is None:
+                    form.group.errors.append("Project owner must be part of the selected group.")
+                    raise exc.FormValidationException(form)
 
             if session.exists(
                 Q.project.select(title=form.title.data, owner_id=form.project.owner_id).where(
@@ -124,7 +145,7 @@ class ProjectForm(HTMXForm):
             form.project.description = form.description.data
             form.project.status = C.ProjectStatus.get(form.status.data)
             form.project.owner_id = form.owner.data
-            form.project.group_id = form.group.data
+            form.project.group_id = group.id if group else None
 
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=form.project.id),
@@ -139,6 +160,31 @@ class ProjectForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),                
             form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="create")),
         ) -> Response:
+            owner = session.first(Q.user.select(id=form.owner.data))
+            if owner is None:
+                form.owner.errors.append("Selected user does not exist.")
+                raise exc.FormValidationException(form)
+
+            if not current_user.is_insider and form.owner.data != current_user.id:
+                form.owner.errors.append("You do not have permission to set this user as owner.")
+                raise exc.FormValidationException(form)
+
+            if not current_user.is_insider and form.status.data != C.ProjectStatus.DRAFT.id:
+                form.status.errors.append("You can only create a project with status DRAFT.")
+                raise exc.FormValidationException(form)
+
+            group = None
+            if form.group.data is not None:
+                group = session.first(Q.group.select(id=form.group.data))
+                if group is None:
+                    form.group.errors.append("Selected group does not exist.")
+                    raise exc.FormValidationException(form)
+                if not owner.is_insider and session.first(
+                    Q.affiliation.select(user_id=owner.id, group_id=group.id)
+                ) is None:
+                    form.group.errors.append("Project owner must be part of the selected group.")
+                    raise exc.FormValidationException(form)
+
             if session.exists(
                 Q.project.select(title=form.title.data, owner_id=form.owner.data)
             ):
@@ -159,6 +205,7 @@ class ProjectForm(HTMXForm):
                 description=form.description.data,
                 status=C.ProjectStatus.get(form.status.data),
                 owner_id=form.owner.data,
+                group_id=group.id if group else None,
             ), flush=True)
 
             return responses.htmx_response(

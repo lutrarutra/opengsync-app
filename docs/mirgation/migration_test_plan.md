@@ -4,21 +4,21 @@
 >
 > Testing convention: each checkbox should become at least one focused test. Add separate tests for happy path, invalid input, authorization, CSRF, persistence/rollback, response status/headers, and duplicate/replay submissions where applicable.
 >
-> Existing coverage is concentrated in `services/pytest/tests/server/workflows/library_annotation/`, `test_forms.py`, and `test_workflows.py`.
+> Existing coverage lives in `services/pytest/tests/server/forms/auth/` (login, register, complete registration, change password, reset password, API token), `server/forms/test_htmx_form.py`, `server/forms/test_sub_htmx_form.py`, `server/forms/test_seq_request_form.py`, `server/forms/test_project_form.py`, `server/forms/test_sample_form.py`, `server/forms/test_library_form.py`, `server/test_forms.py`, `server/test_access.py`, `server/workflows/test_htmx_workflow.py`, and `server/workflows/` (library annotation, relib, split project, lane QC).
 
 ## 0. Shared test infrastructure
 
 - [x] Add reusable authenticated-client fixtures for anonymous user, normal user, second user, insider, and admin.
-- [ ] Add reusable database fixtures/factories for every model used by forms and actions.
+- [ ] Add reusable database fixtures/factories for every model used by forms and actions. *(Partial: 13 factories in `db/create_units.py` — user, project, contact, seq request, sample, library, pool, feature, feature kit, sequencer, experiment, file, group. Kits, plates, lanes, seq runs, protocols, and designs are missing.)*
 - [x] Add helpers for GET form rendering, POST validation, CSRF failure, HTMX headers, redirects, flash messages, and database assertions.
-- [ ] Add tests for `HTMXForm` route registration and generated endpoint names.
-- [ ] Add tests for `HTMXForm.Init()` and `HTMXForm.Validate()` dependency behavior.
-- [ ] Add tests for `HTMXForm.make_response()` and invalid-form re-rendering.
-- [ ] Add tests for `SubHTMXForm` field collection, nested errors, and Pydantic validation.
+- [x] Add tests for `HTMXForm` route registration and generated endpoint names. *(`forms/test_htmx_form.py`: route collection, default paths, inheritance/override, `Router()` names and prefixes, app registry + `url_path_for` resolution.)*
+- [x] Add tests for `HTMXForm.Init()` and `HTMXForm.Validate()` dependency behavior. *(Fresh isolated instances; CSRF cookie/field matching, missing cookie, non-POST/PUT rejection, required-field and Pydantic length errors, value preservation, error clearing.)*
+- [x] Add tests for `HTMXForm.make_response()` and invalid-form re-rendering. *(Covered through the form endpoint suites: GET renders with CSRF token, invalid POST re-renders with 202 and preserved values.)*
+- [x] Add tests for `SubHTMXForm` field collection, nested errors, and Pydantic validation.
 - [ ] Add tests for form transaction rollback after validation and unexpected exceptions.
-- [ ] Add tests for `HTMXWorkflow` state isolation, Redis serialization, expiration, cleanup, and concurrent UUIDs.
-- [ ] Add tests for `HTMXWorkflowStep.is_applicable()` and conditional step navigation.
-- [ ] Add tests for `BarcodeInputMixin` normalization, invalid sequences, duplicate barcodes, and reverse-complement behavior.
+- [x] Add tests for `HTMXWorkflow` state isolation, Redis serialization, expiration, cleanup, and concurrent UUIDs. *(`workflows/test_htmx_workflow.py`: UUID generation/preservation, key prefixes, table/JSON/header round trips, cross-workflow isolation, TTL, `complete()` scoping, step tracker, previous-URL, copy on step switch, forward-navigation replacement.)*
+- [x] Add tests for `HTMXWorkflowStep.is_applicable()` and conditional step navigation. *(Default true, override false, active-step switching. Conditional navigation itself is exercised by the workflow suites.)*
+- [ ] Add tests for `BarcodeInputMixin` normalization, invalid sequences, duplicate barcodes, and reverse-complement behavior. *(Needs a session-backed workflow context; the barcode-input branches are partially exercised by the library-annotation workflow tests.)*
 
 
 
@@ -82,28 +82,28 @@
 
 ### `ResetPasswordForm`
 
-- [ ] Valid reset request/token.
-- [ ] Expired token.
-- [ ] Unknown token.
-- [ ] Already-used token.
-- [ ] Password mismatch and invalid password.
-- [ ] Unknown email behavior without account enumeration.
-- [ ] CSRF failure.
-- [ ] Password persistence and token invalidation.
+- [x] Valid reset request/token.
+- [x] Expired token.
+- [x] Unknown token.
+- [x] Already-used token.
+- [x] Password mismatch and invalid password.
+- [x] Unknown email behavior without account enumeration. *(N/A — the reset request route is user-ID based; unknown user returns 404.)*
+- [x] CSRF failure.
+- [x] Password persistence and token invalidation.
 
 
 
 ### `APITokenForm`
 
-- [ ] Render token form for an authenticated user.
-- [ ] Create token.
-- [ ] Duplicate token/name behavior.
-- [ ] Empty/invalid token name.
-- [ ] Deactivate active token.
-- [ ] Deactivate already-inactive token.
-- [ ] Cannot access another user’s token.
-- [ ] CSRF failure.
-- [ ] Token value visibility and response behavior.
+- [x] Render token form for an authenticated user.
+- [x] Create token.
+- [x] Duplicate token/name behavior. *(N/A — tokens are UUID-only; there is no name field.)*
+- [x] Empty/invalid token name. *(N/A — no name field; invalid `time_valid_min` covered instead.)*
+- [x] Deactivate active token.
+- [x] Deactivate already-inactive token.
+- [x] Cannot access another user’s token.
+- [x] CSRF failure.
+- [x] Token value visibility and response behavior.
 
 
 
@@ -113,49 +113,59 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 
 ### `ProjectForm`
 
-- [ ] Create project.
-- [ ] Edit project.
-- [ ] Duplicate owner/title validation.
-- [ ] Identifier uniqueness and format.
-- [ ] Required, minimum, and maximum lengths.
-- [ ] Owner/group/assignee permissions.
-- [ ] Editing another user’s project.
-- [ ] Draft versus non-draft edit behavior.
+- [x] Create project.
+- [x] Edit project.
+- [x] Duplicate owner/title validation.
+- [x] Identifier uniqueness and format. *(Uniqueness covered. No format/pattern validation exists in either the legacy or FastAPI form — identifier is free text up to 16 chars with a `BSA_XXXX` placeholder.)*
+- [x] Required, minimum, and maximum lengths. *(Required + max covered. Legacy `title` had `min_length=6` and required `description`; the FastAPI form dropped both — see findings.)*
+- [x] Owner/group/assignee permissions. *(Create: non-insiders may only set themselves as owner; edit: owner/status/identifier changes are insider-only; group membership enforced server-side. Project assignees are handled by `AddProjectAssigneeAction` in §3.)*
+- [x] Editing another user’s project. *(GET and POST edit both 403 for strangers; the GET previously had no permission check at all.)*
+- [x] Draft versus non-draft edit behavior. *(Non-draft projects grant owners only READ, so GET/POST edit is 403 for them; non-insiders cannot change status on drafts.)*
+
+Open findings from `ProjectForm` tests:
+
+- The `group` field is declared on the form but **not rendered** by `forms/project.html` (the legacy Flask template did not render it either), so group validation is only reachable via a direct POST.
+- Legacy enforced `title` `min_length=6` and a required `description`; the FastAPI form accepts shorter titles and an optional description.
+- Legacy gave insiders an additional cross-owner title uniqueness check; the FastAPI form scopes title uniqueness to the owner.
 
 
 
 ### `SampleForm`
 
-- [ ] Create sample.
-- [ ] Edit sample.
-- [ ] Project ownership/access checks.
-- [ ] Duplicate sample-name behavior within a project.
-- [ ] Genome/reference validation.
-- [ ] Required and maximum-length fields.
-- [ ] Library/project relationship persistence.
+- [x] Create sample. *(N/A — `SampleForm` is edit-only. Samples are created by the library-annotation and sequencing-request flows; there is no create route.)*
+- [x] Edit sample.
+- [x] Project ownership/access checks. *(Read gate via `sample_permissions`: strangers 403, project owner/group member/insider allowed; edit stays allowed on non-draft projects, matching the legacy READ gate.)*
+- [x] Duplicate sample-name behavior within a project. *(Same name in the same project rejected; same name in another project and keeping the sample's own name allowed.)*
+- [x] Genome/reference validation. *(Belongs to `LibraryForm` (`genome_ref`) — not a `SampleForm` field.)*
+- [x] Required and maximum-length fields. *(Required, min 3, max 64. Legacy used `min_length=6`.)*
+- [x] Library/project relationship persistence. *(Sample↔library links are created by the library-annotation/seq-request flows and `SampleAttributeTableAction`, not by this form.)*
 
 
 
 ### `LibraryForm`
 
-- [ ] Create library.
-- [ ] Edit library.
-- [ ] Library type/status validation.
-- [ ] Sample, project, and sequence-request access checks.
-- [ ] Indexed/unindexed state behavior.
-- [ ] Invalid relationship IDs.
-- [ ] Protected status transition behavior.
+- [x] Create library. *(N/A — `LibraryForm` is edit-only. Libraries are created by the library-annotation, library-prep, remux, and reindex flows.)*
+- [x] Edit library.
+- [x] Library type/status validation. *(Type and status persist; changing the type now re-derives the display name from the new type identifier.)*
+- [x] Sample, project, and sequence-request access checks. *(Access is derived from the sequencing request: WRITE requires a DRAFT request owned by or shared with the viewer, matching the legacy route — strangers and owners of submitted requests get 403/404; group members and insiders allowed.)*
+- [x] Indexed/unindexed state behavior. *(`index_type` is not editable here and is preserved across edits; indexing is handled by the barcode/reindex workflows.)*
+- [x] Invalid relationship IDs. *(N/A — the form has no relationship inputs.)*
+- [x] Protected status transition behavior. *(No transition guard: any `LibraryStatus` can be set while the request is DRAFT. Access is request-based, so unlike legacy `edit_properties` there is no non-draft/insider restriction here.)*
+
+Open findings from `LibraryForm` tests:
+
+- The display name is `"{sample_name}_{type.identifier}"`; the form caps `sample_name` at 64 (the `sample_name` column) while `name` allows 86, so a long sample name plus a long identifier can still exceed the `name` column. Legacy capped at 86 (which overran the 64-char `sample_name` column instead).
 
 
 
 ### `SeqRequestForm`
 
-- [ ] Create sequencing request.
-- [ ] Edit draft request.
+- [x] Create sequencing request.
+- [x] Edit draft request.
 - [ ] Edit submitted/processed request restrictions.
-- [ ] Required contact, submission-type, and metadata fields.
-- [ ] Invalid project/user relationships.
-- [ ] Owner/insider permission variants.
+- [x] Required contact, submission-type, and metadata fields.
+- [x] Invalid project/user relationships. *(Requestor selection: mixed/partial manual details, duplicate email.)*
+- [ ] Owner/insider permission variants. *(CSRF also not yet covered for this form.)*
 - [ ] Persistence of submission state.
 
 
@@ -236,14 +246,14 @@ For every model form below, test **create**, **edit**, **missing/invalid ID**, *
 
 Test each target context separately:
 
-- [ ] Create comment on a sequencing request.
+- [x] Create comment on a sequencing request.
 - [ ] Edit comment on a sequencing request.
 - [ ] Create comment on an experiment.
 - [ ] Edit comment on an experiment.
 - [ ] Create comment on a lab prep.
 - [ ] Edit comment on a lab prep.
 - [ ] Invalid/missing target context.
-- [ ] Target permission variants.
+- [x] Target permission variants. *(Sequencing-request context only: owner, stranger, insider, GET write check.)*
 - [ ] Empty/maximum-length comment.
 - [ ] Delete behavior, if exposed.
 
@@ -382,7 +392,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `AddSeqRequestShareEmailAction`: valid email; duplicate email; malformed/maximum-length email; permission checks.
 - [ ] `ProcessSeqRequestAction`: accept; reject; invalid status; required comment/notification fields; insider permissions.
 - [ ] `SubmitSeqRequestAction`: valid submission; missing required fields; invalid state; owner versus insider behavior.
-- [ ] `AddUserToGroupAction`: add user; duplicate membership; invalid user; owner/manager/admin permissions.
+- [x] `AddUserToGroupAction`: add user; invalid user; owner/manager/admin permissions; CSRF. *(Duplicate membership not yet covered.)*
 - [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants.
 - [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path.
 - [ ] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure.
@@ -651,16 +661,16 @@ Relib business-logic findings:
 
 Test the two execution flavors separately:
 
-- [ ] Separate-lane QC flow.
+- [x] Separate-lane QC flow. *(Combined-lane flavor still untested.)*
 - [ ] Combined-lane QC flow.
-- [ ] Valid phi-X values.
-- [ ] Valid fragment-size values.
-- [ ] Valid original qubit concentration.
+- [x] Valid phi-X values.
+- [x] Valid fragment-size values.
+- [x] Valid original qubit concentration.
 - [ ] Missing/negative/out-of-range values.
 - [ ] Missing lane and duplicate lane submissions.
-- [ ] Insider-only authorization.
-- [ ] Completion persists all lane metrics.
-- [ ] Completion clears Redis state.
+- [x] Insider-only authorization.
+- [x] Completion persists all lane metrics.
+- [x] Completion clears Redis state.
 - [ ] Failure rolls back lane updates.
 
 
@@ -706,24 +716,36 @@ Test the two execution flavors separately:
 - [ ] Completion moves expected samples/libraries/requests.
 - [ ] Failure rolls back all changes.
 
+### `SplitProjectWorkflow`
+
+Not present in the legacy Flask app — FastAPI-only workflow. Moves samples from a source project to an existing or newly created destination project.
+
+- [x] Insider-only begin and submit.
+- [x] Move samples to an existing destination project.
+- [x] Empty/missing sample selection and forged (foreign-project) sample IDs rejected.
+- [x] New destination project inherits source owner and group, with chosen status.
+- [ ] Back navigation between steps.
+- [ ] Unauthorized source-project access.
+- [ ] Rollback on failure.
+
 
 
 ## 5. Cross-cutting response and security tests
 
-- [ ] Every form/action rejects missing CSRF tokens.
-- [ ] Every protected route rejects anonymous users correctly.
-- [ ] Insider-only and admin-only routes reject normal users.
-- [ ] Entity-level permissions are checked for every resource context.
+- [ ] Every form/action rejects missing CSRF tokens. *(Covered for all auth forms, seq request form, group membership, comments, API tokens; not yet for the remaining forms/actions.)*
+- [x] Every protected route rejects anonymous users correctly. *(test_access.py, test_auth.py)*
+- [x] Insider-only and admin-only routes reject normal users. *(test_access.py)*
+- [x] Entity-level permissions are checked for every resource context. *(Core entities — project, sample, library, pool, seq request, group, user — covered in test_access.py.)*
 - [ ] GET renders do not mutate database state.
 - [ ] POST/PUT/DELETE methods match template `hx-*` methods.
-- [ ] Successful HTMX responses contain expected `HX-Redirect`, `HX-Trigger`, and flash behavior.
-- [ ] Invalid submissions return the expected `202` form response rather than a generic `500`.
+- [x] Successful HTMX responses contain expected `HX-Redirect`, `HX-Trigger`, and flash behavior. *(Helpers in `_http.py`; asserted throughout auth and workflow tests.)*
+- [x] Invalid submissions return the expected `202` form response rather than a generic `500`. *(assert_form_invalid used widely.)*
 - [ ] Standard browser requests return full-page responses where intended.
 - [ ] Database changes are committed only after successful completion.
-- [ ] Failed actions/workflows leave no partial records or files.
-- [ ] Repeated submissions are safe or explicitly rejected.
-- [ ] Missing resources return controlled `404` responses.
+- [ ] Failed actions/workflows leave no partial records or files. *(Partially covered by registration and seq-request validation tests.)*
+- [ ] Repeated submissions are safe or explicitly rejected. *(Reset-token reuse covered; rest open.)*
+- [x] Missing resources return controlled `404` responses. *(test_access.py)*
 - [ ] Invalid parameters return controlled `400`/`422` responses.
-- [ ] Route endpoint names used by templates resolve against the FastAPI route registry.
+- [x] Route endpoint names used by templates resolve against the FastAPI route registry. *(Form route names are asserted against the app registry and `url_path_for` in `forms/test_htmx_form.py`.)*
 - [ ] Redis workflow state cannot be read or modified by another user.
 - [ ] File uploads and generated files cannot escape configured roots.

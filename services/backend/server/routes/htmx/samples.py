@@ -147,7 +147,10 @@ def render_sample_attribute_spreadsheet(
 
     return spreadsheet.render()
 
-router.include_router(forms.models.SampleForm.Router())
+router.include_router(
+    forms.models.SampleForm.Router(),
+    dependencies=[Depends(dependencies.sample_permissions)],
+)
 
 
 @router.delete("/{sample_id}/delete")

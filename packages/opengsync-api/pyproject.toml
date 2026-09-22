@@ -18,15 +18,6 @@ dependencies = [
 [tool.setuptools_scm]
 root = "../.."
 
-
-[tool.flake8]
-max-line-length = 120
-exclude = [
-    ".git",
-    "__pycache__",
-]
-extend-ignore = ["E501", "W292", "W293"]
-
 [project.urls]
 Repository = "https://github.com/lutrarutra/opengsync-app"
 

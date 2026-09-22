@@ -56,7 +56,7 @@ class APITokenForm(HTMXForm):
             token = session.save(Q.api_token.create(
                 owner=form.user,
                 time_valid_min=form.time_valid_min.data,
-            ))
+            ), flush=True)
 
             return responses.htmx_response(
                 template="forms/auth/api_token_complete.html",

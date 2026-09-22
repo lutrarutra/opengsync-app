@@ -15,6 +15,7 @@ from ... import forms
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
+
 class ExperimentTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
@@ -28,11 +29,13 @@ class ExperimentTable(HTMXTable):
         TableCol(title="Completed", label="timestamp_completed", col_size=2, sortable=True, sort_by="timestamp_finished_utc"),
     ]
 
+
 @router.get("/render-table-page")
 def render_experiment_table(
     project_id: int | None = Query(None, description="Optional project ID to filter experiments"),
     status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentStatus, query_param="status_in")),
     workflow_in: list[C.ExperimentWorkFlow] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentWorkFlow, query_param="workflow_in")),
+    name: str | None = Query(None, description="Optional name to search experiments"),
     browse: str | None = Query(None, description="Optional browse context for experiment selection component"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Experiment, default=models.Experiment.id.desc())),
@@ -51,6 +54,10 @@ def render_experiment_table(
         status_in=status_in,
         workflow_in=workflow_in,
     )
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+        stmt = Q.experiment.search(name=name, statement=stmt)
 
     if project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:

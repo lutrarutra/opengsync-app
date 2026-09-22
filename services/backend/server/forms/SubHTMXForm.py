@@ -202,6 +202,8 @@ class SubHTMXForm:
                         pydantic_key = field.name.replace("-", "_")
                         if pydantic_key == error_field_name and not field.errors:
                             msg = error["msg"]
+                            if isinstance(field, inputs.string.StringInputField):
+                                msg = msg.replace("String", field.label)
                             msg = msg[0].upper() + msg[1:]
                             field.errors.append(msg)
                             break

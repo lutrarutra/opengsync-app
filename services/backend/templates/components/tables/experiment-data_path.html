@@ -16,9 +16,11 @@
             <tr data-id="{{ data_path.id }}">
                 <th scope="row">{{ data_path.id }}</th>
                 {% if data_path.type != C.DataPathType.DIRECTORY %}
-                <td><a class="visitable" href="{{ url_for('serve_data_file', data_path_id=data_path.id) }}" target="_blank">{{ data_path.path }}</a></td>
+                {% set begin, end = data_path.path | middle_truncate %}
+                <td><a class="visitable middle-ellipsis" href="{{ url_for('serve_data_file', data_path_id=data_path.id) }}" target="_blank"><span class="begin">{{ begin }}</span>{% if end %}<span class="end">{{ end }}</span>{% endif %}</a></td>
                 {% else %}
-                <td>{{ data_path.path }}</td>
+                {% set begin, end = data_path.path | middle_truncate %}
+                <td><span class="middle-ellipsis"><span class="begin">{{ begin }}</span>{% if end %}<span class="end">{{ end }}</span>{% endif %}</span></td>
                 {% endif %}
                 <td>{{ data_path.type }}</td>
             </tr>

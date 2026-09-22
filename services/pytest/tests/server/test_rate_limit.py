@@ -1,8 +1,24 @@
+import types
+
+import pytest
 from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, models, queries as Q
 
+from server.core import dependencies
+
 from ._http import post_form
 from .test_share_routes import share_fixture
+
+
+@pytest.fixture(autouse=True)
+def frozen_rate_limit_clock(monkeypatch):
+    """Freeze the rate-limit window so a test cannot straddle a period boundary.
+
+    ``rate_limit`` derives its window from ``int(time.time()) // period``; without
+    freezing, a slow loop (bcrypt logins) can roll over a minute mid-test and reset
+    the counter, making the expected 429 non-deterministic.
+    """
+    monkeypatch.setattr(dependencies, "time", types.SimpleNamespace(time=lambda: 1_700_000_000.0))
 
 
 def test_login_rate_limit(

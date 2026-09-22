@@ -155,6 +155,26 @@ table input.table-query-input {
                 padding-left: 8px !important;
             }
 
+            .middle-ellipsis {
+                display: flex;
+                overflow: hidden;
+                white-space: nowrap;
+                max-width: 100%;
+            }
+            .middle-ellipsis .begin {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                flex-shrink: 1;
+                min-width: 30%;
+            }
+            .middle-ellipsis .end {
+                white-space: nowrap;
+                flex-shrink: 0;
+                overflow: hidden;
+                max-width: 70%;
+            }
+
             td span a {
                 padding-right: 0px !important;
                 padding-left: 0px !important;

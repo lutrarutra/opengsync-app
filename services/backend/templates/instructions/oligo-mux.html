@@ -50,73 +50,76 @@
 </div>
 
 <script>
-    jspreadsheet(document.getElementById("mux-example-1"), {
-        worksheets: [{
-            data: [
-                ["lung_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
-                ["heart_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
-                ["kidney_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
-                ["lung_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
-                ["heart_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
-                ["kidney_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
-                ["lung_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
-                ["heart_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
-                ["kidney_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
-            ],
-            columns: [
-                {% for col in form.spreadsheet.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: false,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: false,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-        }],
-    });
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
 
-    jspreadsheet(document.getElementById("mux-example-2"), {
-        worksheets: [{
-            data: [
-                ["lung_sample_A", "cmo_sample_A", "", "", "ATGAGGAATTCCTGC", "5P(BC)", "R2"],
-                ["heart_sample_A", "cmo_sample_A", "", "", "CATGCCAATAGAGCG", "5P(BC)", "R2"],
-                ["kidney_sample_A", "cmo_sample_A", "", "", "CCGTCGTCCAAGCAT", "5P(BC)", "R2"],
-                ["lung_sample_B", "cmo_sample_B", "", "", "AACGTTAATCACTCA", "5P(BC)", "R2"],
-                ["heart_sample_B", "cmo_sample_B", "", "", "CGCGATATGGTCGGA", "5P(BC)", "R2"],
-                ["kidney_sample_B", "cmo_sample_B", "", "", "AAGATGAGGTCTGTG", "5P(BC)", "R2"],
-                ["lung_sample_C", "cmo_sample_C", "", "", "AAGCTCGTTGGAAGA", "5P(BC)", "R2"],
-                ["heart_sample_C", "cmo_sample_C", "", "", "CGGATTCCACATCAT", "5P(BC)", "R2"],
-                ["kidney_sample_C", "cmo_sample_C", "", "", "GTTGATCTATAACAG", "5P(BC)", "R2"],
-            ],
-            columns: [
-                {% for col in form.spreadsheet.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: false,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: false,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-        }],
+        jspreadsheet(document.getElementById("mux-example-1"), {
+            worksheets: [{
+                data: [
+                    ["lung_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
+                    ["heart_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
+                    ["kidney_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
+                    ["lung_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
+                    ["heart_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
+                    ["kidney_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
+                    ["lung_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
+                    ["heart_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
+                    ["kidney_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+            }],
+        });
+
+        jspreadsheet(document.getElementById("mux-example-2"), {
+            worksheets: [{
+                data: [
+                    ["lung_sample_A", "cmo_sample_A", "", "", "ATGAGGAATTCCTGC", "5P(BC)", "R2"],
+                    ["heart_sample_A", "cmo_sample_A", "", "", "CATGCCAATAGAGCG", "5P(BC)", "R2"],
+                    ["kidney_sample_A", "cmo_sample_A", "", "", "CCGTCGTCCAAGCAT", "5P(BC)", "R2"],
+                    ["lung_sample_B", "cmo_sample_B", "", "", "AACGTTAATCACTCA", "5P(BC)", "R2"],
+                    ["heart_sample_B", "cmo_sample_B", "", "", "CGCGATATGGTCGGA", "5P(BC)", "R2"],
+                    ["kidney_sample_B", "cmo_sample_B", "", "", "AAGATGAGGTCTGTG", "5P(BC)", "R2"],
+                    ["lung_sample_C", "cmo_sample_C", "", "", "AAGCTCGTTGGAAGA", "5P(BC)", "R2"],
+                    ["heart_sample_C", "cmo_sample_C", "", "", "CGGATTCCACATCAT", "5P(BC)", "R2"],
+                    ["kidney_sample_C", "cmo_sample_C", "", "", "GTTGATCTATAACAG", "5P(BC)", "R2"],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+            }],
+        });
     });
 </script>

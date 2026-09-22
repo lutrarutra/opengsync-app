@@ -8,7 +8,7 @@ from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from ..HTMXWorkflow import HTMXWorkflow
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
-from .CompleteReindexForm import CompleteReindexForm
+
 
 class BarcodeMatchForm(ReindexWorkflowStep):
     template_path = "workflows/reindex/barcode-match.html"
@@ -25,8 +25,8 @@ class BarcodeMatchForm(ReindexWorkflowStep):
         options=[(1, "Forward"), (2, "Reverse Complement"), (3, "I don't know")],
         required=False,
     )
-    i7_primer = inputs.string.StringInputField("i7 Primer Sequence", required=False, max_length=255)
-    i5_primer = inputs.string.StringInputField("i5 Primer Sequence", required=False, max_length=255)
+    i7_primer = inputs.string.TextAreaInputField("i7 Primer Sequence", required=False, max_length=255)
+    i5_primer = inputs.string.TextAreaInputField("i5 Primer Sequence", required=False, max_length=255)
 
     @classmethod
     def is_applicable(cls, workflow: "HTMXWorkflow") -> bool:

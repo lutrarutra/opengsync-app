@@ -19,7 +19,7 @@
     <div id="pooling-example"></div>
 </div>
 <script>
-    $(document).ready(function() {
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
         jspreadsheet(document.getElementById('pooling-example'), {
             worksheets: [{
                 data: [

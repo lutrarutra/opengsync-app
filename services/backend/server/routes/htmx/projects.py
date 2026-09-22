@@ -17,6 +17,7 @@ from ... import forms
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
+
 class ProjectTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),

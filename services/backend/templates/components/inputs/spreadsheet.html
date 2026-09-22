@@ -11,8 +11,8 @@
 </div>
 <script>
     // TODO: This is a temporary fix to allow the spreadsheet to load on staging (v2)
-    // load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
-    load_jspreadsheet("https://biomedical-sequencing.at/opengsync/v2/static/js/jss-extended.js").then(() => {
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+    // load_jspreadsheet("https://biomedical-sequencing.at/opengsync/v2/static/js/jss-extended.js").then(() => {
         window.spread_sheet = window.jspreadsheet(document.getElementById("{{ field.id }}"), {
             worksheets: [{
                 data: {{ field.table_data | safe if field.table_data else "[[null]]" }},

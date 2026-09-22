@@ -155,6 +155,22 @@ def prioritize_current_user(users: list[models.User], current_user: models.User)
 j2.env.filters["prioritize_current_user"] = prioritize_current_user
 
 
+def middle_truncate(path: str, max_len: int = 100, tail_len: int = 50) -> tuple[str, str]:
+    """Split a path into (beginning, end) for middle-ellipsis rendering.
+
+    If the path fits within *max_len*, the second element is empty.
+    Otherwise the first element is everything except the last *tail_len*
+    characters, and the second element is those last *tail_len* characters.
+    The tail is kept long so the filename/child side dominates.
+    """
+    if len(path) <= max_len:
+        return (path, "")
+    return (path[:-tail_len], path[-tail_len:])
+
+
+j2.env.filters["middle_truncate"] = middle_truncate
+
+
 @jinja2.pass_context
 def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
     """Custom url_for that handles static files without needing request.url_for.

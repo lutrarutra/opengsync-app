@@ -97,90 +97,93 @@
 </div>
 
 <script>
-    jspreadsheet(document.getElementById("abc-example-1"), {
-        worksheets: [{
-            data: [
-                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "", "", "", ""],
-            ],
-            columns: [
-                {% for col in form.spreadsheet.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: false,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: false,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-        }],
-    });
-    jspreadsheet(document.getElementById("abc-example-2"), {
-        worksheets: [{
-            data: [
-                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0014", "", "", ""],
-                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0073", "", "", ""],
-                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0103", "", "", ""],
-                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0070", "", "", ""],
-                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0250", "", "", ""],
-            ],
-            columns: [
-                {% for col in form.spreadsheet.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: false,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: false,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-        }],
-    });
-    jspreadsheet(document.getElementById("abc-example-3"), {
-        worksheets: [{
-            data: [
-                ["", "", "230", "custom-230", "TGGCTTCAGGTCCTA", "5P(BC)", "R2"],
-                ["", "", "226", "custom-226", "CCTACACCTCATAAT", "5P(BC)", "R2"],
-                ["", "", "225", "custom-225", "TTCCGAGGATGATCT", "5P(BC)", "R2"],
-                ["", "", "224", "custom-224", "GTAGTAGGCTAGACC", "5P(BC)", "R2"],
-                ["", "", "210", "custom-210", "TCCTTGGATGTACCG", "5P(BC)", "R2"],
-            ],
-            columns: [
-                {% for col in form.spreadsheet.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: false,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: false,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-        }],
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+
+        jspreadsheet(document.getElementById("abc-example-1"), {
+            worksheets: [{
+                data: [
+                    ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "", "", "", ""],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+            }],
+        });
+        jspreadsheet(document.getElementById("abc-example-2"), {
+            worksheets: [{
+                data: [
+                    ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0014", "", "", ""],
+                    ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0073", "", "", ""],
+                    ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0103", "", "", ""],
+                    ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0070", "", "", ""],
+                    ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0250", "", "", ""],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+            }],
+        });
+        jspreadsheet(document.getElementById("abc-example-3"), {
+            worksheets: [{
+                data: [
+                    ["", "", "230", "custom-230", "TGGCTTCAGGTCCTA", "5P(BC)", "R2"],
+                    ["", "", "226", "custom-226", "CCTACACCTCATAAT", "5P(BC)", "R2"],
+                    ["", "", "225", "custom-225", "TTCCGAGGATGATCT", "5P(BC)", "R2"],
+                    ["", "", "224", "custom-224", "GTAGTAGGCTAGACC", "5P(BC)", "R2"],
+                    ["", "", "210", "custom-210", "TCCTTGGATGTACCG", "5P(BC)", "R2"],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+            }],
+        });
     });
 </script>

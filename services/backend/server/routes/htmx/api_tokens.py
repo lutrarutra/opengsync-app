@@ -40,7 +40,7 @@ def render_api_token_table(
     else:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/api_token.html"
+        table.template = "components/tables/api-token.html"
 
     tokens = table.paginate(
         session, stmt, page=page, order_by=order_by,
@@ -62,4 +62,3 @@ def deactivate_api_token(
     token._expired = True
     session.save(token)
     return responses.htmx_response(flash=responses.flash("API token deactivated.", "success"))
-

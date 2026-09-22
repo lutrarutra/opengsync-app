@@ -29,6 +29,8 @@ def render_pool_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter pools"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter pools"),
     lab_prep_id: int | None = Query(None, description="Optional lab prep ID to filter pools"),
+    name: str | None = Query(None, description="Optional name to search pools"),
+    owner: str | None = Query(None, description="Optional owner to search pools"),
     status_in: list[C.PoolStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     type_in: list[C.PoolType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolType, query_param="type_in")),
@@ -55,6 +57,14 @@ def render_pool_table(
         library_types_in=library_types_in,
         type_in=type_in,
     )
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+        stmt = Q.pool.search(name=name, statement=stmt)
+    elif owner:
+        table.active_search_var = "owner"
+        table.active_query_value = owner
+        stmt = Q.pool.search(owner_name=owner, statement=stmt)
 
     if seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
