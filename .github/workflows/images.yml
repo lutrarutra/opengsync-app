@@ -76,7 +76,7 @@ jobs:
     needs: [changes, test]
     if: >-
       github.event_name == 'push'
-      && github.ref == 'refs/heads/main'
+      && github.ref == 'refs/heads/fastapi'
       && needs.test.result == 'success'
     runs-on: ubuntu-latest
     permissions:
@@ -127,7 +127,7 @@ jobs:
   # Builds on PRs when worker inputs change; pushes only on main.
   publish-worker:
     needs: changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.worker == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fastapi' && needs.changes.outputs.worker == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -179,7 +179,7 @@ jobs:
   # also trips the backend filter, so the test suite runs separately.
   publish-postgres:
     needs: changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.postgres == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fastapi' && needs.changes.outputs.postgres == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -227,7 +227,7 @@ jobs:
   # assets baked in. Triggers on nginx config or static file changes.
   publish-nginx:
     needs: changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.nginx == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fastapi' && needs.changes.outputs.nginx == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -266,7 +266,7 @@ jobs:
     needs: [changes, test]
     if: >-
       github.event_name == 'push'
-      && github.ref == 'refs/heads/main'
+      && github.ref == 'refs/heads/fastapi'
       && needs.test.result == 'success'
       && needs.changes.outputs.migrator == 'true'
     runs-on: ubuntu-latest
