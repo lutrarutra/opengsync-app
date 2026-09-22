@@ -27,7 +27,7 @@ licensed/
 .config/
 ~*.xlsx
 
-services/opengsync-app/templates/custom/
+services/backend/templates/custom/
 services/nginx/config/
 
 .snakemake/

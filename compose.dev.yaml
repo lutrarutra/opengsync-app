@@ -19,7 +19,6 @@ services:
         volumes:
             - ./services/db/alembic:/app/alembic
         restart: "no"
-        command: alembic --config /app/alembic/alembic.ini upgrade head
 
     opengsync-app:
         container_name: opengsync-app-dev
@@ -32,11 +31,11 @@ services:
             - ./packages/opengsync-db:/app/packages/opengsync-db
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ./services/backend:/app/services/backend:ro
-            - ./services/opengsync-app/static/images:/static/images:ro
-            - ./services/opengsync-app/static/js:/static/js:ro
-            - ./services/opengsync-app/static/resources:/static/resources:ro
-            - ./services/opengsync-app/static/style/email.css:/static/style/email.css:ro
-            - ./services/opengsync-app/templates:/templates:ro
+            - ./services/backend/static/images:/static/images:ro
+            - ./services/backend/static/js:/static/js:ro
+            - ./services/backend/static/resources:/static/resources:ro
+            - ./services/backend/static/style/email.css:/static/style/email.css:ro
+            - ./services/backend/templates:/templates:ro
             - ${UPLOADS_DIR}:/uploads
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
@@ -157,8 +156,8 @@ services:
           context: .
           dockerfile: ./services/tailwind-compiler/Dockerfile
         volumes:
-            - ./services/opengsync-app/static/style:/app/style
-            - ./services/opengsync-app/templates:/app/templates
+            - ./services/backend/static/style:/app/style
+            - ./services/backend/templates:/app/templates
             - compiled_css:/app/static/style/compiled
         environment:
             - TZ=${TIMEZONE}

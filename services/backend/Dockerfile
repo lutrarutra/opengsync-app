@@ -36,22 +36,26 @@ COPY services/db/alembic /app/alembic
 RUN uv sync --frozen --no-editable --no-dev
 RUN uv pip install alembic
 
+CMD alembic --config /app/alembic/alembic.ini upgrade head
+
 # --- SERVER ---
 FROM builder AS opengsync-app
 
 COPY packages /app/packages
 COPY services/backend /app/services/backend
-COPY ./services/opengsync-app/scripts /app/scripts
 
 ENV PYTHONPATH=/app/services/backend
 
 RUN uv sync --frozen --no-editable --no-dev
 
-COPY services/opengsync-app/templates /templates
-COPY services/opengsync-app/static/js /static/js
-COPY services/opengsync-app/static/images /static/images
-COPY services/opengsync-app/static/resources /static/resources
-COPY services/opengsync-app/static/style/email.css /static/style/email.css
+COPY services/backend/templates /templates
+COPY services/backend/static/js /static/js
+COPY services/backend/static/images /static/images
+COPY services/backend/static/resources /static/resources
+COPY services/backend/static/style/email.css /static/style/email.css
+COPY services/backend/scripts /app/scripts
+
+CMD ["/app/scripts/entrypoint.sh", "api"]
 
 # --- CELERY BASE ---
 FROM builder AS celery-base
@@ -63,14 +67,16 @@ FROM celery-base AS celery-worker
 COPY packages /app/packages
 RUN uv sync --frozen --no-editable --no-dev
 
+CMD celery -A opengsync_worker.celery worker --loglevel=info
+
 # --- PYTEST ---
 FROM builder AS pytest
 ENV PYTHONPATH=/app/services/backend
 COPY packages /app/packages
 COPY services/backend /app/services/backend
-COPY services/opengsync-app/static/resources/templates/library_prep/ /app/prep_tables
-COPY services/opengsync-app/templates /templates
-COPY services/opengsync-app/static /static
+COPY services/backend/static/resources/templates/library_prep/ /app/prep_tables
+COPY services/backend/templates /templates
+COPY services/backend/static /static
 RUN mkdir -p /logs /static /templates
 RUN uv sync --frozen --no-editable --no-dev
 RUN uv pip install pytest httpx

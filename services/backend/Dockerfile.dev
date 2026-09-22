@@ -32,6 +32,7 @@ COPY packages/opengsync-db /app/packages/opengsync-db
 COPY services/db/alembic /app/alembic
 RUN uv sync --frozen --no-editable --no-dev
 RUN uv pip install alembic
+CMD alembic --config /app/alembic/alembic.ini upgrade head
 
 # --- SERVER ---
 FROM builder AS opengsync-app

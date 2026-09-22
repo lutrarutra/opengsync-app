@@ -56,7 +56,7 @@ jobs:
               - ".github/workflows/images.yml"
             nginx:
               - "services/nginx/**"
-              - "services/opengsync-app/static/**"
+              - "services/backend/static/**"
               - ".github/workflows/images.yml"
 
   # Backend-only: pytest gates the API image.
