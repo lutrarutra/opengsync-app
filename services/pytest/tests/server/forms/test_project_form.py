@@ -298,11 +298,12 @@ def test_create_insider_can_assign_another_owner(
     assert project.owner_id == user_2.id
 
 
-def test_create_unknown_owner_rerenders(
+def test_create_unknown_owner_is_404(
     client: TestClient,
     session: SyncSession,
     insider_token: str,
 ):
+    """Searchable ids are trusted; an unknown one resolves to a controlled 404."""
     response = post_form(
         client,
         CREATE,
@@ -310,7 +311,7 @@ def test_create_unknown_owner_rerenders(
         token=insider_token,
     )
 
-    assert_form_invalid(response, "Selected user does not exist.")
+    assert response.status_code == 404
     assert _project(session, "Ghost Owner") is None
 
 
@@ -381,6 +382,7 @@ def test_create_group_requires_owner_membership(
     user_token: str,
 ):
     group = create_group(session)
+    session.commit()
 
     response = post_form(
         client,
@@ -393,7 +395,7 @@ def test_create_group_requires_owner_membership(
     assert _project(session, "Ungrouped Membership") is None
 
 
-def test_create_unknown_group_rerenders(
+def test_create_unknown_group_is_404(
     client: TestClient,
     session: SyncSession,
     user,
@@ -406,7 +408,7 @@ def test_create_unknown_group_rerenders(
         token=user_token,
     )
 
-    assert_form_invalid(response)
+    assert response.status_code == 404
     assert _project(session, "Ghost Group") is None
 
 

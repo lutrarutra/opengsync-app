@@ -6,7 +6,7 @@ from opengsync_db import SyncSession, models, queries as Q
 from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlow, SequencerModel,
     ReadType, ExperimentStatus, PoolType, SubmissionType, MediaFileType, GenomeRef, ServiceType,
-    GroupType, LibraryStatus
+    GroupType, LibraryStatus, KitType, IndexType, RunStatus, TaskStatus, FlowCellType,
 )
 
 
@@ -169,4 +169,89 @@ def create_group(
     return session.save(Q.group.create(
         name=_uuid,
         type=GroupType.COLLABORATION
+    ), flush=True)
+
+
+def create_kit(session: SyncSession) -> models.Kit:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.kit.create(
+        name=_uuid,
+        identifier=_uuid[:12],
+        kit_type=KitType.LIBRARY_KIT,
+    ), flush=True)
+
+
+def create_index_kit(session: SyncSession) -> models.IndexKit:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.index_kit.create(
+        name=_uuid,
+        identifier=_uuid[:12],
+        type=IndexType.DUAL_INDEX,
+        supported_protocol_ids=[],
+    ), flush=True)
+
+
+def create_protocol(session: SyncSession) -> models.Protocol:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.protocol.create(
+        name=_uuid,
+        service_type=ServiceType.CUSTOM,
+    ), flush=True)
+
+
+def create_seq_run(session: SyncSession) -> models.SeqRun:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.seq_run.create(
+        experiment_name=_uuid[:20],
+        status=RunStatus.RUNNING,
+        instrument_name=_uuid[:20],
+        run_folder=_uuid,
+        flowcell_id=_uuid[:20],
+        read_type=ReadType.PAIRED_END,
+        r1_cycles=1, i1_cycles=1, r2_cycles=1, i2_cycles=1,
+    ), flush=True)
+
+
+def create_pool_design(session: SyncSession) -> models.PoolDesign:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.pool_design.create(
+        name=_uuid,
+        num_m_requested_reads=1.0,
+        cycles_r1=1,
+        cycles_i1=1,
+        cycles_i2=1,
+        cycles_r2=1,
+    ), flush=True)
+
+
+def create_flow_cell_design(session: SyncSession) -> models.FlowCellDesign:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.flow_cell_design.create(
+        name=_uuid,
+    ), flush=True)
+
+
+def create_todo_comment(
+    session: SyncSession,
+    user: models.User,
+    pool_design_id: int | None = None,
+    flow_cell_design_id: int | None = None,
+) -> models.TODOComment:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.todo_comment.create(
+        text=_uuid,
+        author=user,
+        status=TaskStatus.IN_PROGRESS,
+        pool_design_id=pool_design_id,
+        flow_cell_design_id=flow_cell_design_id,
+    ), flush=True)
+
+
+def create_plate(session: SyncSession, user: models.User) -> models.Plate:
+    _uuid = str(uuid.uuid1())
+    return session.save(Q.plate.create(
+        name=_uuid,
+        num_cols=12,
+        num_rows=8,
+        owner=user,
     ), flush=True)

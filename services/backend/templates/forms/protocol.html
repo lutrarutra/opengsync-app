@@ -21,7 +21,7 @@
         <div class="footer-controls">
             {% if form.form_type == "edit" %}
             <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('ProtocolForm.Edit', protocol_id=protocol.id) }}">Submit</button>
+                hx-post="{{ url_for('ProtocolForm.Edit', protocol_id=form.protocol.id) }}">Submit</button>
             {% elif form.form_type == "create" %}
             <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container"
                 hx-swap="outerHTML" hx-post="{{ url_for('ProtocolForm.Create') }}">Create</button>

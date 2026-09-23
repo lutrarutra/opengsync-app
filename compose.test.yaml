@@ -9,6 +9,10 @@ services:
         volumes:
             # Host tests overlay the image copy so local edits are picked up without a stale cache.
             - ./services/pytest/tests:/app/tests
+            # Host backend code mounted so form/route changes are picked up without rebuilding.
+            - ./services/backend/server:/app/services/backend/server
+            # Host templates mounted so template changes are picked up without rebuilding.
+            - ./services/backend/templates:/templates
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password

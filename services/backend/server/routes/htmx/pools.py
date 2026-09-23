@@ -6,7 +6,6 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...forms.models import PoolForm
-from ...forms.models import PlateForm
 
 
 router = APIRouter(prefix="/pools", tags=["pools"])
@@ -248,4 +247,3 @@ def render_pool_feed(
 
 
 router.include_router(PoolForm.Router())
-router.include_router(PlateForm.Router())

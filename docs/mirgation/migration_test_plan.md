@@ -4,7 +4,7 @@
 >
 > Testing convention: each checkbox should become at least one focused test. Add separate tests for happy path, invalid input, authorization, CSRF, persistence/rollback, response status/headers, and duplicate/replay submissions where applicable.
 >
-> Existing coverage lives in `services/pytest/tests/server/forms/auth/` (login, register, complete registration, change password, reset password, API token), `server/forms/test_htmx_form.py`, `server/forms/test_sub_htmx_form.py`, `server/forms/test_seq_request_form.py`, `server/forms/test_project_form.py`, `server/forms/test_sample_form.py`, `server/forms/test_library_form.py`, `server/test_forms.py`, `server/test_access.py`, `server/workflows/test_htmx_workflow.py`, and `server/workflows/` (library annotation, relib, split project, lane QC).
+> Existing coverage lives in `services/pytest/tests/server/forms/auth/` (login, register, complete registration, change password, reset password, API token), `server/forms/test_htmx_form.py`, `server/forms/test_sub_htmx_form.py`, `server/forms/test_seq_request_form.py`, `server/forms/test_project_form.py`, `server/forms/test_sample_form.py`, `server/forms/test_library_form.py`, `server/forms/test_experiment_form.py`, `server/test_forms.py`, `server/test_access.py`, `server/workflows/test_htmx_workflow.py`, and `server/workflows/` (library annotation, relib, split project, lane QC).
 
 ## 0. Shared test infrastructure
 
@@ -183,13 +183,19 @@ Open findings from `LibraryForm` tests:
 
 ### `ExperimentForm`
 
-- [ ] Create experiment.
-- [ ] Edit experiment.
-- [ ] Sequencer/operator selection.
-- [ ] Workflow and lane configuration validation.
-- [ ] Invalid status transitions.
-- [ ] Insider/admin permission variants.
-- [ ] Deleteability interaction with form state.
+- [x] Create experiment. *(Insider-only; lanes are created for the workflow's flow cell.)*
+- [x] Edit experiment.
+- [x] Sequencer/operator selection. *(Both resolved against the DB — unknown ids return a controlled `404` (via `session.get_one`) instead of a foreign-key `500`.)*
+- [x] Workflow and lane configuration validation. *(Changing the workflow resizes lanes via the `Experiment.workflow` listener: grows to the new flow cell's lane count and trims lanes beyond it.)*
+- [x] Invalid status transitions. *(No transition guard — any `ExperimentStatus` is accepted, matching the legacy form. `can_be_edited = status < SEQUENCING` exists only on the checklist route and is not enforced here.)*
+- [x] Insider/admin permission variants. *(`require_insider` on GET/POST create and edit; clients get 403. Legacy parity.)*
+- [x] Deleteability interaction with form state. *(Deletion is a separate route gated on `experiment.is_deleteable()` (admin override); the edit form does not depend on it.)*
+
+Open findings from `ExperimentForm` tests:
+
+- Legacy enforced `min_length=3` on the experiment name; the FastAPI form has no minimum.
+- Cycles (`r1`/`r2`/`i1`/`i2`) accept any integer — no non-negative or platform-specific bounds, in either implementation.
+- Editing an experiment that is already `SEQUENCING`/`SEQUENCED` is allowed (insider-only), matching legacy.
 
 
 

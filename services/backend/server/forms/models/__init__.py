@@ -16,7 +16,6 @@ from .LibraryForm import LibraryForm
 from .FeatureKitForm import FeatureKitForm
 from .IndexKitForm import IndexKitForm
 from .KitForm import KitForm
-from .PlateForm import PlateForm
 from .SeqRunForm import SeqRunForm
 from .SequencerForm import SequencerForm
 
@@ -39,7 +38,6 @@ __all__ = [
     "FeatureKitForm",
     "IndexKitForm",
     "KitForm",
-    "PlateForm",
     "SeqRunForm",
     "SequencerForm",
 ]

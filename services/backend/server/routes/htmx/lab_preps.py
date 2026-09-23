@@ -94,34 +94,6 @@ def render_lab_prep_table(
     return table.make_response(lab_preps=lab_preps)
 
 
-@router.get("/create")
-def render_create_lab_prep_form(
-    request: Request,
-):
-    """Render the create lab prep form."""
-    form = forms.models.LabPrepForm(request, form_type="create")
-    return form.make_response()
-
-
-@router.post("/create")
-def create_lab_prep(response=Depends(forms.models.LabPrepForm.create)) -> Response: return response
-
-@router.get("/{lab_prep_id}/edit")
-def render_edit_lab_prep_form(
-    lab_prep_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    """Render the edit lab prep form."""
-    lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
-    form = forms.models.LabPrepForm(request, form_type="edit", lab_prep=lab_prep)
-    return form.make_response()
-
-
-@router.post("/{lab_prep_id}/edit")
-def edit_lab_prep(response=Depends(forms.models.LabPrepForm.edit)) -> Response: return response
-
-
 @router.post("/{lab_prep_id}/uncomplete")
 def uncomplete_lab_prep(
     lab_prep_id: int,
@@ -481,3 +453,4 @@ def lab_prep_mux_prep(
     return form.make_response()
 
 router.include_router(forms.actions.UploadLibraryPrepSpreadsheetAction.Router())
+router.include_router(forms.models.LabPrepForm.Router())

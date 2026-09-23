@@ -93,17 +93,11 @@ class ProjectForm(HTMXForm):
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this project.")
 
-            owner = session.first(Q.user.select(id=form.owner.data))
-            if owner is None:
-                form.owner.errors.append("Selected user does not exist.")
-                raise exc.FormValidationException(form)
+            owner = session.get_one(Q.user.select(id=form.owner.data))
 
             group = None
             if form.group.data is not None:
-                group = session.first(Q.group.select(id=form.group.data))
-                if group is None:
-                    form.group.errors.append("Selected group does not exist.")
-                    raise exc.FormValidationException(form)
+                group = session.get_one(Q.group.select(id=form.group.data))
                 if not owner.is_insider and session.first(
                     Q.affiliation.select(user_id=owner.id, group_id=group.id)
                 ) is None:
@@ -160,11 +154,6 @@ class ProjectForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),                
             form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="create")),
         ) -> Response:
-            owner = session.first(Q.user.select(id=form.owner.data))
-            if owner is None:
-                form.owner.errors.append("Selected user does not exist.")
-                raise exc.FormValidationException(form)
-
             if not current_user.is_insider and form.owner.data != current_user.id:
                 form.owner.errors.append("You do not have permission to set this user as owner.")
                 raise exc.FormValidationException(form)
@@ -173,12 +162,11 @@ class ProjectForm(HTMXForm):
                 form.status.errors.append("You can only create a project with status DRAFT.")
                 raise exc.FormValidationException(form)
 
+            owner = session.get_one(Q.user.select(id=form.owner.data))
+
             group = None
             if form.group.data is not None:
-                group = session.first(Q.group.select(id=form.group.data))
-                if group is None:
-                    form.group.errors.append("Selected group does not exist.")
-                    raise exc.FormValidationException(form)
+                group = session.get_one(Q.group.select(id=form.group.data))
                 if not owner.is_insider and session.first(
                     Q.affiliation.select(user_id=owner.id, group_id=group.id)
                 ) is None:

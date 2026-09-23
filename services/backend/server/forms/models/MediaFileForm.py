@@ -59,6 +59,10 @@ class MediaFileForm(HTMXForm):
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,
     ):
+        if seq_request_id is None and experiment_id is None and lab_prep_id is None:
+            raise exc.BadRequestException(
+                "At least one of seq_request_id, experiment_id, or lab_prep_id must be provided."
+            )
         if seq_request_id is not None:
             if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to upload files to this sequencing request.")

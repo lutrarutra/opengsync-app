@@ -163,6 +163,7 @@ def client(_db_handler: SyncDBHandler):
         app_.state.bcrypt = secrets.BcryptCompat()
         templates.j2.env.globals["contact_email"] = config.settings.app_config.personalization.email
         templates.j2.env.globals["organization_name"] = config.settings.app_config.personalization.organization
+        templates.j2.env.globals["sample_submission_windows"] = config.settings.app_config.sample_submission_windows
         yield
         app_.state.redis_pool.disconnect()
 

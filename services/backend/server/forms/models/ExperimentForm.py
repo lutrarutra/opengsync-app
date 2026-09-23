@@ -89,10 +89,13 @@ class ExperimentForm(HTMXForm):
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
             form: "ExperimentForm" = Depends(ExperimentForm.Validate(form_type="edit")),
-            current_user: models.User = Depends(dependencies.require_insider),
+            _ = Depends(dependencies.require_insider),
         ) -> Response:
             if form.experiment is None:
                 raise exc.OpeNGSyncServerException("Experiment ID must be provided for edit form.")
+
+            sequencer = session.get_one(Q.sequencer.select(id=form.sequencer.data))
+            operator = session.get_one(Q.user.select(id=form.operator.data))
 
             if session.exists(
                 Q.experiment.select(name=form.name.data).where(models.Experiment.id != form.experiment.id)
@@ -109,8 +112,8 @@ class ExperimentForm(HTMXForm):
 
             form.experiment.name = form.name.data
             form.experiment.workflow = workflow
-            form.experiment.sequencer_id = form.sequencer.data
-            form.experiment.operator_id = form.operator.data
+            form.experiment.sequencer_id = sequencer.id
+            form.experiment.operator_id = operator.id
             form.experiment.status = status
             form.experiment.r1_cycles = form.r1_cycles.data
             form.experiment.r2_cycles = form.r2_cycles.data
@@ -128,8 +131,11 @@ class ExperimentForm(HTMXForm):
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
             form: "ExperimentForm" = Depends(ExperimentForm.Validate(form_type="create")),
-            current_user: models.User = Depends(dependencies.require_insider),
+            _ = Depends(dependencies.require_insider),
         ) -> Response:
+            sequencer = session.get_one(Q.sequencer.select(id=form.sequencer.data))
+            operator = session.get_one(Q.user.select(id=form.operator.data))
+
             if session.exists(Q.experiment.select(name=form.name.data)):
                 form.name.errors.append("An experiment with this name already exists.")
                 raise exc.FormValidationException(form)
@@ -144,8 +150,8 @@ class ExperimentForm(HTMXForm):
             experiment = session.save(Q.experiment.create(
                 name=form.name.data,
                 workflow=workflow,
-                sequencer_id=form.sequencer.data,
-                operator_id=form.operator.data,
+                sequencer_id=sequencer.id,
+                operator_id=operator.id,
                 status=status,
                 r1_cycles=form.r1_cycles.data,
                 r2_cycles=form.r2_cycles.data,

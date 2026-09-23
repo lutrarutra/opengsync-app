@@ -1,13 +1,12 @@
 from typing import Literal
-from fastapi import Request, Depends
+from fastapi import Depends
 from fastapi.responses import Response
-from loguru import logger
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc, config
 from ...components import inputs
-from ..HTMXForm import HTMXForm
+from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
 class LabPrepForm(HTMXForm):
@@ -25,11 +24,10 @@ class LabPrepForm(HTMXForm):
 
     def __init__(
         self,
-        request: Request,
         form_type: Literal["create", "edit"],
         lab_prep: models.LabPrep | None = None,
     ) -> None:
-        super().__init__(request)
+        super().__init__()
         self.form_type = form_type
         self.lab_prep = lab_prep
 
@@ -64,75 +62,107 @@ class LabPrepForm(HTMXForm):
 
         return checklist_type, service_type
 
-    @staticmethod
-    def create(
-        request: Request,
-        current_user: models.User = Depends(dependencies.require_insider),
-        session: SyncSession = Depends(dependencies.db_session),
-    ) -> Response:
-        form = LabPrepForm(request, form_type="create")
-        form.validate()
+    @classmethod
+    def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
+        def dependency(
+            lab_prep_id: int | None = None,
+            session: SyncSession = Depends(dependencies.db_session),
+        ) -> "LabPrepForm":
+            lab_prep = None
+            if lab_prep_id is not None:
+                lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
+            return LabPrepForm(form_type=form_type, lab_prep=lab_prep)
+        return dependency
 
-        checklist_type, service_type = form._validate_types()
+    @htmx_route("GET", "/create", name="Create")
+    def RenderCreate(cls) -> RouteFunc:
+        def route(
+            current_user: models.User = Depends(dependencies.require_insider),
+            form: "LabPrepForm" = Depends(LabPrepForm.Init(form_type="create")),
+        ):
+            return form.make_response()
+        return route
 
-        if not checklist_type.identifier:
-            raise ValueError("Checklist type must have an identifier.")
+    @htmx_route("POST", "/create", name="Create")
+    def Create(cls) -> RouteFunc:
+        def submit(
+            current_user: models.User = Depends(dependencies.require_insider),
+            session: SyncSession = Depends(dependencies.db_session),
+            form: "LabPrepForm" = Depends(LabPrepForm.Validate(form_type="create")),
+        ) -> Response:
+            checklist_type, service_type = form._validate_types()
 
-        latest_prep = session.first(
-            Q.lab_prep.select(
-                checklist_type=checklist_type
-            ).order_by(models.LabPrep.prep_number.desc())
-        )
-        if latest_prep is not None:
-            prep_number = latest_prep.prep_number + 1
-        else:
-            prep_number = config.settings.app_config.db.lab_protocol_start_number
+            if not checklist_type.identifier:
+                raise ValueError("Checklist type must have an identifier.")
 
-        if not form.name.data:
-            form.name.data = f"{checklist_type.identifier}{prep_number:04d}"
+            latest_prep = session.first(
+                Q.lab_prep.select(
+                    checklist_type=checklist_type
+                ).order_by(models.LabPrep.prep_number.desc())
+            )
+            if latest_prep is not None:
+                prep_number = latest_prep.prep_number + 1
+            else:
+                prep_number = config.settings.app_config.db.lab_protocol_start_number
 
-        lab_prep = session.save(
-            Q.lab_prep.create(
-                name=form.name.data.strip(),
-                checklist_type=checklist_type,
-                service_type=service_type,
-                number=prep_number,
-                creator=current_user,
-            ),
-            flush=True,
-        )
+            if not form.name.data:
+                form.name.data = f"{checklist_type.identifier}{prep_number:04d}"
 
-        return responses.htmx_response(
-            redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
-            flash=responses.flash("Prep created!", "success"),
-        )
+            lab_prep = session.save(
+                Q.lab_prep.create(
+                    name=form.name.data.strip(),
+                    checklist_type=checklist_type,
+                    service_type=service_type,
+                    number=prep_number,
+                    creator=current_user,
+                ),
+                flush=True,
+            )
 
-    @staticmethod
-    def edit(
-        request: Request,
-        lab_prep_id: int,
-        current_user: models.User = Depends(dependencies.require_insider),
-        session: SyncSession = Depends(dependencies.db_session),
-    ) -> Response:
-        lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
+            return responses.htmx_response(
+                redirect=responses.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
+                flash=responses.flash("Prep created!", "success"),
+            )
+        return submit
 
-        form = LabPrepForm(request, form_type="edit", lab_prep=lab_prep)
-        form.validate()
+    @htmx_route("GET", "/{lab_prep_id}/edit", name="Edit")
+    def RenderEdit(cls) -> RouteFunc:
+        def route(
+            _ = Depends(dependencies.require_insider),
+            form: "LabPrepForm" = Depends(LabPrepForm.Init(form_type="edit")),
+        ):
+            if form.lab_prep is None:
+                raise exc.OpeNGSyncServerException("Lab prep must be provided for edit form.")
+            return form.make_response()
+        return route
 
-        checklist_type, service_type = form._validate_types()
+    @htmx_route("POST", "/{lab_prep_id}/edit", name="Edit")
+    def Edit(cls) -> RouteFunc:
+        def submit(
+            _ = Depends(dependencies.require_insider),
+            session: SyncSession = Depends(dependencies.db_session),
+            form: "LabPrepForm" = Depends(LabPrepForm.Validate(form_type="edit")),
+        ) -> Response:
+            if form.lab_prep is None:
+                raise exc.OpeNGSyncServerException("Lab prep must be provided for edit form.")
 
-        if not form.name.data:
-            form.name.errors.append("Name is required")
-            raise exc.FormValidationException(form)
+            checklist_type, service_type = form._validate_types()
 
-        if checklist_type != lab_prep.checklist_type:
-            form.checklist_type.errors.append("Cannot change checklist type")
-            raise exc.FormValidationException(form)
+            if not form.name.data:
+                form.name.errors.append("Name is required")
+                raise exc.FormValidationException(form)
 
-        lab_prep.name = form.name.data.strip()
-        lab_prep.service_type = service_type
+            if checklist_type != form.lab_prep.checklist_type:
+                form.checklist_type.errors.append("Cannot change checklist type")
+                raise exc.FormValidationException(form)
 
-        return responses.htmx_response(
-            redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
-            flash=responses.flash("Changes saved!", "success"),
-        )
+            form.lab_prep.name = form.name.data.strip()
+            form.lab_prep.service_type = service_type
+
+            session.save(form.lab_prep)
+
+            return responses.htmx_response(
+                redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep.id),
+                flash=responses.flash("Changes saved!", "success"),
+            )
+        return submit

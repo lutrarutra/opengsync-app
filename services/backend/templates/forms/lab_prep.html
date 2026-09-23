@@ -1,18 +1,16 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
-
 <div class="modal-content" id="lab_prep-form-container">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >{% if lab_prep_form.form_type == "create" %}Create{% elif lab_prep_form.form_type == "edit" %}Edit{% endif %} Prep</h1>
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Prep</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
 
     <div class="modal-body">
         <div id="lab_prep-form">
-            {{ lab_prep_form.csrf_token() }}
+            {{ form.csrf_token.render() }}
             <div class="row">
-                {{ select_input(lab_prep_form.service_type, class="col-4") }}
-                {{ select_input(lab_prep_form.checklist_type, class="col-4") }}
-                {{ form_group(lab_prep_form.name, class="col-4", placeholder="XXXX") }}
+                {{ form.service_type.render("col-4") }}
+                {{ form.checklist_type.render("col-4") }}
+                {{ form.name.render("col-4") }}
             </div>
         </div>
     </div>
@@ -23,12 +21,12 @@
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            {% if lab_prep_form.form_type == "edit" %}
+            {% if form.form_type == "edit" %}
             <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('edit_lab_prep', lab_prep_id=lab_prep.id) }}">Save</button>
-            {% elif lab_prep_form.form_type == "create" %}
+                hx-post="{{ url_for('LabPrepForm.Edit', lab_prep_id=form.lab_prep.id) }}">Save</button>
+            {% elif form.form_type == "create" %}
             <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container"
-                hx-swap="outerHTML" hx-post="{{ url_for('create_lab_prep') }}">Create</button>
+                hx-swap="outerHTML" hx-post="{{ url_for('LabPrepForm.Create') }}">Create</button>
             {% endif %}
         </div>
     </div>
@@ -36,7 +34,7 @@
         var checklist_identifiers = {{ identifiers | tojson }};
 
         $(document).ready(function() {
-            {% if lab_prep_form.form_type == "create" %}
+            {% if form.form_type == "create" %}
             $("#protocol").on("change", function(){
                 const protocol = $(this).val();
                 $("#name").attr("placeholder", checklist_identifiers[protocol] + "XXX");

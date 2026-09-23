@@ -39,13 +39,11 @@ class TODOCommentForm(HTMXForm):
         if todo_comment is not None:
             self.post_url = responses.url_for(
                 "TODOCommentForm.Edit",
-                todo_comment_id=todo_comment.id,
-            )
+            ).include_query_params(todo_comment_id=todo_comment.id)
         else:
             self.post_url = responses.url_for(
                 "TODOCommentForm.Create",
-                **self._resource_params(),
-            )
+            ).include_query_params(**self._resource_params())
 
     def _resource_params(self) -> dict[str, int]:
         if self.flow_cell_design_id is not None:
