@@ -64,7 +64,7 @@ class LoadFlowCellCombinedAction(HTMXForm):
             return cls(experiment=experiment)
         return dependency
 
-    @htmx_route("GET", "/{experiment_id}/load-flow-cell")
+    @htmx_route("GET", "/{experiment_id}/load-flow-cell/combined")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LoadFlowCellCombinedAction" = Depends(LoadFlowCellCombinedAction.Init()),
@@ -106,7 +106,7 @@ class LoadFlowCellCombinedAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{experiment_id}/load-flow-cell")
+    @htmx_route("POST", "/{experiment_id}/load-flow-cell/combined")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "LoadFlowCellCombinedAction" = Depends(LoadFlowCellCombinedAction.Validate()),

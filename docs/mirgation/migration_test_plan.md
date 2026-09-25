@@ -405,22 +405,22 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 #### Lane pooling
 
-- [ ] `LanePoolsCombinedAction`: one combined lane; valid pool ratios; invalid/zero ratios; molarity warnings; qubit lookup; persistence.
-- [ ] `LanePoolsSeparateAction`: multiple lanes; per-lane pool assignments; missing lane; invalid ratios; molarity warnings; persistence.
+- [ ] `LanePoolsCombinedAction`: one combined lane; valid pool ratios; invalid/zero ratios; molarity warnings; qubit lookup; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
+- [ ] `LanePoolsSeparateAction`: multiple lanes; per-lane pool assignments; missing lane; invalid ratios; molarity warnings; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
 
 
 
 #### Read distribution
 
-- [ ] `DistributeReadsCombinedAction`: combined lanes; valid read allocation; totals mismatch; zero/negative reads; persistence.
-- [ ] `DistributeReadsSeparateAction`: separate lanes; per-lane allocation; missing lane; totals mismatch; persistence.
+- [ ] `DistributeReadsCombinedAction`: combined lanes; valid read allocation; totals mismatch; zero/negative reads; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
+- [ ] `DistributeReadsSeparateAction`: separate lanes; per-lane allocation; missing lane; totals mismatch; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
 
 
 
 #### Flow-cell loading
 
-- [ ] `LoadFlowCellCombinedAction`: combined-lane load; valid flow cell; missing/duplicate flow cell; status validation; persistence.
-- [ ] `LoadFlowCellSeparateAction`: separate-lane load; per-lane flow cells; duplicate flow cell; missing lane; persistence.
+- [ ] `LoadFlowCellCombinedAction`: combined-lane load; valid flow cell; missing/duplicate flow cell; status validation; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
+- [ ] `LoadFlowCellSeparateAction`: separate-lane load; per-lane flow cells; duplicate flow cell; missing lane; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
 
 
 
@@ -718,6 +718,7 @@ Not present in the legacy Flask app — FastAPI-only workflow. Moves samples fro
 - [x] Missing resources return controlled `404` responses. *(test_access.py)*
 - [ ] Invalid parameters return controlled `400`/`422` responses.
 - [x] Route endpoint names used by templates resolve against the FastAPI route registry. *(Form route names are asserted against the app registry and `url_path_for` in `forms/test_htmx_form.py`.)*
+- [x] No route is shadowed by an earlier route. *(`test_route_shadowing.py`: Starlette matches in registration order, unlike Flask, so a same-path or catch-all route registered first makes later routes unreachable.)*
 - [ ] Redis workflow state cannot be read or modified by another user.
 - [ ] File uploads and generated files cannot escape configured roots. *(Share root covered by `test_share_root_abuse.py`: every staff and public share-link entry point attacked with `..`, encoded traversal, absolute paths, sibling-prefix dirs, and symlinks out, plus unshared paths for share links. Media uploads still open.)*
 
@@ -726,3 +727,6 @@ Not present in the legacy Flask app — FastAPI-only workflow. Moves samples fro
 | # | File | Detail |
 |---|------|--------|
 | 1 | `routes/htmx/seq_requests.py:810` | Assigning a seq request has two separate routes. `POST /{seq_request_id}/self-assign` (`self_assign_seq_request`) is the dashboard "Assign yourself" button and only assigns the current user. `POST /{seq_request_id}/add-assignee` (`AddSeqRequestAssigneeAction.Submit`) is the form on the request page for assigning any insider via `user_id`. Previously both used `/add-assignee`, the raw route was registered first and shadowed the form, so picking another user in the modal assigned the submitter instead. |
+| 2 | `forms/actions/{lane_pools,load_flowcell,dist_reads}/` | Each lane step has a Separate and a Combined action. Legacy used one URL per step and chose the form from `experiment.workflow.combined_lanes`; the FastAPI templates choose the action by name, so each variant has its own path (`/{experiment_id}/lane-pools/separate` vs `/combined`, same for `load-flow-cell` and `distribute-reads`). Previously both variants shared a path and the Separate one, registered first, made every Combined action unreachable. Access matches legacy: insider-only for GET and POST (`DistributeReadsSeparateAction` had no auth, lane-pools `Begin` had none); read distribution on non-draft experiments is admin-only. |
+| 3 | `routes/htmx/files.py` | `ShareDirectoryAction` and `AssociatePathAction` routers are registered before the `/{subpath:path}` catch-all, otherwise their GET forms render the file browser. |
+| 4 | templates | 15 templates are still in legacy WTForms style (`form.csrf_token()`, legacy `*_form` context names) and raise when rendered: `workflows/experiment/lane_pools-1.{1,2}.html`, `workflows/experiment/load_flow_cell-1.{1,2}.html`, `workflows/dist_reads/{combined,separate}.html`, `workflows/merge_pools.html`, `workflows/reseq/reseq.html`, `actions/dilute-pools.html`, `forms/edit-index.html`, `forms/library-properties-table.html`, `forms/seq_request/seq_auth.html`, `components/popups/file-input-form.html`, `components/search_select.jinja2`, `components/table_input.jinja2`. |

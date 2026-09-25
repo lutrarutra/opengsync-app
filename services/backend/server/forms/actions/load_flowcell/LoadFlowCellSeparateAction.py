@@ -59,7 +59,7 @@ class LoadFlowCellSeparateAction(HTMXForm):
             return cls(experiment=experiment)
         return dependency
 
-    @htmx_route("GET", "/{experiment_id}/load-flow-cell")
+    @htmx_route("GET", "/{experiment_id}/load-flow-cell/separate")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LoadFlowCellSeparateAction" = Depends(LoadFlowCellSeparateAction.Init()),
@@ -108,7 +108,7 @@ class LoadFlowCellSeparateAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{experiment_id}/load-flow-cell")
+    @htmx_route("POST", "/{experiment_id}/load-flow-cell/separate")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "LoadFlowCellSeparateAction" = Depends(LoadFlowCellSeparateAction.Validate()),

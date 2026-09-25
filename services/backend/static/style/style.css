@@ -206,6 +206,10 @@ input[type=number] {
     cursor: pointer;
 }
 
+.badge.badge-primary {
+    background-color: var(--color-cemm-blue);
+}
+
 .badge.badge-success {
     background-color: var(--color-cemm-green);
 }

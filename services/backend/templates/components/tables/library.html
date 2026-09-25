@@ -1,3 +1,4 @@
+{% from "components/legends.jinja2" import index_badge_legend %}
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
@@ -19,7 +20,7 @@
                     <a type="button" role="button" onclick="toggle_index_display()">
                         <i class="bi bi-upc-scan"></i>
                     </a>
-                    <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                    {{ index_badge_legend() }}
                 </th>
             </tr>
         </thead>

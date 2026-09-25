@@ -112,6 +112,31 @@ class TestIndexCheckBegin:
         assert response.status_code == 403
 
 
+class TestIndexCheckWorkflowCard:
+    def test_workflows_tab_shows_index_check_to_insiders(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        user: models.User,
+        user_token: str,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """The Workflows tab offers Check Index Orientations to insiders for library submissions only."""
+        pooled = create_seq_request(session, user, submission_type=C.SubmissionType.POOLED_LIBRARIES)
+        raw = create_seq_request(session, user, submission_type=C.SubmissionType.RAW_SAMPLES)
+        session.commit()
+
+        def page(seq_request: models.SeqRequest, token: str) -> str:
+            response = get(client, f"/seq_requests/{seq_request.id}", token)
+            assert response.status_code == 200
+            return response.text
+
+        assert "index-check/begin" in page(pooled, insider_token)
+        assert "index-check/begin" not in page(raw, insider_token)
+        assert "index-check/begin" not in page(pooled, user_token)
+
+
 class TestIndexCheckSelectLibrariesSubmit:
     def test_index_check_select_libraries_submit(
         self,
@@ -1231,3 +1256,44 @@ class TestEdgeCases:
             params={**params, "step": "SelectLibrariesForm"},
         )
         assert response.status_code == 200
+
+# ── Barcode colors in the clash check ────────────────────────────────────────
+
+class TestBarcodeClashColors:
+    def test_check_clashes_uses_index_badge_colors(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """Check Clashes colors barcodes like library_index_cell: validated custom barcodes are not red."""
+        sr = create_seq_request(session, insider)
+        kit = create_index_kit(session)
+        pool = session.save(Q.pool.create(
+            name="Clash Pool", owner_id=insider.id, contact_name="Test", contact_email="test@example.com",
+            seq_request_id=sr.id, pool_type=C.PoolType.EXTERNAL, clone_number=0,
+        ), flush=True)
+        barcodes = {
+            "AAAACCCC": (C.BarcodeOrientation.FORWARD, None, "badge-primary"),
+            "CCCCGGGG": (C.BarcodeOrientation.FORWARD_NOT_VALIDATED, None, "badge-warning"),
+            "GGGGTTTT": (None, None, "badge-danger"),
+            "TTTTAAAA": (C.BarcodeOrientation.FORWARD, kit, "badge-success"),
+        }
+        for sequence, (orientation, index_kit, _) in barcodes.items():
+            lib = create_library(session, insider, sr)
+            lib.pool_id = pool.id
+            _add_index(
+                session, lib, sequence_i7=sequence, orientation=orientation,
+                index_kit_i7=index_kit, name_i7="A1" if index_kit else None,
+            )
+        session.commit()
+
+        response = get(
+            client, client.app.url_path_for("CheckBarcodeClashesAction.Render"), insider_token,
+            params={"pool_id": pool.id}, htmx=True,
+        )
+        assert response.status_code == 200
+        for sequence, (_, _, expected) in barcodes.items():
+            classes = re.findall(rf'class="badge index-badge index-badges-[^" ]+ ([a-z-]+)"[^>]*>{sequence}<', response.text)
+            assert classes and set(classes) == {expected}, (sequence, classes)

@@ -53,6 +53,7 @@
                             aria-controls="request-{{ seq_request.id }}-tab" aria-selected="true">
                             BSR_{{ "%04d" % seq_request.id }}</button>
                         </li>
+                        {% endfor %}
                     </ul>
                     <div class="tab-content pt-3">
                         {% for seq_request in project.seq_requests %}

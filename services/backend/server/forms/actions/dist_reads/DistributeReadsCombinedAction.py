@@ -41,7 +41,7 @@ class DistributeReadsCombinedAction(HTMXForm):
             return cls(experiment=experiment)
         return dependency
 
-    @htmx_route("GET", "{experiment_id}")
+    @htmx_route("GET", "/{experiment_id}/distribute-reads/combined")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "DistributeReadsCombinedAction" = Depends(DistributeReadsCombinedAction.Init()),
@@ -55,7 +55,7 @@ class DistributeReadsCombinedAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "{experiment_id}")
+    @htmx_route("POST", "/{experiment_id}/distribute-reads/combined")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "DistributeReadsCombinedAction" = Depends(DistributeReadsCombinedAction.Validate()),

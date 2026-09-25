@@ -60,6 +60,7 @@ class LanePoolsCombinedAction(HTMXForm):
         def dependency(
             experiment_id: int,
             session: SyncSession = Depends(dependencies.db_session),
+            _=Depends(dependencies.require_insider),
         ) -> "LanePoolsCombinedAction":
             experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
                 orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links).selectinload(models.links.LanePoolLink.lane)
@@ -69,7 +70,7 @@ class LanePoolsCombinedAction(HTMXForm):
             return cls(experiment=experiment)
         return dependency
 
-    @htmx_route("GET", "/{experiment_id}/lane-pools")
+    @htmx_route("GET", "/{experiment_id}/lane-pools/combined")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LanePoolsCombinedAction" = Depends(LanePoolsCombinedAction.Init()),
@@ -114,7 +115,7 @@ class LanePoolsCombinedAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{experiment_id}/lane-pools")
+    @htmx_route("POST", "/{experiment_id}/lane-pools/combined")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "LanePoolsCombinedAction" = Depends(LanePoolsCombinedAction.Validate()),

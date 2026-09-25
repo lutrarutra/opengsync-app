@@ -1,4 +1,4 @@
-{% from "components/legends.jinja2" import color_legend %}
+{% from "components/legends.jinja2" import index_color_legend %}
 
 <div class="modal-content" id="index-check-workflow-container">
     <div class="modal-header">
@@ -35,13 +35,7 @@
         <div class="footer-id">
         </div>
         <div class="footer-info">
-            {# Same colors as get_badge_color() in components/library_index_cell.jinja2 #}
-            {{ color_legend({
-                "kit": "var(--color-cemm-green)",
-                "validated": "var(--color-cemm-blue)",
-                "not_validated": "var(--color-cemm-yellow)",
-                "not_specified": "var(--color-cemm-red)",
-            }) }}
+            {{ index_color_legend() }}
         </div>
         <div class="footer-controls">
             <button id="submit-index-check-btn" class="btn btn-success"

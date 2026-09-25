@@ -755,6 +755,7 @@ def pool_barcodes(pool_id: int) -> sa.Select:
         LibraryIndex.name_i7.label("name_i7"), LibraryIndex.name_i5.label("name_i5"),
         LibraryIndex.sequence_i7.label("sequence_i7"), LibraryIndex.sequence_i5.label("sequence_i5"),
         LibraryIndex.index_kit_i7_id.label("kit_i7_id"), LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
+        LibraryIndex.orientation.label("orientation"),
     ]
     query = sa.select(*columns).where(
         Pool.id == pool_id
@@ -918,6 +919,7 @@ def lab_prep_barcodes(lab_prep_id: int) -> sa.Select:
         LibraryIndex.name_i7.label("name_i7"), LibraryIndex.name_i5.label("name_i5"),
         LibraryIndex.index_kit_i7_id.label("kit_i7_id"), LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
         LibraryIndex.sequence_i7.label("sequence_i7"), LibraryIndex.sequence_i5.label("sequence_i5"),
+        LibraryIndex.orientation.label("orientation"),
         Pool.id.label("pool_id"), Pool.name.label("pool"),
     ).where(
         Library.lab_prep_id == lab_prep_id

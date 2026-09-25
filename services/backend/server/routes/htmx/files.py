@@ -42,6 +42,8 @@ router = APIRouter(prefix="/files", tags=["files"])
 # matches routes in declaration order, so otherwise GET /upload is consumed by
 # /{subpath:path} and renders the file browser instead of the upload form.
 router.include_router(MediaFileForm.Router())
+router.include_router(ShareDirectoryAction.Router())
+router.include_router(AssociatePathAction.Router())
 
 _CANARY_TIMEOUT_S = 2.0
 
@@ -365,7 +367,3 @@ def render_file_browser_page(
         sort_order=sort_order,
         share_token=None,
     )
-
-
-router.include_router(ShareDirectoryAction.Router())
-router.include_router(AssociatePathAction.Router())

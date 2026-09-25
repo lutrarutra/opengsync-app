@@ -2,7 +2,7 @@ from fastapi import Depends
 from sqlalchemy import orm
 import sqlalchemy as sa
 
-from opengsync_db import models, queries as Q, SyncSession
+from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import dependencies, exceptions as exc, responses
 from ....components import inputs
@@ -33,16 +33,20 @@ class DistributeReadsSeparateAction(HTMXForm):
         def dependency(
             experiment_id: int,
             session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_insider),
         ) -> "DistributeReadsSeparateAction":
             experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
                 orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links).selectinload(models.links.LanePoolLink.lane)
             ))
+            if experiment.status != C.ExperimentStatus.DRAFT and not current_user.is_admin:
+                raise exc.NoPermissionsException("Only admin can edit non-draft experiments")
+
             if experiment.workflow.combined_lanes:
                 raise exc.OpeNGSyncServerException("This experiment uses a combined lane workflow, not a separate lane workflow.")
             return cls(experiment=experiment)
         return dependency
 
-    @htmx_route("GET", "{experiment_id}")
+    @htmx_route("GET", "/{experiment_id}/distribute-reads/separate")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "DistributeReadsSeparateAction" = Depends(DistributeReadsSeparateAction.Init()),
@@ -59,7 +63,7 @@ class DistributeReadsSeparateAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "{experiment_id}")
+    @htmx_route("POST", "/{experiment_id}/distribute-reads/separate")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "DistributeReadsSeparateAction" = Depends(DistributeReadsSeparateAction.Validate()),

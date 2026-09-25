@@ -131,6 +131,9 @@ def flowcell(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def experiment_barcodes(df: pd.DataFrame) -> pd.DataFrame:
+    # mirrors LibraryIndex.type
+    df["index_type_id"] = C.IndexType.DUAL_INDEX.id
+    df.loc[df["sequence_i5"].isna(), "index_type_id"] = C.IndexType.SINGLE_INDEX_I7.id
     return df
 
 

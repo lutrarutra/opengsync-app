@@ -1,3 +1,4 @@
+{% from "components/legends.jinja2" import index_badge_legend %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="index-check-complete-container" class="modal-content">
@@ -20,7 +21,7 @@
                         <a type="button" role="button" onclick="toggle_index_display()">
                             <i class="bi bi-upc-scan"></i>
                         </a>
-                        <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                        {{ index_badge_legend() }}
                     </th>
                     <th scope="col">Orientation</th>
                     <th scope="col">Reverse Complemented</th>

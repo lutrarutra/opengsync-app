@@ -11,6 +11,7 @@ from opengsync_db import categories as C, models, units
 
 from . import context
 from .config import settings
+from ..utils import barcodes
 
 j2 = Jinja2Templates(directory="/templates", undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined)
 
@@ -137,6 +138,7 @@ j2.env.globals["C"] = C
 # Utilities
 j2.env.globals["isna"] = pd.isna
 j2.env.globals["notna"] = pd.notna
+j2.env.globals["index_badge_class"] = barcodes.index_badge_class
 j2.env.globals["units"] = units
 j2.env.globals["uuid4"] = uuid4
 j2.env.globals["hasattr"] = hasattr

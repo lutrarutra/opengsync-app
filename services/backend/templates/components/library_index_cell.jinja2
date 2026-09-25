@@ -1,7 +1,3 @@
-{% macro get_badge_color(index) %}
-{% if index.is_kit_index() %}badge-success{% elif not index.orientation %}badge-danger{% elif not index.orientation.validated %}badge-warning{% endif %}
-{% endmacro %}
-
 {% macro index_type_label(index) %}
 <span class="text-muted">{% if notna(index.sequence_i7) and notna(index.sequence_i5) %}DI:{% else %}SI:{% endif %}</span>
 {% endmacro %}
@@ -10,7 +6,7 @@
 <div class="scroll-container">
     {% if library.index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX] %}
     {% for index in library.indices %}
-    {% set badge_color = get_badge_color(index) %}
+    {% set badge_color = index_badge_class(index) %}
     {% if index.name_i7 %}
     {% if index.name_i7 == index.name_i5 %}
     <span class="badge index-badge {{ badge_color }}" >{{ index_type_label(index) }}{{ index.name_i7 }}</span>
@@ -24,7 +20,7 @@
     {% endfor %}
     {% elif library.index_type == C.IndexType.SINGLE_INDEX_I7 %}
     {% for index in library.indices %}
-    {% set badge_color = get_badge_color(index) %}
+    {% set badge_color = index_badge_class(index) %}
     {% if index.name_i7 %}
     <span class="badge index-badge {{ badge_color }}">{{ index_type_label(index) }}{{ index.name_i7 }}</span>
     {% else %}
@@ -34,7 +30,7 @@
     {% endfor %}
     {% elif library.index_type == C.IndexType.TENX_ATAC_INDEX %}
     {% for index in library.indices %}
-    {% set badge_color = get_badge_color(index) %}
+    {% set badge_color = index_badge_class(index) %}
     {% if index.name_i7 %}
     <span class="badge index-badge {{ badge_color }}">{{ index_type_label(index) }}{{ index.name_i7 }}</span>
     {% else %}
@@ -44,7 +40,7 @@
     {% endfor %}
     {% else %}
     {% for index in library.indices %}
-    {% set badge_color = get_badge_color(index) %}
+    {% set badge_color = index_badge_class(index) %}
     {% if index.name_i7 %}
     {% if index.name_i7 == index.name_i5 %}
     <span class="badge index-badge {{ badge_color }}" >{{ index_type_label(index) }}{{ index.name_i7 }}</span>

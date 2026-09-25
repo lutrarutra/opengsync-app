@@ -24,10 +24,13 @@ class CheckBarcodeClashesAction(HTMXForm):
             "library_name": [],
             "pool": [],
             "pool_id": [],
+            "name_i7": [],
+            "name_i5": [],
             "sequence_i7": [],
             "sequence_i5": [],
             "kit_i7_id": [],
             "kit_i5_id": [],
+            "orientation": [],
             "index_type_id": [],
         }
         for library in libraries:
@@ -36,10 +39,13 @@ class CheckBarcodeClashesAction(HTMXForm):
                 library_data["library_name"].append(library.name)
                 library_data["pool"].append(library.pool.name if library.pool else None)
                 library_data["pool_id"].append(library.pool.id if library.pool else None)
+                library_data["name_i7"].append(index.name_i7)
+                library_data["name_i5"].append(index.name_i5)
                 library_data["sequence_i7"].append(index.sequence_i7)
                 library_data["sequence_i5"].append(index.sequence_i5)
                 library_data["kit_i7_id"].append(index.index_kit_i7_id)
                 library_data["kit_i5_id"].append(index.index_kit_i5_id)
+                library_data["orientation"].append(index.orientation)
                 library_data["index_type_id"].append(index.type.id)
         return pd.DataFrame(library_data)
 

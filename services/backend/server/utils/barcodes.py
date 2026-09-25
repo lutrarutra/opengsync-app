@@ -3,8 +3,47 @@ import itertools
 from collections.abc import Sequence
 
 import pandas as pd
+from pydantic import BaseModel
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
+
+from . import parsing
+
+
+class IndexBadgeRow(BaseModel):
+    """Barcode table columns that decide the color of an index badge."""
+    kit_i7_id: int | None = None
+    kit_i5_id: int | None = None
+    name_i7: str | None = None
+    name_i5: str | None = None
+    sequence_i5: str | None = None
+    orientation: C.BarcodeOrientation | None = None
+    # Workflow barcode tables store the orientation id instead
+    orientation_id: C.BarcodeOrientation | None = None
+
+
+def index_badge_class(index: models.LibraryIndex | pd.Series) -> str:
+    """CSS class of an index badge, shared by all templates (see index_badge_legend() in legends.jinja2).
+
+    From a kit: green, validated orientation: blue, orientation not validated: yellow, no orientation: red.
+    Accepts a LibraryIndex or a barcode table row.
+    """
+    if isinstance(index, pd.Series):
+        row = parsing.validate_row(index, IndexBadgeRow)
+        # Transient index (never added to a session) so the kit rule is LibraryIndex.is_kit_index()
+        index = models.LibraryIndex(
+            index_kit_i7_id=row.kit_i7_id, index_kit_i5_id=row.kit_i5_id,
+            name_i7=row.name_i7, name_i5=row.name_i5, sequence_i5=row.sequence_i5,
+            orientation=row.orientation or row.orientation_id,
+        )
+    if index.is_kit_index():
+        return "badge-success"
+    if index.orientation is None:
+        return "badge-danger"
+    if not index.orientation.validated:
+        return "badge-warning"
+    return "badge-primary"
+
 
 def reverse_complement(seq: str | None) -> str:
     if pd.isna(seq):

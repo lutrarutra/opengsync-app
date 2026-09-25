@@ -82,9 +82,11 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         ]["library_name"]
 
         if self.barcode_table is not None:
+            # Same rule as saving: the i7 orientation, unless i7 and i5 are both set and differ
             self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
             self.barcode_table.loc[
                 pd.notna(self.barcode_table["orientation_i7_id"]) &
+                pd.notna(self.barcode_table["orientation_i5_id"]) &
                 (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
                 "orientation_id"
             ] = None

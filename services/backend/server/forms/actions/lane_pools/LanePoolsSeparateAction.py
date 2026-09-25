@@ -67,6 +67,7 @@ class LanePoolsSeparateAction(HTMXForm):
         def dependency(
             experiment_id: int,
             session: SyncSession = Depends(dependencies.db_session),
+            _=Depends(dependencies.require_insider),
         ) -> "LanePoolsSeparateAction":
             experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
                 orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links).selectinload(models.links.LanePoolLink.lane)
@@ -76,7 +77,7 @@ class LanePoolsSeparateAction(HTMXForm):
             return cls(experiment=experiment)
         return dependency
 
-    @htmx_route("GET", "/{experiment_id}/lane-pools")
+    @htmx_route("GET", "/{experiment_id}/lane-pools/separate")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LanePoolsSeparateAction" = Depends(LanePoolsSeparateAction.Init()),
@@ -127,7 +128,7 @@ class LanePoolsSeparateAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{experiment_id}/lane-pools")
+    @htmx_route("POST", "/{experiment_id}/lane-pools/separate")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "LanePoolsSeparateAction" = Depends(LanePoolsSeparateAction.Validate()),

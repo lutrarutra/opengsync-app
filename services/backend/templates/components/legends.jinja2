@@ -30,3 +30,16 @@
     {% endfor %}
 </div>
 {%- endmacro %}
+{# Index badge colors: the same classes index_badge_class() (server/utils/barcodes.py) gives the badges #}
+{% macro index_badge_legend() -%}
+<span class="badge badge-success">Kit</span> <span class="badge badge-primary">Validated</span> <span class="badge badge-warning">Not Validated</span> <span class="badge badge-danger">Not Specified</span>
+{%- endmacro %}
+
+{% macro index_color_legend() -%}
+{{ color_legend({
+    "kit": "var(--color-cemm-green)",
+    "validated": "var(--color-cemm-blue)",
+    "not_validated": "var(--color-cemm-yellow)",
+    "not_specified": "var(--color-cemm-red)",
+}) }}
+{%- endmacro %}

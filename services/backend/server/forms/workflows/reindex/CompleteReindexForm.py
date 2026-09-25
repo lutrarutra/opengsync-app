@@ -19,8 +19,6 @@ class CompleteReindexForm(ReindexWorkflowStep):
         self.barcode_table = self.workflow.tables["barcode_table"]
         if "index_well" in self.barcode_table.columns:
             self.barcode_table = self.barcode_table.loc[(self.barcode_table["index_well"] != "del") | (self.barcode_table["index_well"].isna())].copy()
-        if "orientation_i7_id" in self.barcode_table.columns:
-            self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
         self.barcode_table = barcodes.check_indices(self.barcode_table)
 
         tenx_atac_barcode_table = self.workflow.tables.get("tenx_atac_barcode_table")
@@ -32,13 +30,12 @@ class CompleteReindexForm(ReindexWorkflowStep):
                 ].copy()
             self.barcode_table = pd.concat([self.barcode_table, display_atac], ignore_index=True)
 
-        if (
-            "orientation_i7_id" in self.barcode_table.columns
-            and "orientation_i5_id" in self.barcode_table.columns
-            and "orientation_id" in self.barcode_table.columns
-        ):
+        if "orientation_i7_id" in self.barcode_table.columns and "orientation_i5_id" in self.barcode_table.columns:
+            # Same rule as saving: the i7 orientation, unless i7 and i5 are both set and differ (also for 10x ATAC rows)
+            self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
             self.barcode_table.loc[
                 pd.notna(self.barcode_table["orientation_i7_id"])
+                & pd.notna(self.barcode_table["orientation_i5_id"])
                 & (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
                 "orientation_id",
             ] = None

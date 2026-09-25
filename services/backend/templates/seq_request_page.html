@@ -349,6 +349,28 @@
                         </div>
                     </div>
                 </div>
+                {% if current_user.is_insider %}
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('IndexCheckWorkflow.Begin', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <i class="bi bi-upc-scan" style="font-size: 45px;"></i>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Check Index Orientations</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Verify the orientation of custom barcodes and store all indices in forward orientation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 {% endif %}
                 {% if current_user.is_insider and seq_request.submission_type != C.SubmissionType.QC_ONLY %}
                 <div class="flip-card card"

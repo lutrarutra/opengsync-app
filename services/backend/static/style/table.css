@@ -343,6 +343,10 @@ table.barcode-clashes-table tbody td.index-cell {
         background-color: var(--color-cemm-blue);
     }
 
+    td .badge.badge-primary {
+        background-color: var(--color-cemm-blue);
+    }
+
     td .badge.badge-success {
         background-color: var(--color-cemm-green);
     }
