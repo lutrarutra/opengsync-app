@@ -15,6 +15,7 @@ from .AddKitsToProtocolAction import AddKitsToProtocolAction
 from .AddUserToGroupAction import AddUserToGroupAction
 from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
 from .ShareDirectoryAction import ShareDirectoryAction
+from .ShareProjectDataAction import ShareProjectDataAction
 from .AssociatePathAction import AssociatePathAction
 from .DilutePoolsAction import DilutePoolsAction
 from .SetExperimentCyclesAction import SetExperimentCyclesAction
@@ -45,6 +46,7 @@ __all__ = [
     "AddKitsToProtocolAction",
     "AddUserToGroupAction",
     "ShareDirectoryAction",
+    "ShareProjectDataAction",
     "AssociatePathAction",
     "SelectExperimentPoolsAction",
     "DilutePoolsAction",

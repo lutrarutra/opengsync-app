@@ -646,7 +646,7 @@ Test the two execution flavors separately:
 
 
 
-### `ShareProjectDataWorkflow`
+### `ShareProjectDataAction`
 
 - [ ] Share one project.
 - [ ] Valid internal/external access options.

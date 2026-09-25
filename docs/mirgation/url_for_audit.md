@@ -153,8 +153,8 @@ These were renamed from Flask and match FastAPI. Included so they are not “fix
 |---|---|
 | Pages | `seq_request_page`, `project_page`, `library_page`, `pool_page`, `experiment_page`, `user_page`, `kit_page`, `feature_kits_page`, `index_kits_page`, `sequencers_page`, … |
 | Tables | `render_library_table`, `render_pool_table`, `render_sample_table`, `render_project_table`, `render_data_path_table`, `serve_data_file`, `serve_media_file`, `download_media_file`, `remove_project_data_path` |
-| Workflows | `MuxPrepWorkflow.Begin`, `LibraryPoolingWorkflow.Begin`, `ReindexWorkflow.Begin`, `RelibWorkflow.Begin`, `MergePoolsWorkflow.Begin`, `BAReportWorkflow.Begin`, `QubitMeasureWorkflow.Begin`, `LibraryAnnotationWorkflow.Begin`, `ShareProjectDataWorkflow.Begin`, `SelectLibraryProtocolsWorkflow.Begin`, `LaneQCWorkflow.Begin` |
-| Actions | `StoreSamplesAction.Begin`, `ReseqAction.Begin`, `ProcessSeqRequestAction.Begin`, `CheckBarcodeClashesAction.Render` / `.SelectSamples`, `MediaFileForm.Upload`, `CommentForm.Begin`, `SeqRequestForm.Edit` / `.Create`, `SelectExperimentPoolsAction.Begin` / `.Submit`, most other `*Action.Begin` |
+| Workflows | `MuxPrepWorkflow.Begin`, `LibraryPoolingWorkflow.Begin`, `ReindexWorkflow.Begin`, `RelibWorkflow.Begin`, `MergePoolsWorkflow.Begin`, `BAReportWorkflow.Begin`, `QubitMeasureWorkflow.Begin`, `LibraryAnnotationWorkflow.Begin`, `SelectLibraryProtocolsWorkflow.Begin`, `LaneQCWorkflow.Begin` |
+| Actions | `StoreSamplesAction.Begin`, `ReseqAction.Begin`, `ProcessSeqRequestAction.Begin`, `CheckBarcodeClashesAction.Render` / `.SelectSamples`, `MediaFileForm.Upload`, `CommentForm.Begin`, `SeqRequestForm.Edit` / `.Create`, `SelectExperimentPoolsAction.Begin` / `.Submit`, `ShareProjectDataAction.Begin`, most other `*Action.Begin` |
 | Calendar | `events_week`, `events_month`, `events_day` |
 | Share / status | `file_share.browse`, `file_share.rclone`, `file_share.rclone_script`, `share_status_check`, `storage_availability_check` |
 
