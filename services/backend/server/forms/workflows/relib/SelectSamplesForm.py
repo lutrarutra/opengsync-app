@@ -3,7 +3,7 @@ import pandas as pd
 
 from opengsync_db import SyncSession
 
-from ....core import dependencies
+from ....core import dependencies, exceptions as exc
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow
@@ -48,7 +48,17 @@ class SelectSamplesForm(RelibWorkflowStep):
                 "nuclei_isolation": [],
             }
 
-            for library in form.selected_library_ids.get_selected_libraries(session):
+            libraries = form.selected_library_ids.get_selected_libraries(session)
+            seq_request_id, lab_prep_id = form.workflow.seq_request_id, form.workflow.lab_prep_id
+            if any(
+                (seq_request_id is not None and library.seq_request_id != seq_request_id)
+                or (lab_prep_id is not None and library.lab_prep_id != lab_prep_id)
+                for library in libraries
+            ):
+                form.add_general_error("Selected libraries do not belong to this request/prep.")
+                raise exc.FormValidationException(form)
+
+            for library in libraries:
                 library_table_data["library_id"].append(library.id)
                 library_table_data["sample_name"].append(library.sample_name)
                 library_table_data["library_name"].append(library.name)

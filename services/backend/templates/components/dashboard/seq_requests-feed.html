@@ -14,7 +14,7 @@ hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trig
         </div>
         <div class="col-8">
             {% if current_user.is_insider and current_user not in seq_request.assignees %}
-            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('add_assignee_to_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('self_assign_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
             {% if seq_request.assignees %}{{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}
             <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>

@@ -83,12 +83,6 @@ def test_public_share_routes(
     assert rclone_script.status_code == 200
     assert "rclone copy" in rclone_script.text
 
-    curl_script = client.get(f"/api/shares/curl_script/{token}/unix")
-    assert curl_script.status_code == 200
-    assert "root.txt" in curl_script.text
-    assert "child.txt" in curl_script.text
-    assert client.get(f"/api/shares/curl_script/{token}/invalid").status_code == 422
-
 
 def test_shared_browser_page_and_entries(
     client: TestClient,

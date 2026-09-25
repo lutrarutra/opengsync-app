@@ -14,6 +14,7 @@ from opengsync_db import models
 from ..core import exceptions as exc
 from ..core.redis import RedisClient
 from .file_browser import BrowserPath
+from .share_ignore import ShareIgnore
 from . import share_fs_cache
 
 
@@ -67,6 +68,7 @@ class SharedFileBrowser:
         self.share_token = share_token
         self.redis = redis
         self.shared_paths = [(self.root_dir / share_path.path).resolve() for share_path in share_token.paths]
+        self.ignore = ShareIgnore(self.root_dir)
         # allows relative symlink traversal upstream of shared paths, but not outside of root_dir
         self.allow_symlink_traversal = allow_symlink_traversal
 
@@ -192,7 +194,7 @@ class SharedFileBrowser:
             return full_path
         return None
 
-    def _is_safe(self, full_path: Path) -> bool:
+    def _is_safe(self, full_path: Path, is_dir: bool | None = None) -> bool:
         """Check if the full path is safe and doesn't escape root_dir"""
         try:
             if not full_path.is_relative_to(self.root_dir):
@@ -203,7 +205,7 @@ class SharedFileBrowser:
                     return False
             for shared_path in self.shared_paths:
                 if full_path.is_relative_to(shared_path) or shared_path.is_relative_to(full_path):
-                    return True
+                    return not self.ignore.is_ignored(full_path, is_dir=is_dir)
             return False
         except (ValueError, RuntimeError):
             return False
@@ -212,6 +214,8 @@ class SharedFileBrowser:
         """Public method to check if a subpath is safe"""
         try:
             full_path = self.root_dir / subpath
+            if self.ignore.is_ignored(full_path):
+                return False
             if not full_path.is_symlink() or not self.allow_symlink_traversal:
                 full_path = full_path.resolve()
             return self._is_safe(full_path)
@@ -223,7 +227,7 @@ class SharedFileBrowser:
         Handle WebDAV PROPFIND request.
         Returns list of DAVResponse objects.
         """
-        if self._is_junk(subpath):
+        if self._is_junk(subpath) or self.ignore.is_ignored(self.root_dir / subpath):
             raise exc.NotFoundException(f"File or directory not found: {subpath}")
         if not self.is_safe(subpath):
             raise exc.NoPermissionsException()
@@ -396,14 +400,16 @@ class SharedFileBrowser:
         elif full_start_path.is_dir():
             for root, dirs, files in os.walk(full_start_path):
                 root_path = Path(root)
-                dirs[:] = [d for d in dirs if not self._is_junk(root_path / d)]
+                # an unsafe directory has no safe descendants, so don't descend into it
+                dirs[:] = [
+                    d for d in dirs
+                    if not self._is_junk(root_path / d) and self._is_safe(root_path / d, is_dir=True)
+                ]
 
                 for d in dirs:
                     dir_abs = root_path / d
                     try:
-                        dir_rel = dir_abs.relative_to(self.root_dir)
-                        if self._is_safe(dir_abs):
-                            items.append((dir_rel, True))
+                        items.append((dir_abs.relative_to(self.root_dir), True))
                     except ValueError:
                         continue
 
@@ -411,7 +417,7 @@ class SharedFileBrowser:
                     file_abs = root_path / f
                     try:
                         file_rel = file_abs.relative_to(self.root_dir)
-                        if self._is_junk(file_abs) or not self._is_safe(file_abs):
+                        if self._is_junk(file_abs) or not self._is_safe(file_abs, is_dir=False):
                             continue
                         items.append((file_rel, False))
                     except ValueError:

@@ -198,3 +198,34 @@ def test_experiment_link(session: SyncSession):
     session.refresh(experiment)
     assert len(experiment.pools) == 0
     assert len(experiment.libraries) == 0
+
+
+def test_library_select_barcode_orientation_in(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    forward = create_library(session, user, seq_request)
+    mixed = create_library(session, user, seq_request)
+    unset = create_library(session, user, seq_request)
+    unindexed = create_library(session, user, seq_request)
+
+    for library, orientations in [
+        (forward, [C.BarcodeOrientation.FORWARD]),
+        (mixed, [C.BarcodeOrientation.FORWARD, C.BarcodeOrientation.FORWARD_NOT_VALIDATED]),
+        (unset, [None]),
+    ]:
+        for orientation in orientations:
+            session.save(Q.library_index.create(
+                library_id=library.id, name_i7=None, name_i5=None, sequence_i7="ACGTACGT", sequence_i5=None,
+                index_kit_i7_id=None, index_kit_i5_id=None, orientation=orientation,
+            ))
+    session.commit()
+
+    def selected_ids(orientations: list[C.BarcodeOrientation | None]) -> set[int]:
+        stmt = Q.library.select(seq_request_id=seq_request.id, barcode_orientation_in=orientations)
+        return {library.id for library in session.execute(stmt).scalars().all()}
+
+    assert selected_ids([C.BarcodeOrientation.FORWARD_NOT_VALIDATED]) == {mixed.id}
+    assert selected_ids([C.BarcodeOrientation.FORWARD]) == {forward.id, mixed.id}
+    assert selected_ids([None]) == {unset.id}
+    assert selected_ids([None, C.BarcodeOrientation.FORWARD_NOT_VALIDATED]) == {unset.id, mixed.id}
+    assert unindexed.id not in selected_ids([None, C.BarcodeOrientation.FORWARD, C.BarcodeOrientation.FORWARD_NOT_VALIDATED])

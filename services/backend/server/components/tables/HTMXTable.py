@@ -84,7 +84,7 @@ class HTMXTable:
             state[self.active_search_var] = self.active_query_value
         if self.filter_values:
             for key, values in self.filter_values.items():
-                state[key + "_in"] = json.dumps([v.id for v in values])
+                state[key + "_in"] = json.dumps([v.id if v is not None else None for v in values])
         return state
     
     def page_url(self, page: int) -> URL:

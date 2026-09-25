@@ -36,6 +36,7 @@ dependencies = [
     "pyarrow",
     "markdown",
     "plotly >= 5.19.0",
+    "pathspec >= 1.0",
 ]
 
 [tool.setuptools_scm]

@@ -345,7 +345,7 @@ def export_seq_request(
     if seq_request.billing_code is not None:
         metadata["Billing Code"] = [seq_request.billing_code]
 
-    metadata_df = pd.DataFrame.from_records(metadata).T
+    metadata_df = pd.DataFrame.from_records(metadata).T  # type: ignore
 
     libraries_df = T.seq_request_libraries(
         session.get_pandas(
@@ -661,23 +661,10 @@ def get_seq_request_review_checklist(
     checklist: dict = seq_request.get_review_checklist()
     contains_mux_samples = any(library.is_multiplexed for library in seq_request.libraries)
 
-    indices_checked = True
-    for library in seq_request.libraries:
-        for index in library.indices:
-            if (
-                index.orientation is None
-                or index.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
-            ):
-                indices_checked = False
-                break
-        if not indices_checked:
-            break
-
     return responses.htmx_response(
         "components/checklists/seq_request-review.html",
         seq_request=seq_request,
         contains_mux_samples=contains_mux_samples,
-        indices_checked=indices_checked,
         **checklist,
     )
 
@@ -693,6 +680,11 @@ def check_seq_request_review_step(
     if access_level < C.AccessLevel.INSIDER:
         raise exc.NoPermissionsException()
 
+    if step == "index_check":
+        raise exc.BadRequestException("Index orientations can only be checked by completing the Index Check workflow.")
+    if step == "check_barcodes":
+        raise exc.BadRequestException("Barcodes are checked automatically once all indices are in forward orientation or from a kit.")
+
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.review_checklist is None:
@@ -701,9 +693,7 @@ def check_seq_request_review_step(
     session.save(seq_request)
 
     return responses.htmx_response(
-        redirect=request.url_for(
-            "seq_request_page", seq_request_id=seq_request.id, tab="review-tab"
-        ),
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-review-tab"),
     )
 
 
@@ -718,6 +708,9 @@ def uncheck_seq_request_review_step(
     if access_level < C.AccessLevel.INSIDER:
         raise exc.NoPermissionsException()
 
+    if step == "check_barcodes":
+        raise exc.BadRequestException("Barcodes are checked automatically once all indices are in forward orientation or from a kit.")
+
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.review_checklist is None:
@@ -726,9 +719,7 @@ def uncheck_seq_request_review_step(
     session.save(seq_request)
 
     return responses.htmx_response(
-        redirect=request.url_for(
-            "seq_request_page", seq_request_id=seq_request.id, tab="review-tab"
-        ),
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-review-tab"),
     )
 
 
@@ -769,40 +760,6 @@ def get_seq_request_sample_table(
     )
 
 
-@router.post("/{seq_request_id}/confirm-barcodes")
-def confirm_seq_request_barcodes(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.INSIDER:
-        raise exc.NoPermissionsException()
-
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[
-            orm.selectinload(models.SeqRequest.libraries).selectinload(
-                models.Library.indices
-            ),
-        ],
-    )
-
-    for library in seq_request.libraries:
-        for index in library.indices:
-            if (
-                index.orientation is None
-                or index.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
-            ):
-                index.orientation = C.BarcodeOrientation.FORWARD
-
-    session.save(seq_request)
-
-    return responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
-    )
-
-
 @router.delete("/{seq_request_id}/remove-share-email/{email}")
 def remove_seq_request_share_email(
     seq_request_id: int,
@@ -833,35 +790,24 @@ def remove_seq_request_share_email(
     session.delete(share_email_link)
 
     return responses.htmx_response(
-        redirect=request.url_for(
-            "seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"
-        ),
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-share-tab"),
         flash=responses.flash("Removed email!", "success"),
     )
 
 
-@router.post("/{seq_request_id}/add-assignee")
-def add_assignee_to_seq_request(
+@router.post("/{seq_request_id}/self-assign")
+def self_assign_seq_request(
     seq_request_id: int,
-    assignee_id: int | None = Query(None),
     session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    """Add an assignee to a SeqRequest."""
+    """Quick-assign the current user from the dashboard. Assigning other users goes through AddSeqRequestAssigneeAction."""
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if assignee_id is not None:
-        assignee = session.get_one(Q.user.select(id=assignee_id))
-    else:
-        assignee = current_user
-
-    if not assignee.is_insider:
-        raise exc.NoPermissionsException("Assignee must be an insider.")
-
-    if assignee in seq_request.assignees:
+    if current_user in seq_request.assignees:
         raise exc.BadRequestException("User is already an assignee.")
 
-    seq_request.assignees.append(assignee)
+    seq_request.assignees.append(current_user)
     session.save(seq_request)
 
     return responses.htmx_response(redirect=responses.url_for("dashboard"), flash=responses.flash("Assignee Added!", "success"))

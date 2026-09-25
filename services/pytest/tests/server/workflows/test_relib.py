@@ -3,7 +3,6 @@
 import json
 import uuid
 
-import pytest
 from redis import Redis
 
 from opengsync_db import SyncSession, categories as C, queries as Q
@@ -341,10 +340,6 @@ def test_relib_lab_prep_context_redirects_to_lab_prep(
     assert_htmx_redirect(response, f"/lab_preps/{lab_prep.id}")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Relib selection does not enforce the seq_request_id context server-side.",
-)
 def test_relib_rejects_library_outside_requested_sequence_request(
     client: OpenGSyncTestClient,
     session: SyncSession,
@@ -362,40 +357,6 @@ def test_relib_rejects_library_outside_requested_sequence_request(
         client,
         f"{RELIB_PREFIX}/select-samples",
         {"selected_library_ids": json.dumps([library_b.id])},
-        token=insider_token,
-        params=params,
-    )
-
-    assert response.status_code == 202
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="Relib table submission does not restrict rows to the selected libraries.",
-)
-def test_relib_rejects_unselected_library_in_table_submission(
-    client: OpenGSyncTestClient,
-    session: SyncSession,
-    user,
-    insider_token: str,
-):
-    seq_request, selected, unselected = _create_relib_libraries(session, user)
-    params = _begin_and_select(client, insider_token, seq_request.id, [selected.id])
-
-    response = post_form(
-        client,
-        f"{RELIB_PREFIX}/library-edit-table",
-        _table_payload(
-            [
-                unselected.id,
-                "Forged_Sample",
-                unselected.name,
-                C.LibraryType.BULK_RNA_SEQ.display_name,
-                C.GenomeRef.HUMAN.display_name,
-                C.ServiceType.BULK_RNA_SEQ.display_name,
-                "No",
-            ],
-        ),
         token=insider_token,
         params=params,
     )

@@ -1,10 +1,10 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import Library, Sample, links, Pool, User, SeqRequest
+from ..models import Library, Sample, links, Pool, User, SeqRequest, LibraryIndex
 from ..categories import (
     LibraryType, LibraryStatus, GenomeRef, ServiceType, IndexType, MUXType,
-    UserRole, AccessLevel, SeqRequestStatus
+    AccessLevel, SeqRequestStatus, BarcodeOrientation
 )
 from ..core import utils
 
@@ -126,6 +126,8 @@ def select(
     project_id: int | None = None,
     type_in: list[LibraryType] | None = None,
     status_in: list[LibraryStatus] | None = None,
+    index_type_in: list[IndexType] | None = None,
+    barcode_orientation_in: list[BarcodeOrientation | None] | None = None,
     pooled: bool | None = None,
     indexed: bool | None = None,
     status: LibraryStatus | None = None,
@@ -149,7 +151,9 @@ def select(
         pooled=pooled,
         status=status,
         indexed=indexed,
+        index_type_in=index_type_in,
         viewer_id=viewer_id,
+        barcode_orientation_in=barcode_orientation_in,
     ))
 
 def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
@@ -170,6 +174,8 @@ def where_clauses(
     project_id: int | None = None,
     type_in: list[LibraryType] | None = None,
     status_in: list[LibraryStatus] | None = None,
+    index_type_in: list[IndexType] | None = None,
+    barcode_orientation_in: list[BarcodeOrientation | None] | None = None,
     pooled: bool | None = None,
     indexed: bool | None = None,
     status: LibraryStatus | None = None,
@@ -215,6 +221,8 @@ def where_clauses(
             clauses.append(Library.is_indexed.is_(True))
         else:
             clauses.append(Library.is_indexed.is_(False))
+    if index_type_in:
+        clauses.append(Library.index_type.in_(index_type_in))
     if status is not None:
         clauses.append(Library.status == status)
     if pool_id is not None:
@@ -230,6 +238,12 @@ def where_clauses(
             clauses.append(Library.lab_prep_id == None)  # noqa
     if type_in is not None:
         clauses.append(Library.type.in_(type_in))
+    if barcode_orientation_in is not None:
+        orientations = [o for o in barcode_orientation_in if o is not None]
+        condition = LibraryIndex.orientation.in_(orientations)
+        if None in barcode_orientation_in:
+            condition = sa.or_(condition, LibraryIndex.orientation.is_(None))
+        clauses.append(Library.indices.any(condition))
     if status_in is not None:
         clauses.append(Library.status.in_(status_in))
     if viewer_id is not None:

@@ -16,7 +16,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
-from ...utils.file_browser import FileBrowser
+from ...utils.file_browser import FileBrowser, is_within_root
 from ...utils.io import is_browser_friendly
 from ...forms.actions import ShareDirectoryAction, AssociatePathAction
 
@@ -201,7 +201,10 @@ def serve_data_file(
         else:
             raise exc.NoPermissionsException()
 
-    path = Path(config.settings.app_config.share_root) / data_path.path
+    share_root = Path(config.settings.app_config.share_root)
+    if not is_within_root(share_root, data_path.path):
+        raise exc.NoPermissionsException("Data path is outside of share root.")
+    path = share_root / data_path.path
     if not path.exists():
         raise exc.NotFoundException("Data file not found")
     if not path.is_file():

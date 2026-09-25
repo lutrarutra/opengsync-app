@@ -7,6 +7,14 @@ from sqlalchemy import orm
 from opengsync_db import models, SyncSession, queries as Q
 
 
+def is_within_root(root_dir: Path, subpath: str | Path) -> bool:
+    """True if `root_dir / subpath` resolves inside `root_dir`. Rejects `..` escapes, absolute paths, and symlinks pointing outside."""
+    try:
+        return (Path(root_dir) / subpath).resolve().is_relative_to(Path(root_dir).resolve())
+    except (ValueError, RuntimeError, OSError):
+        return False
+
+
 @dataclass
 class BrowserPath:
     path: Path
@@ -97,8 +105,4 @@ class FileBrowser:
         return []
 
     def _is_safe(self, subpath: Path) -> bool:
-        try:
-            full_path = (self.root_dir / subpath).resolve()
-            return full_path.is_relative_to(self.root_dir.resolve())
-        except (ValueError, RuntimeError):
-            return False
+        return is_within_root(self.root_dir, subpath)

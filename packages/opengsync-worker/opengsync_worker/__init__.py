@@ -14,11 +14,11 @@ from celery.schedules import crontab
 
 config = yaml.safe_load(open("/app/opengsync.yaml"))
 
-REDIS_PORT = int(os.environ["REDIS_PORT"])
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 
 celery = Celery("opengsync-worker", broker=f"redis://redis-cache:{REDIS_PORT}/4",)
 
-from opengsync_worker import tasks
+from opengsync_worker import tasks  #  noqa
 celery.autodiscover_tasks()
 
 run_folder = Path(config["illumina_run_folder"])

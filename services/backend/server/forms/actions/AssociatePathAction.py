@@ -4,7 +4,8 @@ from fastapi import Depends, Query
 
 from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, categories as C
 
-from ...core import dependencies, responses, config
+from ...core import dependencies, responses, config, exceptions as exc
+from ...utils.file_browser import is_within_root
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
@@ -37,6 +38,8 @@ class AssociatePathAction(HTMXForm):
         def dependency(
             path: str = Query(..., description="Relative path under the share root."),
         ) -> "AssociatePathAction":
+            if not is_within_root(Path(config.settings.app_config.share_root), path):
+                raise exc.BadRequestException("Path is outside of share root.")
             return AssociatePathAction(path=path)
         return dependency
 

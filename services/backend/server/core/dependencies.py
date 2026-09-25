@@ -573,6 +573,23 @@ def parse_enum_ids(
     
     return dependency
 
+def parse_opt_enum_ids(
+    enum_type: type[E], query_param: str,        
+) -> Callable[[], list[E | None] | None]:
+    def dependency(
+        ids_in: str | None = Query(None, alias=query_param, description=f"JSON list of {enum_type.__name__} IDs to filter by")
+    ) -> list[E | None] | None:
+        if ids_in is None:
+            return None
+        
+        try:
+            enum_ids = json.loads(ids_in)
+            return [enum_type.get(int(enum_id)) if enum_id is not None else None for enum_id in enum_ids] or None
+        except ValueError:
+            raise exc.BadRequestException()
+    
+    return dependency
+
 def parse_enum_id(
     enum_type: type[E], query_param: str,        
 ) -> Callable[[], E | None]:

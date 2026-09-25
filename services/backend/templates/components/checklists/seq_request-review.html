@@ -1,5 +1,4 @@
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/button.jinja2" import modal_button, confirm_action_button %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
@@ -423,6 +422,68 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
+            <button class="accordion-button collapsed" {% if seq_request.submission_type in [C.SubmissionType.RAW_SAMPLES, C.SubmissionType.QC_ONLY] %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-index_check" aria-expanded="false" aria-controls="request-review-accordion-index_check">
+                {% if seq_request.submission_type in [C.SubmissionType.RAW_SAMPLES, C.SubmissionType.QC_ONLY] %}
+                <b>🚫 Check Index Orientations</b>
+                {% else %}
+                <b>{% if index_check %}✅{% else %}⚠️{% endif %} Check Index Orientations</b>
+                {% endif %}
+            </button>
+        </h2>
+        <div id="request-review-accordion-index_check" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that index orientations are correct (Forward vs Reverse Complement).</li>
+                    <li>Kit-matched indexes will be automatically set to Forward orientation.</li>
+                    <li>Custom indexes require manual verification of orientation.</li>
+                </ul>
+                <hr>
+                <p>
+                    Validate and correct index orientations:
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('IndexCheckWorkflow.Begin', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button>
+                </p>
+                {% if seq_request.submission_type not in [C.SubmissionType.RAW_SAMPLES, C.SubmissionType.QC_ONLY] %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-9">
+                                Index
+                                <a type="button" role="button" onclick="toggle_index_display()">
+                                    <i class="bi bi-upc-scan"></i>
+                                </a>
+                                <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                            </th>
+                        </thead>
+                        <tbody>
+                            {% for library in seq_request.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td class="x-scroll-cell">
+                                    {{ library_index_cell(library) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% if index_check %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='index_check') }}">
+                    Uncheck
+                </button>
+                {% elif index_check is not none %}
+                <i>This step is checked automatically once the workflow is completed.</i>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
             <button class="accordion-button collapsed" {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_barcodes" aria-expanded="false" aria-controls="request-review-accordion-check_barcodes">
                 {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
                 <b>🚫 Check Barcodes</b>
@@ -441,17 +502,6 @@
                     <li>Reindex Libraries if required, e.g. kit not specified but exists or barcode is specified in wrong orientation: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('ReindexWorkflow.Begin', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
-                    <li>
-                        Mark custom barcodes as <span class="badge">checked</span> after confirming barcode orientation:
-                        {{
-                            confirm_action_button(
-                                "Mark as Checked",
-                                title="This will mark all custom barcodes as checked (forward orientation), without changing their orientation. Use this if you have confirmed that the provided barcode sequences are correct and in the correct orientation, but they do not match any of our existing kits.", 
-                                url=url_for('confirm_seq_request_barcodes', seq_request_id=seq_request.id),
-                                method="hx-post"
-                            ) 
-                        }}
-                    </li>
                 </ul>
                 {% if seq_request.submission_type != C.SubmissionType.RAW_SAMPLES %}
                 <div class="table-container">
@@ -480,27 +530,7 @@
                 </div>
                 {% endif %}
                 {% if not check_barcodes %}
-                {% if indices_checked %}
-                <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
-                    Check
-                </button>
-                {% else %}
-                {{
-                    confirm_action_button(
-                        "Check ❗",
-                        title="Some barcodes have not been validated yet. Are you sure you want to check this step without validating the barcode orientations? This may lead to issues during demultiplexing if the barcode orientations are incorrect.", 
-                        url=url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_barcodes'),
-                        method="hx-post",
-                        color="warning"
-                    )
-                }}
-                {% endif %}
-                {% else %}
-                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
-                    Uncheck
-                </button>
+                <i>This step is completed automatically once all indices are in forward orientation or from a kit.</i>
                 {% endif %}
             </div>
         </div>

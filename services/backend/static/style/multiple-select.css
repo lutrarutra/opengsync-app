@@ -125,8 +125,14 @@
     }
 
     &.active {
-        min-width: 400px;
+        --active-min-width: 400px;
+        min-width: var(--active-min-width);
         z-index: 1010;
+
+        /* Set by multiple-select.js when there is no room on the right: align the right edges instead */
+        &.open-left {
+            left: min(0px, calc(100% - var(--active-min-width)));
+        }
 
         .dropdown-toggle {
             border-bottom-left-radius: 0;

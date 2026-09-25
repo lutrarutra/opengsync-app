@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from ..core.EnumColumn import EnumColumn
-from ..categories import BarcodeOrientation, BarcodeOrientation, IndexType
+from ..categories import BarcodeOrientation, IndexType
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit

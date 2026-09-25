@@ -1,0 +1,69 @@
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+
+<div id="index-check-complete-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Complete Index Check</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body tab-body" id="index-check-complete-form">
+        {{ form.csrf_token.render() }}
+        {{ form.render_general_errors() }}
+        {% if summary %}
+        <h5>Details</h5>
+        <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Library</th>
+                    <th scope="col" class="col-4">
+                        Index
+                        <a type="button" role="button" onclick="toggle_index_display()">
+                            <i class="bi bi-upc-scan"></i>
+                        </a>
+                        <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                    </th>
+                    <th scope="col">Orientation</th>
+                    <th scope="col">Reverse Complemented</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in summary %}
+                <tr>
+                    <td>{{ item.library_name }}</td>
+                    <td class="x-scroll-cell">{{ library_index_cell(item.library) }}</td>
+                    <td>{{ item.orientation.display_name }}</td>
+                    <td>
+                        {% if item.was_reverse_complemented %}
+                        <span class="badge bg-warning text-dark">Yes</span>
+                        {% else %}
+                        <span class="badge bg-success">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+        <p class="text-muted">Click "Complete" to persist these changes and return to the previous page.</p>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#index-check-complete-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button type="button" class="btn btn-success"
+                hx-target="#index-check-complete-container" hx-swap="outerHTML"
+                hx-include="#index-check-complete-form"
+                hx-post="{{ form.post_url }}">
+                Complete
+            </button>
+        </div>
+    </div>
+</div>

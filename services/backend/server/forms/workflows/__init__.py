@@ -14,6 +14,7 @@ from . import add_kits_to_protocol
 from . import select_library_protocols
 from . import merge_projects
 from . import split_project
+from . import index_check
 
 __all__ = [
     "library_annotation",
@@ -31,4 +32,5 @@ __all__ = [
     "select_library_protocols",
     "merge_projects",
     "split_project",
+    "index_check",
 ]

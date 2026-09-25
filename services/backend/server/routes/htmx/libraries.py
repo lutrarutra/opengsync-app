@@ -48,6 +48,17 @@ class LibraryTable(HTMXTable):
         ),
         TableCol(title="Request", label="seq_request", col_size=2),
         TableCol(title="Owner", label="owner", col_size=1),
+        TableCol(title="Index Type", label="index_type", col_size=2, sortable=True, choices=C.IndexType.as_selectable()),
+        TableCol(
+            title="Barcode Orientation",
+            label="barcode_orientation",
+            col_size=2,
+            sortable=True,
+            # Validated reverse complements are stored reverse-complemented as FORWARD, so REVERSE_COMPLEMENT never occurs
+            choices=[(None, "Not set")] + [
+                (o.id, o.display_name) for o in C.BarcodeOrientation if o is not C.BarcodeOrientation.REVERSE_COMPLEMENT
+            ],
+        ),
     ]
 
 
@@ -68,6 +79,12 @@ def render_library_table(
     status_in: list[C.LibraryStatus] | None = Depends(
         dependencies.parse_enum_ids(enum_type=C.LibraryStatus, query_param="status_in")
     ),
+    index_type_in: list[C.IndexType] | None = Depends(
+        dependencies.parse_enum_ids(enum_type=C.IndexType, query_param="index_type_in")
+    ),
+    barcode_orientation_in: list[C.BarcodeOrientation | None] | None = Depends(
+        dependencies.parse_opt_enum_ids(enum_type=C.BarcodeOrientation, query_param="barcode_orientation_in")
+    ),
     indexed: bool | None = Query(None, description="Filter libraries by whether they are indexed"),
     pooled: bool | None = Query(None, description="Filter libraries by whether they are pooled"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
@@ -77,6 +94,7 @@ def render_library_table(
             model=models.Library, default=models.Library.id.desc()
         )
     ),
+
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = LibraryTable(route="render_library_table", page=page, order_by=order_by)
@@ -85,6 +103,10 @@ def render_library_table(
         table.filter_values["status"] = status_in
     if type_in:
         table.filter_values["type"] = type_in
+    if index_type_in:
+        table.filter_values["index_type"] = index_type_in
+    if barcode_orientation_in:
+        table.filter_values["barcode_orientation"] = barcode_orientation_in
 
     stmt = Q.library.select(
         pool_id=pool_id,
@@ -94,6 +116,8 @@ def render_library_table(
         sample_id=sample_id,
         status_in=status_in,
         type_in=type_in,
+        index_type_in=index_type_in,
+        barcode_orientation_in=barcode_orientation_in,
         indexed=indexed,
         pooled=pooled,
     )
@@ -151,6 +175,7 @@ def render_library_table(
         table.template = "components/tables/browse-library.html"
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
+            
 
     libraries = table.paginate(
         session,

@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     
     # Redis
-    REDIS_HOST: str = "localhost"
+    REDIS_HOST: str = "redis-cache"
     REDIS_PORT: int = 6379
 
     JWT_ALGORITHM: str = "HS256"

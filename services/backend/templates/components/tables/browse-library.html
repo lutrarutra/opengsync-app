@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 <div id="select-libraries-table" class="table-container">
     <table class="table">
         <thead>
@@ -13,6 +14,9 @@
                 <th class="col-2" scope="col">Qubit Conc.</th>
                 {% elif browse_context == "ba-report" %}
                 <th class="col-2" scope="col">Avg. Fragment Size</th>
+                {% elif browse_context == "index-check" %}
+                {{ table_col("select-libraries-table", table, "index_type") }}
+                {{ table_col("select-libraries-table", table, "barcode_orientation") }}
                 {% endif %}
             </tr>
         </thead>
@@ -40,6 +44,13 @@
                         <div class="value">{{ library.avg_fragment_size or "" }}</div>
                         <div class="unit">bp</div>
                     </div>
+                </td>
+                {% elif browse_context == "index-check" %}
+                <td>
+                    {% if library.index_type %}{{ library.index_type.label }}{% endif %}
+                </td>
+                <td>
+                    {{ library_index_cell(library) }}
                 </td>
                 {% endif %}
             </tr>

@@ -141,12 +141,22 @@ class MultipleSelect {
     toggle() {
         this.$container.toggleClass("active");
         if (this.$container.hasClass("active")) {
+            this._updateOpenDirection();
             this.$container.find('.option-search').first().focus();
         }
     }
     
     open() {
         this.$container.addClass("active");
+        this._updateOpenDirection();
+    }
+
+    _updateOpenDirection() {
+        // Expand to the left if the opened dropdown would overflow the table (or the viewport) on the right
+        this.$container.removeClass("open-left");
+        const $bound = this.$container.closest(".table-container");
+        const boundRight = $bound.length ? $bound[0].getBoundingClientRect().right : document.documentElement.clientWidth;
+        this.$container.toggleClass("open-left", this.$container[0].getBoundingClientRect().right > boundRight);
     }
     
     close() {

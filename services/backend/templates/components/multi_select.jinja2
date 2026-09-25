@@ -46,9 +46,10 @@
             <button type="button" class="btn btn-success apply-btn">Apply</button>
         </li>
         {% for (id, label) in choices %}
-        <li class="option" data-value="{{ id }}" data-label="{{ label }}">
+        {# None is rendered as 'null' so jQuery's .data() reads it back as null #}
+        <li class="option" data-value="{{ 'null' if id is none else id }}" data-label="{{ label }}">
             <input type="checkbox" class="form-check-input" id="{{ field_name }}-select-{{ id }}">
-            <label class="btn" for="{{ field_name }}-select-{{ id }}"><span class="label-name">{{ label }}</span><span class="label-id text-muted">{{ id }}</span></label>
+            <label class="btn" for="{{ field_name }}-select-{{ id }}"><span class="label-name">{{ label }}</span><span class="label-id text-muted">{{ '' if id is none else id }}</span></label>
         </li>
         {% endfor %}
     </ul>

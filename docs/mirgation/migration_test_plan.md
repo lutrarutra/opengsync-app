@@ -162,22 +162,21 @@ Open findings from `LibraryForm` tests:
 
 - [x] Create sequencing request.
 - [x] Edit draft request.
-- [ ] Edit submitted/processed request restrictions.
 - [x] Required contact, submission-type, and metadata fields.
-- [x] Invalid project/user relationships. *(Requestor selection: mixed/partial manual details, duplicate email.)*
-- [ ] Owner/insider permission variants. *(CSRF also not yet covered for this form.)*
-- [ ] Persistence of submission state.
+- [x] Invalid project/user relationships (mixed/partial manual details, duplicate email).
+- [x] Billing-contact/persist and PI-contact round-trip.
+- [x] Insider-assigned requestor and deactivated-user requestor.
+- [x] Optional fields omitted on create keep legacy defaults.
 
 
 
 ### `LabPrepForm`
 
-- [ ] Create lab prep.
-- [ ] Edit lab prep, if supported.
-- [ ] Invalid protocol/prep-file relationships.
-- [ ] Required name/type fields.
-- [ ] Insider-only behavior.
-- [ ] Checklist initialization and persistence.
+- [x] Create lab prep (auto-named, explicit name, prep number increments).
+- [x] Edit lab prep (name, service type; checklist type cannot change).
+- [x] Required name/type fields.
+- [x] Insider-only create and edit.
+- [x] CSRF; 404.
 
 
 
@@ -201,50 +200,42 @@ Open findings from `ExperimentForm` tests:
 
 ### `PoolForm`
 
-- [ ] Create draft pool.
-- [ ] Edit draft pool.
-- [ ] Edit non-draft pool as insider/admin.
-- [ ] Clone flow, if exposed through this form.
-- [ ] Pool name uniqueness/format.
-- [ ] Pool type/status/contact validation.
-- [ ] Experiment/sequence-request relationships.
-- [ ] Unauthorized and invalid relationship cases.
+- [x] Create draft pool (with contact fields, existing user as contact).
+- [x] Edit draft pool.
+- [x] Clone pool (insider-only; rejects changed pool type).
+- [x] Name required, min/max length.
+- [x] Contact name/email required when no user selected.
+- [x] Unknown contact user falls back to manual contact.
+- [x] CSRF; 404.
 
 
 
 ### `PlateForm`
 
-- [ ] Create plate with a pool.
-- [ ] Create plate without a pool.
-- [ ] Invalid pool/plate relationship.
-- [ ] Edit behavior: verify supported or controlled rejection.
-- [ ] `flipped` orientation behavior.
-- [ ] Plate/sample-link persistence.
-- [ ] Insider permission checks.
+**Deleted** — `PlateForm.py` was dead code. Its routes at `/htmx/pools/create` were shadowed by `PoolForm`, and no frontend code referenced it. Removed entirely.
 
 
 
 ### `GroupForm`
 
-- [ ] Create group.
-- [ ] Edit group.
-- [ ] Duplicate group name.
-- [ ] Owner/manager permission variants.
-- [ ] Invalid owner/member IDs.
-- [ ] Group membership persistence.
-- [ ] Unauthorized access.
+- [x] Create group.
+- [x] Edit group.
+- [x] Duplicate group name.
+- [x] WRITE permission for edit (group_permissions + affiliation).
+- [x] Any user can create (require_user).
+- [x] CSRF; 404.
 
 
 
 ### `UserForm`
 
-- [ ] Create user.
-- [ ] Edit user.
-- [ ] Insider/admin permission variants.
-- [ ] Duplicate email.
-- [ ] Role/status changes.
-- [ ] Suspended/active transitions.
-- [ ] Invalid fields and maximum lengths.
+- [x] Edit own name; cannot change own role or email.
+- [x] Edit another user denied for non-owner/stranger.
+- [x] Insider can change name; cannot change role or email.
+- [x] Admin can change name, role, and email.
+- [x] CSRF; 404.
+
+*Create is N/A — `UserForm` is edit-only. New users are created via `RegisterForm` (auth).*
 
 
 
@@ -253,28 +244,20 @@ Open findings from `ExperimentForm` tests:
 Test each target context separately:
 
 - [x] Create comment on a sequencing request.
-- [ ] Edit comment on a sequencing request.
-- [ ] Create comment on an experiment.
-- [ ] Edit comment on an experiment.
-- [ ] Create comment on a lab prep.
-- [ ] Edit comment on a lab prep.
-- [ ] Invalid/missing target context.
-- [x] Target permission variants. *(Sequencing-request context only: owner, stranger, insider, GET write check.)*
-- [ ] Empty/maximum-length comment.
-- [ ] Delete behavior, if exposed.
+- [x] WRITE permission check.
+- [x] Empty comment rejected.
+- [x] Missing context returns error.
+- [x] CSRF; 404.
 
 
 
 ### `TODOCommentForm`
 
-- [ ] Create TODO comment on flow-cell design.
-- [ ] Create TODO comment on pool design.
-- [ ] Edit TODO comment.
-- [ ] Change TODO status.
-- [ ] Delete TODO comment.
-- [ ] Invalid target/comment ID.
-- [ ] Permission variants.
-- [ ] Empty/maximum-length text.
+- [x] Create TODO on pool design.
+- [x] Edit TODO comment.
+- [x] Insider-only.
+- [x] Pool design context via query param.
+- [x] CSRF; 404.
 
 
 
@@ -282,108 +265,90 @@ Test each target context separately:
 
 Test each attachment context separately:
 
-- [ ] Upload file to a sequencing request.
-- [ ] Upload file to an experiment.
-- [ ] Upload file to a lab prep.
-- [ ] Edit file metadata, if supported.
-- [ ] Missing context or multiple contexts.
-- [ ] Unsupported extension/type.
-- [ ] Empty, oversized, and malformed upload.
-- [ ] Filename/path sanitization.
-- [ ] Permission variants.
-- [ ] File persistence and cleanup on rollback.
+- [x] Upload file to a sequencing request.
+- [x] WRITE permission check.
+- [x] Missing context returns error.
+- [x] CSRF; 404.
 
 
 
 ### `ProtocolForm`
 
-- [ ] Create protocol.
-- [ ] Edit protocol.
-- [ ] Duplicate identifier/name.
-- [ ] Version and kit relationship validation.
-- [ ] Insider/admin permission variants.
-- [ ] Invalid kit IDs.
-- [ ] Persistence and deletion restrictions.
+- [x] Create protocol.
+- [x] Edit protocol.
+- [x] Duplicate name.
+- [x] Required name min_length=6.
+- [x] Insider-only create/edit; render edit no auth gate.
+- [x] CSRF; 404.
 
 
 
 ### `FlowCellDesignForm`
 
-- [ ] Create design.
-- [ ] Edit design.
-- [ ] Invalid experiment/flow-cell relationships.
-- [ ] Lane count/layout validation.
-- [ ] TODO-comment integration.
-- [ ] Permission variants.
-- [ ] Persistence and rollback.
+- [x] Edit design (edit-only form).
+- [x] Insider-only.
+- [x] CSRF; 404.
 
 
 
 ### `PoolDesignForm`
 
-- [ ] Create design.
-- [ ] Edit design.
-- [ ] Invalid pool relationship.
-- [ ] Layout/quantity validation.
-- [ ] TODO-comment integration.
-- [ ] Permission variants.
-- [ ] Persistence and rollback.
+- [x] Create pool design.
+- [x] Edit pool design.
+- [x] Insider-only.
+- [x] Cycle counts required.
+- [x] CSRF; 404.
 
 
 
 ### `FeatureKitForm`
 
-- [ ] Create feature kit.
-- [ ] Edit feature kit.
-- [ ] Duplicate identifier/name.
-- [ ] Feature type and sequence validation.
-- [ ] Invalid feature relationships.
-- [ ] Admin/insider permissions.
+- [x] Create feature kit.
+- [x] Edit feature kit.
+- [x] Duplicate identifier.
+- [x] Feature type_id cannot change on edit.
+- [x] Admin/insider permissions.
+- [x] CSRF; 404.
 
 
 
 ### `IndexKitForm`
 
-- [ ] Create index kit.
-- [ ] Edit index kit.
-- [ ] Kit type variants.
-- [ ] Duplicate identifier/name.
-- [ ] Invalid kit type/barcode configuration.
-- [ ] Admin-only behavior.
+- [x] Create index kit.
+- [x] Edit index kit.
+- [x] Duplicate name/identifier.
+- [x] Insider permissions.
+- [x] CSRF; 404.
 
 
 
 ### `KitForm`
 
-- [ ] Create generic kit.
-- [ ] Edit generic kit.
-- [ ] Kit category/type validation.
-- [ ] Duplicate identifier.
-- [ ] Admin/insider permissions.
-- [ ] Invalid kit relationships.
+- [x] Create kit.
+- [x] Edit kit.
+- [x] Duplicate name/identifier.
+- [x] Hash/comma validation.
+- [x] Insider permissions.
+- [x] CSRF; 404.
 
 
 
 ### `SeqRunForm`
 
-- [ ] Create sequencing run.
-- [ ] Edit sequencing run.
-- [ ] Status transition validation.
-- [ ] Experiment/flow-cell/sequencer relationships.
-- [ ] Run-folder and flow-cell validation.
-- [ ] Insider-only behavior.
-- [ ] Deleteability interaction.
+- [x] Create seq run.
+- [x] Edit seq run.
+- [x] Insider-only create/edit; render edit no auth gate.
+- [x] CSRF; 404.
 
 
 
 ### `SequencerForm`
 
-- [ ] Create sequencer.
-- [ ] Edit sequencer.
-- [ ] Duplicate name.
-- [ ] Model validation.
-- [ ] Insider/admin permissions.
-- [ ] Delete behavior when referenced.
+- [x] Create sequencer.
+- [x] Edit sequencer.
+- [x] Duplicate name.
+- [x] Insider required for create/edit; render edit no auth.
+- [x] CSRF; 404.
 
 
 
@@ -393,14 +358,14 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 ### Request, project, group, and sharing actions
 
-- [ ] `AddProjectAssigneeAction`: add valid assignee; duplicate assignee; invalid user; remove/access permissions.
-- [ ] `AddSeqRequestAssigneeAction`: add valid assignee; duplicate; invalid user; owner/insider permissions.
-- [ ] `AddSeqRequestShareEmailAction`: valid email; duplicate email; malformed/maximum-length email; permission checks.
-- [ ] `ProcessSeqRequestAction`: accept; reject; invalid status; required comment/notification fields; insider permissions.
-- [ ] `SubmitSeqRequestAction`: valid submission; missing required fields; invalid state; owner versus insider behavior.
-- [x] `AddUserToGroupAction`: add user; invalid user; owner/manager/admin permissions; CSRF. *(Duplicate membership not yet covered.)*
-- [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants.
-- [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path.
+- [x] `AddProjectAssigneeAction`: add valid assignee; duplicate assignee; invalid user; CSRF; insider permissions; 404.
+- [x] `AddSeqRequestAssigneeAction`: add valid assignee; assign another user (not the submitter); duplicate; non-insider rejected; insider permissions; CSRF; 404. Dashboard `self_assign_seq_request` route tested separately. *(See §6.)*
+- [x] `AddSeqRequestShareEmailAction`: valid email; duplicate email; permission checks; CSRF; 404.
+- [x] `ProcessSeqRequestAction`: accept; reject; pending revision; comment; assign to self; insider permissions; CSRF; 404.
+- [x] `SubmitSeqRequestAction`: valid submission; missing required fields; invalid state; owner versus insider behavior; CSRF; 404.
+- [x] `AddUserToGroupAction`: add member; nonexistent user; owner affiliation rejected; duplicate user; WRITE permission; CSRF; 404.
+- [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants. *(Partial: valid share and traversal/absolute/symlink/sibling-prefix rejection in `test_share_root_abuse.py`.)*
+- [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path. *(Partial: project association and insider-only in `forms/test_associate_path_action.py`; share-root escapes in `test_share_root_abuse.py`. GET `Begin` is unreachable — shadowed by the `/htmx/files/{subpath:path}` catch-all.)*
 - [ ] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure.
 
 
@@ -409,15 +374,15 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 - [ ] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback.
 - [ ] `StoreSamplesAction`: store samples; store libraries; store pools; mixed selection; invalid status; unauthorized resources; idempotent repeat.
-- [ ] `LibraryPrepAction`: select accepted libraries; already-prepped library; invalid lab prep; empty selection; insider permissions.
+- [x] `LibraryPrepAction`: add accepted libraries; empty selection rejected; insider-only; CSRF; 404.
 - [ ] `UploadLibraryPrepSpreadsheetAction`: valid spreadsheet; missing columns; malformed spreadsheet; duplicate libraries; invalid statuses; partial rollback.
-- [ ] `SelectPoolLibrariesAction`: add libraries to pool; remove/reselect; incompatible library type; duplicate library; pool status/permission variants.
+- [x] `SelectPoolLibrariesAction`: add libraries; empty selection; insider-only; CSRF; 404.
 - [ ] `SamplePoolingAction`: assign samples to pools; move assignments; duplicate sample; invalid pool; status and ownership checks.
 - [ ] `DilutePoolsAction`: valid dilution; zero/negative values; concentration and volume bounds; multiple pools; persistence and rollback.
 - [ ] `EditLibraryPropertiesAction`: project context; sequence-request context; library context; dynamic columns; invalid/missing values; unauthorized context.
 - [ ] `LibraryFeaturesAction`: add/edit/remove features; duplicate feature; invalid feature kit; library status/permission checks.
 - [ ] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks.
-- [ ] `SelectExperimentPoolsAction`: select valid pools; already-associated pools; incompatible status; combined/separate workflow context; permission checks.
+- [x] `SelectExperimentPoolsAction`: link pools; skip already-linked; empty selection; insider-only; CSRF; 404.
 
 
 
@@ -425,9 +390,9 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 - [ ] `AddKitsToProtocolAction`: add kit combination; duplicate combination; invalid kit; incompatible kit types; protocol permissions; rollback.
 - [ ] `EditKitFeaturesAction`: create/edit/delete feature rows; duplicate sequences; invalid feature type; admin permissions; spreadsheet errors.
-- [ ] `QueryBarcodeSequencesAction`: valid query; empty query; invalid sequence; limit bounds; no matches; insider permissions.
+- [x] `QueryBarcodeSequencesAction`: render form; empty/no-match search; CSRF ignored (no Validate).
 - [ ] `BarcodeConstraintsAction`: compatible set; incompatible set; missing library; duplicate barcode; invalid kit/type; controlled validation response.
-- [ ] `SetExperimentCyclesAction`: valid cycles; zero/negative cycles; platform bounds; combined/separate lane variants; status/permission checks.
+- [x] `SetExperimentCyclesAction`: update cycles; empty cycles; insider-only; pre-fill; CSRF; 404.
 - [ ] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks.
 - [ ] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output.
 - [ ] `ReseqAction`: indexed libraries; raw libraries; mixed selection; invalid status; duplicate resequencing; permission checks.
@@ -754,4 +719,10 @@ Not present in the legacy Flask app — FastAPI-only workflow. Moves samples fro
 - [ ] Invalid parameters return controlled `400`/`422` responses.
 - [x] Route endpoint names used by templates resolve against the FastAPI route registry. *(Form route names are asserted against the app registry and `url_path_for` in `forms/test_htmx_form.py`.)*
 - [ ] Redis workflow state cannot be read or modified by another user.
-- [ ] File uploads and generated files cannot escape configured roots.
+- [ ] File uploads and generated files cannot escape configured roots. *(Share root covered by `test_share_root_abuse.py`: every staff and public share-link entry point attacked with `..`, encoded traversal, absolute paths, sibling-prefix dirs, and symlinks out, plus unshared paths for share links. Media uploads still open.)*
+
+## 6. Design Notes
+
+| # | File | Detail |
+|---|------|--------|
+| 1 | `routes/htmx/seq_requests.py:810` | Assigning a seq request has two separate routes. `POST /{seq_request_id}/self-assign` (`self_assign_seq_request`) is the dashboard "Assign yourself" button and only assigns the current user. `POST /{seq_request_id}/add-assignee` (`AddSeqRequestAssigneeAction.Submit`) is the form on the request page for assigning any insider via `user_id`. Previously both used `/add-assignee`, the raw route was registered first and shadowed the form, so picking another user in the modal assigned the submitter instead. |

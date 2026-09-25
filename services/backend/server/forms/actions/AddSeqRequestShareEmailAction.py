@@ -61,7 +61,7 @@ class AddSeqRequestShareEmailAction(HTMXForm):
             session.save(form.seq_request)
 
             return responses.htmx_response(
-                redirect=responses.url_for("seq_request_page", seq_request_id=form.seq_request.id).include_query_params(tab="request-shares-tab"),
+                redirect=responses.url_for("seq_request_page", seq_request_id=form.seq_request.id).include_query_params(tab="request-share-tab"),
                 flash=responses.flash(f"Email {email} added successfully.", "success"),
             )
         return route

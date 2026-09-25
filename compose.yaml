@@ -33,7 +33,6 @@ services:
         environment:
             OPENGSYNC_PORT: ${OPENGSYNC_PORT}
             TZ: ${TIMEZONE}
-            REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
@@ -71,7 +70,6 @@ services:
         restart: unless-stopped
         environment:
             TZ: ${TIMEZONE}
-            REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
@@ -101,7 +99,6 @@ services:
         restart: unless-stopped
         environment:
             TZ: ${TIMEZONE}
-            REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
@@ -162,18 +159,16 @@ services:
         container_name: redis-cache
         image: redis:8.0.3-alpine3.21
         restart: unless-stopped
-        ports:
-            - ${REDIS_PORT}:${REDIS_PORT}
         volumes:
             - redis_data:/data
         environment:
             TZ: ${TIMEZONE}
         healthcheck:
-            test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
+            test: ["CMD", "redis-cli", "-p", "6379", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5
-        command: --port ${REDIS_PORT} --maxmemory 2048mb --maxmemory-policy volatile-lru --save 900 1 --save 300 10 --save 60 1000
+        command: --port 6379 --maxmemory 2048mb --maxmemory-policy volatile-lru --save 900 1 --save 300 10 --save 60 1000
 
     postgres:
         image: ghcr.io/lutrarutra/opengsync-app/postgres:${APP_VERSION:-latest}

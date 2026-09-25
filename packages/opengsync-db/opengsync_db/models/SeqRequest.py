@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..core.EnumColumn import EnumColumn
-from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType
+from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType, BarcodeOrientation
 from . import links
 
 if TYPE_CHECKING:
@@ -134,11 +134,24 @@ class SeqRequest(Base):
         checklist["check_comments"] = checklist.get("check_comments", False)
         checklist["samples_checked"] = checklist.get("samples_checked", False)
         checklist["check_submission_date"] = checklist.get("check_submission_date", False)
-        checklist["check_barcodes"] = checklist.get("check_barcodes", True if self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] else False)
+        checklist["check_barcodes"] = self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] or self.all_indices_validated()
+        checklist["index_check"] = checklist.get("index_check",
+            None if self.submission_type in [SubmissionType.RAW_SAMPLES, SubmissionType.QC_ONLY] else False)
         checklist["auth_form_checked"] = checklist.get("auth_form_checked", None if self.seq_auth_form_file is None else False)
         checklist["submission_processed"] = self.status > SeqRequestStatus.SUBMITTED
 
         return checklist
+
+    def all_indices_validated(self) -> bool:
+        """True if every index of every library in the request is in FORWARD orientation or comes from a kit."""
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot check library indices.")
+
+        from .Library import Library
+        from .LibraryIndex import LibraryIndex
+
+        indices = session.query(LibraryIndex).join(LibraryIndex.library).where(Library.seq_request_id == self.id).all()
+        return all(index.orientation == BarcodeOrientation.FORWARD or index.is_kit_index() for index in indices)
     
     @property
     def projects(self) -> list["Project"]:

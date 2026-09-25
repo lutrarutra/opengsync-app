@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import mimetypes
 import smtplib
@@ -459,49 +459,6 @@ def rclone_script(
 ):
     sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir="BSF_DATA")
     return Response(content=sync_command, media_type="text/plain")
-
-
-@access_router.get("/curl_script/{token}/{platform}", name="file_share.curl_script")
-def curl_script(
-    token: str,
-    platform: Literal["windows", "unix"],
-    share_token: models.ShareToken = Depends(dependencies.load_share_token),
-    redis: rds.RedisClient = Depends(dependencies.redis),
-):
-    if platform == "unix":
-        template = "snippets/curl-download.sh.j2"
-    elif platform == "windows":
-        template = "snippets/curl-download.ps1.j2"
-    else:
-        raise exc.BadRequestException("Invalid platform")
-
-    SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
-    current_path = Path()
-    items = []
-    for rel_path, is_dir in browser.walk_contents(current_path):
-        try:
-            display_path = rel_path.relative_to(current_path) if current_path != Path() else rel_path
-        except ValueError:
-            display_path = rel_path
-
-        url = str(responses.url_for("file_share.rclone", token=token, subpath=rel_path.as_posix()))
-
-        items.append({
-            "rel_path": display_path.as_posix(),
-            "is_dir": is_dir,
-            "url": url,
-        })
-
-    rendered_script = templates.render_template(
-        template, base_folder=current_path.name if current_path.name else "download", items=items
-    )
-
-    return Response(
-        rendered_script,
-        media_type="text/x-shellscript",
-        headers={"Content-Disposition": f"attachment; filename=sync_{current_path.name or 'all'}.sh"},
-    )
 
 
 router.include_router(access_router)

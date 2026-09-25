@@ -1,0 +1,37 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+<div id="verify-orientations-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Verify Index Orientations</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <div class="input-help">
+            <p>
+                Set the orientation of each index as it was submitted. <b>Reverse Complement</b> reverse-complements the
+                sequences, and all indices are then stored in forward orientation.
+                Barcodes from a kit are always forward; if only one of i7/i5 is from a kit, only the custom barcode is reverse-complemented.
+                Only the Orientation column can be edited.
+            </p>
+        </div>
+        {{ form.spreadsheet.render(submit_btn_id="submit-spreadsheet-btn", target_element_id="verify-orientations-container") }}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#verify-orientations-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button class="btn btn-success" type="button" id="submit-spreadsheet-btn">
+                Next
+            </button>
+        </div>
+    </div>
+</div>
