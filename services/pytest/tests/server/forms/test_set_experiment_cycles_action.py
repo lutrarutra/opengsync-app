@@ -51,17 +51,16 @@ def _reload(session: SyncSession, experiment: models.Experiment) -> models.Exper
 # ── Render (GET) ────────────────────────────────────────────────────────────
 
 
-def test_render_get_allows_any_user(
+def test_render_get_allows_insider(
     client: TestClient,
     session: SyncSession,
     user,
-    user_token: str,
+    insider_token: str,
 ):
-    """GET has no auth gate — a regular CLIENT user can view the form."""
     experiment = create_experiment(session, user, WORKFLOW)
     _commit(session)
 
-    response = get(client, _path(experiment.id), user_token)
+    response = get(client, _path(experiment.id), insider_token)
 
     assert response.status_code == 200
     assert 'name="cycles_r1"' in response.text
@@ -71,28 +70,41 @@ def test_render_get_allows_any_user(
     assert 'name="csrf_token"' in response.text
 
 
-def test_render_get_unknown_is_404(
+def test_render_get_denies_client(
     client: TestClient,
+    session: SyncSession,
+    user,
     user_token: str,
 ):
-    assert get(client, _path(999999), user_token).status_code == 404
+    """Insider-only, as in legacy ``set_cycles`` (GET used to have no check)."""
+    experiment = create_experiment(session, user, WORKFLOW)
+    _commit(session)
+
+    assert get(client, _path(experiment.id), user_token).status_code == 403
+
+
+def test_render_get_unknown_is_404(
+    client: TestClient,
+    insider_token: str,
+):
+    assert get(client, _path(999999), insider_token).status_code == 404
 
 
 def test_render_get_prefills_cycles(
     client: TestClient,
     session: SyncSession,
     user,
-    user_token: str,
+    insider_token: str,
 ):
     """The GET handler pre-fills cycle fields from the experiment values."""
     experiment = create_experiment(session, user, WORKFLOW)
     # create_experiment defaults to 1 for all cycle fields
     _commit(session)
 
-    response = get(client, _path(experiment.id), user_token)
+    response = get(client, _path(experiment.id), insider_token)
 
     assert response.status_code == 200
-    assert 'value="1"' in response.text or 'value="1"' in response.text
+    assert 'value="1"' in response.text
 
 
 # ── Submit (POST) ────────────────────────────────────────────────────────────

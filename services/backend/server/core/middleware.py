@@ -117,7 +117,7 @@ def __save_audit_log(request: runtime.Request, user_id, status_code: int):
         agent=request.headers.get("user-agent", "unknown"),
         process_time=getattr(request.state, "process_time", None),
         status_code=status_code,
-    ).info("request completed")
+    ).info("audit logged")
 
 async def audit_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     response = await call_next(request)

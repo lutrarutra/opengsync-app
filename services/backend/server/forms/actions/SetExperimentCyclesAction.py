@@ -26,6 +26,7 @@ class SetExperimentCyclesAction(HTMXForm):
         def dependency(
             experiment_id: int,
             session: SyncSession = Depends(dependencies.db_session),
+            _=Depends(dependencies.require_insider),
         ) -> "SetExperimentCyclesAction":
             experiment = session.get_one(Q.experiment.select(id=experiment_id))
             return cls(experiment=experiment)

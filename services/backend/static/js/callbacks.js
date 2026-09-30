@@ -92,7 +92,7 @@ document.addEventListener("htmx:responseError", (event) => {
         400: 'Bad Request',
         401: 'Unauthorized',
         403: 'Forbidden',
-        404: 'Not Found',
+        404: 'Resource Not Found',
         409: 'Conflict',
         422: 'Validation Error',
         429: 'Too Many Requests',
@@ -109,7 +109,7 @@ document.addEventListener("htmx:responseError", (event) => {
     }
 
     const label = statusLabels[status] || 'Error';
-    const message = detail ? `${label}: ${detail}` : `${label}. Something went wrong.`;
+    const message = detail ? `${label}: ${detail}` : `${label}`;
     showFlashToast({ category: 'error', message });
 });
 

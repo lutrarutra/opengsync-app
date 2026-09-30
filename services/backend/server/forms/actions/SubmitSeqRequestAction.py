@@ -45,7 +45,7 @@ class SubmitSeqRequestAction(HTMXForm):
         def route(
             form: "SubmitSeqRequestAction" = Depends(SubmitSeqRequestAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
+            current_user: models.User = Depends(dependencies.require_user),
         ):
             if not form.seq_request.is_submittable() and not current_user.is_insider:
                 raise exc.BadRequestException("Request is missing prerequisites for submission.")

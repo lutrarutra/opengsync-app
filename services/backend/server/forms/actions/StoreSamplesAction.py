@@ -7,7 +7,7 @@ from opengsync_db import categories as C, SyncSession, queries as Q
 
 from ...core import dependencies, exceptions, responses
 from ...components import inputs
-from ..HTMXForm import RouteFunc, htmx_route, HTMXForm
+from ..HTMXForm import RouteFunc, FormFunc, htmx_route, HTMXForm
 
 
 class StoreSamplesAction(HTMXForm):
@@ -34,31 +34,44 @@ class StoreSamplesAction(HTMXForm):
         required=False
     )
 
+    def __init__(self, seq_request_id: int | None = None) -> None:
+        super().__init__()
+        self.seq_request_id = seq_request_id
+        self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit")
+        if seq_request_id is not None:
+            # As in legacy: every table is limited to the request, and submitting returns to it.
+            for field in (self.selected_sample_ids, self.selected_library_ids, self.selected_pool_ids):
+                field.query_params["seq_request_id"] = seq_request_id
+            self.post_url = self.post_url.include_query_params(seq_request_id=seq_request_id)
+
+    @classmethod
+    def Init(cls) -> FormFunc:
+        def dependency(seq_request_id: int | None = Query(None)) -> "StoreSamplesAction":
+            return cls(seq_request_id=seq_request_id)
+        return dependency
+
     @htmx_route("GET")
     def Begin(cls) -> RouteFunc:
         def route(
-            seq_request_id: int | None = Query(None),
             form: "StoreSamplesAction" = Depends(StoreSamplesAction.Init()),
+            _=Depends(dependencies.require_insider),
         ):
-            if seq_request_id is not None:
-                form.selected_sample_ids.query_params["seq_request_id"] = seq_request_id
             return form.make_response()
         return route
 
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            seq_request_id: int | None = Query(None),
             form: "StoreSamplesAction" = Depends(StoreSamplesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
+            _=Depends(dependencies.require_insider),
         ) -> Response:
-            context = {}
-            if seq_request_id is not None:
-                try:
-                    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-                    context["seq_request"] = seq_request
-                except ValueError:
-                    raise exceptions.BadRequestException()
+            if form.seq_request_id is not None:
+                session.get_one(Q.seq_request.select(id=form.seq_request_id))
+
+            if not (form.selected_sample_ids.data or form.selected_library_ids.data or form.selected_pool_ids.data):
+                form.add_general_error("Select at least one sample, library, or pool.")
+                raise exceptions.FormValidationException(form)
 
             check_request_ids: set[int] = set()
             for sample in form.selected_sample_ids.get_selected_samples(session=session):
@@ -138,8 +151,8 @@ class StoreSamplesAction(HTMXForm):
                         session.save(seq_request)
 
             flash = responses.flash("Samples Stored!", "success")
-            if seq_request_id is not None:
-                return responses.htmx_response(redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id), flash=flash)
+            if form.seq_request_id is not None:
+                return responses.htmx_response(redirect=responses.url_for("seq_request_page", seq_request_id=form.seq_request_id), flash=flash)
             
             return responses.htmx_response(redirect=responses.url_for("dashboard"), flash=flash)
         return route

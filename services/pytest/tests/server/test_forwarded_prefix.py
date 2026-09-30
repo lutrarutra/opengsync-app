@@ -28,7 +28,7 @@ def test_forwarded_prefix_is_visible_to_unhandled_exception_handler():
 
     @app.exception_handler(Exception)
     async def handler(request: Request, e: Exception):
-        return PlainTextResponse(request.url_for("target"), status_code=500)
+        return PlainTextResponse(str(request.url_for("target")), status_code=500)
 
     @app.get("/boom")
     async def boom():

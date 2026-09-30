@@ -7,6 +7,7 @@ from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlow, SequencerModel,
     ReadType, ExperimentStatus, PoolType, SubmissionType, MediaFileType, GenomeRef, ServiceType,
     GroupType, LibraryStatus, KitType, IndexType, RunStatus, TaskStatus, FlowCellType,
+    LabChecklistType,
 )
 
 
@@ -254,4 +255,15 @@ def create_plate(session: SyncSession, user: models.User) -> models.Plate:
         num_cols=12,
         num_rows=8,
         owner=user,
+    ), flush=True)
+
+
+def create_lab_prep(session: SyncSession, user: models.User) -> models.LabPrep:
+    _uuid = uuid.uuid1()
+    return session.save(Q.lab_prep.create(
+        name=str(_uuid)[:12],
+        creator=user,
+        number=_uuid.int % 1_000_000,
+        checklist_type=LabChecklistType.CUSTOM,
+        service_type=ServiceType.CUSTOM,
     ), flush=True)

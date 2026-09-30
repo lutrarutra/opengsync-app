@@ -35,7 +35,22 @@ services:
 
     postgres:
         container_name: opengsync-postgres-db-test
-        command: "-c logging_collector=off"
+        # Throwaway cluster: durability is traded for speed. These settings lose data
+        # on a crash and must never be copied to dev/prod. Passed as -c flags rather
+        # than a config_file so initdb's generated postgresql.conf (timezone, locale,
+        # shared_buffers) stays in effect.
+        command: >-
+            postgres
+            -c fsync=off
+            -c synchronous_commit=off
+            -c full_page_writes=off
+            -c wal_level=minimal
+            -c max_wal_senders=0
+            -c logging_collector=off
+        # Keep PGDATA in RAM. Every test creates its own database, so the fixture must
+        # drop it on teardown or this fills up (see tests/conftest.py).
+        tmpfs:
+            - /var/lib/postgresql/data
         build:
             context: .
             dockerfile: ./services/db/Dockerfile
@@ -46,10 +61,15 @@ services:
             PGPORT: 5434
             TZ: "Europe/Vienna"
         healthcheck:
-            test: ["CMD", "pg_isready", "-d", "test_db", "-U", "admin"]
+            # Over TCP: the entrypoint's temporary init server listens on the socket only,
+            # so a socket check can pass before the real server is up.
+            test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-d", "test_db", "-U", "admin"]
             interval: 10s
             timeout: 10s
             retries: 5
+            # Poll every second while starting so pytest isn't held back by the 10s interval.
+            start_period: 30s
+            start_interval: 1s
 
     redis-cache:
         container_name: opengsync-redis-test

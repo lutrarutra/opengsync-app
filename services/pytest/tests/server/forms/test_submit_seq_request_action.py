@@ -3,7 +3,8 @@
 Access control:
 - **Init()** requires WRITE on the seq request (owner / insider / admin).
 - **GET (Render)** has no extra auth — anyone with WRITE can view.
-- **POST (Submit)** requires ``require_insider`` — only staff can submit.
+- **POST (Submit)** is open to anyone with WRITE; non-insiders additionally
+  need ``is_submittable()`` (at least one library and a signed auth form).
 - Only DRAFT seq requests can be submitted.
 """
 
@@ -11,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
-from ...db.create_units import create_library, create_seq_request
+from ...db.create_units import create_file, create_library, create_seq_request
 from .._http import (
     assert_flash,
     assert_form_invalid,
@@ -52,6 +53,12 @@ def _seq_request_with_library(
     create_library(session, user, seq_request)
     session.commit()
     return seq_request
+
+
+def _attach_auth_form(session: SyncSession, seq_request: models.SeqRequest) -> None:
+    auth_form = create_file(session, seq_request=seq_request)
+    auth_form.type = C.MediaFileType.SEQ_AUTH_FORM
+    session.commit()
 
 
 def _commit(session: SyncSession) -> None:
@@ -118,7 +125,31 @@ def test_render_get_rejects_non_draft(
 # ── Submit (POST) ────────────────────────────────────────────────────────────
 
 
-def test_submit_requires_insider(
+def test_submit_allows_owner(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    seq_request = _seq_request_with_library(session, user)
+    _attach_auth_form(session, seq_request)
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(samples_delivered_by_mail="on"),
+        token=user_token,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+
+    session.expire_all()
+    updated = session.get_one(Q.seq_request.select(id=seq_request.id))
+    assert updated.status == C.SeqRequestStatus.SUBMITTED
+    assert all(library.status == C.LibraryStatus.SUBMITTED for library in updated.libraries)
+
+
+def test_submit_owner_without_auth_form_is_400(
     client: TestClient,
     session: SyncSession,
     user,
@@ -133,7 +164,32 @@ def test_submit_requires_insider(
         token=user_token,
     )
 
+    assert response.status_code == 400
+    assert session.first(
+        Q.seq_request.select(id=seq_request.id)
+    ).status == C.SeqRequestStatus.DRAFT
+
+
+def test_submit_denied_for_stranger(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_2_token: str,
+):
+    seq_request = _seq_request_with_library(session, user)
+    _attach_auth_form(session, seq_request)
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(samples_delivered_by_mail="on"),
+        token=user_2_token,
+    )
+
     assert response.status_code == 403
+    assert session.first(
+        Q.seq_request.select(id=seq_request.id)
+    ).status == C.SeqRequestStatus.DRAFT
 
 
 def test_submit_with_delivery_by_mail(

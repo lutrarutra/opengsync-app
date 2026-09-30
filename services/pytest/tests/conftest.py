@@ -1,3 +1,4 @@
+import functools
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -11,29 +12,57 @@ from opengsync_db.models.Base import Base
 from opengsync_db.categories import UserRole
 
 PASSWORD = "testpassword"
+# Minimum bcrypt cost. Verification uses the cost embedded in the hash, so this also keeps
+# logins fast; the production default (12) costs ~250ms per hash or check.
+BCRYPT_ROUNDS = 4
+
+_PG = dict(user="admin", password="password", host="postgres", port=5434)
+
+
+@pytest.fixture(scope="session")  # type: ignore[attr-defined]
+def _admin_engine():
+    engine = sa.create_engine(SyncDBHandler.AdminURL(**_PG, db="postgres"), isolation_level="AUTOCOMMIT")
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(scope="session")  # type: ignore[attr-defined]
+def _template_db(_admin_engine: sa.Engine):
+    """Schema built once per session; each test clones it instead of running create_all."""
+    name = f"template{uuid.uuid4().hex}"
+    with _admin_engine.connect() as conn:
+        conn.execute(sa.text(f"CREATE DATABASE {name}"))
+
+    engine = sa.create_engine(SyncDBHandler.AdminURL(**_PG, db=name))
+    with engine.begin() as conn:
+        conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        Base.metadata.create_all(conn)
+    # CREATE DATABASE ... TEMPLATE refuses to copy a database that has open connections.
+    engine.dispose()
+
+    yield name
+    with _admin_engine.connect() as conn:
+        conn.execute(sa.text(f"DROP DATABASE {name} WITH (FORCE)"))
 
 
 @pytest.fixture(scope="function")  # type: ignore[attr-defined]
-def _db_handler():
+def _db_handler(_admin_engine: sa.Engine, _template_db: str):
     db_name = f"db{uuid.uuid4().hex}"
-    engine = sa.create_engine(SyncDBHandler.AdminURL(
-        user="admin", password="password", host="postgres", port=5434, db="postgres"
-    ))
-    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-        conn.execute(sa.text(f"CREATE DATABASE {db_name}"))
-    engine.dispose()
+    with _admin_engine.connect() as conn:
+        conn.execute(sa.text(f"CREATE DATABASE {db_name} TEMPLATE {_template_db}"))
 
     db = SyncDBHandler(auto_open=False, expire_on_commit=False, auto_commit=True)
-    db.connect(user="admin", password="password", host="postgres", port=5434, db=db_name)
-    with db._engine.begin() as conn:
-        conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
-        db.info("Created pg_trgm extension")
-
-        Base.metadata.create_all(conn)
-        db.info("Successfully created all tables")
+    db.connect(**_PG, db=db_name)
     db.open_session()
-    yield db
-    db.close_session()
+    try:
+        yield db
+    finally:
+        try:
+            db.close()
+        finally:
+            # PGDATA is on tmpfs in compose.test.yaml, so leftover databases eat RAM.
+            with _admin_engine.connect() as conn:
+                conn.execute(sa.text(f"DROP DATABASE {db_name} WITH (FORCE)"))
 
 
 @pytest.fixture(scope="function")  # type: ignore[attr-defined]
@@ -160,7 +189,7 @@ def client(_db_handler: SyncDBHandler):
         app_.state.db_handler = _db_handler
         app_.state.mailer = FakeMailer()
         app_.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
-        app_.state.bcrypt = secrets.BcryptCompat()
+        app_.state.bcrypt = secrets.BcryptCompat(rounds=BCRYPT_ROUNDS)
         templates.j2.env.globals["contact_email"] = config.settings.app_config.personalization.email
         templates.j2.env.globals["organization_name"] = config.settings.app_config.personalization.organization
         templates.j2.env.globals["sample_submission_windows"] = config.settings.app_config.sample_submission_windows
@@ -179,12 +208,16 @@ def client(_db_handler: SyncDBHandler):
         app.router.lifespan_context = original_lifespan
 
 
-def _create_test_user(session: SyncSession, *, email: str, role: UserRole):
+@functools.cache
+def _password_hash() -> str:
     from server.core.secrets import BcryptCompat
+    return BcryptCompat(rounds=BCRYPT_ROUNDS).generate_password_hash(PASSWORD)
 
+
+def _create_test_user(session: SyncSession, *, email: str, role: UserRole):
     user = session.save(Q.user.create(
         email=email,
-        hashed_password=BcryptCompat().generate_password_hash(PASSWORD),
+        hashed_password=_password_hash(),
         first_name="Test",
         last_name=role.name.title(),
         role=role,

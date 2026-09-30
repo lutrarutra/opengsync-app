@@ -494,22 +494,30 @@ def merge_projects(session: Session, project_dst: models.Project, project_src: m
     for sample in project_src.samples:
         if sample.name in dst_sample_mapping:
             dst_sample = dst_sample_mapping[sample.name]
-            for link in sample.library_links:
-                link.sample_id = dst_sample.id
-                for attr in sample.attributes:
-                    if (dst_attr := dst_sample.get_attribute(attr.name)) is None:
-                        dst_sample.set_attribute(attr.name, attr.value, type=attr.type)
-                    elif dst_attr.type_id != attr.type_id:
-                        raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination type: '{dst_attr.type}')")
-                    elif dst_attr.value != attr.value:
-                        raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination value: '{dst_attr.value}')")
-                
-                session.add(link)
+            for attr in sample.attributes:
+                if (dst_attr := dst_sample.get_attribute(attr.name)) is None:
+                    dst_sample.set_attribute(attr.name, attr.value, type=attr.type)
+                elif dst_attr.type_id != attr.type_id:
+                    raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination type: '{dst_attr.type}')")
+                elif dst_attr.value != attr.value:
+                    raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination value: '{dst_attr.value}')")
+
+            # Re-parent through the relationship so the link leaves the source
+            # sample's delete-orphan collection before the source is deleted.
+            dst_library_ids = {link.library_id for link in dst_sample.library_links}
+            for link in list(sample.library_links):
+                if link.library_id in dst_library_ids:
+                    session.delete(link)
+                else:
+                    link.sample = dst_sample
+                    dst_library_ids.add(link.library_id)
+                    session.add(link)
 
             dst_sample.qubit_concentration = dst_sample.qubit_concentration or sample.qubit_concentration
             dst_sample.avg_fragment_size = dst_sample.avg_fragment_size or sample.avg_fragment_size
             dst_sample.timestamp_stored_utc = dst_sample.timestamp_stored_utc or sample.timestamp_stored_utc
-            dst_sample.status = dst_sample.status if dst_sample.status and dst_sample.status >= sample.status else sample.status
+            if dst_sample.status is None or (sample.status is not None and dst_sample.status < sample.status):
+                dst_sample.status = sample.status
             dst_sample.ba_report_id = dst_sample.ba_report_id or sample.ba_report_id
             session.add(dst_sample)
 

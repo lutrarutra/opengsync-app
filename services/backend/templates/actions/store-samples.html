@@ -31,6 +31,18 @@
                     Selected Libraries ({{ form.selected_library_ids.data | length }})
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-pools-tab"
+                    type="button" role="tab" aria-controls="store-samples-action-pools-tab" aria-selected="false">
+                    Pools
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_pool_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-selected-pools-tab"
+                    type="button" role="tab" aria-controls="store-samples-action-selected-pools-tab" aria-selected="false">
+                    Selected Pools ({{ form.selected_pool_ids.data | length }})
+                </button>
+            </li>
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="store-samples-action-samples-tab" role="tabpanel" tabindex="0">
@@ -45,6 +57,12 @@
             <div class="tab-pane fade" id="store-samples-action-selected-libraries-tab" role="tabpanel" tabindex="3">
                 {{ form.selected_library_ids.render_selected_table() }}
             </div>
+            <div class="tab-pane fade" id="store-samples-action-pools-tab" role="tabpanel" tabindex="4">
+                {{ form.selected_pool_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="store-samples-action-selected-pools-tab" role="tabpanel" tabindex="5">
+                {{ form.selected_pool_ids.render_selected_table() }}
+            </div>
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
@@ -55,7 +73,7 @@
         <div class="footer-controls">
             <button id="submit-store-samples-btn" class="btn btn-success"
             hx-include="#store-samples-form" hx-target="#store-samples-form-container" hx-swap="outerHTML"
-            hx-post="{{ url_for('StoreSamplesAction.Submit') }}">Submit</button>
+            hx-post="{{ form.post_url }}">Submit</button>
         </div>
     </div>
 </div>
