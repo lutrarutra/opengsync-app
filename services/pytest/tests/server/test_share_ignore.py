@@ -320,3 +320,81 @@ def test_insider_file_browser_ignores_ngsignore(client: TestClient, insider_toke
     assert response.status_code == 200
     for name in ["report.txt", "sample.bam", "calls.vcf", "hidden-dir", IGNORE_FILENAME]:
         assert name in response.text, name
+
+
+# ── Per-process cache (prod) ────────────────────────────────────────────────
+
+
+@pytest.fixture
+def prod_cache(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", "prod")
+    share_ignore.clear_process_cache()
+    yield
+    share_ignore.clear_process_cache()
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    now = [1000.0]
+    monkeypatch.setattr(share_ignore, "_now", lambda: now[0])
+    return now
+
+
+def _write_tree(root: Path) -> None:
+    (root / "proj" / "qc").mkdir(parents=True)
+    (root / "proj" / IGNORE_FILENAME).write_text("*.bam\n")
+    (root / "proj" / "qc" / "report.html").write_text("")
+    (root / "proj" / "qc" / "sample.bam").write_text("")
+
+
+def test_process_cache_skips_ancestor_reads_on_later_requests(
+    root: Path, prod_cache, monkeypatch: pytest.MonkeyPatch,
+):
+    _write_tree(root)
+    first = ShareIgnore(root)
+    assert first.is_ignored(root / "proj" / "qc" / "sample.bam")
+    # a matched rule returns before the realpath check, so warm that with a kept file too
+    assert not first.is_ignored(root / "proj" / "qc" / "report.html")
+
+    # a later request builds a fresh ShareIgnore; nothing about the ancestors should hit the filesystem
+    later = ShareIgnore(root)
+    reads: list[str] = []
+    realpaths: list[str] = []
+    original_read, original_realpath = ShareIgnore._read, share_ignore.os.path.realpath
+    monkeypatch.setattr(ShareIgnore, "_read", staticmethod(lambda d: reads.append(d) or original_read(d)))
+    monkeypatch.setattr(share_ignore.os.path, "realpath", lambda p: realpaths.append(p) or original_realpath(p))
+
+    assert later.is_ignored(root / "proj" / "qc" / "sample.bam")
+    assert not later.is_ignored(root / "proj" / "qc" / "report.html")
+    assert reads == []
+    assert realpaths == []
+
+
+def test_process_cache_picks_up_edits_after_ttl(root: Path, prod_cache, clock: list[float]):
+    _write_tree(root)
+    bam = root / "proj" / "qc" / "sample.bam"
+    assert ShareIgnore(root).is_ignored(bam)
+
+    (root / "proj" / IGNORE_FILENAME).write_text("")
+    assert ShareIgnore(root).is_ignored(bam)
+
+    clock[0] += share_ignore.PROCESS_CACHE_TTL + 1
+    assert not ShareIgnore(root).is_ignored(bam)
+
+
+def test_process_cache_is_bounded(root: Path, prod_cache, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(share_ignore._loaded, "max_size", 3)
+    for name in "abcde":
+        (root / name).mkdir()
+        ShareIgnore(root).is_ignored(root / name / "file.txt")
+    assert len(share_ignore._loaded._items) == 3
+
+
+def test_outside_prod_edits_apply_immediately(root: Path):
+    share_ignore.clear_process_cache()
+    _write_tree(root)
+    bam = root / "proj" / "qc" / "sample.bam"
+    assert ShareIgnore(root).is_ignored(bam)
+
+    (root / "proj" / IGNORE_FILENAME).write_text("")
+    assert not ShareIgnore(root).is_ignored(bam)

@@ -9,17 +9,82 @@ Only `SharedFileBrowser` (share links and the project Data tab) applies these ru
 the insider `FileBrowser` shows everything. Its listings, file lookups, PROPFIND
 responses and walks are cached in Redis in prod, so an edited `.ngsignore` reaches
 those after their TTL.
+
+In prod each worker process also keeps every directory's parsed ignore file (or its
+absence) and its realpath for `PROCESS_CACHE_TTL`: on a remote mount such as sshfs
+every open attempt and lstat is a round trip, and each request walks all ancestors.
 """
 
 import os
+import threading
+import time
+from collections import OrderedDict
+from typing import Any
 
 import pathspec
 from loguru import logger
 
+from ..core import config
+
 IGNORE_FILENAME = ".ngsignore"
+PROCESS_CACHE_TTL = 60
+PROCESS_CACHE_MAX_DIRS = 10_000
 
 # (directory path relative to the spec's directory, spec), nearest spec first
 Specs = tuple[tuple[str, pathspec.GitIgnoreSpec], ...]
+
+_MISSING = object()
+
+
+def _now() -> float:
+    return time.monotonic()
+
+
+class _ProcessCache:
+    """Per-worker TTL cache, shared by the request threads; least recently used entries go first."""
+
+    def __init__(self, ttl: float, max_size: int):
+        self.ttl = ttl
+        self.max_size = max_size
+        self._items: OrderedDict[str, tuple[float, Any]] = OrderedDict()
+        self._lock = threading.Lock()
+
+    def get(self, key: str) -> Any:
+        with self._lock:
+            if (item := self._items.get(key)) is None:
+                return _MISSING
+            expires, value = item
+            if expires <= _now():
+                del self._items[key]
+                return _MISSING
+            self._items.move_to_end(key)
+            return value
+
+    def set(self, key: str, value: Any) -> None:
+        with self._lock:
+            self._items[key] = (_now() + self.ttl, value)
+            self._items.move_to_end(key)
+            while len(self._items) > self.max_size:
+                self._items.popitem(last=False)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._items.clear()
+
+
+# directory -> (spec, unreadable), and directory -> realpath
+_loaded = _ProcessCache(PROCESS_CACHE_TTL, PROCESS_CACHE_MAX_DIRS)
+_real_paths = _ProcessCache(PROCESS_CACHE_TTL, PROCESS_CACHE_MAX_DIRS)
+
+
+def _process_cache_enabled() -> bool:
+    # outside prod an edited .ngsignore applies at once, which the tests rely on
+    return config.settings.ENVIRONMENT == "prod"
+
+
+def clear_process_cache() -> None:
+    _loaded.clear()
+    _real_paths.clear()
 
 
 class ShareIgnore:
@@ -57,7 +122,14 @@ class ShareIgnore:
 
     def _real_dir(self, directory: str) -> str:
         if (real := self._real_dirs.get(directory)) is None:
-            real = self._real_dirs[directory] = os.path.realpath(directory)
+            cached = _real_paths.get(directory) if _process_cache_enabled() else _MISSING
+            if cached is _MISSING:
+                real = os.path.realpath(directory)
+                if _process_cache_enabled():
+                    _real_paths.set(directory, real)
+            else:
+                real = cached
+            self._real_dirs[directory] = real
         return real
 
     def _matches(self, path: str, is_dir: bool | None) -> bool:
@@ -100,6 +172,16 @@ class ShareIgnore:
 
     def _load(self, directory: str) -> tuple[pathspec.GitIgnoreSpec | None, bool]:
         """(parsed ignore file of `directory`, whether it exists but could not be read)"""
+        if not _process_cache_enabled():
+            return self._read(directory)
+        if (cached := _loaded.get(directory)) is not _MISSING:
+            return cached
+        result = self._read(directory)
+        _loaded.set(directory, result)
+        return result
+
+    @staticmethod
+    def _read(directory: str) -> tuple[pathspec.GitIgnoreSpec | None, bool]:
         ignore_file = os.path.join(directory, IGNORE_FILENAME)
         try:
             with open(ignore_file, encoding="utf-8", errors="replace") as f:

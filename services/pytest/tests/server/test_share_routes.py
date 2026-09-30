@@ -246,3 +246,17 @@ def test_share_access_audit_is_debounced_per_token(
     assert client.get(f"/api/webdav/{token}/shared/root.txt").status_code == 200
     assert client.get(f"/files/share/browse/{token}").status_code == 200
     assert list(redis.scan_iter(match=f"share-audit:{token}:*")) == keys
+
+
+def test_webdav_file_deleted_after_cached_lookup_is_not_found(
+    client: TestClient,
+    share_fixture: ShareFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", "prod")
+    url = f"/api/webdav/{share_fixture.token.uuid}/shared/root.txt"
+    assert client.head(url).status_code == 200
+
+    (share_fixture.root / "shared" / "root.txt").unlink()
+    assert client.head(url).status_code == 404
+    assert client.get(url).status_code == 404

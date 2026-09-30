@@ -50,10 +50,9 @@ def share(
         response.headers["MS-Author-Via"] = "DAV"
         return response
     elif request.method == "HEAD":
-        if (path := browser.get_file(current_path)) is None:
+        # get_file is cached, so the file may have been deleted since
+        if (path := browser.get_file(current_path)) is None or not path.is_file():
             raise exc.NotFoundException(f"File not found: {current_path}")
-        if not path.is_file():
-            raise exc.MethodNotAllowedException("Cannot HEAD a collection")
 
         stat = path.stat()
         mimetype, _ = mimetypes.guess_type(path.name)
@@ -85,11 +84,9 @@ def share(
 
         return Response(content=xml, status_code=207, media_type="application/xml; charset=utf-8")
     elif request.method == "GET":
-        if (path := browser.get_file(current_path)) is None:
+        # get_file is cached, so the file may have been deleted since
+        if (path := browser.get_file(current_path)) is None or not path.is_file():
             raise exc.NotFoundException(f"File not found: {current_path}")
-
-        if not path.is_file():
-            raise exc.BadRequestException("Subpath must be a file")
 
         mimetype, _ = mimetypes.guess_type(path.name)
         if not mimetype:

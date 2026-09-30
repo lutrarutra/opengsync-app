@@ -636,11 +636,6 @@ def project_browser_entries(
     if is_root_listing := not current_path.parts:
         limit = None
         paths = browser.list_roots(sort_by=sort_by, sort_order=sort_order)
-        # attach each top-level entry's data path, for the insider "Remove from project" menu
-        by_path = {Path(data_path.path).as_posix(): data_path for data_path in data_paths}
-        for browser_path in paths:
-            if (data_path := by_path.get(browser_path.rel_path.as_posix())) is not None:
-                browser_path.data_paths = [data_path]
     else:
         paths = browser.list_contents(
             current_path,
@@ -649,6 +644,14 @@ def project_browser_entries(
             sort_by=sort_by,
             sort_order=sort_order,
         )
+
+    # mark the entries that are data paths themselves (usually the top level, but nested ones too),
+    # which are highlighted and the only ones insiders can remove
+    by_path: dict[str, list[models.DataPath]] = {}
+    for data_path in data_paths:
+        by_path.setdefault(Path(data_path.path).as_posix(), []).append(data_path)
+    for browser_path in paths:
+        browser_path.data_paths = by_path.get(browser_path.rel_path.as_posix(), [])
 
     return responses.htmx_response(
         "components/file-browser/entries.html",
@@ -663,6 +666,7 @@ def project_browser_entries(
         route_params={"project_id": project_id},
         file_route="serve_project_file",
         servable_extensions=PROJECT_SERVABLE_EXTENSIONS,
+        highlight_data_paths=True,
         remove_from_project_id=project_id if current_user.is_insider else None,
         is_root_listing=is_root_listing,
     )

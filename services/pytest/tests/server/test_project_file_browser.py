@@ -203,6 +203,43 @@ def test_directory_sorts_in_both_directions(
     assert f"sort_by={sort_by}&amp;sort_order={sort_order}" in listing.text or f"sort_by={sort_by}&sort_order={sort_order}" in listing.text
 
 
+def _entry(html: str, name: str) -> str:
+    """The markup of the entry whose name (tooltip) starts with `name`, up to the next entry."""
+    start = html.rindex('<div class="browser-entry ', 0, html.index(f'title="{name}'))
+    end = html.find('<div class="browser-entry ', start + 1)
+    return html[start:end if end != -1 else len(html)]
+
+
+def test_only_data_paths_are_highlighted_and_removable(
+    client: TestClient, project_data: ProjectData, insider_token: str, user_token: str,
+):
+    project = project_data.project
+    root = get(client, _browse(project), insider_token)
+    for name in ("proj/report/", "single.pdf", "missing/dir"):
+        entry = _entry(root.text, name)
+        assert "browser-data-path" in entry
+        assert "Remove from project" in entry
+
+    # proj/report/img is a data path nested inside another; its siblings are only contents
+    listing = get(client, _browse(project, "proj/report"), insider_token)
+    img = _entry(listing.text, "img/")
+    assert "browser-data-path" in img
+    assert "Remove from project" in img
+    for name in ("multiqc_report.html", "sample.bam", "summary.PDF"):
+        entry = _entry(listing.text, name)
+        assert "browser-data-path" not in entry
+        assert "cm-callback" not in entry
+    assert listing.text.count("Remove from project") == 1
+
+    # the menu is on the row, so it can't be inherited by children expanded inside the entry
+    assert 'class="browser-entry-row cm-callback"' in img
+
+    # clients see the highlight but get no menu
+    as_user = get(client, _browse(project, "proj/report"), user_token)
+    assert "browser-data-path" in _entry(as_user.text, "img/")
+    assert "Remove from project" not in as_user.text
+
+
 def test_root_offers_removal_to_insiders(client: TestClient, project_data: ProjectData, insider_token: str):
     root = get(client, _browse(project_data.project), insider_token)
     assert root.status_code == 200

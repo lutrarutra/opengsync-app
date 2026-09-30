@@ -5,12 +5,14 @@
   entries_route / route_params: listing route and its extra path params (defaults: share-link or admin browser)
   file_route: when set, file names link to this route (same route_params)
   servable_extensions: when set, only files with these extensions get a link
-  remove_from_project_id: when set (insiders only), top-level data paths get a "Remove from project" menu
+  highlight_data_paths: mark entries that are data paths themselves (browser_path.data_paths)
+  remove_from_project_id: when set (insiders only), those data path entries get a "Remove from project" menu
 #}
 {% set entries_route = entries_route if entries_route is defined else ('shared_browser_entries' if share_token else 'render_file_browser_page') %}
 {% set route_params = route_params if route_params is defined else ({'token': share_token} if share_token else {}) %}
 {% set file_route = file_route if file_route is defined else none %}
 {% set servable_extensions = servable_extensions if servable_extensions is defined else none %}
+{% set highlight_data_paths = highlight_data_paths if highlight_data_paths is defined else false %}
 {% set remove_from_project_id = remove_from_project_id if remove_from_project_id is defined else none %}
 {% set is_root_listing = is_root_listing if is_root_listing is defined else false %}
 {% set admin_browser = not share_token and entries_route == 'render_file_browser_page' %}
@@ -30,13 +32,14 @@
 {% set entry_size = browser_path.size if browser_path.size is not none else browser_path.path.stat().st_size %}
 {% set entry_mtime = browser_path.mtime if browser_path.mtime is not none else browser_path.path.stat().st_mtime %}
 {% set entry_name = relative_path if is_root_listing else browser_path.path.name %}
+{% set is_data_path = highlight_data_paths and browser_path.data_paths %}
 {% set is_linked_file = file_route and (servable_extensions is none or browser_path.path.suffix | lower in servable_extensions) %}
 {% if admin_browser and is_directory %}
     {% set entry_actions = [
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Share Directory", "config": {"url": url_for('ShareDirectoryAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
     ] %}
-{% elif remove_from_project_id is not none and is_root_listing and browser_path.data_paths %}
+{% elif remove_from_project_id is not none and is_data_path %}
     {% set entry_actions = [
         {"type": "hxdelete", "label": "Remove from project", "config": {"url": url_for('remove_project_data_path', project_id=remove_from_project_id, data_path_id=browser_path.data_paths[0].id), "title": "Remove '" ~ relative_path ~ "' from project?", "text": "The files stay on disk.", "swap": "none"}}
     ] %}
@@ -44,9 +47,10 @@
     {% set entry_actions = [] %}
 {% endif %}
 
-<div class="browser-entry{% if is_directory %} browser-directory{% else %} browser-file{% endif %}{% if entry_actions %} cm-callback{% endif %}"
-     {% if entry_actions %}{{ context_menu(entry_actions) }}{% endif %}>
-    <div class="browser-entry-row">
+<div class="browser-entry{% if is_directory %} browser-directory{% else %} browser-file{% endif %}{% if is_data_path %} browser-data-path{% endif %}">
+    {# the menu sits on the row, not the entry: expanded children render inside the entry and would open it too #}
+    <div class="browser-entry-row{% if entry_actions %} cm-callback{% endif %}"
+         {% if entry_actions %}{{ context_menu(entry_actions) }}{% endif %}>
         {% if not browser_path.exists %}
         <span class="browser-entry-file-name browser-entry-unavailable">
             <i class="bi bi-exclamation-triangle browser-entry-icon" aria-hidden="true"></i>

@@ -86,10 +86,13 @@ deploy: prod-pull prod-run
 prod-pull:
 	$(COMPOSE_PROD) pull --ignore-pull-failures
 
+# Starts postgres and redis, attaches to the pytest container and exits with its status.
+# The EXIT trap tears the stack down however this ends; the signal trap is there because
+# dash (make's /bin/sh on Linux) skips EXIT traps when killed by Ctrl-C.
 test:
-	$(COMPOSE_TEST) down -v --remove-orphans
-	$(COMPOSE_TEST) run --build --rm opengsync-pytest
-	$(COMPOSE_TEST) down --remove-orphans -v
+	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+	trap 'exit 130' HUP INT TERM; \
+	$(COMPOSE_TEST) up --build --remove-orphans --attach opengsync-pytest --exit-code-from opengsync-pytest
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d

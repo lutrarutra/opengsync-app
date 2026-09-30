@@ -94,7 +94,7 @@ A path is reachable through a share link only if **all** of these hold:
 3. It is not an [OS junk file](#os-junk-files).
 4. It is not excluded by a [`.ngsignore`](#ngsignore) file.
 
-These checks run on every request, including direct requests for paths that were never listed. Editing the URL, for example with encoded `%2e%2e` or `%2f`, double slashes or trailing slashes, does not get around them.
+These checks run for every requested path, including paths that were never listed. In prod, a result is [cached](#caching) for up to a minute per exact path, so a repeated request reuses it; any other spelling of the URL is a different path and is checked again. Editing the URL, for example with encoded `%2e%2e` or `%2f`, double slashes or trailing slashes, does not get around them.
 
 ### Sharing a folder shares everything below it
 
@@ -134,7 +134,7 @@ For example, a token with the paths `BSF_PROJECTS/P123_Smith/fastq` and `BSF_SEQ
 
 Share links hide two kinds of files: OS junk files, which are always hidden, and anything excluded by a `.ngsignore` file. To a collaborator, a hidden path looks exactly like a path that doesn't exist: WebDAV answers 404, and the HTML routes show an empty listing and serve no file.
 
-Neither rule applies to the insider file browser, which shows everything, including the `.ngsignore` files.
+Both rules also apply to a project's **Data** tab, which browses the project's data paths with the same checks. Neither applies to the insider file browser, which shows everything, including the `.ngsignore` files.
 
 ### OS junk files
 
@@ -267,22 +267,30 @@ So `.ngsignore` and the other checks always run before nginx sees the request. D
 - **`/nginx-share/` is `internal`** in `services/nginx/nginx.template.conf`, so clients cannot request it directly.
 - **nginx refuses `..` in `X-Accel-Redirect`** with 404, logged as `unsafe URI`. A request whose path contains `..` therefore gets a 404, even when it points at a visible file. It can never make nginx serve a different file from the one the app checked.
 - **`HEAD`** requests are answered by FastAPI with headers only.
-- **Fallback:** if a file's path does not start with the configured `share_root`, for example because `share_root` is set to a path through a symlink, `file_response` falls back to serving the file from FastAPI, reading it entirely into memory. Keep `share_root` a real folder, with the bind mounts below it.
+- **Fallback:** if a file's path does not start with the configured `share_root`, for example because `share_root` is set to a path through a symlink, `file_response` falls back to serving the file from FastAPI, reading it entirely into memory. The project **Data** tab refuses this fallback and answers 500 instead (`require_accel=True`). Keep `share_root` a real folder, with the bind mounts below it.
 
 ## Caching
 
-Share responses are cached in Redis:
+In prod, results are cached in Redis, and `.ngsignore` rules in each worker's memory. Dev and test cache nothing.
 
-| What | Redis key | TTL | Used by |
+| What | Where | TTL | Used by |
 |---|---|---|---|
-| Token (paths, expiry) | `share-token:<token>` | 5 min | every request |
-| Folder listings | `share-fs:<token>:list:*` | 60 s | browse, rclone, shared browser |
-| WebDAV `PROPFIND` | `share-fs:<token>:propfind:*` | 5 min | WebDAV clients |
+| Token (paths, expiry) | Redis `share-token:<token>` | 5 min | every share-link request |
+| Folder listings | Redis `share-fs:<key>:list:*` | 60 s | browse, rclone, shared browser, Data tab |
+| A project's data paths, top level | Redis `share-fs:<key>:roots:*` | 60 s | Data tab |
+| File lookups (does the path exist, is it shared) | Redis `share-fs:<key>:file:*` | 60 s | downloads, WebDAV `GET`/`HEAD`, Data tab |
+| WebDAV `PROPFIND` | Redis `share-fs:<key>:propfind:*` | 5 min | WebDAV clients |
+| Each folder's parsed `.ngsignore` (or its absence) and resolved path | worker memory, at most 10,000 folders | 60 s | every check that misses the Redis caches |
+
+`<key>` is the token for share links, and `project:<id>:<hash of its data paths>` for a project's Data tab. Linking or unlinking a data path changes the hash, so the Data tab shows the new set immediately.
+
+The `.ngsignore` cache exists because every check walks all parent folders of the requested path and tries to open a `.ngsignore` in each. On a remote mount such as sshfs, every one of those attempts is a round trip, even when the file doesn't exist.
 
 What this means in practice:
 
-- **Listings can be out of date by up to the TTL.** That covers new files, deleted files and `.ngsignore` edits: up to 60 s for the HTML routes and up to 5 min for WebDAV.
-- **Access checks on the requested path are not cached.** A newly ignored file stops downloading immediately, even while it is still listed. A deleted file returns 404. A new file can be downloaded by its path before it appears in listings.
+- **Listings can be out of date by up to the TTL.** That covers new files, deleted files and `.ngsignore` edits: up to 60 s for the HTML routes and the Data tab, and up to 5 min for WebDAV.
+- **File lookups are cached too.** For up to 60 s a newly ignored file can still be downloaded, and a new file returns 404 if someone asked for it before it existed. A deleted file returns 404 straight away, because it is checked again before it is served.
+- **An edited `.ngsignore` takes up to 60 s** to reach the worker caches, on top of the Redis TTLs above. Restarting the app clears the worker caches.
 - **Expiry by time is checked on every request**, even when the token itself is cached.
 - **Sharing a project again** (in the UI or with the API) expires its previous token and clears that token's caches immediately. Other changes made directly in the database, such as setting `expired` or editing a token's paths with SQL, take up to 5 minutes to apply.
 - **WebDAV clients cache too.** Finder, Windows Explorer and `rclone mount --vfs-cache-mode full` keep their own copies of listings, so they may need a refresh or a remount to show changes.
@@ -374,6 +382,7 @@ Notes on `release_project_data`:
 | Token loading and caching, rate limits, audit | `services/backend/server/core/dependencies.py` |
 | `X-Accel-Redirect` | `services/backend/server/core/responses.py` |
 | Share routes | `services/backend/server/routes/api/shares.py`, `routes/api/webdav.py`, `routes/pages/shared_browser.py` |
+| Project Data tab (listing and file routes, allowed file types) | `services/backend/server/routes/htmx/projects.py`, `utils/file_browser.py` |
 | nginx | `services/nginx/nginx.template.conf` |
 
 ## Security

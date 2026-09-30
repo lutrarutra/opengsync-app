@@ -75,6 +75,28 @@
     background-color: #f8f9fa;
 }
 
+/* entries that are data paths themselves, as opposed to their contents */
+.browser-data-path > .browser-entry-row {
+    background-color: #eef4fb;
+    box-shadow: inset 3px 0 0 #0d6efd;
+}
+
+.browser-data-path > .browser-entry-row:hover {
+    background-color: #e2ecf8;
+}
+
+.browser-data-path > .browser-entry-row .browser-entry-name {
+    font-weight: 600;
+}
+
+.browser-data-path > .browser-entry-row .browser-entry-icon {
+    color: #0d6efd;
+}
+
+.browser-data-path > .browser-entry-row .browser-entry-unavailable .browser-entry-icon {
+    color: inherit;
+}
+
 .browser-entry-toggle,
 .browser-entry-file-name {
     display: flex;

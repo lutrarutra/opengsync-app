@@ -15,16 +15,31 @@ type OrderBy = sql.expression.UnaryExpression
 
 
 def prepare_pandas_statement(statement: sa.Select) -> tuple[sa.Select, list[sa.ColumnElement[Any]]]:
-    """Label mapped columns with their Python keys before reading into pandas."""
+    """Label mapped columns with their Python keys before reading into pandas.
+
+    Columns are taken from the ORM-level `column_descriptions` rather than `selected_columns`:
+    the latter strips ORM annotations, which drops implicit joins such as joined-table
+    inheritance (`IndexKit` -> `kit JOIN index_kit`) and leaves a cartesian product.
+    """
+    expressions: list[Any] = []
+    for description in statement.column_descriptions:
+        expr = description["expr"]
+        entity = description["entity"]
+        if entity is not None and expr is entity:
+            expressions.extend(getattr(entity, attr.key) for attr in sa.inspect(entity).mapper.column_attrs)
+        else:
+            expressions.append(expr)
+
     selected_columns: list[sa.ColumnElement[Any]] = []
-    for column in statement.selected_columns:
+    for expr in expressions:
+        column = expr.__clause_element__() if hasattr(expr, "__clause_element__") else expr
         key = getattr(column, "key", None)
         name = getattr(column, "name", None)
         selected_columns.append(
             column.label(key) if key is not None and key != name else column
         )
     return (
-        statement.with_only_columns(*selected_columns, maintain_column_froms=True),
+        statement.with_only_columns(*selected_columns),
         selected_columns,
     )
 
