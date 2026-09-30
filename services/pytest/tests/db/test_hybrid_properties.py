@@ -10,7 +10,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 from opengsync_db import SyncSession, actions, models
 from opengsync_db.categories import (
-    AffiliationType, ExperimentWorkFlow, LibraryType, DataPathType,
+    AffiliationType, ExperimentWorkFlow, LibraryType, LibraryStatus, DataPathType,
     MediaFileType, PrepStatus, LabChecklistType, ServiceType
 )
 from opengsync_db.models import links
@@ -28,8 +28,8 @@ HYBRID_COVERAGE: dict[type, list[str]] = {
         "num_affiliations", "is_insider", "is_admin", "name",
     ],
     models.Project: [
-        "num_samples", "library_types", "num_data_paths", "num_assignees",
-        "num_seq_requests", "num_experiments",
+        "num_samples", "library_types", "library_type_counts", "library_status_counts",
+        "num_data_paths", "num_assignees", "num_seq_requests", "num_experiments",
     ],
     models.SeqRequest: [
         "num_projects", "num_libraries", "num_pools", "num_samples", "num_assignees",
@@ -245,6 +245,8 @@ def test_project_hybrid_properties(session: SyncSession):
     assert_hybrids(session, project, models.Project, {
         "num_samples": 0,
         "library_types": [],
+        "library_type_counts": {},
+        "library_status_counts": {},
         "num_data_paths": 0,
         "num_assignees": 0,
         "num_seq_requests": 0,
@@ -279,11 +281,70 @@ def test_project_hybrid_properties(session: SyncSession):
     assert_hybrids(session, project, models.Project, {
         "num_samples": 1,
         "library_types": [LibraryType.BULK_RNA_SEQ],
+        "library_type_counts": {LibraryType.BULK_RNA_SEQ: 1},
+        "library_status_counts": {LibraryStatus.DRAFT: 1},
         "num_data_paths": 1,
         "num_assignees": 1,
         "num_seq_requests": 1,
         "num_experiments": 1,
     })
+
+
+def test_project_library_counts(session: SyncSession):
+    user = create_user(session)
+    project = create_project(session, user)
+    seq_request = create_seq_request(session, user)
+
+    sample_a = create_sample(session, user, project)
+    sample_b = create_sample(session, user, project)
+
+    # Linked to two samples of the same project: must be counted once.
+    multiplexed = create_library(session, user, seq_request)
+    actions.link_sample_library(session, sample_a.id, multiplexed.id)
+    actions.link_sample_library(session, sample_b.id, multiplexed.id)
+
+    bulk_submitted = create_library(session, user, seq_request)
+    bulk_submitted.status = LibraryStatus.SUBMITTED
+    actions.link_sample_library(session, sample_a.id, bulk_submitted.id)
+
+    atac = create_library(session, user, seq_request)
+    atac.type = LibraryType.TENX_SC_ATAC
+    atac.status = LibraryStatus.SUBMITTED
+    actions.link_sample_library(session, sample_b.id, atac.id)
+
+    other = create_project(session, user)
+    other_sample = create_sample(session, user, other)
+    other_library = create_library(session, user, seq_request)
+    other_library.type = LibraryType.TENX_SC_ATAC
+    other_library.status = LibraryStatus.ACCEPTED
+    actions.link_sample_library(session, other_sample.id, other_library.id)
+
+    expected_type_counts = {LibraryType.BULK_RNA_SEQ: 2, LibraryType.TENX_SC_ATAC: 1}
+    expected_status_counts = {LibraryStatus.DRAFT: 1, LibraryStatus.SUBMITTED: 2}
+
+    assert_hybrids(session, project, models.Project, {
+        "library_type_counts": expected_type_counts,
+        "library_status_counts": expected_status_counts,
+    })
+
+    # Lazy: libraries not loaded, falls back to the SQL query
+    session.expire(project)
+    assert "libraries" in sa_inspect(project).unloaded
+    assert project.library_type_counts == expected_type_counts
+    assert project.library_status_counts == expected_status_counts
+    assert "libraries" in sa_inspect(project).unloaded
+
+    # Eager: libraries loaded up front, counted in memory
+    for loader in (orm.selectinload, orm.joinedload):
+        loaded = session.execute(
+            sa.select(models.Project).where(models.Project.id == project.id)
+            .options(loader(models.Project.libraries))
+            .execution_options(populate_existing=True)
+        ).unique().scalar_one()
+        assert "libraries" not in sa_inspect(loaded).unloaded, loader.__name__
+        assert len(loaded.libraries) == 3, loader.__name__
+        assert loaded.library_type_counts == expected_type_counts, loader.__name__
+        assert loaded.library_status_counts == expected_status_counts, loader.__name__
 
 
 def test_seq_request_hybrid_properties(session: SyncSession):

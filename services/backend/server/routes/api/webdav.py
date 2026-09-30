@@ -40,7 +40,7 @@ def share(
     current_path = _subpath(subpath)
 
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
+    browser = SharedFileBrowser.for_share_token(SHARE_ROOT, share_token, redis=redis)
 
     if request.method == "OPTIONS":
         response = Response()

@@ -52,7 +52,7 @@ def shared_browser_entries(
     redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
-    browser = SharedFileBrowser(
+    browser = SharedFileBrowser.for_share_token(
         Path(config.settings.app_config.share_root),
         share_token,
         redis=redis,
@@ -88,7 +88,7 @@ def shared_browser_page(
     redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     current_path = _subpath(subpath)
-    browser = SharedFileBrowser(
+    browser = SharedFileBrowser.for_share_token(
         Path(config.settings.app_config.share_root),
         share_token,
         redis=redis,

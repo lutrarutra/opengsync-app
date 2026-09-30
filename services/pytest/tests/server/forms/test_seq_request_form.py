@@ -1,5 +1,6 @@
 """Integration tests for the FastAPI SeqRequestForm."""
 
+import re
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -346,3 +347,139 @@ def test_number_of_lanes_matches_legacy_upper_bound(
 
     assert_form_invalid(response, "Value must be <= 8")
     assert _created_request(session, name) is None
+
+
+def _active_step(response) -> str | None:
+    match = re.search(r'id="seq_request-step" value="([^"]+)"', response.text)
+    return match.group(1) if match else None
+
+
+def test_step_advances_to_next_step_when_valid(
+    client: TestClient,
+    user,
+    user_token: str,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload(f"step-{uuid4().hex}", step="basic_info"),
+        token=user_token,
+    )
+
+    assert response.status_code == 200
+    assert _active_step(response) == "contact"
+
+
+def test_step_reports_field_errors_and_stays(
+    client: TestClient,
+    user,
+    user_token: str,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload("", step="basic_info"),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, "Request Name is required")
+    assert _active_step(response) == "basic_info"
+
+
+def test_step_revalidates_earlier_steps(
+    client: TestClient,
+    user,
+    user_token: str,
+):
+    payload = _request_payload(f"step-{uuid4().hex}", step="contact")
+    del payload["disclaimer-accepted"]
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
+
+    assert_form_invalid(response, "You must accept the disclaimer")
+    assert _active_step(response) == "disclaimer"
+
+
+def test_step_runs_cross_field_rules(
+    client: TestClient,
+    user,
+    user_token: str,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload(f"step-{uuid4().hex}", step="bioinformatician", **{"bioinformatician-name": "Bio Informatician"}),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, "Email is required when bioinformatician name is provided")
+    assert _active_step(response) == "bioinformatician"
+
+
+def test_step_ignores_later_steps(
+    client: TestClient,
+    user,
+    user_token: str,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload(f"step-{uuid4().hex}", step="basic_info", **{"billing-name": ""}),
+        token=user_token,
+    )
+
+    assert response.status_code == 200
+    assert _active_step(response) == "contact"
+
+
+def test_step_rejects_unknown_step(
+    client: TestClient,
+    user,
+    user_token: str,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload(f"step-{uuid4().hex}", step="user_selection"),
+        token=user_token,
+    )
+
+    assert response.status_code == 400
+
+
+def test_insider_step_validates_requestor_selection(
+    client: TestClient,
+    insider_token: str,
+    user_2,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload(
+            f"step-{uuid4().hex}",
+            step="user_selection",
+            **{"user_selection-user_id": str(user_2.id), "user_selection-email": "mixed@example.com"},
+        ),
+        token=insider_token,
+    )
+
+    assert_form_invalid(response, "not both")
+    assert _active_step(response) == "user_selection"
+
+
+def test_edit_step_advances_to_next_step(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit/step",
+        _request_payload(request.name, step="technical_info"),
+        token=user_token,
+    )
+
+    assert response.status_code == 200
+    assert _active_step(response) == "bioinformatician"

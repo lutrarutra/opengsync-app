@@ -1,0 +1,100 @@
+{% from "components/spinner.jinja2" import spinner %}
+
+{#
+  Sort toolbar, lazily loaded entry tree and the directory toggle script. One per page: entries.html targets #file-browser-root.
+  Import `with context` so url_for sees the request. The caller block renders between the toolbar and the tree.
+#}
+{% macro file_browser(entries_route, route_params, sort_by="name", sort_order="asc", trigger="load") %}
+<div class="file-browser" id="file-browser-container">
+    <div class="file-browser-toolbar" role="toolbar" aria-label="File browser sorting"
+         data-entries-url="{{ url_for(entries_route, **route_params) }}"
+         data-sort-by="{{ sort_by }}"
+         data-sort-order="{{ sort_order }}">
+        <span class="file-browser-toolbar-label">Sort by:</span>
+        {% for key, default_order, icon, label in [
+            ("name", "asc", "bi-sort-alpha-down", "Filename"),
+            ("mtime", "desc", "bi-clock-history", "Edited"),
+            ("size", "desc", "bi-sort-numeric-down", "Size"),
+        ] %}
+        {% set active = sort_by == key %}
+        <button
+            type="button"
+            class="btn btn-sm file-browser-sort {% if active %}btn-primary{% else %}btn-outline-primary{% endif %}"
+            data-sort-key="{{ key }}"
+            data-default-order="{{ default_order }}"
+            aria-pressed="{{ 'true' if active else 'false' }}"
+            hx-indicator="#file-browser-root-loading"
+            onclick="sortFileBrowser(this)">
+            <i class="bi {{ icon }}" aria-hidden="true"></i>
+            {{ label }}
+            <i class="bi file-browser-sort-arrow{% if active %} {{ 'bi-arrow-up' if sort_order == 'asc' else 'bi-arrow-down' }}{% endif %}" aria-hidden="true"></i>
+        </button>
+        {% endfor %}
+        <span class="file-browser-root-loading htmx-indicator" id="file-browser-root-loading">
+            {{ spinner() }}
+        </span>
+    </div>
+
+    {% if caller is defined %}{{ caller() }}{% endif %}
+
+    <div
+        class="file-browser-root"
+        id="file-browser-root"
+        hx-get="{{ url_for(entries_route, page=0, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
+        hx-trigger="{{ trigger }}"
+        hx-swap="innerHTML">
+        <div class="browser-loading-initial">
+            {{ spinner() }}
+            <span>Loading files…</span>
+        </div>
+    </div>
+</div>
+
+<script>
+// Clicking the active sort button flips the direction; another button starts at its default direction.
+// Expanded directories are reloaded with the new sort as they come from the re-rendered tree.
+function sortFileBrowser(button) {
+    const toolbar = button.closest('.file-browser-toolbar');
+    const key = button.dataset.sortKey;
+    const order = toolbar.dataset.sortBy === key
+        ? (toolbar.dataset.sortOrder === 'asc' ? 'desc' : 'asc')
+        : button.dataset.defaultOrder;
+    toolbar.dataset.sortBy = key;
+    toolbar.dataset.sortOrder = order;
+
+    toolbar.querySelectorAll('.file-browser-sort').forEach(function(sortButton) {
+        const active = sortButton.dataset.sortKey === key;
+        sortButton.classList.toggle('btn-primary', active);
+        sortButton.classList.toggle('btn-outline-primary', !active);
+        sortButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const arrow = sortButton.querySelector('.file-browser-sort-arrow');
+        arrow.classList.toggle('bi-arrow-up', active && order === 'asc');
+        arrow.classList.toggle('bi-arrow-down', active && order === 'desc');
+    });
+
+    const url = toolbar.dataset.entriesUrl;
+    const params = new URLSearchParams({ page: 0, sort_by: key, sort_order: order });
+    htmx.ajax('GET', url + (url.includes('?') ? '&' : '?') + params, {
+        source: button,
+        target: '#file-browser-root',
+        swap: 'innerHTML',
+    });
+}
+
+function toggleBrowserDirectory(toggle) {
+    const directory = toggle.closest('.browser-directory');
+    if (!directory) return;
+
+    const expanded = directory.classList.toggle('is-expanded');
+    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+    if (!expanded) {
+        // Collapsing is entirely local. Clear any stale HTMX loading state
+        // left on the toggle or page by the global request styling.
+        toggle.classList.remove('htmx-request');
+        directory.classList.remove('htmx-request');
+        document.body.classList.remove('waiting');
+    }
+}
+</script>
+{% endmacro %}

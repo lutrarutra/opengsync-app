@@ -22,6 +22,13 @@ hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger=
             <span class="badge">Samples: {{ project.num_samples }}</span>
         </div>
     </div>
+    <div class="row">
+        <div class="col">
+        {% for status, count in project.library_status_counts.items() %}
+        <span class="badge">{{ status.label }}: {{ count }} {{ status.icon }}</span>
+        {% endfor %}
+        </div>
+    </div>
     <div class="row pb-1">
         <div class="col-9"><b>{{ project.owner.name }}</b>: <i>{{ project.title }}</i></div>
         <div class="col-3">{% if project.group %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</div>

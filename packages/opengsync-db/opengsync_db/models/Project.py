@@ -11,7 +11,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 
 from .Base import Base
-from ..categories import ProjectStatus, LibraryType
+from ..categories import ProjectStatus, LibraryType, LibraryStatus
 from ..core.EnumColumn import EnumColumn
 from . import links
 
@@ -148,6 +148,150 @@ class Project(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     _library_types: Mapped[list[int] | None] = orm.query_expression()
+
+    @hybrid_property
+    def library_type_counts(self) -> dict[LibraryType, int]:  # type: ignore[override]
+        counts: dict[LibraryType, int] = {}
+
+        if self._library_type_counts is not None:
+            for type_id, count in self._library_type_counts.items():
+                counts[LibraryType.get(int(type_id))] = count
+            return counts
+
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            for lib in self.libraries:
+                lib_type = LibraryType.get(lib.type)
+                counts[lib_type] = counts.get(lib_type, 0) + 1
+            return counts
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_type_counts was not populated via with_expression. "
+                "Use orm.with_expression(Project._library_type_counts, Project.library_type_counts.expression) "
+                "in your query options."
+            )
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_type_counts' attribute.")
+
+        from .. import queries as Q
+        from .Library import Library
+        results = session.execute(
+            sa.select(Library.type, sa.func.count(Library.id))
+            .where(*Q.library.where_clauses(project_id=self.id))
+            .group_by(Library.type)
+        ).all()
+        for library_type, count in results:
+            counts[LibraryType.get(library_type)] = count
+        return counts
+
+    @library_type_counts.expression
+    def library_type_counts(cls):
+        from .Library import Library
+        from .Sample import Sample
+
+        project_alias = cls.__table__.alias("project_inner")
+
+        # Explicit joins instead of Q.library.where_clauses: its EXISTS inside LATERAL
+        # trips SQLAlchemy's cartesian product linter. DISTINCT because a library can
+        # link to several samples of the same project.
+        count_subq = (
+            sa.select(
+                Library.type.label("type_id"),
+                sa.func.count(sa.distinct(Library.id)).label("cnt"),
+            )
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.library_id == Library.id)
+            .join(Sample, Sample.id == links.SampleLibraryLink.sample_id)
+            .where(Sample.project_id == project_alias.c.id)
+            .group_by(Library.type)
+            .lateral("s")
+        )
+
+        return (
+            sa.select(
+                sa.func.coalesce(
+                    sa.func.jsonb_object_agg(count_subq.c.type_id, count_subq.c.cnt),
+                    sa.cast(sa.text("'{}'"), JSONB),
+                )
+            )
+            .select_from(project_alias, count_subq)
+            .where(project_alias.c.id == cls.id)
+            .correlate(cls)  # type: ignore[arg-type]
+            .scalar_subquery()
+        )
+
+    _library_type_counts: Mapped[dict[int, int] | None] = orm.query_expression()
+
+    @hybrid_property
+    def library_status_counts(self) -> dict[LibraryStatus, int]:  # type: ignore[override]
+        counts: dict[LibraryStatus, int] = {}
+
+        if self._library_status_counts is not None:
+            for status_id, count in self._library_status_counts.items():
+                counts[LibraryStatus.get(int(status_id))] = count
+            return counts
+
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            for lib in self.libraries:
+                lib_status = LibraryStatus.get(lib.status)
+                counts[lib_status] = counts.get(lib_status, 0) + 1
+            return counts
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_status_counts was not populated via with_expression. "
+                "Use orm.with_expression(Project._library_status_counts, Project.library_status_counts.expression) "
+                "in your query options."
+            )
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_status_counts' attribute.")
+
+        from .. import queries as Q
+        from .Library import Library
+        results = session.execute(
+            sa.select(Library.status, sa.func.count(Library.id))
+            .where(*Q.library.where_clauses(project_id=self.id))
+            .group_by(Library.status)
+        ).all()
+        for library_status, count in results:
+            counts[LibraryStatus.get(library_status)] = count
+        return counts
+
+    @library_status_counts.expression
+    def library_status_counts(cls):
+        from .Library import Library
+        from .Sample import Sample
+
+        project_alias = cls.__table__.alias("project_inner")
+
+        # See library_type_counts for why this doesn't use Q.library.where_clauses.
+        count_subq = (
+            sa.select(
+                Library.status.label("status_id"),
+                sa.func.count(sa.distinct(Library.id)).label("cnt"),
+            )
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.library_id == Library.id)
+            .join(Sample, Sample.id == links.SampleLibraryLink.sample_id)
+            .where(Sample.project_id == project_alias.c.id)
+            .group_by(Library.status)
+            .lateral("s")
+        )
+
+        return (
+            sa.select(
+                sa.func.coalesce(
+                    sa.func.jsonb_object_agg(count_subq.c.status_id, count_subq.c.cnt),
+                    sa.cast(sa.text("'{}'"), JSONB),
+                )
+            )
+            .select_from(project_alias, count_subq)
+            .where(project_alias.c.id == cls.id)
+            .correlate(cls)  # type: ignore[arg-type]
+            .scalar_subquery()
+        )
+
+    _library_status_counts: Mapped[dict[int, int] | None] = orm.query_expression()
 
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]

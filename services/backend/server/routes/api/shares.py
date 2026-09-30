@@ -401,7 +401,7 @@ def rclone(
 ):
     current_path = _subpath(subpath)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
+    browser = SharedFileBrowser.for_share_token(SHARE_ROOT, share_token, redis=redis)
 
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
@@ -431,7 +431,7 @@ def browse(
 ):
     current_path = _subpath(subpath)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
-    browser = SharedFileBrowser(root_dir=SHARE_ROOT, share_token=share_token, redis=redis)
+    browser = SharedFileBrowser.for_share_token(SHARE_ROOT, share_token, redis=redis)
 
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"

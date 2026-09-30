@@ -203,19 +203,25 @@ def file_response(
     disposition: Literal["inline", "attachment"] | None = "attachment",
     extra_headers: dict[str, str] | None = None,
     send_body: bool = True,
+    require_accel: bool = False,
 ) -> Response:
+    """In prod, files under the share root or media folder are handed to nginx. With `require_accel`, a
+    prod path that nginx cannot serve raises instead of being read into memory by the app."""
     path = Path(path)
     if not path.is_file():
         return HTMLResponse(content="File not found", status_code=404)
 
-    if send_body and config.settings.ENVIRONMENT == "prod" and _x_accel_redirect(path) is not None:
-        return accel_redirect_response(
-            path,
-            filename=filename,
-            content_type=content_type,
-            disposition=disposition,
-            extra_headers=extra_headers,
-        )
+    if send_body and config.settings.ENVIRONMENT == "prod":
+        if _x_accel_redirect(path) is not None:
+            return accel_redirect_response(
+                path,
+                filename=filename,
+                content_type=content_type,
+                disposition=disposition,
+                extra_headers=extra_headers,
+            )
+        if require_accel:
+            raise RuntimeError(f"Refusing to serve '{path}' from the app: it is not under an nginx-served root.")
 
     if filename is None:
         filename = path.name

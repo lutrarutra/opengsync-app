@@ -85,6 +85,98 @@ textarea.disabled:focus {
     opacity: 1;
 }
 
+.form-group.metadata-group textarea.form-control {
+    min-height: 12rem;
+}
+
+/* Metadata values wrapped in a link (URL, mailto, ...) are clickable. */
+.form-group.metadata-group a:not(.clipboard-btn) input.form-control:read-only {
+    cursor: pointer !important;
+}
+
+/* Multi-step forms: one .step-pane per step, .step-timeline in the footer. */
+.step-timeline {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0 20px 0 10px;
+
+    .step-timeline-item {
+        --step-color: var(--bs-secondary-color);
+        --step-border: var(--bs-border-color);
+        --step-bg: var(--bs-body-bg);
+        --step-ring: var(--bs-primary-bg-subtle);
+        display: flex;
+        align-items: center;
+        flex: 1;
+
+        /* Connector to the previous step */
+        &::before {
+            content: "";
+            flex: 1;
+            height: 2px;
+            margin: 0 4px;
+            background-color: var(--bs-border-color);
+        }
+        &:first-child {
+            flex: 0 0 auto;
+            &::before {
+                display: none;
+            }
+        }
+
+        button {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 14px;
+            border: 1.5px solid var(--step-border);
+            background-color: var(--step-bg);
+            color: var(--step-color);
+            transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:hover {
+            cursor: pointer;
+            border-color: var(--step-color);
+        }
+    }
+
+    .step-timeline-item.step-ok {
+        --step-color: var(--bs-success);
+        --step-border: var(--bs-success-border-subtle);
+        --step-bg: var(--bs-success-bg-subtle);
+        --step-ring: var(--bs-success-bg-subtle);
+    }
+    .step-timeline-item.step-error {
+        --step-color: var(--bs-danger);
+        --step-border: var(--bs-danger-border-subtle);
+        --step-bg: var(--bs-danger-bg-subtle);
+        --step-ring: var(--bs-danger-bg-subtle);
+    }
+
+    .step-timeline-item.current {
+        --step-border: var(--step-color);
+    }
+    .step-timeline-item.step-missing.current {
+        --step-color: var(--bs-primary);
+    }
+    .step-timeline-item.current button {
+        box-shadow: 0 0 0 3px var(--step-ring);
+    }
+
+    /* Connector after a validated step */
+    .step-timeline-item.step-ok + .step-timeline-item::before {
+        background-color: var(--bs-success);
+    }
+}
+
 .form-check:has(input.disabled) {
     label {
         color: var(--color-gray-500) !important;

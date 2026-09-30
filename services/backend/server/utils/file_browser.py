@@ -7,6 +7,27 @@ from sqlalchemy import orm
 from opengsync_db import models, SyncSession, queries as Q
 
 
+# What the project data browser serves: documents, images, tables, HTML reports and the assets reports load.
+# Everything else (bam, fastq.gz, h5ad, ...) is listed but only downloadable through share links.
+PROJECT_SERVABLE_EXTENSIONS = frozenset({
+    ".pdf",
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
+    ".csv", ".tsv", ".xlsx", ".xls",
+    ".html", ".htm",
+    ".css", ".js", ".json", ".woff", ".woff2", ".ttf",
+})
+
+
+def is_servable(path: Path, extensions: frozenset[str] = PROJECT_SERVABLE_EXTENSIONS) -> bool:
+    """Checks the requested name and, for a symlink, its target, so `report.html -> sample.bam` is refused."""
+    if path.suffix.lower() not in extensions:
+        return False
+    try:
+        return not path.is_symlink() or path.resolve().suffix.lower() in extensions
+    except (OSError, RuntimeError):
+        return False
+
+
 def is_within_root(root_dir: Path, subpath: str | Path) -> bool:
     """True if `root_dir / subpath` resolves inside `root_dir`. Rejects `..` escapes, absolute paths, and symlinks pointing outside."""
     try:
@@ -23,6 +44,7 @@ class BrowserPath:
     is_dir: bool | None = None
     size: int | None = None
     mtime: float | None = None
+    exists: bool = True
 
 
 class FileBrowser:

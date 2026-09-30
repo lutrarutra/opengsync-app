@@ -12,7 +12,7 @@ hx-get="{{ url_for('render_experiment_feed', page=current_page + 1) }}" hx-trigg
         </div>
         <div class="col-6">
             <span class="badge assignee-badge {% if experiment.operator == current_user %}badge-success{% endif %}" {{ tooltip(experiment.operator.name, category="success" if experiment.operator == current_user else "primary") }}>{{ experiment.operator.initials }}</span>
-            {{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}
+            {{ experiment.timestamp_created_str("%-d. %b.") }}
         </div>
     </div>
     {{ experiment_status_bar(experiment) }}

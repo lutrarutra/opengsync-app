@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import Depends, Request
+from fastapi import Cookie, Depends, Request
 from fastapi.responses import Response
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -13,6 +13,8 @@ from ..SubHTMXForm import SubHTMXForm
 
 class DisclaimerSubForm(SubHTMXForm):
     """Disclaimer that must be accepted."""
+    title = "Disclaimer"
+    icon = "bi-exclamation-triangle"
 
     accepted = inputs.boolean.CheckboxInputField("I have read and understood the disclaimer")
 
@@ -35,6 +37,8 @@ class DisclaimerSubForm(SubHTMXForm):
 
 class BasicInfoSubForm(SubHTMXForm):
     """Basic information about the sequencing request."""
+    title = "Request Info"
+    icon = "bi-info-circle"
 
     name = inputs.string.StringInputField("Request Name", required=True)
     description = inputs.string.TextAreaInputField("Description", required=False)
@@ -43,6 +47,8 @@ class BasicInfoSubForm(SubHTMXForm):
 
 class UserSelectionSubForm(SubHTMXForm):
     """Existing or manually-created requestor (insider only)."""
+    title = "Requestor"
+    icon = "bi-person-plus"
 
     user_id = inputs.searchable.SearchableInputField("User", route="search_users", required=False)
     email = inputs.string.EmailInputField("New User Email", required=False)
@@ -52,6 +58,8 @@ class UserSelectionSubForm(SubHTMXForm):
 
 class TechnicalInfoSubForm(SubHTMXForm):
     """Technical requirements for sequencing."""
+    title = "Technical Requirements"
+    icon = "bi-cpu"
 
     submission_type = inputs.selectable.SelectableInputField("Submission Type", options=C.SubmissionType.as_selectable(include_unpooled_libraries=False))
     read_type = inputs.selectable.SelectableInputField(
@@ -67,6 +75,8 @@ class TechnicalInfoSubForm(SubHTMXForm):
 
 class ContactSubForm(SubHTMXForm):
     """Contact person for the request."""
+    title = "Contact Person"
+    icon = "bi-person"
 
     current_user_is_contact = inputs.boolean.SwitchInputField("Requestor is the contact person")
     name = inputs.string.StringInputField("Contact Person Name", required=True)
@@ -78,6 +88,8 @@ class ContactSubForm(SubHTMXForm):
 
 class BioinformaticianSubForm(SubHTMXForm):
     """Bioinformatician contact (optional)."""
+    title = "Bioinformatician Contact"
+    icon = "bi-robot"
 
     name = inputs.string.StringInputField("Bioinformatician Name", required=False)
     email = inputs.string.EmailInputField("Bioinformatician Email", required=False)
@@ -86,6 +98,8 @@ class BioinformaticianSubForm(SubHTMXForm):
 
 class OrganizationSubForm(SubHTMXForm):
     """Organization name and address."""
+    title = "Organization"
+    icon = "bi-building"
 
     name = inputs.string.StringInputField("Organization Name", required=True)
     address = inputs.string.TextAreaInputField("Organization Address", required=True)
@@ -93,7 +107,11 @@ class OrganizationSubForm(SubHTMXForm):
 
 class BillingSubForm(SubHTMXForm):
     """Billing information."""
+    title = "Billing"
+    icon = "bi-credit-card"
 
+    # UI-only: copies the organization name/address into the billing fields.
+    use_organization = inputs.boolean.SwitchInputField("Use organization for billing")
     code = inputs.string.StringInputField("Billing Code", required=False)
     name = inputs.string.StringInputField("Billing Contact Name", required=True)
     email = inputs.string.EmailInputField("Billing Contact Email", required=True)
@@ -113,14 +131,19 @@ class SeqRequestForm(HTMXForm):
     organization = OrganizationSubForm()
     billing = BillingSubForm()
 
+    # Order of the steps in the multi-step form.
+    STEPS = ("disclaimer", "user_selection", "basic_info", "contact", "technical_info", "bioinformatician", "organization", "billing")
+
     def __init__(
         self,
         form_type: Literal["create", "edit"],
         seq_request: models.SeqRequest | None = None,
+        is_insider: bool = False,
     ) -> None:
         super().__init__()
         self.form_type = form_type
         self.seq_request = seq_request
+        self.is_insider = is_insider
 
         if form_type == "create":
             if seq_request is not None:
@@ -138,32 +161,119 @@ class SeqRequestForm(HTMXForm):
         assert self.seq_request is not None
         return responses.url_for("SeqRequestForm.Edit", seq_request_id=self.seq_request.id)
 
-    @staticmethod
-    def _validate_bioinformatician(form: "SeqRequestForm"):
-        """If bioinformatician name is given, email is required."""
-        if (
-            form.bioinformatician.name.data
-            and not form.bioinformatician.email.data
-        ):
-            form.bioinformatician.email.errors.append(
-                "Email is required when bioinformatician name is provided."
-            )
+    @property
+    def step_url(self):
+        if self.form_type == "create":
+            return responses.url_for("SeqRequestForm.CreateStep")
+        assert self.seq_request is not None
+        return responses.url_for("SeqRequestForm.EditStep", seq_request_id=self.seq_request.id)
+
+    @property
+    def step_names(self) -> list[str]:
+        return [name for name in self.STEPS if name != "user_selection" or self.is_insider]
+
+    @property
+    def steps(self) -> list[tuple[str, SubHTMXForm]]:
+        return [(name, self.sub_form_dict[name]) for name in self.step_names]
+
+    @property
+    def active_step(self) -> str:
+        """First step with errors, else the first step not validated yet, else the last step."""
+        for name, sub_form in self.steps:
+            if sub_form.has_errors:
+                return name
+        for name, sub_form in self.steps:
+            if not sub_form.validated:
+                return name
+        return self.step_names[-1]
+
+    def validate_rules(self, session: SyncSession, step_names: list[str]) -> None:
+        """Cross-field and database checks for the given steps, run once their fields are valid."""
+        def ready(name: str) -> bool:
+            return name in step_names and self.sub_form_dict[name].is_valid
+
+        if ready("basic_info") and self.form_type == "create":
+            if session.exists(Q.seq_request.select(name=self.basic_info.name.data)):
+                self.basic_info.name.errors.append("A sequencing request with this name already exists.")
+
+        if ready("user_selection") and self.form_type == "create":
+            user_id = self.user_selection.user_id.data
+            new_user = (self.user_selection.email.data, self.user_selection.first_name.data, self.user_selection.last_name.data)
+            if user_id and any(new_user):
+                self.user_selection.user_id.errors.append("Select a user or enter new user details, not both.")
+            elif user_id:
+                if session.first(Q.user.select(id=int(user_id))) is None:
+                    self.user_selection.user_id.errors.append("Selected user not found.")
+            elif any(new_user):
+                if not all(new_user):
+                    self.user_selection.email.errors.append("Email, first name, and last name are required for a new user.")
+                elif session.exists(Q.user.select(email=self.user_selection.email.data)):
+                    self.user_selection.email.errors.append("Email already registered.")
+
+        if ready("contact"):
+            if bool(self.contact.pi_name.data) != bool(self.contact.pi_email.data):
+                self.contact.pi_email.errors.append("PI name and email must be provided together.")
+
+        if ready("bioinformatician"):
+            if self.bioinformatician.name.data and not self.bioinformatician.email.data:
+                self.bioinformatician.email.errors.append("Email is required when bioinformatician name is provided.")
+
+    def validate_step(self, formdata: dict, csrf_token: str | None, session: SyncSession) -> Response:
+        """Validate every step up to the submitted one and re-render the form at the next step.
+
+        On errors, the form is re-rendered at the first step with errors instead.
+        """
+        step = formdata.get("step")
+        if step not in self.step_names:
+            raise exc.BadRequestException(f"Unknown step '{step}'.")
+
+        completed = self.step_names[: self.step_names.index(step) + 1]
+        self.validate_sub_forms(formdata, completed, csrf_token=csrf_token)
+        self.validate_rules(session, completed)
+        self.assert_valid()
+        return self.make_response()
 
     @classmethod
     def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
         def dependency(
             seq_request_id: int | None = None,
-            session: SyncSession = Depends(dependencies.db_session)
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
         ) -> "SeqRequestForm":
             if form_type == "edit" and seq_request_id is None:
                 raise exc.OpeNGSyncServerException("SeqRequest ID must be provided for edit form.")
-            
+
             seq_request = None
             if seq_request_id is not None:
                 seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-            return SeqRequestForm(form_type=form_type, seq_request=seq_request)
-        
+            return SeqRequestForm(form_type=form_type, seq_request=seq_request, is_insider=current_user.is_insider)
+
         return dependency
+
+    @htmx_route("POST", "/create/step", name="CreateStep")
+    def CreateStep(cls) -> RouteFunc:
+        def route(
+            request: Request,
+            csrf_token: str | None = Cookie(default=None),
+            session: SyncSession = Depends(dependencies.db_session),
+            form: "SeqRequestForm" = Depends(SeqRequestForm.Init(form_type="create")),
+        ) -> Response:
+            return form.validate_step(request.state.form_data, csrf_token, session)
+        return route
+
+    @htmx_route("POST", "/{seq_request_id}/edit/step", name="EditStep")
+    def EditStep(cls) -> RouteFunc:
+        def route(
+            request: Request,
+            csrf_token: str | None = Cookie(default=None),
+            session: SyncSession = Depends(dependencies.db_session),
+            access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+            form: "SeqRequestForm" = Depends(SeqRequestForm.Init(form_type="edit")),
+        ) -> Response:
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this request.")
+            return form.validate_step(request.state.form_data, csrf_token, session)
+        return route
 
     @htmx_route("GET", "/create", name="Create")
     def RenderCreate(cls) -> RouteFunc:
@@ -257,43 +367,19 @@ class SeqRequestForm(HTMXForm):
             bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
             form: "SeqRequestForm" = Depends(SeqRequestForm.Validate(form_type="create"))
         ) -> Response:
-            SeqRequestForm._validate_bioinformatician(form)
-
-            if session.exists(Q.seq_request.select(name=form.basic_info.name.data)):
-                form.basic_info.name.errors.append("A sequencing request with this name already exists.")
-                raise exc.FormValidationException(form)
-
-            if (
-                form.bioinformatician.name.data
-                and not form.bioinformatician.email.data
-            ):
-                raise exc.FormValidationException(form)
-
-            current_user = request.state.current_user
+            form.validate_rules(session, form.step_names)
+            form.assert_valid()
 
             requestor = current_user
-            if current_user.is_insider:
+            if form.is_insider:
                 user_id = form.user_selection.user_id.data
                 email = form.user_selection.email.data
                 first_name = form.user_selection.first_name.data
                 last_name = form.user_selection.last_name.data
 
-                if user_id and any((email, first_name, last_name)):
-                    form.user_selection.user_id.errors.append("Select a user or enter new user details, not both.")
-                    raise exc.FormValidationException(form)
-
                 if user_id:
-                    requestor = session.first(Q.user.select(id=int(user_id)))
-                    if requestor is None:
-                        form.user_selection.user_id.errors.append("Selected user not found.")
-                        raise exc.FormValidationException(form)
-                elif any((email, first_name, last_name)):
-                    if not email or not first_name or not last_name:
-                        form.user_selection.email.errors.append("Email, first name, and last name are required for a new user.")
-                        raise exc.FormValidationException(form)
-                    if session.exists(Q.user.select(email=email)):
-                        form.user_selection.email.errors.append("Email already registered.")
-                        raise exc.FormValidationException(form)
+                    requestor = session.get_one(Q.user.select(id=int(user_id)))
+                elif email and first_name and last_name:
                     requestor = session.save(Q.user.create(
                         email=email,
                         first_name=first_name.strip(),
@@ -308,10 +394,7 @@ class SeqRequestForm(HTMXForm):
                 form.contact.phone.data,
             )
             pi_contact = None
-            if form.contact.pi_name.data or form.contact.pi_email.data:
-                if not form.contact.pi_name.data or not form.contact.pi_email.data:
-                    form.contact.pi_email.errors.append("PI name and email must be provided together.")
-                    raise exc.FormValidationException(form)
+            if form.contact.pi_name.data and form.contact.pi_email.data:
                 pi_contact = Q.contact.create(
                     form.contact.pi_name.data,
                     form.contact.pi_email.data,
@@ -396,13 +479,8 @@ class SeqRequestForm(HTMXForm):
                     "Submitted requests can only be edited by insiders."
                 )
 
-            SeqRequestForm._validate_bioinformatician(form)
-
-            if (
-                form.bioinformatician.name.data
-                and not form.bioinformatician.email.data
-            ):
-                raise exc.FormValidationException(form)
+            form.validate_rules(session, form.step_names)
+            form.assert_valid()
 
             # Update basic info
             seq_request.name = form.basic_info.name.data
@@ -430,10 +508,7 @@ class SeqRequestForm(HTMXForm):
             seq_request.contact_person.name = form.contact.name.data
             seq_request.contact_person.email = form.contact.email.data
             seq_request.contact_person.phone = form.contact.phone.data
-            if form.contact.pi_name.data or form.contact.pi_email.data:
-                if not form.contact.pi_name.data or not form.contact.pi_email.data:
-                    form.contact.pi_email.errors.append("PI name and email must be provided together.")
-                    raise exc.FormValidationException(form)
+            if form.contact.pi_name.data and form.contact.pi_email.data:
                 if seq_request.pi_contact is None:
                     seq_request.pi_contact = Q.contact.create(
                         form.contact.pi_name.data,

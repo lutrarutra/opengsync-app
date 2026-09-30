@@ -5,9 +5,10 @@ relative to D. Every ignore file from the share root down to a path applies, and
 nearest one with a matching rule decides. Once a directory is ignored nothing below it
 can be re-included. The ignore files themselves are always hidden.
 
-Only `SharedFileBrowser` (share-link access) applies these rules; the insider
-`FileBrowser` shows everything. Share listings, PROPFIND responses and walks are
-cached in Redis in prod, so an edited `.ngsignore` reaches those after their TTL.
+Only `SharedFileBrowser` (share links and the project Data tab) applies these rules;
+the insider `FileBrowser` shows everything. Its listings, file lookups, PROPFIND
+responses and walks are cached in Redis in prod, so an edited `.ngsignore` reaches
+those after their TTL.
 """
 
 import os

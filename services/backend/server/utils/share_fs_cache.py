@@ -13,6 +13,7 @@ SHARE_TOKEN_TTL = 300
 LISTING_TTL = 60
 PROPFIND_TTL = 300
 WALK_TTL = 60
+FILE_TTL = 60
 
 
 def _cache_key(token: str, kind: str, **params: Any) -> str:
@@ -127,6 +128,41 @@ def set_walk(
     subpath: str,
 ) -> None:
     _set(redis, _cache_key(token, "walk", subpath=subpath), value, WALK_TTL)
+
+
+def get_roots(
+    redis: RedisClient | None,
+    token: str,
+    *,
+    sort_by: str,
+    sort_order: str,
+) -> list[dict[str, Any]] | None:
+    return _get(redis, _cache_key(token, "roots", sort_by=sort_by, sort_order=sort_order))
+
+
+def set_roots(
+    redis: RedisClient | None,
+    token: str,
+    value: list[dict[str, Any]],
+    *,
+    sort_by: str,
+    sort_order: str,
+) -> None:
+    _set(redis, _cache_key(token, "roots", sort_by=sort_by, sort_order=sort_order), value, LISTING_TTL)
+
+
+def get_file(redis: RedisClient | None, token: str, *, subpath: str) -> dict[str, Any] | None:
+    return _get(redis, _cache_key(token, "file", subpath=subpath))
+
+
+def set_file(
+    redis: RedisClient | None,
+    token: str,
+    value: dict[str, Any],
+    *,
+    subpath: str,
+) -> None:
+    _set(redis, _cache_key(token, "file", subpath=subpath), value, FILE_TTL)
 
 
 def claim_share_audit(redis: RedisClient | None, key: str, ttl: int) -> bool:

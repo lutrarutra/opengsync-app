@@ -1,45 +1,10 @@
-{% from "components/spinner.jinja2" import spinner %}
+{% from "components/file-browser/browser.jinja2" import file_browser with context %}
 {% extends "base.html" %}
 {% set active_page = "browser-page" %}
 {% block content %}
-<div class="file-browser" id="file-browser-container">
-    <div class="file-browser-toolbar" role="toolbar" aria-label="File browser sorting">
-        <span class="file-browser-toolbar-label">Sort by:</span>
-        <button
-            type="button"
-            class="btn btn-sm {% if sort_by == 'name' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by='name', sort_order='asc') }}"
-            hx-target="#file-browser-root"
-            hx-swap="innerHTML"
-            hx-indicator="#file-browser-root-loading">
-            <i class="bi bi-sort-alpha-down" aria-hidden="true"></i>
-            Filename
-        </button>
-        <button
-            type="button"
-            class="btn btn-sm {% if sort_by == 'mtime' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by='mtime', sort_order='desc') }}"
-            hx-target="#file-browser-root"
-            hx-swap="innerHTML"
-            hx-indicator="#file-browser-root-loading">
-            <i class="bi bi-clock-history" aria-hidden="true"></i>
-            Edited
-        </button>
-        <button
-            type="button"
-            class="btn btn-sm {% if sort_by == 'size' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by='size', sort_order='desc') }}"
-            hx-target="#file-browser-root"
-            hx-swap="innerHTML"
-            hx-indicator="#file-browser-root-loading">
-            <i class="bi bi-sort-numeric-down" aria-hidden="true"></i>
-            Size
-        </button>
-        <span class="file-browser-root-loading htmx-indicator" id="file-browser-root-loading">
-            {{ spinner() }}
-        </span>
-    </div>
-
+{% set entries_route = 'shared_browser_entries' if share_token else 'render_file_browser_page' %}
+{% set route_params = {'token': share_token} if share_token else {} %}
+{% call file_browser(entries_route, route_params, sort_by=sort_by, sort_order=sort_order) %}
     <div class="file-browser-storage-status">
         <span>Storage status:</span>
         <strong id="mount-status-badge">
@@ -48,37 +13,9 @@
         </strong>
         <small id="mount-status-details"></small>
     </div>
-
-    <div
-        class="file-browser-root"
-        id="file-browser-root"
-        hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath='', page=0, sort_by=sort_by, sort_order=sort_order) }}"
-        hx-trigger="load"
-        hx-swap="innerHTML">
-        <div class="browser-loading-initial">
-            {{ spinner() }}
-            <span>Loading files…</span>
-        </div>
-    </div>
-</div>
+{% endcall %}
 
 <script>
-function toggleBrowserDirectory(toggle) {
-    const directory = toggle.closest('.browser-directory');
-    if (!directory) return;
-
-    const expanded = directory.classList.toggle('is-expanded');
-    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-
-    if (!expanded) {
-        // Collapsing is entirely local. Clear any stale HTMX loading state
-        // left on the toggle or page by the global request styling.
-        toggle.classList.remove('htmx-request');
-        directory.classList.remove('htmx-request');
-        document.body.classList.remove('waiting');
-    }
-}
-
 $(document).ready(function() {
     function renderStatus(data) {
         const badge = $("#mount-status-badge");

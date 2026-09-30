@@ -230,9 +230,7 @@ class HTMXForm(ABC):
             f"{self.__class__.__name__}PartialModel", **field_definitions
         )
 
-    def validate(self, formdata: dict[str, Any], csrf_token: str | None = None) -> None:
-        self.validated = True
-        self.raw_data = formdata
+    def _validate_csrf(self, csrf_token: str | None) -> None:
         submitted_token = self.raw_data.get("csrf_token")
 
         if not submitted_token or not csrf_token or submitted_token != csrf_token:
@@ -243,6 +241,30 @@ class HTMXForm(ABC):
             )
         else:
             self.csrf_token.data = submitted_token
+
+    def validate_sub_forms(self, formdata: dict[str, Any], sub_form_names: list[str], csrf_token: str | None = None) -> bool:
+        """Validate only the named sub-forms, e.g. the steps completed so far in a multi-step form.
+
+        Unlike `validate()`, this does not raise on invalid data; the other sub-forms keep
+        their submitted values but stay unvalidated.
+        """
+        self.validated = True
+        self.raw_data = formdata
+        self._validate_csrf(csrf_token)
+
+        all_valid = True
+        for name in sub_form_names:
+            sub_form = self.get_sub_form(name)
+            if sub_form is None:
+                raise exc.OpeNGSyncServerException(f"Unknown sub-form '{name}'.")
+            if not sub_form.validate(self.raw_data):
+                all_valid = False
+        return all_valid
+
+    def validate(self, formdata: dict[str, Any], csrf_token: str | None = None) -> None:
+        self.validated = True
+        self.raw_data = formdata
+        self._validate_csrf(csrf_token)
 
         all_sub_forms_valid = True
         for sub_form in self.sub_forms:

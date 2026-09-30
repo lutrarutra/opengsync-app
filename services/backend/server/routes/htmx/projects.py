@@ -1,4 +1,8 @@
 import io
+import mimetypes
+from pathlib import Path
+from typing import Literal
+
 import pandas as pd
 from pydantic import BaseModel
 from sqlalchemy import orm
@@ -8,14 +12,18 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import config, dependencies, responses, exceptions as exc, redis as rds
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
 from ...utils import parsing
+from ...utils.file_browser import PROJECT_SERVABLE_EXTENSIONS, is_servable
+from ...utils.io import is_browser_friendly
+from ...utils.shared_file_browser import SharedFileBrowser
 from ... import forms
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+PROJECT_BROWSER_PAGE_LIMIT = 50
 
 
 class ProjectTable(HTMXTable):
@@ -520,6 +528,9 @@ def render_project_feed(
             orm.with_expression(
                 models.Project._num_samples, models.Project.num_samples.expression
             ),
+            orm.with_expression(
+                models.Project._library_status_counts, models.Project.library_status_counts.expression
+            )
         ],
     )
     return responses.htmx_response(
@@ -581,6 +592,104 @@ def remove_project_data_path(
     return responses.htmx_response(
         redirect=ctx.request.url_for("project_page", project_id=project.id).include_query_params(tab="project-data_paths-tab"),
         flash=responses.flash("Data path removed.", "success"),
+    )
+
+
+def _subpath(subpath: str) -> Path:
+    if not subpath or subpath in (".", "/"):
+        return Path()
+    return Path(subpath)
+
+
+def _project_browser(project_id: int, session: SyncSession, redis: rds.RedisClient) -> tuple[SharedFileBrowser, list[models.DataPath]]:
+    data_paths = list(session.get_all(Q.data_path.select(project_id=project_id), limit=None))
+    browser = SharedFileBrowser.for_project(
+        Path(config.settings.app_config.share_root),
+        project_id,
+        [data_path.path for data_path in data_paths],
+        redis=redis,
+    )
+    return browser, data_paths
+
+
+@router.get("/{project_id}/browse", name="project_browser_entries")
+@router.get("/{project_id}/browse/{subpath:path}", name="project_browser_entries")
+def project_browser_entries(
+    project_id: int,
+    subpath: str = "",
+    page: int = Query(0, ge=0),
+    sort_by: Literal["name", "size", "mtime"] = Query("name"),
+    sort_order: Literal["asc", "desc"] | None = Query(None),
+    _: C.AccessLevel = Depends(dependencies.project_permissions),
+    current_user: models.User = Depends(dependencies.require_user),
+    session: SyncSession = Depends(dependencies.db_session),
+    redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    """Browse the project's data paths. The top level lists the data paths themselves."""
+    if sort_order is None:
+        sort_order = "asc" if sort_by == "name" else "desc"
+
+    current_path = _subpath(subpath)
+    browser, data_paths = _project_browser(project_id, session, redis)
+
+    limit: int | None = PROJECT_BROWSER_PAGE_LIMIT
+    if is_root_listing := not current_path.parts:
+        limit = None
+        paths = browser.list_roots(sort_by=sort_by, sort_order=sort_order)
+        # attach each top-level entry's data path, for the insider "Remove from project" menu
+        by_path = {Path(data_path.path).as_posix(): data_path for data_path in data_paths}
+        for browser_path in paths:
+            if (data_path := by_path.get(browser_path.rel_path.as_posix())) is not None:
+                browser_path.data_paths = [data_path]
+    else:
+        paths = browser.list_contents(
+            current_path,
+            limit=limit,
+            offset=page * PROJECT_BROWSER_PAGE_LIMIT,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+
+    return responses.htmx_response(
+        "components/file-browser/entries.html",
+        paths=paths,
+        current_path=current_path,
+        limit=limit,
+        current_page=page,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        share_token=None,
+        entries_route="project_browser_entries",
+        route_params={"project_id": project_id},
+        file_route="serve_project_file",
+        servable_extensions=PROJECT_SERVABLE_EXTENSIONS,
+        remove_from_project_id=project_id if current_user.is_insider else None,
+        is_root_listing=is_root_listing,
+    )
+
+
+@router.get("/{project_id}/files/{subpath:path}", name="serve_project_file")
+def serve_project_file(
+    project_id: int,
+    subpath: str,
+    _: C.AccessLevel = Depends(dependencies.project_permissions),
+    session: SyncSession = Depends(dependencies.db_session),
+    redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    """Serve a file under the project's data paths. The URL mirrors the share root, so relative links in HTML reports resolve."""
+    browser, _data_paths = _project_browser(project_id, session, redis)
+    if (path := browser.get_file(_subpath(subpath))) is None:
+        raise exc.NotFoundException("File not found.")
+    if not is_servable(path):
+        raise exc.NoPermissionsException("This file can only be downloaded through a data share link.")
+
+    mimetype = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    return responses.file_response(
+        path,
+        filename=path.name,
+        content_type=mimetype,
+        disposition="inline" if is_browser_friendly(mimetype) else "attachment",
+        require_accel=True,
     )
 
 

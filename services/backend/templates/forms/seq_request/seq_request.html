@@ -1,8 +1,24 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+{% set active_step = form.active_step %}
+
+{% macro step_state(sub) -%}
+{% if sub.has_errors %}error{% elif sub.validated %}ok{% else %}missing{% endif %}
+{%- endmacro %}
+
+{% macro step_pane(name) -%}
+{% set sub = form.get_sub_form(name) %}
+<section class="step-pane{% if name != active_step %} d-none{% endif %}" id="seq_request-step-{{ name }}" data-step="{{ name }}" data-title="{{ sub.title }}">
+  {{ caller() }}
+</section>
+{%- endmacro %}
+
 <div class="modal-content" id="seq_request-form-container">
   <div class="modal-header">
     <h1 class="modal-title fs-5">
-      {% if form.form_type == "create" %}Create{% elif form.form_type == "edit"
-      %}Edit{% endif %} Sequencing Request
+      <span class="text-body-secondary">{% if form.form_type == "create" %}New{% else %}Edit{% endif %} Request:</span>
+      <span id="seq_request-step-title">{{ form.get_sub_form(active_step).title }}</span>
+      <span class="text-body-secondary" id="seq_request-step-count">{{ form.step_names.index(active_step) + 1 }}/{{ form.step_names | length }}</span>
     </h1>
     <button
       type="button"
@@ -12,308 +28,198 @@
     ></button>
   </div>
 
-  <div class="modal-body">
-    <form id="seq_request-form" class="accordion" autocomplete="off">
+  <div class="modal-body" id="seq_request-form-body">
+    <form id="seq_request-form" autocomplete="off">
       {{ form.csrf_token.render() }}
+      <input type="hidden" name="step" id="seq_request-step" value="{{ active_step }}" />
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.disclaimer.has_errors %} text-danger bg-danger-subtle{% elif form.disclaimer.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-disclaimer"
-            aria-expanded="{% if form.disclaimer.has_errors or not form.disclaimer.validated %}true{% else %}false{% endif %}"
-            aria-controls="section-disclaimer"
-          >
-            <i class="bi bi-exclamation-triangle me-2"></i>
-            Disclaimer
-          </button>
-        </h2>
-        <div
-          id="section-disclaimer"
-          class="accordion-collapse collapse{% if form.disclaimer.has_errors or not form.disclaimer.validated %} show{% endif %}"
-        >
-          <div class="accordion-body">
-            <div>
-              <p>
-                This program is designed to store and facilitate the transfer of
-                information between customers and our team. It is not intended
-                for designing or validating experimental setups. Users must
-                ensure that their experimental setups are valid. If you are
-                uncertain about your setup, please contact us at
-                <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. We
-                reserve the right to reject any sequencing requests that are
-                invalid, do not meet our quality standards, or are not feasible
-                with our current resources.
-              </p>
-              <p>
-                Each sequencing request is subject to review and approval by our
-                team. For non-standard experimental setups, such as using a
-                custom genome reference, please contact us to ensure we can
-                accommodate your request.
-              </p>
-              <p>
-                Results from each request will be shared with a single entity
-                (group), whether it is a research lab or an individual. If you
-                are submitting a request on behalf of multiple entities, please
-                submit separate requests for each entity. Results from different
-                requests, including previous ones, can be grouped together for
-                analysis by associating the libraries with the same project.
-              </p>
-              <p>
-                <b>If group is selected</b>, the sequencing request will be
-                editable by ALL members of the group until it is submitted.
-                After submission, the request will be read-only for all group
-                members. If you need to make changes to a submitted request,
-                please contact us at
-                <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
-                <b
-                  >The sequencing results will be shared with all group
-                  members.</b
-                >
-              </p>
-            </div>
-            {{ form.disclaimer.accepted.render() }}
-          </div>
+      {% call step_pane("disclaimer") %}
+        <div>
+          <p>
+            This program is designed to store and facilitate the transfer of
+            information between customers and our team. It is not intended
+            for designing or validating experimental setups. Users must
+            ensure that their experimental setups are valid. If you are
+            uncertain about your setup, please contact us at
+            <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. We
+            reserve the right to reject any sequencing requests that are
+            invalid, do not meet our quality standards, or are not feasible
+            with our current resources.
+          </p>
+          <p>
+            Each sequencing request is subject to review and approval by our
+            team. For non-standard experimental setups, such as using a
+            custom genome reference, please contact us to ensure we can
+            accommodate your request.
+          </p>
+          <p>
+            Results from each request will be shared with a single entity
+            (group), whether it is a research lab or an individual. If you
+            are submitting a request on behalf of multiple entities, please
+            submit separate requests for each entity. Results from different
+            requests, including previous ones, can be grouped together for
+            analysis by associating the libraries with the same project.
+          </p>
+          <p>
+            <b>If group is selected</b>, the sequencing request will be
+            editable by ALL members of the group until it is submitted.
+            After submission, the request will be read-only for all group
+            members. If you need to make changes to a submitted request,
+            please contact us at
+            <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+            <b>The sequencing results will be shared with all group members.</b
+            >
+          </p>
         </div>
-      </div>
+        {{ form.disclaimer.accepted.render() }}
+      {% endcall %}
 
-      {% if current_user.is_insider %}
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.user_selection.has_errors %} text-danger bg-danger-subtle{% elif form.user_selection.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %} collapsed"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-user-selection"
-            aria-expanded="false"
-            aria-controls="section-user-selection"
-          >
-            <i class="bi bi-person-plus me-2"></i>
-            Requestor
-          </button>
-        </h2>
-        <div id="section-user-selection" class="accordion-collapse collapse">
-          <div class="accordion-body">
-            {{ form.user_selection.user_id.render() }}
-            <div class="row">
-              {{ form.user_selection.email.render("col-md-4") }}
-              {{ form.user_selection.first_name.render("col-md-4") }}
-              {{ form.user_selection.last_name.render("col-md-4") }}
-            </div>
-          </div>
+      {% if "user_selection" in form.step_names %}
+      {% call step_pane("user_selection") %}
+        {{ form.user_selection.user_id.render() }}
+        <div class="row">
+          {{ form.user_selection.email.render("col-md-4") }}
+          {{ form.user_selection.first_name.render("col-md-4") }}
+          {{ form.user_selection.last_name.render("col-md-4") }}
         </div>
-      </div>
+      {% endcall %}
       {% endif %}
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.basic_info.has_errors %} text-danger bg-danger-subtle{% elif form.basic_info.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-basic-info"
-            aria-expanded="true"
-            aria-controls="section-basic-info"
-          >
-            <i class="bi bi-info-circle me-2"></i>
-            Request Info
-          </button>
-        </h2>
-        <div id="section-basic-info" class="accordion-collapse collapse show">
-          <div class="accordion-body">
-            {{ form.basic_info.name.render() }} {{
-            form.basic_info.description.render() }}
-            {{ form.basic_info.group_id.render() }}
-          </div>
+      {% call step_pane("basic_info") %}
+        {{ form.basic_info.name.render() }} {{
+        form.basic_info.description.render() }}
+        <p>
+            <b>If group is selected</b>, the sequencing request will be
+            editable by ALL members of the group until it is submitted.
+            After submission, the request will be read-only for all group
+            members. You can create new group in <a href="/groups" target="_blank">Groups</a>-page.
+            <b>The sequencing results will be shared with all group members.</b>
+        </p>
+        {{ form.basic_info.group_id.render() }}
+      {% endcall %}
+
+      {% call step_pane("contact") %}
+        {% if form.form_type == "create" %} {{
+        form.contact.current_user_is_contact.render() }} {% endif %}
+        <div class="row">
+          {{ form.contact.name.render("col-md-4") }} {{
+          form.contact.email.render("col-md-4") }} {{
+          form.contact.phone.render("col-md-4") }}
         </div>
-      </div>
-
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.contact.has_errors %} text-danger bg-danger-subtle{% elif form.contact.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-contact"
-            aria-expanded="true"
-            aria-controls="section-contact"
-          >
-            <i class="bi bi-person me-2"></i>
-            Contact Person
-          </button>
-        </h2>
-        <div id="section-contact" class="accordion-collapse collapse show">
-          <div class="accordion-body">
-            {% if form.form_type == "create" %} {{
-            form.contact.current_user_is_contact.render() }} {% endif %}
-            <div class="row">
-              {{ form.contact.name.render("col-md-4") }} {{
-              form.contact.email.render("col-md-4") }} {{
-              form.contact.phone.render("col-md-4") }}
-            </div>
-            <div class="row">
-              {{ form.contact.pi_name.render("col-md-6") }} {{
-              form.contact.pi_email.render("col-md-6") }}
-            </div>
-          </div>
+        <div class="row">
+          {{ form.contact.pi_name.render("col-md-6") }} {{
+          form.contact.pi_email.render("col-md-6") }}
         </div>
-      </div>
+      {% endcall %}
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.technical_info.has_errors %} text-danger bg-danger-subtle{% elif form.technical_info.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-technical-info"
-            aria-expanded="true"
-            aria-controls="section-technical-info"
-          >
-            <i class="bi bi-cpu me-2"></i>
-            Technical Requirements
-          </button>
-        </h2>
-        <div
-          id="section-technical-info"
-          class="accordion-collapse collapse show"
-        >
-          <div class="accordion-body">
-            <div class="row">
-              {{ form.technical_info.submission_type.render("col-md-6") }}
-              {{ form.technical_info.read_type.render("col-md-6") }}
-              {{ form.technical_info.num_lanes.render("col-md-6") }}
-              {{ form.technical_info.read_length.render("col-md-6") }}
-            </div>
-            <ol class="mt-2">
-              {% for st in
-              C.SubmissionType.as_list(include_unpooled_libraries=True) %}
-              <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
-              {% endfor %}
-            </ol>
-            {{ form.technical_info.special_requirements.render() }} {{
-            form.technical_info.data_delivery_mode.render() }}
-            <ol>
-            {% for mode in C.DataDeliveryMode.as_list() %}
-                <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
-            {% endfor %}
-            </ol>
-          </div>
+      {% call step_pane("technical_info") %}
+        <ol class="mt-2">
+          {% for st in
+          C.SubmissionType.as_list(include_unpooled_libraries=False) %}
+          <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
+          {% endfor %}
+        </ol>
+        <div class="row">
+          {{ form.technical_info.submission_type.render("col-md-6") }}
+          {{ form.technical_info.read_type.render("col-md-6") }}
+          {{ form.technical_info.num_lanes.render("col-md-6") }}
+          {{ form.technical_info.read_length.render("col-md-6") }}
         </div>
-      </div>
+        {{ form.technical_info.special_requirements.render() }} {{
+        form.technical_info.data_delivery_mode.render() }}
+        <ol>
+        {% for mode in C.DataDeliveryMode.as_list() %}
+            <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
+        {% endfor %}
+        </ol>
+      {% endcall %}
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.bioinformatician.has_errors %} text-danger bg-danger-subtle{% elif form.bioinformatician.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %} collapsed"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-bioinformatician"
-            aria-expanded="false"
-            aria-controls="section-bioinformatician"
-          >
-            <i class="bi bi-robot me-2"></i>
-            Bioinformatician Contact
-          </button>
-        </h2>
-        <div id="section-bioinformatician" class="accordion-collapse collapse">
-          <div class="accordion-body">
-            <div class="row">
-              {{ form.bioinformatician.name.render("col-md-4") }} {{
-              form.bioinformatician.email.render("col-md-4") }}
-              {{ form.bioinformatician.phone.render("col-md-4") }}
-            </div>
-          </div>
+      {% call step_pane("bioinformatician") %}
+        <div class="row">
+          {{ form.bioinformatician.name.render("col-md-4") }} {{
+          form.bioinformatician.email.render("col-md-4") }}
+          {{ form.bioinformatician.phone.render("col-md-4") }}
         </div>
-      </div>
+      {% endcall %}
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.organization.has_errors %} text-danger bg-danger-subtle{% elif form.organization.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-organization"
-            aria-expanded="true"
-            aria-controls="section-organization"
-          >
-            <i class="bi bi-building me-2"></i>
-            Organization
-          </button>
-        </h2>
-        <div id="section-organization" class="accordion-collapse collapse show">
-          <div class="accordion-body">
-            {{ form.organization.name.render() }}
-            {{ form.organization.address.render() }}
-          </div>
+      {% call step_pane("organization") %}
+        {{ form.organization.name.render() }}
+        {{ form.organization.address.render() }}
+      {% endcall %}
+
+      {% call step_pane("billing") %}
+        {{ form.billing.use_organization.render("mb-2") }}
+        <div class="row">
+          {{ form.billing.name.render("col-md-4") }} {{
+          form.billing.email.render("col-md-4") }} {{
+          form.billing.phone.render("col-md-4") }}
         </div>
-      </div>
+        {{ form.billing.address.render() }}
+        <script>
+          function update_billing_from_organization() {
+              const checked = $("#billing-use_organization").is(":checked");
+              const name = $("#organization-name");
+              const address = $("#organization-address");
+              const billingName = $("#billing-name");
+              const billingAddress = $("#billing-address");
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button
-            class="accordion-button{% if form.billing.has_errors %} text-danger bg-danger-subtle{% elif form.billing.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#section-billing"
-            aria-expanded="true"
-            aria-controls="section-billing"
-          >
-            <i class="bi bi-credit-card me-2"></i>
-            Billing
-          </button>
-        </h2>
-        <div id="section-billing" class="accordion-collapse collapse show">
-          <div class="accordion-body">
-            <div class="form-check form-switch mb-2">
-              <input class="form-check-input" type="checkbox" id="billing-use-organization" />
-              <label class="form-check-label" for="billing-use-organization">Use organization for billing</label>
-            </div>
-            <div class="row">
-              {{ form.billing.name.render("col-md-4") }} {{ 
-              form.billing.email.render("col-md-4") }} {{
-              form.billing.phone.render("col-md-4") }}
-            </div>
-            {{ form.billing.address.render() }}
-            <script>
-              function update_billing_from_organization() {
-                  const checked = $("#billing-use-organization").is(":checked");
-                  const name = $("#organization-name");
-                  const address = $("#organization-address");
-                  const billingName = $("#billing-name");
-                  const billingAddress = $("#billing-address");
-
-                  if (checked) {
-                      billingName.val(name.val()).addClass("disabled").prop("readonly", true);
-                      billingAddress.val(address.val()).addClass("disabled").prop("readonly", true);
-                  } else {
-                      billingName.removeClass("disabled").prop("readonly", false);
-                      billingAddress.removeClass("disabled").prop("readonly", false);
-                  }
+              if (checked) {
+                  billingName.val(name.val()).addClass("disabled").prop("readonly", true);
+                  billingAddress.val(address.val()).addClass("disabled").prop("readonly", true);
+              } else {
+                  billingName.removeClass("disabled").prop("readonly", false);
+                  billingAddress.removeClass("disabled").prop("readonly", false);
               }
+          }
 
-              $(document).ready(function() {
-                  $("#billing-use-organization").on("change", update_billing_from_organization);
-                  $("#organization-name, #organization-address").on("input change", update_billing_from_organization);
-                  update_billing_from_organization();
-              });
-            </script>
-            <div class="row">
-              {{ form.billing.code.render("col-md-6") }}
-            </div>
-          </div>
+          $(document).ready(function() {
+              $("#billing-use_organization").on("change", update_billing_from_organization);
+              $("#organization-name, #organization-address").on("input change", update_billing_from_organization);
+              update_billing_from_organization();
+          });
+        </script>
+        <div class="row">
+          {{ form.billing.code.render("col-md-6") }}
         </div>
-      </div>
+      {% endcall %}
     </form>
   </div>
 
   <div class="modal-footer">
-    <div class="footer-id"></div>
-    <div class="footer-info"></div>
+    <div class="footer-info flex-grow-1">
+      <ol class="step-timeline" id="seq_request-timeline">
+        {% for name, sub in form.steps %}
+        {% set state = step_state(sub) %}
+        <li class="step-timeline-item step-{{ state }}{% if name == active_step %} current{% endif %}">
+          <button
+            type="button"
+            data-step="{{ loop.index0 }}"
+            aria-label="{{ sub.title }}"
+            {{ tooltip(sub.title ~ (" (has errors)" if state == "error" else ""), position="top") }}
+          >
+            <i class="bi {{ sub.icon }}"></i>
+          </button>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
     <div class="footer-controls">
+      <button type="button" class="btn btn-outline-secondary" id="seq_request-step-back">
+        <i class="bi bi-chevron-left"></i> Back
+      </button>
       <button
-        class="btn btn-success"
+        type="button"
+        class="btn btn-primary"
+        id="seq_request-step-next"
+        hx-include="#seq_request-form"
+        hx-target="#seq_request-form-container"
+        hx-swap="outerHTML"
+        hx-post="{{ form.step_url }}">
+        Next <i class="bi bi-chevron-right"></i>
+      </button>
+      <button
+        class="btn btn-success{% if form.form_type == 'create' %} d-none{% endif %}"
+        id="seq_request-submit"
         hx-include="#seq_request-form"
         hx-target="#seq_request-form-container"
         hx-swap="outerHTML"
@@ -322,6 +228,52 @@
       </button>
     </div>
   </div>
+
+  <script>
+    (function() {
+        // All steps stay in the DOM; Back and the timeline only toggle visibility.
+        // Next posts the whole form to the step endpoint, which validates every step
+        // up to the current one and re-renders the form at the next (or first invalid) step.
+        const container = document.getElementById("seq_request-form-container");
+        const body = document.getElementById("seq_request-form-body");
+        const panes = Array.from(container.querySelectorAll(".step-pane"));
+        const items = Array.from(container.querySelectorAll("#seq_request-timeline .step-timeline-item"));
+        const stepInput = document.getElementById("seq_request-step");
+        const back = document.getElementById("seq_request-step-back");
+        const next = document.getElementById("seq_request-step-next");
+        const submit = document.getElementById("seq_request-submit");
+        const title = document.getElementById("seq_request-step-title");
+        const count = document.getElementById("seq_request-step-count");
+        const submitOnLastStepOnly = {{ 'true' if form.form_type == 'create' else 'false' }};
+        let current = {{ form.step_names.index(active_step) }};
+
+        function go(i) {
+            if (i < 0 || i >= panes.length) {
+                return;
+            }
+            current = i;
+            const last = i === panes.length - 1;
+            stepInput.value = panes[i].dataset.step;
+            title.textContent = panes[i].dataset.title;
+            count.textContent = `${i + 1}/${panes.length}`;
+            panes.forEach((pane, j) => pane.classList.toggle("d-none", j !== i));
+            items.forEach((item, j) => item.classList.toggle("current", j === i));
+            back.disabled = i === 0;
+            next.classList.toggle("d-none", last);
+            if (submitOnLastStepOnly) {
+                submit.classList.toggle("d-none", !last);
+            }
+            body.scrollTop = 0;
+        }
+
+        items.forEach(item => {
+            const button = item.querySelector("button");
+            button.addEventListener("click", () => go(Number(button.dataset.step)));
+        });
+        back.addEventListener("click", () => go(current - 1));
+        go(current);
+    })();
+  </script>
 
   {% if form.form_type == "create" %}
   <script>
@@ -375,6 +327,11 @@
         $("#user_selection-user_id").on("change", function() {
             update_contact_person();
         });
+
+        // Re-apply the lock when the form is re-rendered with the switch already on.
+        if ($("#contact-current_user_is_contact").is(":checked")) {
+            $("#contact-name, #contact-email").addClass("disabled").prop("readonly", true);
+        }
     });
   </script>
   {% endif %}

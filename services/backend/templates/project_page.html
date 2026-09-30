@@ -2,6 +2,7 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
 {% from 'components/button.jinja2' import confirm_action_button, modal_button %}
+{% from "components/file-browser/browser.jinja2" import file_browser with context %}
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
 {% block content %}
@@ -231,7 +232,7 @@
         <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="9">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h2>Paths {% if current_user.is_insider %}<img {{ tooltip('Right click on a path to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
+                    <h2>Paths {% if current_user.is_insider %}<img {{ tooltip('Right click on a top-level path to remove it from the project.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end;">
                     <div class="input-group" style="width: 100%; cursor: default;">
@@ -269,9 +270,7 @@
                     {% endif %}
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_data_path_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
-            </div>
+            {{ file_browser('project_browser_entries', {'project_id': project.id}, trigger='intersect once') }}
         </div>
     </div>
 </div>

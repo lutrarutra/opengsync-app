@@ -1,12 +1,13 @@
 import os
 import re
 import html
+import hashlib
 import stat as stat_module
 from pathlib import Path
 import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import Any, Literal
 
 from opengsync_db import models
@@ -14,6 +15,7 @@ from opengsync_db import models
 from ..core import exceptions as exc
 from ..core.redis import RedisClient
 from .file_browser import BrowserPath
+from .parsing import filter_subpaths
 from .share_ignore import ShareIgnore
 from . import share_fs_cache
 
@@ -60,17 +62,131 @@ class SharedFileBrowser:
     def __init__(
         self,
         root_dir: Path,
-        share_token: models.ShareToken,
+        shared_paths: Iterable[str],
+        cache_key: str,
         allow_symlink_traversal: bool = True,
         redis: RedisClient | None = None,
     ):
+        """`cache_key` must change whenever `shared_paths` does: cached listings and safety checks are stored under it."""
         self.root_dir = root_dir.resolve()
-        self.share_token = share_token
+        self.cache_key = cache_key
         self.redis = redis
-        self.shared_paths = [(self.root_dir / share_path.path).resolve() for share_path in share_token.paths]
+        self.shared_paths = [(self.root_dir / shared_path).resolve() for shared_path in shared_paths]
         self.ignore = ShareIgnore(self.root_dir)
         # allows relative symlink traversal upstream of shared paths, but not outside of root_dir
         self.allow_symlink_traversal = allow_symlink_traversal
+
+    @classmethod
+    def for_share_token(
+        cls,
+        root_dir: Path,
+        share_token: models.ShareToken,
+        redis: RedisClient | None = None,
+    ) -> "SharedFileBrowser":
+        # a token's paths never change, so its uuid is a stable cache key
+        return cls(
+            root_dir,
+            shared_paths=[share_path.path for share_path in share_token.paths],
+            cache_key=share_token.uuid,
+            redis=redis,
+        )
+
+    @classmethod
+    def for_project(
+        cls,
+        root_dir: Path,
+        project_id: int,
+        data_paths: Iterable[str],
+        redis: RedisClient | None = None,
+    ) -> "SharedFileBrowser":
+        shared_paths = sorted(filter_subpaths(list(data_paths)))
+        # adding or removing a data path yields a new key, so the cache never needs invalidating
+        digest = hashlib.sha256("\n".join(shared_paths).encode("utf-8")).hexdigest()[:16]
+        return cls(
+            root_dir,
+            shared_paths=shared_paths,
+            cache_key=f"project:{project_id}:{digest}",
+            redis=redis,
+        )
+
+    @staticmethod
+    def _sorted_with_stats(
+        paths_with_stats: list[tuple[Path, os.stat_result]],
+        sort_by: Literal["name", "size", "mtime"],
+        sort_order: Literal["asc", "desc"],
+    ) -> list[tuple[Path, os.stat_result]]:
+        def sort_key(item: tuple[Path, os.stat_result]):
+            path, path_stat = item
+            if sort_by == "size":
+                return path_stat.st_size
+            if sort_by == "mtime":
+                return path_stat.st_mtime
+            return path.name.casefold()
+
+        return sorted(paths_with_stats, key=sort_key, reverse=sort_order == "desc")
+
+    def _to_browser_paths(self, paths_with_stats: list[tuple[Path, os.stat_result]]) -> list[BrowserPath]:
+        return [
+            BrowserPath(
+                path=path,
+                rel_path=path.relative_to(self.root_dir),
+                data_paths=[],
+                is_dir=stat_module.S_ISDIR(path_stat.st_mode),
+                size=path_stat.st_size,
+                mtime=path_stat.st_mtime,
+            )
+            for path, path_stat in paths_with_stats
+        ]
+
+    def list_roots(
+        self,
+        sort_by: Literal["name", "size", "mtime"] = "name",
+        sort_order: Literal["asc", "desc"] = "asc",
+    ) -> list[BrowserPath]:
+        """The shared paths themselves, for a top level that skips the directories above them.
+
+        Paths missing from storage are listed last with `exists=False`, so an unmounted share doesn't look like no data.
+        """
+        cached = share_fs_cache.get_roots(self.redis, self.cache_key, sort_by=sort_by, sort_order=sort_order)
+        if cached is not None:
+            try:
+                return self._paths_from_cache(cached)
+            except (KeyError, TypeError, ValueError):
+                pass
+
+        paths_with_stats: list[tuple[Path, os.stat_result]] = []
+        missing: list[BrowserPath] = []
+        for shared_path in self.shared_paths:
+            if self._is_junk(shared_path) or not self._is_safe(shared_path):
+                continue
+            try:
+                paths_with_stats.append((shared_path, shared_path.stat()))
+            except OSError:
+                missing.append(BrowserPath(
+                    path=shared_path,
+                    rel_path=shared_path.relative_to(self.root_dir),
+                    data_paths=[],
+                    is_dir=False,
+                    size=0,
+                    mtime=0,
+                    exists=False,
+                ))
+
+        result = self._to_browser_paths(self._sorted_with_stats(paths_with_stats, sort_by, sort_order))
+        # no size or mtime to sort by, so missing paths follow the name direction
+        result.extend(sorted(
+            missing,
+            key=lambda path: path.rel_path.as_posix().casefold(),
+            reverse=sort_by == "name" and sort_order == "desc",
+        ))
+        share_fs_cache.set_roots(
+            self.redis,
+            self.cache_key,
+            [self._path_to_cache(path) for path in result],
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        return result
 
     def list_contents(
         self,
@@ -80,12 +196,10 @@ class SharedFileBrowser:
         sort_by: Literal["name", "size", "mtime"] = "name",
         sort_order: Literal["asc", "desc"] = "asc",
     ) -> list[BrowserPath]:
-        if not self.is_safe(subpath):
-            return []
-
+        # the key pins the shared paths and unsafe subpaths are cached as empty, so a hit needs no safety check
         cached = share_fs_cache.get_listing(
             self.redis,
-            self.share_token.uuid,
+            self.cache_key,
             subpath=subpath.as_posix(),
             limit=limit,
             offset=offset,
@@ -99,70 +213,36 @@ class SharedFileBrowser:
                 pass
 
         full_path = self.root_dir / subpath
+        result: list[BrowserPath] = []
 
-        if full_path.exists() and full_path.is_dir():
-            paths = [
-                path for path in full_path.iterdir()
-                if not self._is_junk(path) and self._is_safe(path)
-            ]
-
+        if self.is_safe(subpath) and full_path.is_dir():
             paths_with_stats: list[tuple[Path, os.stat_result]] = []
-            for path in paths:
+            for path in full_path.iterdir():
+                if self._is_junk(path) or not self._is_safe(path):
+                    continue
                 try:
-                    path_stat = path.stat()
+                    paths_with_stats.append((path, path.stat()))
                 except OSError:
-                    path_stat = None
-                if path_stat is not None:
-                    paths_with_stats.append((path, path_stat))
+                    continue
 
-            def sort_key(item: tuple[Path, os.stat_result]):
-                path, path_stat = item
-                if sort_by == "size":
-                    return path_stat.st_size
-                if sort_by == "mtime":
-                    return path_stat.st_mtime
-                return path.name.casefold()
-
-            paths_with_stats.sort(key=sort_key, reverse=sort_order == "desc")
+            paths_with_stats = self._sorted_with_stats(paths_with_stats, sort_by, sort_order)
             if offset:
                 paths_with_stats = paths_with_stats[offset:]
             if limit is not None:
                 paths_with_stats = paths_with_stats[:limit]
-
-            result = [
-                BrowserPath(
-                    path=path,
-                    rel_path=path.relative_to(self.root_dir),
-                    data_paths=[],
-                    is_dir=stat_module.S_ISDIR(path_stat.st_mode),
-                    size=path_stat.st_size,
-                    mtime=path_stat.st_mtime,
-                )
-                for path, path_stat in paths_with_stats
-            ]
-            share_fs_cache.set_listing(
-                self.redis,
-                self.share_token.uuid,
-                [self._path_to_cache(path) for path in result],
-                subpath=subpath.as_posix(),
-                limit=limit,
-                offset=offset,
-                sort_by=sort_by,
-                sort_order=sort_order,
-            )
-            return result
+            result = self._to_browser_paths(paths_with_stats)
 
         share_fs_cache.set_listing(
             self.redis,
-            self.share_token.uuid,
-            [],
+            self.cache_key,
+            [self._path_to_cache(path) for path in result],
             subpath=subpath.as_posix(),
             limit=limit,
             offset=offset,
             sort_by=sort_by,
             sort_order=sort_order,
         )
-        return []
+        return result
 
     def _path_to_cache(self, path: BrowserPath) -> dict[str, Any]:
         return {
@@ -170,6 +250,7 @@ class SharedFileBrowser:
             "is_dir": path.is_dir,
             "size": path.size,
             "mtime": path.mtime,
+            "exists": path.exists,
         }
 
     def _paths_from_cache(self, paths: list[dict[str, Any]]) -> list[BrowserPath]:
@@ -183,16 +264,29 @@ class SharedFileBrowser:
                 is_dir=item["is_dir"],
                 size=item["size"],
                 mtime=item["mtime"],
+                exists=item.get("exists", True),
             ))
         return result
 
     def get_file(self, subpath: Path = Path()) -> Path | None:
-        if self._is_junk(subpath) or not self.is_safe(subpath):
+        """The file at `subpath` if it is shared. Misses are cached too, so a new file can take `FILE_TTL` to appear.
+
+        A hit is not re-checked against the filesystem; callers serving the file re-check that it still exists.
+        """
+        if self._is_junk(subpath):
             return None
+
         full_path = self.root_dir / subpath
-        if full_path.exists() and full_path.is_file():
-            return full_path
-        return None
+        cached = share_fs_cache.get_file(self.redis, self.cache_key, subpath=subpath.as_posix())
+        if cached is not None:
+            try:
+                return full_path if cached["is_file"] else None
+            except (KeyError, TypeError):
+                pass
+
+        is_file = self.is_safe(subpath) and full_path.is_file()
+        share_fs_cache.set_file(self.redis, self.cache_key, {"is_file": is_file}, subpath=subpath.as_posix())
+        return full_path if is_file else None
 
     def _is_safe(self, full_path: Path, is_dir: bool | None = None) -> bool:
         """Check if the full path is safe and doesn't escape root_dir"""
@@ -227,14 +321,13 @@ class SharedFileBrowser:
         Handle WebDAV PROPFIND request.
         Returns list of DAVResponse objects.
         """
-        if self._is_junk(subpath) or self.ignore.is_ignored(self.root_dir / subpath):
+        if self._is_junk(subpath):
             raise exc.NotFoundException(f"File or directory not found: {subpath}")
-        if not self.is_safe(subpath):
-            raise exc.NoPermissionsException()
 
+        # only safe subpaths are cached, so a hit needs no safety check
         cached = share_fs_cache.get_propfind(
             self.redis,
-            self.share_token.uuid,
+            self.cache_key,
             subpath=subpath.as_posix(),
             depth=depth,
         )
@@ -246,6 +339,11 @@ class SharedFileBrowser:
                 ]
             except (KeyError, TypeError, ValueError):
                 pass
+
+        if self.ignore.is_ignored(self.root_dir / subpath):
+            raise exc.NotFoundException(f"File or directory not found: {subpath}")
+        if not self.is_safe(subpath):
+            raise exc.NoPermissionsException()
 
         full_path = self.root_dir / subpath
 
@@ -268,7 +366,7 @@ class SharedFileBrowser:
 
         share_fs_cache.set_propfind(
             self.redis,
-            self.share_token.uuid,
+            self.cache_key,
             [self._dav_response_to_cache(resource) for resource in resources],
             subpath=subpath.as_posix(),
             depth=depth,
@@ -373,12 +471,13 @@ class SharedFileBrowser:
         """
         Recursively yield (relative_path, is_dir) for all safe items.
         """
-        if self._is_junk(subpath) or not self.is_safe(subpath):
+        if self._is_junk(subpath):
             return iter(())
 
+        # only safe subpaths are cached, so a hit needs no safety check
         cached = share_fs_cache.get_walk(
             self.redis,
-            self.share_token.uuid,
+            self.cache_key,
             subpath=subpath.as_posix(),
         )
         if cached is not None:
@@ -391,6 +490,9 @@ class SharedFileBrowser:
                 return iter(items)
             except (KeyError, TypeError, ValueError):
                 pass
+
+        if not self.is_safe(subpath):
+            return iter(())
 
         full_start_path = (self.root_dir / subpath).resolve()
         items: list[tuple[Path, bool]] = []
@@ -425,7 +527,7 @@ class SharedFileBrowser:
 
         share_fs_cache.set_walk(
             self.redis,
-            self.share_token.uuid,
+            self.cache_key,
             [{"rel_path": path.as_posix(), "is_dir": is_dir} for path, is_dir in items],
             subpath=subpath.as_posix(),
         )

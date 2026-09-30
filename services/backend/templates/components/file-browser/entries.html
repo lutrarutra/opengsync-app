@@ -1,35 +1,65 @@
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
+{#
+  entries_route / route_params: listing route and its extra path params (defaults: share-link or admin browser)
+  file_route: when set, file names link to this route (same route_params)
+  servable_extensions: when set, only files with these extensions get a link
+  remove_from_project_id: when set (insiders only), top-level data paths get a "Remove from project" menu
+#}
+{% set entries_route = entries_route if entries_route is defined else ('shared_browser_entries' if share_token else 'render_file_browser_page') %}
+{% set route_params = route_params if route_params is defined else ({'token': share_token} if share_token else {}) %}
+{% set file_route = file_route if file_route is defined else none %}
+{% set servable_extensions = servable_extensions if servable_extensions is defined else none %}
+{% set remove_from_project_id = remove_from_project_id if remove_from_project_id is defined else none %}
+{% set is_root_listing = is_root_listing if is_root_listing is defined else false %}
+{% set admin_browser = not share_token and entries_route == 'render_file_browser_page' %}
+
+{# Collapses in the middle when space runs out: a path keeps its last component, a name its tail (the extension). #}
+{% macro entry_name_label(name, suffix="", hint=none) %}
+{% set slash = name.rfind("/") %}
+{% set tail_len = (name | length - slash - 1) if slash > 0 else [name | length // 2, 16] | min %}
+{% set begin, end = name | middle_truncate(0, tail_len) %}
+<span class="browser-entry-name middle-ellipsis" title="{{ name }}{{ suffix }}{% if hint %} ({{ hint }}){% endif %}"><span class="begin">{{ begin }}</span><span class="end">{{ end }}{{ suffix }}</span></span>
+{% endmacro %}
+
 {% for browser_path in paths %}
 {% set relative_path = browser_path.rel_path.as_posix() %}
 {% set entry_id = uuid4() %}
 {% set is_directory = browser_path.is_dir if browser_path.is_dir is not none else browser_path.path.is_dir() %}
 {% set entry_size = browser_path.size if browser_path.size is not none else browser_path.path.stat().st_size %}
 {% set entry_mtime = browser_path.mtime if browser_path.mtime is not none else browser_path.path.stat().st_mtime %}
-{% if current_path.parts %}
-    {% set child_path = (current_path / browser_path.path.name).as_posix() %}
-{% else %}
-    {% set child_path = browser_path.path.name %}
-{% endif %}
-
-<div class="browser-entry{% if is_directory %} browser-directory{% else %} browser-file{% endif %}"
-     {% if is_directory and not share_token %}
-     class="cm-callback"
-     {{ context_menu([
+{% set entry_name = relative_path if is_root_listing else browser_path.path.name %}
+{% set is_linked_file = file_route and (servable_extensions is none or browser_path.path.suffix | lower in servable_extensions) %}
+{% if admin_browser and is_directory %}
+    {% set entry_actions = [
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Share Directory", "config": {"url": url_for('ShareDirectoryAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
-     ]) }}
-     {% endif %}>
+    ] %}
+{% elif remove_from_project_id is not none and is_root_listing and browser_path.data_paths %}
+    {% set entry_actions = [
+        {"type": "hxdelete", "label": "Remove from project", "config": {"url": url_for('remove_project_data_path', project_id=remove_from_project_id, data_path_id=browser_path.data_paths[0].id), "title": "Remove '" ~ relative_path ~ "' from project?", "text": "The files stay on disk.", "swap": "none"}}
+    ] %}
+{% else %}
+    {% set entry_actions = [] %}
+{% endif %}
+
+<div class="browser-entry{% if is_directory %} browser-directory{% else %} browser-file{% endif %}{% if entry_actions %} cm-callback{% endif %}"
+     {% if entry_actions %}{{ context_menu(entry_actions) }}{% endif %}>
     <div class="browser-entry-row">
-        {% if is_directory %}
+        {% if not browser_path.exists %}
+        <span class="browser-entry-file-name browser-entry-unavailable">
+            <i class="bi bi-exclamation-triangle browser-entry-icon" aria-hidden="true"></i>
+            {{ entry_name_label(entry_name, hint="not found on storage") }}
+        </span>
+        {% elif is_directory %}
         {% set children_id = "browser-children-" ~ entry_id %}
         <button
             class="browser-entry-toggle"
             type="button"
             aria-expanded="false"
             aria-controls="{{ children_id }}"
-            hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath=child_path, page=0, sort_by=sort_by, sort_order=sort_order) }}"
+            hx-get="{{ url_for(entries_route, subpath=relative_path | urlencode, page=0, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
             hx-trigger="click once"
             hx-target="#{{ children_id }}"
             hx-swap="innerHTML"
@@ -37,16 +67,20 @@
             onclick="toggleBrowserDirectory(this)">
             <i class="bi bi-chevron-right browser-directory-chevron" aria-hidden="true"></i>
             <i class="bi bi-folder browser-entry-icon" aria-hidden="true"></i>
-            <span class="browser-entry-name">{{ browser_path.path.name }}/</span>
+            {{ entry_name_label(entry_name, "/") }}
         </button>
-        {% else %}
-        <span class="browser-entry-file-name">
+        {% elif is_linked_file %}
+        <a class="browser-entry-file-name" href="{{ url_for(file_route, subpath=relative_path | urlencode, **route_params) }}" target="_blank">
             <i class="bi bi-file-earmark browser-entry-icon" aria-hidden="true"></i>
-            <span class="browser-entry-name">{{ browser_path.path.name }}</span>
+            {{ entry_name_label(entry_name) }}
+        </a>
+        {% else %}
+        <span class="browser-entry-file-name{% if file_route %} browser-entry-unavailable{% endif %}">
+            <i class="bi bi-file-earmark browser-entry-icon" aria-hidden="true"></i>
+            {{ entry_name_label(entry_name, hint="not viewable in the browser, available via the data share link" if file_route else none) }}
         </span>
         {% endif %}
-        <span class="browser-entry-size">{{ entry_size | bytes_to_human }}</span>
-        <time class="browser-entry-mtime" datetime="{{ entry_mtime }}">{{ entry_mtime | from_timestamp }}</time>
+        {% if admin_browser %}
         <span class="browser-entry-associations">
             {% for data_path in browser_path.data_paths %}
             {% if data_path.project %}
@@ -67,6 +101,13 @@
             {% endif %}
             {% endfor %}
         </span>
+        {% endif %}
+        {% if browser_path.exists %}
+        <span class="browser-entry-size">{{ entry_size | bytes_to_human }}</span>
+        <time class="browser-entry-mtime" datetime="{{ entry_mtime }}">{{ entry_mtime | from_timestamp }}</time>
+        {% else %}
+        <span class="browser-entry-missing">not found on storage</span>
+        {% endif %}
     </div>
     {% if is_directory %}
     <div id="{{ children_id }}" class="browser-children" role="group" aria-label="Contents of {{ browser_path.path.name }}">
@@ -77,12 +118,12 @@
 {% endfor %}
 
 {% if not paths and current_page == 0 %}
-<div class="browser-empty">This directory is empty.</div>
+<div class="browser-empty">{% if is_root_listing %}No data has been added to this project yet.{% else %}This directory is empty.{% endif %}</div>
 {% endif %}
 
-{% if paths | length == limit %}
+{% if limit and paths | length == limit %}
 <div class="browser-page-sentinel"
-     hx-get="{{ url_for('shared_browser_entries' if share_token else 'render_file_browser_page', token=share_token, subpath=current_path, page=current_page + 1, sort_by=sort_by, sort_order=sort_order) }}"
+     hx-get="{{ url_for(entries_route, subpath=current_path.as_posix() | urlencode if current_path.parts else '', page=current_page + 1, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
      hx-trigger="intersect once root:#file-browser-root"
      hx-swap="outerHTML">
     {{ spinner() }}
