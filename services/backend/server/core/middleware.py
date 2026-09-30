@@ -48,7 +48,9 @@ class XForwardedPrefixMiddleware:
 
         prefix = self._get_prefix(scope)
         if prefix is not None:
-            scope = {**scope, "root_path": prefix}
+            # Mutate in place so outer layers (ServerErrorMiddleware, which
+            # renders 500 pages) see the prefix too.
+            scope["root_path"] = prefix
 
         await self.app(scope, receive, send)
 
