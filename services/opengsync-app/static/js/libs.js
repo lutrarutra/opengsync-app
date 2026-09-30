@@ -19,18 +19,19 @@ async function load_univer() {
         const scripts = [
             'https://unpkg.com/react@18.3.1/umd/react.production.min.js',
             'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js',
-            'https://unpkg.com/rxjs/dist/bundles/rxjs.umd.min.js',
+            'https://unpkg.com/rxjs@7.8.2/dist/bundles/rxjs.umd.min.js',
             'https://unpkg.com/echarts@5.6.0/dist/echarts.min.js',
-            'https://unpkg.com/@univerjs/presets/lib/umd/index.js',
-            'https://unpkg.com/@univerjs/preset-sheets-core/lib/umd/index.js',
-            'https://unpkg.com/@univerjs/preset-sheets-core/lib/umd/locales/en-US.js',
-            'https://unpkg.com/@univerjs/preset-sheets-data-validation/lib/umd/index.js',
-            'https://unpkg.com/@univerjs/preset-sheets-data-validation/lib/umd/locales/en-US.js'
+            // Univer 1.x no longer ships UMD builds; stay on the last 0.x release
+            'https://unpkg.com/@univerjs/presets@0.25.1/lib/umd/index.js',
+            'https://unpkg.com/@univerjs/preset-sheets-core@0.25.1/lib/umd/index.js',
+            'https://unpkg.com/@univerjs/preset-sheets-core@0.25.1/lib/umd/locales/en-US.js',
+            'https://unpkg.com/@univerjs/preset-sheets-data-validation@0.25.1/lib/umd/index.js',
+            'https://unpkg.com/@univerjs/preset-sheets-data-validation@0.25.1/lib/umd/locales/en-US.js'
         ];
-        
+
         const styles = [
-            'https://unpkg.com/@univerjs/preset-sheets-core/lib/index.css',
-            'https://unpkg.com/@univerjs/preset-sheets-data-validation/lib/index.css'
+            'https://unpkg.com/@univerjs/preset-sheets-core@0.25.1/lib/index.css',
+            'https://unpkg.com/@univerjs/preset-sheets-data-validation@0.25.1/lib/index.css'
         ];
 
         for (const src of scripts) {
@@ -103,7 +104,7 @@ function load_interactjs() {
     }
     _interactjsLoadPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js";
+        script.src = "https://cdn.jsdelivr.net/npm/interactjs@1.10.28/dist/interact.min.js";
         script.async = true;
         script.onload = () => {
             resolve(window.interact);
@@ -129,7 +130,7 @@ async function load_jspreadsheet(jssExtendedUrl = '/static/js/jss-extended.js') 
     console.log("Loading JSpreadsheet scripts and styles...");
     _jspreadsheetLoadPromise = (async () => {
         const scripts = [
-            'https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.min.js',
+            'https://cdn.jsdelivr.net/npm/jsuites@6.5.0/dist/jsuites.min.js',
             jssExtendedUrl
         ];
         for (const src of scripts) {
@@ -145,8 +146,8 @@ async function load_jspreadsheet(jssExtendedUrl = '/static/js/jss-extended.js') 
         }
 
         const styles = [
-            'https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.min.css',
-            'https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5/dist/jspreadsheet.min.css'
+            'https://cdn.jsdelivr.net/npm/jsuites@6.5.0/dist/jsuites.min.css',
+            'https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.0.4/dist/jspreadsheet.min.css'
         ];
         const cssPromises = styles.map(href => {
             if (document.querySelector(`link[href="${href}"]`)) return Promise.resolve();
