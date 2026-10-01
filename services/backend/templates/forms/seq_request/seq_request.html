@@ -1,6 +1,9 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
 {% set active_step = form.active_step %}
+{# Buttons are rendered in their final state: htmx restores server-rendered classes on settle,
+   which would undo the script's toggling after a Next round-trip. #}
+{% set on_last_step = active_step == form.step_names[-1] %}
 
 {% macro step_state(sub) -%}
 {% if sub.has_errors %}error{% elif sub.validated %}ok{% else %}missing{% endif %}
@@ -209,7 +212,7 @@
       </button>
       <button
         type="button"
-        class="btn btn-primary"
+        class="btn btn-primary{% if on_last_step %} d-none{% endif %}"
         id="seq_request-step-next"
         hx-include="#seq_request-form"
         hx-target="#seq_request-form-container"
@@ -218,7 +221,7 @@
         Next <i class="bi bi-chevron-right"></i>
       </button>
       <button
-        class="btn btn-success{% if form.form_type == 'create' %} d-none{% endif %}"
+        class="btn btn-success{% if form.form_type == 'create' and not on_last_step %} d-none{% endif %}"
         id="seq_request-submit"
         hx-include="#seq_request-form"
         hx-target="#seq_request-form-container"
