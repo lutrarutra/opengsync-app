@@ -29,15 +29,21 @@
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ 
-                    spreadsheet_input(
-                        element=form.spreadsheet,
+                    form.spreadsheet.render(
                         target_element_id="ocm-reference-form-container",
                         submit_btn_id="parse-spreadsheet-btn",
                     )
                 }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
-                {% include "instructions/oligo_mux_annotation.html" %}
+                <div class="input-help">
+                    <h5>Columns</h5>
+                    <ul>
+                        <li><b>Sample Name</b>: name of the sample after demultiplexing</li>
+                        <li><b>Multiplexing Pool</b>: the chip channel the samples were loaded into</li>
+                        <li><b>Barcode ID</b>: 10X On-Chip Multiplexing barcode, one of <code>OB1</code>, <code>OB2</code>, <code>OB3</code>, <code>OB4</code>. Each barcode can be used once per pool.</li>
+                    </ul>
+                </div>
             </div>
             <div class="tab-pane fade" id="ocm-1-example-tab" role="tabpanel" tabindex="2">
             </div>

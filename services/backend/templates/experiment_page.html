@@ -63,25 +63,25 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="pools-tab-btn" data-bs-toggle="tab" data-bs-target="#pools-tab"
                 type="button" role="tab" aria-controls="pools-tab" aria-selected="true">
-                Pools ({{ experiment.num_pools }})
+                Pools {{ tab_count(experiment.num_pools) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#checklist-tab"
                 type="button" role="tab" aria-controls="checklist-tab" aria-selected="false">
-                Checklist ({{ checklist_steps_completed }}/{{ checklist_total_steps }})
+                Checklist {{ tab_count(checklist_steps_completed, checklist_total_steps) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#libraries-tab"
                 type="button" role="tab" aria-controls="libraries-tab" aria-selected="false">
-                Libraries ({{ experiment.num_libraries }})
+                Libraries {{ tab_count(experiment.num_libraries) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="dilutions-tab-btn" data-bs-toggle="tab" data-bs-target="#dilutions-tab"
                 type="button" role="tab" aria-controls="dilutions-tab" aria-selected="false">
-                Dilutions ({{ experiment.num_dilutions }})
+                Dilutions {{ tab_count(experiment.num_dilutions) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -103,7 +103,7 @@
                 data-bs-target="#experiment-files-tab" type="button" role="tab"
                 aria-controls="experiment-files-tab" aria-selected="true"
                 id="experiment-files-tab-btn">
-                Files ({{ experiment.num_files }})
+                Files {{ tab_count(experiment.num_files) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -111,7 +111,7 @@
             data-bs-target="#experiment-comments-tab" type="button" role="tab"
             aria-controls="experiment-comments-tab" aria-selected="true"
             id="experiment-comments-tab-btn">
-                Comments ({{ experiment.num_comments }})
+                Comments {{ tab_count(experiment.num_comments) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -126,13 +126,13 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#experiment-projects-tab" type="button" role="tab"
             aria-controls="experiment-projects-tab" aria-selected="false">
-            Projects ({{ experiment.num_projects }})</button>
+            Projects {{ tab_count(experiment.num_projects) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#experiment-data_paths-tab" type="button" role="tab"
             aria-controls="experiment-data_paths-tab" aria-selected="true">
-            Data ({{ experiment.num_data_paths }})</button>
+            Data {{ tab_count(experiment.num_data_paths) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"

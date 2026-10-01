@@ -2,7 +2,6 @@ from fastapi import Depends, Response
 
 from opengsync_db import models, queries as Q, SyncSession
 
-from ....components import inputs
 from ....core import dependencies, exceptions as exc
 from ..ProjectSelectionMixin import ProjectSelectionMixin
 from ...HTMXForm import FormFunc, RouteFunc, htmx_route

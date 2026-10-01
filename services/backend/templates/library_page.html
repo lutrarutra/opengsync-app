@@ -46,7 +46,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-samples-tab" type="button" role="tab"
             aria-controls="library-samples-tab" aria-selected="false">
-            Samples ({{ library.num_samples }})</button>
+            Samples {{ tab_count(library.num_samples) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -67,7 +67,7 @@
             data-bs-target="#library-abc-tab" type="button" role="tab"
             aria-controls="library-abc-tab" aria-selected="false"
             {% if library.type not in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
-            Feature Capture{% if library.type in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %} ({{ library.num_features }}){% endif %}
+            Feature Capture{% if library.type in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %} {{ tab_count(library.num_features) }}{% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -97,7 +97,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-data_paths-tab" type="button" role="tab"
             aria-controls="library-data_paths-tab" aria-selected="true">
-            Data ({{ library.num_data_paths }})</button>
+            Data {{ tab_count(library.num_data_paths) }}</button>
         </li>
     </ul>
 </div>

@@ -28,18 +28,18 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#group-members-tab" type="button" role="tab"
-            aria-controls="group-members-tab" aria-selected="true">Members ({{ group.num_users }})</button>
+            aria-controls="group-members-tab" aria-selected="true">Members {{ tab_count(group.num_users) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#group-requests-tab"
                 type="button" role="tab" aria-controls="group-requests-tab" aria-selected="false">
-                Requests ({{ group.num_seq_requests }})
+                Requests {{ tab_count(group.num_seq_requests) }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#group-projects-tab"
                 type="button" role="tab" aria-controls="group-projects-tab" aria-selected="false">
-                Projects ({{ group.num_projects }})
+                Projects {{ tab_count(group.num_projects) }}
             </button>
         </li>
     </ul>

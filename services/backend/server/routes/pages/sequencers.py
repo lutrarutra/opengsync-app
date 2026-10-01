@@ -9,7 +9,7 @@ router = APIRouter(prefix="/sequencers", tags=["sequencers"])
 
 @router.get("/")
 def sequencers_page():
-    return responses.html_response("sequencers_page.html", title="Sequencers")
+    return responses.html_response(template="sequencers_page.html", title="Sequencers")
 
 
 @router.get("/{sequencer_id}")
@@ -19,7 +19,7 @@ def sequencer_page(
 ):
     sequencer = session.get_one(Q.sequencer.select(id=sequencer_id))
     return responses.html_response(
-        "sequencer_page.html",
+        template="sequencer_page.html",
         sequencer=sequencer,
         title=f"{sequencer.name}",
     )

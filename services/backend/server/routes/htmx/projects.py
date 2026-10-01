@@ -247,7 +247,7 @@ def export_project_data(
         )
 
     bytes_io.seek(0)
-    return responses.bytes_response(bytes_io.getvalue(), filename=f"project_{project.identifier or f'P_{project.id}'}.xlsx", content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return responses.bytes_response(data=bytes_io.getvalue(), filename=f"project_{project.identifier or f'P_{project.id}'}.xlsx", content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 @router.delete("/{project_id}/delete")
 def delete_project(
@@ -534,7 +534,7 @@ def render_project_feed(
         ],
     )
     return responses.htmx_response(
-        "components/dashboard/projects-feed.html",
+        template="components/dashboard/projects-feed.html",
         projects=projects,
         current_page=page,
         limit=PAGE_LIMIT,
@@ -654,7 +654,7 @@ def project_browser_entries(
         browser_path.data_paths = by_path.get(browser_path.rel_path.as_posix(), [])
 
     return responses.htmx_response(
-        "components/file-browser/entries.html",
+        template="components/file-browser/entries.html",
         paths=paths,
         current_path=current_path,
         limit=limit,
@@ -689,7 +689,7 @@ def serve_project_file(
 
     mimetype = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return responses.file_response(
-        path,
+        path=path,
         filename=path.name,
         content_type=mimetype,
         disposition="inline" if is_browser_friendly(mimetype) else "attachment",

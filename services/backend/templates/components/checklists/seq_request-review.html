@@ -278,7 +278,7 @@
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_sample_names" aria-expanded="false" aria-controls="request-review-accordion-check_sample_names">
-                <b>{% if samples_checked %}✅{% else %}⚠️{% endif %} Check Sample Names and Metadata</b>
+                <b>{% if samples_checked %}✅{% else %}⚠️{% endif %} Check Sample Names and Annotations</b>
             </button>
         </h2>
         <div id="request-review-accordion-check_sample_names" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -286,7 +286,7 @@
                 <b>What to look for?</b>:
                 <ul>
                     <li>Check sample names make sense.</li>
-                    <li>Check sample attributes.</li>
+                    <li>Check sample attributes. You can edit sample-annotations in the project-page of the sample.</li>
                 </ul>
                 <div hx-get="{{ url_for('render_sample_attribute_spreadsheet', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}

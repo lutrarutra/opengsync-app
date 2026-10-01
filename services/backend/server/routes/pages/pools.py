@@ -10,7 +10,7 @@ router = APIRouter(prefix="/pools", tags=["pools"])
 
 @router.get("/")
 def pools_page():
-    return responses.html_response("pools_page.html", title="Pools")
+    return responses.html_response(template="pools_page.html", title="Pools")
 
 
 @router.get("/{pool_id}", dependencies=[Depends(dependencies.pool_permissions)])
@@ -36,6 +36,6 @@ def pool_page(
             break
 
     return responses.html_response(
-        "pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable,
+        template="pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable,
         is_plated=False, is_indexed=is_indexed, title=f"Pool: {pool.name}"
     )

@@ -16,7 +16,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.selected_sample_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-selected-samples-tab"
                     type="button" role="tab" aria-controls="store-samples-action-selected-samples-tab" aria-selected="false">
-                    Selected Samples ({{ form.selected_sample_ids.data | length }})
+                    Selected Samples {{ tab_count(form.selected_sample_ids.data | length) }}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -28,7 +28,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.selected_library_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-selected-libraries-tab"
                     type="button" role="tab" aria-controls="store-samples-action-selected-libraries-tab" aria-selected="false">
-                    Selected Libraries ({{ form.selected_library_ids.data | length }})
+                    Selected Libraries {{ tab_count(form.selected_library_ids.data | length) }}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -40,7 +40,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.selected_pool_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-selected-pools-tab"
                     type="button" role="tab" aria-controls="store-samples-action-selected-pools-tab" aria-selected="false">
-                    Selected Pools ({{ form.selected_pool_ids.data | length }})
+                    Selected Pools {{ tab_count(form.selected_pool_ids.data | length) }}
                 </button>
             </li>
         </ul>

@@ -79,22 +79,22 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#lab_prep-libraries-tab" type="button" role="tab"
-            aria-controls="lab_prep-libraries-tab" aria-selected="true">Libraries ({{ lab_prep.num_libraries }})</button>
+            aria-controls="lab_prep-libraries-tab" aria-selected="true">Libraries {{ tab_count(lab_prep.num_libraries) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#lab_prep-checklist-tab" type="button" role="tab"
-            aria-controls="lab_prep-checklist-tab" aria-selected="true">Checklist ({{ checklist_steps_completed }}/{{ checklist_total_steps }})</button>
+            aria-controls="lab_prep-checklist-tab" aria-selected="true">Checklist {{ tab_count(checklist_steps_completed, checklist_total_steps) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#lab_prep-pools-tab" type="button" role="tab"
-            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools ({{ lab_prep.num_pools }})</button>
+            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools {{ tab_count(lab_prep.num_pools) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#lab_prep-samples-tab" type="button" role="tab"
-            aria-controls="lab_prep-samples-tab" aria-selected="true">Samples ({{ lab_prep.num_samples }})</button>
+            aria-controls="lab_prep-samples-tab" aria-selected="true">Samples {{ tab_count(lab_prep.num_samples) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -107,7 +107,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#plate-tab" type="button" role="tab"
             aria-controls="plate-tab" aria-selected="false">
-            Plates ({{ lab_prep.num_plates }})</button>
+            Plates {{ tab_count(lab_prep.num_plates) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -120,13 +120,13 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#files-tab" type="button" role="tab"
             aria-controls="files-tab" aria-selected="true"
-            id="files-tab-btn">Files ({{ lab_prep.num_files }})</button>
+            id="files-tab-btn">Files {{ tab_count(lab_prep.num_files) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#comments-tab" type="button" role="tab"
             aria-controls="comments-tab" aria-selected="true"
-            id="comments-tab-btn">Comments ({{ lab_prep.num_comments }})</button>
+            id="comments-tab-btn">Comments {{ tab_count(lab_prep.num_comments) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"

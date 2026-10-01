@@ -1,9 +1,9 @@
 import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, SyncSession
 
-from ....core import responses, exceptions as exc
+from ....core import responses, exceptions as exc, dependencies
 from ....components import inputs
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
@@ -88,6 +88,7 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def dependency(
             form: SelectServiceForm = Depends(SelectServiceForm.Validate()),
+            session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             try:
                 service_type = C.ServiceType.get(int(form.service_type.data))
@@ -96,9 +97,9 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
                 raise exc.FormValidationException(form)
             
             if service_type == C.ServiceType.PARSE:
-                if form.optional_assays.parse_kit.data == -1:
+                if form.optional_assays.parse_kit.data in (None, -1):
                     form.optional_assays.parse_kit.errors.append("Please select a Parse kit.")
-                if form.optional_assays.parse_chemistry.data == -1:
+                if form.optional_assays.parse_chemistry.data in (None, -1):
                     form.optional_assays.parse_chemistry.errors.append("Please select a Parse chemistry.")
             
             if form.optional_assays.antibody_capture.data and not form.optional_assays.antibody_capture_kit.data:
@@ -187,8 +188,7 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
                 form.workflow.add_comment(context="parse_kit", text=parse_kit)
 
             if DefineMultiplexedSamplesForm.is_applicable(form.workflow):
-                next_form = DefineMultiplexedSamplesForm(form.workflow)
-                return next_form.make_response()
+                return form.workflow.advance_to(form, DefineMultiplexedSamplesForm).make_response()
 
             sample_table = form.workflow.tables["sample_table"]
             
@@ -203,8 +203,7 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
                     
                 sample_pooling_table = pd.DataFrame(sample_pooling_table)
                 form.workflow.tables["sample_pooling_table"] = sample_pooling_table
-                next_form = CustomAssayAnnotationForm(form.workflow)
-                return next_form.make_response()
+                return form.workflow.advance_to(form, CustomAssayAnnotationForm).make_response()
             
             library_table_data = {
                 "library_name": [],
@@ -263,6 +262,12 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
 
                 if form.optional_assays.parse_bcr.data:
                     add_library(sample_name, C.LibraryType.PARSE_EVERCODE_BCR)
+
+            existing = form.workflow.existing_libraries(session)
+            for sample_name, library_type_id in zip(library_table_data["sample_name"], library_table_data["library_type_id"]):
+                if (sample_name, library_type_id) in existing:
+                    form.service_type.errors.append(f"You already have '{C.LibraryType.get(library_type_id).abbreviation}'-library from sample '{sample_name}' in the request.")
+            form.assert_valid()
 
             library_table = pd.DataFrame(library_table_data)
             library_table["seq_depth"] = None

@@ -165,7 +165,7 @@ def render_lab_prep_checklist(
     )
     checklist = lab_prep.get_checklist()
     return responses.htmx_response(
-        "components/checklists/lab_prep.html",
+        template="components/checklists/lab_prep.html",
         lab_prep=lab_prep, **checklist
     )
 
@@ -365,7 +365,7 @@ def download_lab_prep_spreadsheet_template(
     bytes_io.seek(0)
 
     return responses.bytes_response(
-        bytes_io,
+        data=bytes_io,
         filename=f"{lab_prep.name}_{lab_prep.checklist_type.abbreviation}_{direction}.xlsx",
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )

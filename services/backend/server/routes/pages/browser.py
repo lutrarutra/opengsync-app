@@ -16,7 +16,7 @@ def browser_page(request: Request, subpath: str = ""):
     sort_order = request.query_params.get("sort_order", "asc" if sort_by == "name" else "desc")
 
     return responses.html_response(
-        "files_page.html",
+        template="files_page.html",
         current_path=subpath_path,
         parent_dir=subpath_path.parent if subpath_path != Path() else None,
         sort_by=sort_by,

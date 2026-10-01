@@ -39,9 +39,9 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
         def route(
             form: ParseMuxAnnotationForm = Depends(ParseMuxAnnotationForm.Init()),
         ) -> Response:
-            df = form.workflow.tables["sample_pooling_table"]
-            df["well"] = df["mux_well"]
-            form.spreadsheet.set_data(df.drop_duplicates(subset=["sample_name", "sample_pool"]))
+            df = form.workflow.tables["sample_pooling_table"].drop_duplicates(subset=["sample_name", "sample_pool"])
+            df["well"] = df["mux_barcode"]
+            form.spreadsheet.set_data(df)
             return form.make_response()
         return route
 

@@ -5,6 +5,7 @@ from datetime import datetime
 
 import pandas as pd
 import jinja2
+from markupsafe import Markup, escape
 from fastapi.templating import Jinja2Templates
 
 from opengsync_db import categories as C, models, units
@@ -125,6 +126,21 @@ j2.env.filters["highlight_r"] = highlight_r
 j2.env.filters["replace_substrings"] = replace_substrings
 j2.env.filters["root_name"] = root_name
 j2.env.filters["shell_quote"] = shell_quote
+
+def tab_count(count, total=None) -> Markup:
+    """Badge for counts in tab handles: ``tab_count(n)`` or ``tab_count(done, total)`` for checklists."""
+    try:
+        n = int(count)
+    except (TypeError, ValueError):
+        n = 0
+    if total is not None:
+        state = "done" if n >= int(total) else "pending"
+        return Markup(f'<span class="tab-count tab-count-{state}">{n}/{escape(total)}</span>')
+    zero = " tab-count-zero" if n == 0 else ""
+    return Markup(f'<span class="tab-count{zero}">{n}</span>')
+
+
+j2.env.globals["tab_count"] = tab_count
 
 # ─── Globals ported from add_context ───
 j2.env.globals["app_version"] = "dev"

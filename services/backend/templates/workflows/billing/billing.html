@@ -14,7 +14,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.experiment_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#billing-selected-tab"
                     type="button" role="tab" aria-controls="billing-selected-tab" aria-selected="false">
-                    Selected Experiments ({{ form.experiment_ids.data | length }})
+                    Selected Experiments {{ tab_count(form.experiment_ids.data | length) }}
                 </button>
             </li>
         </ul>

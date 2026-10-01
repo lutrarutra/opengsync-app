@@ -45,6 +45,26 @@ def index_badge_class(index: models.LibraryIndex | pd.Series) -> str:
     return "badge-primary"
 
 
+VALID_BASES = frozenset("ACGTN")
+
+
+def clean_sequence(sequence: str | None) -> str | None:
+    """Upper-case a user-entered sequence and drop whitespace and separators, e.g. ' acgt-acgt ' -> 'ACGTACGT'."""
+    if sequence is None or pd.isna(sequence):
+        return None
+    sequence = parsing.make_alpha_numeric(str(sequence), keep=[], replace_white_spaces_with="")
+    return sequence.upper() if sequence else None
+
+
+def check_sequence(sequence: str | None) -> str | None:
+    """Spreadsheet ``validation_fnc``: error message if ``sequence`` is not made of A/C/G/T/N."""
+    if sequence is None or pd.isna(sequence):
+        return None
+    if invalid := sorted(set(sequence) - VALID_BASES):
+        return f"Invalid base(s) {', '.join(repr(b) for b in invalid)}. Only A, C, G, T and N are allowed."
+    return None
+
+
 def reverse_complement(seq: str | None) -> str:
     if pd.isna(seq):
         return ""

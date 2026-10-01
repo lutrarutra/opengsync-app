@@ -77,6 +77,10 @@ class BarcodeInputForm(BarcodeInputMixin, LibraryAnnotationWorkflowStep):
         def route(
             form: BarcodeInputForm = Depends(BarcodeInputForm.Validate()),
         ) -> Response:
+            # Every (non-ATAC) library needs an index; ATAC indices are entered in the next step
+            expected = form.library_table.loc[form.library_table["library_type_id"] != C.LibraryType.TENX_SC_ATAC.id, "library_name"]
+            if len(missing := expected[~expected.isin(form.spreadsheet.data["library_name"])].tolist()) > 0:
+                form.spreadsheet.add_general_error(f"Library names not found in the input: {', '.join(missing)}")
             df = form.validate_barcode_input()
             form.workflow.tables["barcode_table"] = df
             return form.workflow.get_next_step(form).make_response()

@@ -32,6 +32,8 @@ class OCMAnnotationForm(LibraryAnnotationWorkflowStep):
         super().__init__(workflow)
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
         self.sample_pooling_table = workflow.tables["sample_pooling_table"]
+        # One row per sample in each pool, not per sample x library type
+        self.spreadsheet.set_data(self.sample_pooling_table.drop_duplicates(subset=["sample_name", "sample_pool"]))
 
 
     @htmx_route("GET")
@@ -39,7 +41,7 @@ class OCMAnnotationForm(LibraryAnnotationWorkflowStep):
         def route(
             form: OCMAnnotationForm = Depends(OCMAnnotationForm.Init()),
         ) -> Response:
-            df = form.workflow.tables["sample_pooling_table"]
+            df = form.workflow.tables["sample_pooling_table"].drop_duplicates(subset=["sample_name", "sample_pool"])
             df["barcode_id"] = df["mux_barcode"]
             form.spreadsheet.set_data(df)
             return form.make_response()
@@ -72,44 +74,8 @@ class OCMAnnotationForm(LibraryAnnotationWorkflowStep):
             form.sample_pooling_table["mux_barcode"] = parsing.map_columns(form.sample_pooling_table, df, idx_columns=["sample_name", "sample_pool"], col="barcode_id")
             form.workflow.tables["sample_pooling_table"] = form.sample_pooling_table
 
-            library_table_data = {
-                "library_name": [],
-                "sample_name": [],
-                "library_type": [],
-                "library_type_id": [],
-            }
-
-            service_type_enum = C.ServiceType.get(form.workflow.metadata["service_type_id"])
-
-            def add_library(sample_pool: str, library_type: C.LibraryType):
-                library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
-                library_table_data["sample_name"].append(sample_pool)
-                library_table_data["library_type"].append(library_type.name)
-                library_table_data["library_type_id"].append(library_type.id)
-
-            for (sample_pool,), _ in form.sample_pooling_table.groupby(["sample_pool"], sort=False):
-                for library_type in service_type_enum.library_types:
-                    add_library(sample_pool, library_type)  # type: ignore
-
-                if form.workflow.metadata["antibody_capture"]:
-                    if service_type_enum in C.ServiceType.get_flex_services():
-                        add_library(sample_pool, C.LibraryType.TENX_SC_ABC_FLEX)  # type: ignore
-                    else:
-                        add_library(sample_pool, C.LibraryType.TENX_ANTIBODY_CAPTURE)  # type: ignore
-
-                if form.workflow.metadata["vdj_b"]:
-                    add_library(sample_pool, C.LibraryType.TENX_VDJ_B)  # type: ignore
-
-                if form.workflow.metadata["vdj_t"]:
-                    add_library(sample_pool, C.LibraryType.TENX_VDJ_T)  # type: ignore
-
-                if form.workflow.metadata["vdj_t_gd"]:
-                    add_library(sample_pool, C.LibraryType.TENX_VDJ_T_GD)  # type: ignore
-
-                if form.workflow.metadata["crispr_screening"]:
-                    add_library(sample_pool, C.LibraryType.TENX_CRISPR_SCREENING)  # type: ignore
-            
-            form.workflow.tables["library_table"] = pd.DataFrame(library_table_data)
+            # library_table from the previous step already has one library per pool and type (legacy
+            # rebuilt it here from the service's library types and discarded it; for CUSTOM that is empty)
             return form.workflow.get_next_step(form).make_response()
         return route
 

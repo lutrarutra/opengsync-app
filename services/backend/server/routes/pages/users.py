@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 def users_page(
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    return responses.html_response("users_page.html", title="Users")
+    return responses.html_response(template="users_page.html", title="Users")
 
 
 @router.get("/{user_id}")
@@ -31,5 +31,5 @@ def user_page(
     )
 
     return responses.html_response(
-        "user_page.html", user=user, title=f"{user.name}", access_level=access_level
+        template="user_page.html", user=user, title=f"{user.name}", access_level=access_level
     )

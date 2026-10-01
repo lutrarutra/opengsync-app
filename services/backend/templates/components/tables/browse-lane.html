@@ -55,7 +55,7 @@
                 });
                 $("#selected-lanes-table-container").append(cloned);
                 num_selected_lanes += 1;
-                $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
+                $("#selected-lanes-tab-btn .tab-count").text(num_selected_lanes).toggleClass("tab-count-zero", num_selected_lanes === 0);
             }
 
             function remove_lane(lane_id) {
@@ -65,7 +65,7 @@
                 $(`#lane-row-${lane_id}`).removeClass("selected");
                 $(`#selected-lane-row-${lane_id}`).remove();
                 num_selected_lanes -= 1;
-                $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
+                $("#selected-lanes-tab-btn .tab-count").text(num_selected_lanes).toggleClass("tab-count-zero", num_selected_lanes === 0);
             }
 
             function toggle_lane(lane_id) {

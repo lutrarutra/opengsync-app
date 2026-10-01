@@ -182,7 +182,7 @@ def render_media_file_table(
 def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
     path = os.path.join("/static", "resources", "templates", name)
-    return responses.file_response(path, filename=name)
+    return responses.file_response(path=path, filename=name)
 
 
 @router.get("/serve-data-file/{data_path_id}")
@@ -214,7 +214,7 @@ def serve_data_file(
 
     mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
     disposition = "inline" if is_browser_friendly(mimetype) else "attachment"
-    return responses.file_response(path, filename=path.name, content_type=mimetype, disposition=disposition)
+    return responses.file_response(path=path, filename=path.name, content_type=mimetype, disposition=disposition)
 
 
 @router.get("/{media_file_id}/render")
@@ -241,7 +241,7 @@ def serve_media_file(
     renderable = file.extension.lower() in BROWSER_RENDERABLE_EXTENSIONS
     disposition = "inline" if renderable else "attachment"
     filename = f"{file.name}{file.extension}"
-    return responses.file_response(filepath, filename, content_type, disposition=disposition)
+    return responses.file_response(path=filepath, filename=filename, content_type=content_type, disposition=disposition)
 
 
 @router.get("/{media_file_id}/download", dependencies=[Depends(dependencies.media_file_permissions)])
@@ -258,7 +258,7 @@ def download_media_file(
         content_type = "application/octet-stream"
     disposition = "attachment"
     filename = f"{file.name}{file.extension}"
-    return responses.file_response(filepath, filename, content_type, disposition=disposition)
+    return responses.file_response(path=filepath, filename=filename, content_type=content_type, disposition=disposition)
 
 
 @router.get("/{media_file_id}/xlsx-spreadsheet", dependencies=[Depends(dependencies.media_file_permissions)])
@@ -358,7 +358,7 @@ def render_file_browser_page(
     )
 
     return responses.htmx_response(
-        "components/file-browser/entries.html",
+        template="components/file-browser/entries.html",
         paths=paths,
         current_path=current_path,
         limit=PAGE_LIMIT,

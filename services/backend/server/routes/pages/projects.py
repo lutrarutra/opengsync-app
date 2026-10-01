@@ -9,7 +9,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 @router.get("/")
 def projects_page(path_list: list = Depends(dependencies.parse_from_page)):
-    return responses.html_response("projects_page.html", title="Projects", path_list=path_list)
+    return responses.html_response(template="projects_page.html", title="Projects", path_list=path_list)
 
 
 @router.get("/{project_id}")
@@ -30,4 +30,4 @@ def project_page(
         orm.selectinload(models.Project.share_token),
     ))
 
-    return responses.html_response("project_page.html", project=project, title=project.identifier or f"Project #{project.id:04d}", access_level=access_level, path_list=path_list)
+    return responses.html_response(template="project_page.html", project=project, title=project.identifier or f"Project #{project.id:04d}", access_level=access_level, path_list=path_list)

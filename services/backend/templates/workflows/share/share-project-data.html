@@ -14,7 +14,7 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#share_project_data-paths-tab"
                     type="button" role="tab" aria-controls="share_project_data-paths-tab" aria-selected="true">
-                    Paths ({{ form.paths | length }})
+                    Paths {{ tab_count(form.paths | length) }}
                 </button>
             </li>
         </ul>

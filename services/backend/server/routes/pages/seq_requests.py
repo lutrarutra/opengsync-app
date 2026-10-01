@@ -9,7 +9,7 @@ router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
 
 @router.get("/")
 def seq_requests_page():  
-    return responses.html_response("seq_requests_page.html", title="Requests")
+    return responses.html_response(template="seq_requests_page.html", title="Requests")
 
 
 @router.get("/{seq_request_id}", dependencies=[Depends(dependencies.require_user), Depends(dependencies.seq_request_permissions)])
@@ -49,7 +49,7 @@ def seq_request_page(
     review_checklist = seq_request.get_review_checklist()
 
     return responses.html_response(
-        "seq_request_page.html",
+        template="seq_request_page.html",
         seq_request=seq_request,
         submit_checklist_steps_completed=sum(1 for item in submit_steps if item),
         submit_checklist_steps_total=len(submit_steps),

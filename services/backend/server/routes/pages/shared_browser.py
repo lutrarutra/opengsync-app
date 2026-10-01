@@ -68,7 +68,7 @@ def shared_browser_entries(
     )
 
     return responses.htmx_response(
-        "components/file-browser/entries.html",
+        template="components/file-browser/entries.html",
         paths=_browser_paths(paths),
         current_path=current_path,
         limit=PAGE_LIMIT,
@@ -98,14 +98,14 @@ def shared_browser_page(
         if (file := browser.get_file(current_path)) is not None:
             mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
             return responses.file_response(
-                file,
+                path=file,
                 filename=file.name,
                 content_type=mimetype,
                 disposition="inline" if is_browser_friendly(mimetype) else "attachment",
             )
 
     return responses.html_response(
-        "files_page.html",
+        template="files_page.html",
         current_path=current_path,
         sort_by="name",
         sort_order="asc",

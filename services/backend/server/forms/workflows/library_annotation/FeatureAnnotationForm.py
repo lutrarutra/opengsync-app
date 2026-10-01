@@ -13,13 +13,13 @@ from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotat
 
 class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
-    template_path = "workflows/library_annotation/sas-sample_annotation.html"
+    template_path = "workflows/library_annotation/sas-feature_annotation.html"
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         DropdownColumn("sample_name", "Sample Name", 170, choices=[], required=False),
         CategoricalDropDown("kit", "Kit", 250, categories={}, required=False),
         TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False, clean_up_fnc=utils.parsing.normalize_to_ascii, validation_fnc=utils.parsing.check_string),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
-        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: utils.parsing.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=utils.barcodes.clean_sequence, validation_fnc=utils.barcodes.check_sequence),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length),
         DropdownColumn("read", "Read", 100, choices=["R2", "R1"]),
     ])
@@ -39,27 +39,27 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
                 [C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id]
             )
         ]
-
-    @classmethod
-    def Init(cls) -> FormFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
-            session: SyncSession = Depends(dependencies.db_session),
-        ) -> FeatureAnnotationForm:
-            form = cls(workflow=workflow)
-            kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.feature_kit.select(type=C.FeatureType.ANTIBODY).order_by(models.FeatureKit.name.asc()), limit=None)}
-            abc_samples = form.abc_libraries["sample_name"].tolist()
-            form.spreadsheet.columns["sample_name"].choices = abc_samples  # type: ignore
-            form.spreadsheet.columns["kit"].set_categories(kits_mapping)
-            return form
-        return dependency
+        from ....core.context import ctx
+        kits_mapping = {
+            kit.identifier: f"[{kit.identifier}] {kit.name}"
+            for kit in ctx.session.get_all(
+                Q.feature_kit.select(type=C.FeatureType.ANTIBODY).order_by(models.FeatureKit.name.asc()),
+                limit=None,
+            )
+        }
+        self.abc_samples = self.abc_libraries["sample_name"].unique().tolist()
+        self.spreadsheet.columns["sample_name"].set_choices(self.abc_samples)  # type: ignore
+        self.spreadsheet.columns["kit"].set_categories(kits_mapping)
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
             form: FeatureAnnotationForm = Depends(FeatureAnnotationForm.Init()),
         ) -> Response:
-            feature_table = form.workflow.tables["feature_table"]
+            feature_table = form.workflow.tables["feature_table"].copy()
+            # feature_table is keyed by library; the spreadsheet by the library's sample (pool) name
+            library_sample_map = form.abc_libraries.set_index("library_name")["sample_name"]
+            feature_table["sample_name"] = feature_table["library_name"].map(library_sample_map)
             form.spreadsheet.set_data(feature_table)
             return form.make_response()
         return route

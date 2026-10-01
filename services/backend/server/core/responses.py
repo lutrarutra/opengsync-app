@@ -19,7 +19,7 @@ class FlashMessage(BaseModel):
 def flash(message: str, category: Literal["info", "success", "warning", "error"] = "info") -> FlashMessage:
     return FlashMessage(message=message, category=category)
 
-def raw_json_response(data: str | bytes, encapsulate: str | None = None) -> Response:
+def raw_json_response(*, data: str | bytes, encapsulate: str | None = None) -> Response:
     if encapsulate:
         data = utils.parsing.json_encapsulate(encapsulate, data)
 
@@ -27,6 +27,7 @@ def raw_json_response(data: str | bytes, encapsulate: str | None = None) -> Resp
     
 
 def html_response(
+    *,
     template: str | None = None, 
     redirect: URL | None = None, 
     status: int = 200, 
@@ -69,6 +70,7 @@ def html_response(
     return resp
 
 def htmx_response(
+    *,
     template: str | None = None,
     content: str | None = None,
     status: int = 200, 
@@ -150,6 +152,7 @@ def _x_accel_redirect(path: Path) -> str | None:
 
 
 def accel_redirect_response(
+    *,
     path: str | Path,
     filename: str | None = None,
     content_type: str | None = None,
@@ -169,7 +172,7 @@ def accel_redirect_response(
     accel = _x_accel_redirect(path)
     if accel is None:
         return file_response(
-            path,
+            path=path,
             filename=filename,
             content_type=content_type,
             disposition=disposition,
@@ -197,6 +200,7 @@ def accel_redirect_response(
 
 
 def file_response(
+    *,
     path: str | Path,
     filename: str | None = None,
     content_type: str | None = None,
@@ -214,7 +218,7 @@ def file_response(
     if send_body and config.settings.ENVIRONMENT == "prod":
         if _x_accel_redirect(path) is not None:
             return accel_redirect_response(
-                path,
+                path=path,
                 filename=filename,
                 content_type=content_type,
                 disposition=disposition,
@@ -243,7 +247,7 @@ def file_response(
         )
 
 
-def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | None = None, disposition: Literal["inline", "attachment"] = "attachment") -> Response:
+def bytes_response(*, data: bytes | io.BytesIO, filename: str, content_type: str | None = None, disposition: Literal["inline", "attachment"] = "attachment") -> Response:
     if isinstance(data, io.BytesIO):
         data.seek(0)
         raw = data.read()

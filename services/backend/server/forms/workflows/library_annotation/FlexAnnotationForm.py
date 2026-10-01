@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 from loguru import logger
 from fastapi import Depends, Response
@@ -51,6 +53,21 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
             form: FlexAnnotationForm = Depends(FlexAnnotationForm.Validate()),
         ) -> Response:
             df = form.spreadsheet.data
+
+            # Normalise 'bc1' / '1' / 'BC01' to 'BC001' and check the barcode exists for the selected Flex kit
+            max_barcode = {
+                C.ServiceType.TENX_SC_4_PLEX_FLEX.id: 4,
+                C.ServiceType.TENX_SC_16_PLEX_FLEX.id: 16,
+            }.get(form.workflow.metadata["service_type_id"])
+            for idx, row in df.iterrows():
+                if pd.isna(barcode_id := row["barcode_id"]):
+                    continue
+                if (match := re.fullmatch(r"(?:BC)?0*(\d{1,3})", str(barcode_id).strip().upper())) is None or int(match.group(1)) == 0:
+                    form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'{barcode_id}' is not a Flex probe barcode, expected e.g. 'BC001'."))
+                elif max_barcode is not None and int(match.group(1)) > max_barcode:
+                    form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"Barcode must be between BC001 and BC{max_barcode:03d} for this Flex kit."))
+                else:
+                    df.at[idx, "barcode_id"] = f"BC{int(match.group(1)):03d}"
 
             duplicated = df.duplicated(subset=["sample_pool", "barcode_id"] if "sample_pool" in df.columns else ["barcode_id"], keep=False) & pd.notna(df["barcode_id"])        
             for idx, _ in df.iterrows():

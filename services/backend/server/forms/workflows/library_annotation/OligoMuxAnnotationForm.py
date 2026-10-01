@@ -4,7 +4,7 @@ from fastapi import Depends, Response
 from opengsync_db import categories as C, models, SyncSession, queries as Q
 
 from ....core import exceptions as exc, dependencies
-from ....utils import parsing
+from ....utils import parsing, barcodes
 from ....components import inputs
 from ....components.tables import TextColumn, DuplicateCellValue, InvalidCellValue, CategoricalDropDown, DropdownColumn, MissingCellValue
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
@@ -18,17 +18,19 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
         TextColumn("sample_pool", "Multiplexing Pool", 170, required=True, read_only=True),
         CategoricalDropDown("kit", "Kit", 250, categories={}, required=False),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, clean_up_fnc=lambda x: parsing.make_alpha_numeric(x)),
-        TextColumn("barcode", "Sequence", 200, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: parsing.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("barcode", "Sequence", 200, max_length=models.Feature.sequence.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
         TextColumn("pattern", "Pattern", 180, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
         DropdownColumn("read", "Read", 80, choices=["R2", "R1"]),
     ])
 
     @classmethod
     def is_abc_hashed(cls, workflow: LibraryAnnotationWorkflow) -> bool:
-        return C.MUXType.get(workflow.metadata.get("mux_type_id")) == C.MUXType.TENX_ABC_HASH
+        return workflow.metadata.get("mux_type_id") == C.MUXType.TENX_ABC_HASH.id
 
     @classmethod
     def is_applicable(cls, workflow: "LibraryAnnotationWorkflow") -> bool:
+        if cls.is_abc_hashed(workflow):
+            return True
         return bool(workflow.tables["library_table"]["library_type_id"].isin([C.LibraryType.TENX_MUX_OLIGO.id]).any())
     
     @classmethod
@@ -59,30 +61,32 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
 
     def __init__(self, workflow: LibraryAnnotationWorkflow) -> None:
         super().__init__(workflow)
-
-    @classmethod
-    def Init(cls) -> FormFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
-            session: SyncSession = Depends(dependencies.db_session)
-        ) -> OligoMuxAnnotationForm:
-            kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.feature_kit.select(type=C.FeatureType.CMO).order_by(models.FeatureKit.name.asc()), limit=None)}
-            pooling_table = workflow.tables["sample_pooling_table"]
-            pooling_table = pooling_table[pooling_table["mux_type_id"].isin([C.MUXType.TENX_OLIGO.id, C.MUXType.TENX_ABC_HASH.id])]
-            mux_table = OligoMuxAnnotationForm.get_mux_table(pooling_table)
-            form = cls(workflow=workflow)
-            form.spreadsheet.set_data(mux_table)
-            form.spreadsheet.columns["kit"].set_categories(kits_mapping)
-            return form
-        return dependency
+        from ....core.context import ctx
+        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
+        kits_mapping = {
+            kit.identifier: f"[{kit.identifier}] {kit.name}"
+            for kit in ctx.session.get_all(
+                Q.feature_kit.select(type=C.FeatureType.CMO).order_by(models.FeatureKit.name.asc()),
+                limit=None,
+            )
+        }
+        self.spreadsheet.columns["kit"].set_categories(kits_mapping)
+        pooling_table = workflow.tables["sample_pooling_table"]
+        pooling_table = pooling_table[pooling_table["mux_type_id"].isin([C.MUXType.TENX_OLIGO.id, C.MUXType.TENX_ABC_HASH.id])]
+        self.spreadsheet.set_data(OligoMuxAnnotationForm.get_mux_table(pooling_table))
     
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
             form: OligoMuxAnnotationForm = Depends(OligoMuxAnnotationForm.Init()),
         ) -> Response:
-            df = form.workflow.tables["sample_pooling_table"]
-            df = df.drop_duplicates(subset=["sample_name"]).rename(columns={"sample_name": "sample_name"})
+            df = form.workflow.tables["sample_pooling_table"].drop_duplicates(subset=["sample_name", "sample_pool"])
+            df = df.rename(columns={
+                "mux_kit": "kit", "mux_feature": "feature", "mux_barcode": "barcode",
+                "mux_pattern": "pattern", "mux_read": "read",
+            })
+            # Kit oligos are re-resolved from 'Kit' + 'Feature'; keep the row as the user entered it
+            df.loc[df["kit"].notna(), ["barcode", "pattern", "read"]] = None
             form.spreadsheet.set_data(df)
             return form.make_response()
         return route
@@ -96,7 +100,8 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
             df = form.spreadsheet.data
             kit_feature = pd.notna(df["kit"]) & pd.notna(df["feature"])
             custom_feature = pd.notna(df["barcode"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
-            invalid_feature = (pd.notna(df["kit"]) | pd.notna(df["feature"])) & (pd.notna(df["barcode"]) | pd.notna(df["pattern"]) | pd.notna(df["read"]))
+            # 'Feature' names the oligo in a kit; for custom oligos it is an optional label
+            invalid_feature = pd.notna(df["kit"]) & (pd.notna(df["barcode"]) | pd.notna(df["pattern"]) | pd.notna(df["read"]))
             
             kit_identifiers = df["kit"].dropna().unique().tolist()
             kits: dict[str, tuple[models.FeatureKit, pd.DataFrame]] = dict()
@@ -138,31 +143,29 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
                             continue
                 
                 if (not custom_feature.at[idx] and not kit_feature.at[idx]):
-                    form.spreadsheet.add_error(idx, "kit", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
-                    form.spreadsheet.add_error(idx, "feature", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
-                    form.spreadsheet.add_error(idx, "barcode", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
-                    form.spreadsheet.add_error(idx, "pattern", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
-                    form.spreadsheet.add_error(idx, "read", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                    form.spreadsheet.add_error(idx, "kit", MissingCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' ('Feature' optional) specified."))
+                    form.spreadsheet.add_error(idx, "feature", MissingCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' ('Feature' optional) specified."))
+                    form.spreadsheet.add_error(idx, "barcode", MissingCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' ('Feature' optional) specified."))
+                    form.spreadsheet.add_error(idx, "pattern", MissingCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' ('Feature' optional) specified."))
+                    form.spreadsheet.add_error(idx, "read", MissingCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' ('Feature' optional) specified."))
 
                 # Defined both custom and kit feature
                 elif custom_feature.at[idx] and kit_feature.at[idx]:
-                    form.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                    form.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                    form.spreadsheet.add_error(idx, "barcode", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                    form.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                    form.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                    form.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
+                    form.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
+                    form.spreadsheet.add_error(idx, "barcode", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
+                    form.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
+                    form.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
 
                 elif invalid_feature.at[idx]:
                     if pd.notna(row["kit"]):
-                        form.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                    if pd.notna(row["feature"]):
-                        form.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                        form.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
                     if pd.notna(row["barcode"]):
-                        form.spreadsheet.add_error(idx, "barcode", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                        form.spreadsheet.add_error(idx, "barcode", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
                     if pd.notna(row["pattern"]):
-                        form.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                        form.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
                     if pd.notna(row["read"]):
-                        form.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                        form.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' + 'Feature' or 'Sequence' + 'Pattern' + 'Read' specified, not both."))
 
                 if duplicate_oligo.at[idx]:
                     form.spreadsheet.add_error(idx, "barcode", DuplicateCellValue("Definitions must be unique for each sample."))

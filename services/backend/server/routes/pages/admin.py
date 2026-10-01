@@ -7,4 +7,4 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(depend
 
 @router.get("/")
 def admin_page():
-    return responses.html_response("admin_page.html", title="Admin")
+    return responses.html_response(template="admin_page.html", title="Admin")

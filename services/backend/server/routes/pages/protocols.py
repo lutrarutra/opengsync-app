@@ -9,7 +9,7 @@ router = APIRouter(prefix="/protocols", tags=["protocols"])
 
 @router.get("/")
 def protocols_page():
-    return responses.html_response("protocols_page.html", title="Protocols")
+    return responses.html_response(template="protocols_page.html", title="Protocols")
 
 
 @router.get("/{protocol_id}")
@@ -19,7 +19,7 @@ def protocol_page(
 ):
     protocol = session.get_one(Q.protocol.select(id=protocol_id))
     return responses.html_response(
-        "protocol_page.html",
+        template="protocol_page.html",
         protocol=protocol,
         title=f"Protocol {protocol.name}",
     )

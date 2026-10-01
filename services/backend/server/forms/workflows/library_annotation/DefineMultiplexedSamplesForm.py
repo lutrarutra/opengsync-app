@@ -9,7 +9,6 @@ from ....core import dependencies
 from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn, DropdownColumn, DuplicateCellValue, MissingCellValue, InvalidCellValue
-from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
@@ -36,6 +35,10 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
         self.parse_bcr = workflow.metadata.get("parse_bcr", False)
         self.parse_crispr = workflow.metadata.get("parse_crispr", False)
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
+
+        sample_names = workflow.tables["sample_table"]["sample_name"].tolist()
+        self.spreadsheet.columns["sample_name"].set_choices(sample_names)  # type: ignore
+        self.spreadsheet.set_data(pd.DataFrame({"sample_name": sample_names, "pool": None}))
 
     @classmethod
     def is_applicable(cls, workflow: LibraryAnnotationWorkflow) -> bool:
@@ -97,8 +100,9 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
                     else:
                         df.at[idx, "pool"] = f"mux_pool_{i + 1}"  # type: ignore
 
-            if len(df["pool"].unique()) == 1:
-                df["pool"] = df["pool"].iloc[0].str.split("_").str[:-1].str.join("_")
+                # A single auto-generated pool doesn't need the "_1" suffix
+                if df["pool"].nunique() == 1:
+                    df["pool"] = df["pool"].str.rsplit("_", n=1).str[0]
 
             duplicate_definition = df.duplicated(subset=["sample_name", "pool"], keep=False)
 
@@ -131,8 +135,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
                     
                 sample_pooling_table = pd.DataFrame(sample_pooling_table)
                 form.workflow.tables["sample_pooling_table"] = sample_pooling_table
-                next_form = CustomAssayAnnotationForm(form.workflow)
-                return next_form.make_response()
+                return form.workflow.advance_to(form, CustomAssayAnnotationForm).make_response()
 
             library_table_data = {
                 "library_name": [],

@@ -406,14 +406,14 @@ def rclone(
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
         return responses.file_response(
-            file,
+            path=file,
             filename=file.name,
             content_type=mimetype,
             disposition="attachment" if config.settings.ENVIRONMENT != "prod" else None,
         )
 
     return responses.html_response(
-        "share/rclone.html",
+        template="share/rclone.html",
         current_path=current_path,
         parent_dir=current_path.parent if current_path != Path() else None,
         paths=paths,
@@ -436,7 +436,7 @@ def browse(
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
         return responses.file_response(
-            file,
+            path=file,
             filename=file.name,
             content_type=mimetype,
             disposition="inline" if is_browser_friendly(mimetype) else "attachment",
@@ -445,7 +445,7 @@ def browse(
     paths = sorted(paths, key=lambda p: p.path.name.lower())
 
     return responses.html_response(
-        "share/browse.html",
+        template="share/browse.html",
         current_path=current_path,
         parent_dir=current_path.parent if current_path != Path() else None,
         paths=paths,

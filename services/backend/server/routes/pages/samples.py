@@ -10,7 +10,7 @@ router = APIRouter(prefix="/samples", tags=["samples"])
 
 @router.get("/")
 def samples_page():
-    return responses.html_response("samples_page.html", title="Samples")
+    return responses.html_response(template="samples_page.html", title="Samples")
 
 
 @router.get("/{sample_id}", dependencies=[Depends(dependencies.sample_permissions)])
@@ -26,7 +26,7 @@ def sample_page(
     ))
     
     return responses.html_response(
-        "sample_page.html",
+        template="sample_page.html",
         sample=sample,
         title=f"Sample {sample.name}",
     )

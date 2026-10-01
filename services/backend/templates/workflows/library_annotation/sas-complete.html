@@ -18,54 +18,54 @@
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#library-tab" type="button" role="tab"
                 aria-controls="library-tab" aria-selected="false">
-                Libraries ({{ library_table.shape[0] if library_table is not none else "0" }})</button>
+                Libraries {{ tab_count(library_table.shape[0] if library_table is not none else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#sample-tab" type="button" role="tab"
                 aria-controls="sample-tab" aria-selected="false">
-                Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
+                Samples {{ tab_count(sample_table.shape[0] if sample_table is not none else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#pool-tab" type="button" role="tab"
                 aria-controls="pool-tab" aria-selected="false">
-                Pools ({{ pool_table.shape[0] if pool_table is not none else "0" }})</button>
+                Pools {{ tab_count(pool_table.shape[0] if pool_table is not none else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if barcode_table is none %}{{ tooltip("Only available when submitting indexed libraries.", category="warning") }}{% endif %}>
                 <button class="nav-link {% if barcode_table is none %}disabled{% else %}{% if barcode_table['error'].notna().any() %}text-danger{% endif %}{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#barcode-tab" type="button" role="tab"
                 aria-controls="barcode-tab" aria-selected="true">
-                Barcodes ({{ barcode_table.shape[0] if barcode_table is not none else "0" }})</button>
+                Barcodes {{ tab_count(barcode_table.shape[0] if barcode_table is not none else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
                 <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#feature-tab" type="button" role="tab"
                 aria-controls="feature-tab" aria-selected="true">
-                Features ({{ feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) | length if feature_table is not none else "0" }})</button>
+                Features {{ tab_count(feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) | length if feature_table is not none else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if not mux_type %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
                 <button class="nav-link {% if not mux_type %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#mux-tab" type="button" role="tab"
                 aria-controls="mux-tab" aria-selected="true">
-                Multiplexing ({{ sample_pooling_table.shape[0] if mux_type else "0" }})</button>
+                Multiplexing {{ tab_count(sample_pooling_table.shape[0] if mux_type else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if spatial_table is none %}{{ tooltip("No spatial libraries detected.", category="warning") }}{% endif %}>
                 <button class="nav-link {% if spatial_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#spatial-tab" type="button" role="tab"
                 aria-controls="spatial-tab" aria-selected="true">
-                Spatial ({{ spatial_table.shape[0] if spatial_table is not none else "0" }})</button>
+                Spatial {{ tab_count(spatial_table.shape[0] if spatial_table is not none else "0") }}</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if crispr_guide_table is none %}{{ tooltip("No CRISPR guide libraries detected.", category="warning") }}{% endif %}>
                 <button class="nav-link {% if crispr_guide_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#crispr-guides-tab" type="button" role="tab"
                 aria-controls="crispr-guides-tab" aria-selected="true">
-                CRISPR Guides ({{ crispr_guide_table.shape[0] if crispr_guide_table is not none else "0" }})</button>
+                CRISPR Guides {{ tab_count(crispr_guide_table.shape[0] if crispr_guide_table is not none else "0") }}</button>
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="overview-tab" role="tabpanel" tabindex="0">

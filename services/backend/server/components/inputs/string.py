@@ -69,7 +69,7 @@ class StringInputField(BaseInputField, Generic[_DataT]):
             default=default,
             pydantic_type=pydantic_type
             or Annotated[
-                str, StringConstraints(max_length=max_length, min_length=min_length)
+                str, StringConstraints(strip_whitespace=True, max_length=max_length, min_length=min_length)
             ],
             type=type,
             description=description,
@@ -105,7 +105,7 @@ class EmailInputField(StringInputField[_DataT]):
             pydantic_type=Annotated[
                 str,
                 EmailStr,
-                StringConstraints(max_length=max_length, min_length=min_length),
+                StringConstraints(strip_whitespace=True, max_length=max_length, min_length=min_length),
             ],
             type="email",
             hidden=hidden,
@@ -166,7 +166,7 @@ class TextAreaInputField(StringInputField[_DataT]):
             autocomplete=autocomplete,
             template="components/inputs/textarea.html",
             pydantic_type=Annotated[
-                str, StringConstraints(max_length=max_length, min_length=min_length)
+                str, StringConstraints(strip_whitespace=True, max_length=max_length, min_length=min_length)
             ],
             type="textarea",
             hidden=hidden,

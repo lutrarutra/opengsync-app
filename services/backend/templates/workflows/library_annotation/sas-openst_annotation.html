@@ -32,7 +32,11 @@
                         {% endfor %}
                     </div>
                 </div>
-                {{ form.spreadsheet.render() }}
+                {{ form.spreadsheet.render(
+                    target_element_id="openst_annotation-form-container",
+                    submit_btn_id="submit-spreadsheet-btn",
+                    extra_fields=[form.instructions],
+                ) }}
             </div>
         </div>
     </div>
@@ -54,22 +58,4 @@
             </button>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            $("#submit-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ form.spreadsheet.post_url }}", {
-                    "target": "#openst_annotation-form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": "{{ form.spreadsheet.csrf_token }}",
-                        "instructions": $("#instructions").val(),
-                        "columns": JSON.stringify(spread_sheet.getHeaders()),
-                    },
-                });
-            });
-        });
-    </script>
 </div>

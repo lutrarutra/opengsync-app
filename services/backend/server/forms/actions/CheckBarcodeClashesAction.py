@@ -59,7 +59,7 @@ class CheckBarcodeClashesAction(HTMXForm):
             libraries_df = barcode_utils.check_indices(libraries_df, groupby="lane_id").sort_values(["lane", "library_id"])
 
         warn_user = libraries_df["error"].notna().any() or libraries_df["warning"].notna().any()
-        return responses.htmx_response("workflows/check_barcode_clashes/clashes.html", libraries_df=libraries_df, groupby=groupby, warn_user=warn_user)
+        return responses.htmx_response(template="workflows/check_barcode_clashes/clashes.html", libraries_df=libraries_df, groupby=groupby, warn_user=warn_user)
 
     @htmx_route("GET", "/select-samples", name="SelectSamples")
     def RenderSelectSamples(cls) -> RouteFunc:

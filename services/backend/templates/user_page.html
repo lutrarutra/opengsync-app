@@ -106,26 +106,26 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#user-projects-tab" type="button" role="tab"
             aria-controls="user-projects-tab" aria-selected="false">
-            Projects ({{ user.num_projects }})</button>
+            Projects {{ tab_count(user.num_projects) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#user-requests-tab" type="button" role="tab"
             aria-controls="user-requests-tab" aria-selected="false">
-            Requests ({{ user.num_seq_requests }})</button>
+            Requests {{ tab_count(user.num_seq_requests) }}</button>
         </li>
         <li class="nav-item" role="presentation"></li>
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#user-groups-tab" type="button" role="tab"
             aria-controls="user-groups-tab" aria-selected="false">
-            Groups ({{ user.num_affiliations }})</button>
+            Groups {{ tab_count(user.num_affiliations) }}</button>
         </li>
         {% if current_user.is_insider %}
         <li>
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#user-api_tokens-tab" type="button" role="tab"
             aria-controls="user-api_tokens-tab" aria-selected="false">
-            API ({{ user.num_api_tokens }})</button>
+            API {{ tab_count(user.num_api_tokens) }}</button>
         </li>
         {% endif %}
     </ul>

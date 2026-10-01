@@ -10,7 +10,7 @@ router = APIRouter(prefix="/lab_preps", tags=["lab_preps"])
 
 @router.get("/")
 def lab_preps_page():
-    return responses.html_response("lab_preps_page.html", title="Preps")
+    return responses.html_response(template="lab_preps_page.html", title="Preps")
 
 
 @router.get("/{lab_prep_id}")
@@ -64,7 +64,7 @@ def lab_prep_page(
     steps_completed = sum(1 for item in steps if item)
 
     return responses.html_response(
-        "lab_prep_page.html",
+        template="lab_prep_page.html",
         lab_prep=lab_prep,
         title=f"Prep {lab_prep.display_name}",
         can_be_completed=can_be_completed,

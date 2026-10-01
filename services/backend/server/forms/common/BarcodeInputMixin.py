@@ -10,6 +10,7 @@ from ...components import inputs
 from ...components.tables import MissingCellValue, InvalidCellValue
 from ...components.tables.spreadsheet import CategoricalDropDown, SpreadSheetColumn, TextColumn
 from ...core import context
+from ...utils import barcodes
 
 
 class _BarcodeInputForm(Protocol):
@@ -46,7 +47,7 @@ class BarcodeInputMixin:
                     150,
                     max_length=models.LibraryIndex.name_i7.type.length,
                 ),
-                TextColumn("sequence_i7", "i7 Sequence", 180),
+                TextColumn("sequence_i7", "i7 Sequence", 180, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
                 CategoricalDropDown("kit_i5", "i5 Kit", 200, categories=lambda: {
                     kit.identifier: f"[{kit.identifier}] {kit.name}"
                     for kit in context.ctx.session.get_all(
@@ -64,7 +65,7 @@ class BarcodeInputMixin:
                     150,
                     max_length=models.LibraryIndex.name_i5.type.length,
                 ),
-                TextColumn("sequence_i5", "i5 Sequence", 180),
+                TextColumn("sequence_i5", "i5 Sequence", 180, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
             ],
             allow_new_rows=True,
         )

@@ -148,18 +148,18 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#request-review-tab" type="button" role="tab"
-            aria-controls="request-review-tab" aria-selected="true">Review ({{ review_checklist_steps_completed }}/{{ review_checklist_steps_total }})</button>
+            aria-controls="request-review-tab" aria-selected="true">Review {{ tab_count(review_checklist_steps_completed, review_checklist_steps_total) }}</button>
         </li>
         {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if not current_user.is_insider or seq_request.status != C.SeqRequestStatus.SUBMITTED %}active{% endif %}" data-bs-toggle="tab"
             data-bs-target="#request-checklist-tab" type="button" role="tab"
-            aria-controls="request-checklist-tab" aria-selected="true">Checklist ({{ submit_checklist_steps_completed }}/{{ submit_checklist_steps_total }})</button>
+            aria-controls="request-checklist-tab" aria-selected="true">Checklist {{ tab_count(submit_checklist_steps_completed, submit_checklist_steps_total) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-samples-tab" type="button" role="tab"
-            aria-controls="request-samples-tab" aria-selected="true">Samples ({{ seq_request.num_samples }})</button>
+            aria-controls="request-samples-tab" aria-selected="true">Samples {{ tab_count(seq_request.num_samples) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#workflows-tab"
@@ -170,12 +170,12 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-libraries-tab" type="button" role="tab"
-            aria-controls="request-libraries-tab" aria-selected="true">Libraries ({{ seq_request.num_libraries }})</button>
+            aria-controls="request-libraries-tab" aria-selected="true">Libraries {{ tab_count(seq_request.num_libraries) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-pools-tab" type="button" role="tab"
-            aria-controls="request-pools-tab" aria-selected="true">Pools ({{ seq_request.num_pools }})</button>
+            aria-controls="request-pools-tab" aria-selected="true">Pools {{ tab_count(seq_request.num_pools) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -193,37 +193,37 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#seq_request-files-tab" type="button" role="tab"
             aria-controls="seq_request-files-tab" aria-selected="true"
-            id="seq_request-files-tab-btn">Files ({{ seq_request.num_files }})</button>
+            id="seq_request-files-tab-btn">Files {{ tab_count(seq_request.num_files) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-comments-tab" type="button" role="tab"
             aria-controls="request-comments-tab" aria-selected="true"
-            id="request-comments-tab-btn">Comments ({{ seq_request.num_comments }})</button>
+            id="request-comments-tab-btn">Comments {{ tab_count(seq_request.num_comments) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-share-tab" type="button" role="tab"
             aria-controls="request-share-tab" aria-selected="true"
-            id="request-share-tab-btn">Share ({{ seq_request.num_delivery_email_links }})</button>
+            id="request-share-tab-btn">Share {{ tab_count(seq_request.num_delivery_email_links) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-projects-tab" type="button" role="tab"
             aria-controls="request-projects-tab" aria-selected="true"
-            id="request-projects-tab-btn">Projects ({{ seq_request.num_projects }})</button>
+            id="request-projects-tab-btn">Projects {{ tab_count(seq_request.num_projects) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-assignees-tab" type="button" role="tab"
             aria-controls="request-assignees-tab" aria-selected="true"
-            id="request-assignees-tab-btn">Assignees ({{ seq_request.num_assignees }})</button>
+            id="request-assignees-tab-btn">Assignees {{ tab_count(seq_request.num_assignees) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-data_paths-tab" type="button" role="tab"
             aria-controls="request-data_paths-tab" aria-selected="true">
-            Data ({{ seq_request.num_data_paths }})</button>
+            Data {{ tab_count(seq_request.num_data_paths) }}</button>
         </li>
     </ul>
 </div>
@@ -281,6 +281,31 @@
                 </div>
             </div>
             <div class="workflow-container">
+                {% if current_user.is_insider %}
+                <div class="flip-card card{% if seq_request.status != C.SeqRequestStatus.ACCEPTED %} disabled text-muted{% endif %}"
+                    {% if seq_request.status == C.SeqRequestStatus.ACCEPTED %}
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('StoreSamplesAction.Begin', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content"
+                    hx-swap="innerHTML" hx-trigger="click"
+                    {% else %}{{ tooltip("Samples can only be stored once the request has been accepted.", category="warning") }}{% endif %}>
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/store.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Store Samples</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Store samples received from customers.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 {% if seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES %}
                 <div class="flip-card card {% if seq_request.status != C.SeqRequestStatus.DRAFT and not current_user.is_insider %} disabled text-muted{% endif %}"
                     {% if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}

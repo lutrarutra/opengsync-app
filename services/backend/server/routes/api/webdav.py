@@ -57,7 +57,7 @@ def share(
         stat = path.stat()
         mimetype, _ = mimetypes.guess_type(path.name)
         return responses.file_response(
-            path,
+            path=path,
             filename=path.name,
             content_type=mimetype or "application/octet-stream",
             disposition=None,
@@ -97,14 +97,14 @@ def share(
         }
         if config.settings.ENVIRONMENT == "prod":
             return responses.accel_redirect_response(
-                path,
+                path=path,
                 filename=path.name,
                 content_type=mimetype,
                 disposition=None,
                 extra_headers=extra_headers,
             )
         return responses.file_response(
-            path,
+            path=path,
             filename=path.name,
             content_type=mimetype,
             extra_headers=extra_headers,

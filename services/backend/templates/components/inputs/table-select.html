@@ -36,7 +36,6 @@
         const fieldId = "{{ field.id }}";
         const selectAll = {{ "true" if field.select_all else "false" }};
         const entity = "{{ entity }}";
-        const entityLabel = "{{ entity_label }}";
 
         // State
         let selected{{ uid }} = {{ field.data | tojson if field.data else "[]" }};
@@ -54,7 +53,8 @@
         }
 
         function updateCount{{ uid }}() {
-            $("#" + fieldId + "-tab-btn").text("Selected " + entityLabel + " (" + selected{{ uid }}.length + ")");
+            const n = selected{{ uid }}.length;
+            $("#" + fieldId + "-tab-btn .tab-count").text(n).toggleClass("tab-count-zero", n === 0);
         }
 
         function add{{ uid }}(id, rowElement) {

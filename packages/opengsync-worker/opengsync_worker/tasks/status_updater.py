@@ -107,21 +107,50 @@ def __find_sequenced_seq_requests(q):
     )
 
 
-def __find_sequenced_projects(q):
+# Libraries that still have lab/sequencing work ahead of them. DRAFT/SUBMITTED are not counted,
+# so a customer drafting a new request does not re-open a project before staff accept it.
+# QC_PENDING is not counted either: QC_COMPLETED is never set, so QC-only work would re-open forever.
+OPEN_LIBRARY_STATUSES = [
+    C.LibraryStatus.ACCEPTED,
+    C.LibraryStatus.PREPARING,
+    C.LibraryStatus.STORED,
+    C.LibraryStatus.POOLED,
+]
+
+SEQUENCED_LIBRARY_STATUSES = [
+    C.LibraryStatus.SEQUENCED,
+    C.LibraryStatus.SHARED,
+    C.LibraryStatus.ARCHIVED,
+]
+
+
+def __project_has_library(statuses: list[C.LibraryStatus]):
+    return sa.exists().where(
+        (models.Sample.project_id == models.Project.id) &
+        (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+        (models.Library.id == models.links.SampleLibraryLink.library_id) &
+        (models.Library.status.in_(statuses))
+    )
+
+
+def __find_reopened_seq_requests(q):
     return q.where(
         sa.exists().where(
-            (models.Sample.project_id == models.Project.id) &
-            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-            (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status >= C.LibraryStatus.SEQUENCED)
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.Library.status.in_(OPEN_LIBRARY_STATUSES))
         )
+    )
+
+
+def __find_reopened_projects(q):
+    return q.where(__project_has_library(OPEN_LIBRARY_STATUSES))
+
+
+def __find_sequenced_projects(q):
+    return q.where(
+        __project_has_library(SEQUENCED_LIBRARY_STATUSES)
     ).where(
-        ~sa.exists().where(
-            (models.Sample.project_id == models.Project.id) &
-            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-            (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status < C.LibraryStatus.SEQUENCED)
-        )
+        ~__project_has_library(OPEN_LIBRARY_STATUSES)
     )
 
 
@@ -197,6 +226,16 @@ def update_statuses(db: SyncDBHandler):
 
     db.session.flush()
 
+    # Re-sequencing adds libraries to finished requests; send them back so the forward rules below re-apply.
+    for seq_request in db.session.get_all(__find_reopened_seq_requests(Q.seq_request.select(
+        status_in=[C.SeqRequestStatus.DATA_PROCESSING, C.SeqRequestStatus.FINISHED, C.SeqRequestStatus.ARCHIVED],
+    )), limit=None):
+        seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
+        logs.append(f"Re-opening seq_request {seq_request.id}, status to {seq_request.status}")
+        db.session.save(seq_request)
+
+    db.session.flush()
+
     for seq_request in db.session.get_all(__find_seq_requests_with_stored_samples(Q.seq_request.select(
         status=C.SeqRequestStatus.ACCEPTED,
     )), limit=None):
@@ -221,6 +260,15 @@ def update_statuses(db: SyncDBHandler):
         seq_request.status = C.SeqRequestStatus.DATA_PROCESSING
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
+
+    db.session.flush()
+
+    for project in db.session.get_all(__find_reopened_projects(Q.project.select(
+        status_in=[C.ProjectStatus.SEQUENCED, C.ProjectStatus.DELIVERED, C.ProjectStatus.ARCHIVED],
+    )), limit=None):
+        project.status = C.ProjectStatus.PROCESSING
+        db.session.save(project)
+        logs.append(f"Re-opening project {project.id}, status to {project.status}")
 
     db.session.flush()
 

@@ -47,15 +47,32 @@ class StoreSamplesAction(HTMXForm):
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(seq_request_id: int | None = Query(None)) -> "StoreSamplesAction":
-            return cls(seq_request_id=seq_request_id)
+            form = cls(seq_request_id=seq_request_id)
+            return form
         return dependency
 
     @htmx_route("GET")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "StoreSamplesAction" = Depends(StoreSamplesAction.Init()),
+            session: SyncSession = Depends(dependencies.db_session),
             _=Depends(dependencies.require_insider),
         ):
+            if form.seq_request_id is not None:
+                seq_request = session.get_one(Q.seq_request.select(id=form.seq_request_id))
+                # Pre-select everything from the request that is still waiting to be delivered.
+                if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
+                    form.selected_sample_ids.data = [
+                        sample.id for sample in session.get_all(Q.sample.select(
+                            seq_request_id=form.seq_request_id, status=C.SampleStatus.WAITING_DELIVERY
+                        ))
+                    ]
+                elif seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES:
+                    form.selected_pool_ids.data = [
+                        pool.id for pool in session.get_all(Q.pool.select(
+                            seq_request_id=form.seq_request_id, status=C.PoolStatus.ACCEPTED
+                        ))
+                    ]
             return form.make_response()
         return route
 

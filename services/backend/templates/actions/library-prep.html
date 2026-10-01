@@ -17,7 +17,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.selected_library_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#library-prep-selected-tab"
                     type="button" role="tab" aria-controls="library-prep-selected-tab" aria-selected="false">
-                    Selected ({{ selected_libraries | length }})
+                    Selected {{ tab_count(selected_libraries | length) }}
                 </button>
             </li>
         </ul>

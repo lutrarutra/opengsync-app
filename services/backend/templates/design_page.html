@@ -14,13 +14,13 @@
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#design-flow-cells-tab" type="button" role="tab"
             aria-controls="design-flow-cells-tab" aria-selected="true">
-            Flow Cells ({{ num_flowcell_designs }})</button>
+            Flow Cells {{ tab_count(num_flowcell_designs) }}</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#design-archive-tab" type="button" role="tab"
             aria-controls="design-archive-tab" aria-selected="false">
-            Archive ({{ num_archived_flowcell_designs }})</button>
+            Archive {{ tab_count(num_archived_flowcell_designs) }}</button>
         </li>
     </ul>
 </div>

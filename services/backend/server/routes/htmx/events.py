@@ -72,7 +72,7 @@ def events_month(
     calendar = _events_by_day(events, start_date, end_date)
 
     return responses.htmx_response(
-        "components/calendar/month.html",
+        template="components/calendar/month.html",
         year=year,
         month=month,
         events=events,
@@ -120,7 +120,7 @@ def events_week(
         calendar.pop(config.settings.datetime(saturday.year, saturday.month, saturday.day), None)
 
     return responses.htmx_response(
-        "components/calendar/week.html",
+        template="components/calendar/week.html",
         year=year,
         week=week,
         events=events,
@@ -159,7 +159,7 @@ def events_day(
     events = _calendar_events(session, start_date, end_date, load_seq_request=True)
 
     return responses.htmx_response(
-        "components/calendar/day.html",
+        template="components/calendar/day.html",
         year=year,
         month=month,
         day=day,

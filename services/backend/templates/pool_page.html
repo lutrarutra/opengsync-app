@@ -76,7 +76,7 @@
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#library-tab" type="button" role="tab"
             aria-controls="library-tab" aria-selected="true">
-            Libraries ({{ pool.num_libraries }})</button>
+            Libraries {{ tab_count(pool.num_libraries) }}</button>
         </li>
         {% endif %}
         <li class="nav-item" role="presentation">

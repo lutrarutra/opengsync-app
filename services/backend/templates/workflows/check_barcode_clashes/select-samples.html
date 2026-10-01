@@ -18,7 +18,7 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#barcode-check-clashes-selected-libraries-tab"
                     type="button" role="tab" aria-controls="barcode-check-clashes-selected-libraries-tab" aria-selected="false">
-                    Selected Libraries ({{ selected_libraries | length }})
+                    Selected Libraries {{ tab_count(selected_libraries | length) }}
                 </button>
             </li>
         </ul>

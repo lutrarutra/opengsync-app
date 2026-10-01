@@ -47,27 +47,13 @@ class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
                 sample_name: str
 
 
+            # Existing samples keep their id and bring their attributes along (shown in the next step)
             if (project_id := form.workflow.metadata.get("project_id")) is not None:
                 for idx, row in utils.parsing.safe_iter(df, RowSchema):
                     if (sample := session.first(Q.sample.select(name=row.sample_name, project_id=project_id))) is not None:
                         df.loc[idx, "sample_id"] = sample.id
-
                         for attr in sample.attributes:
-                            if attr.name not in df.columns:
-                                df[attr.name] = None
-                            df.loc[df["sample_name"] == sample.name, attr.name] = attr.value
-
-            # for col in SampleAttributeAnnotationForm.predefined_columns:
-            #     if col.label in df.columns:
-            #         continue
-                
-            #     df[col.label] = ""
-
-            for _, row in utils.parsing.safe_iter(df.loc[df["sample_id"].notna()], RowSchema):
-                sample = session.get_one(Q.sample.select(id=row.sample_id))
-                
-                for attr in sample.attributes:
-                    df.loc[df["sample_name"] == row.sample_name, attr.name] = attr.value
+                            df.loc[idx, f"_attr_{attr.name}"] = attr.value
 
             form.workflow.tables["sample_table"] = df
             next_form = form.workflow.get_next_step(form)

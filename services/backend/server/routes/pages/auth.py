@@ -11,7 +11,7 @@ router = APIRouter(
 
 @router.get("/reset-password/{token}")
 def reset_password_page(token: str):
-    return responses.html_response("reset_password_page.html", token=token)
+    return responses.html_response(template="reset_password_page.html", token=token)
 
 @router.get("/login")
 def login_page(
@@ -20,8 +20,8 @@ def login_page(
     if current_user_id is not None:
         return responses.html_response(redirect=responses.url_for("dashboard"))
     
-    return responses.html_response("auth_page.html")
+    return responses.html_response(template="auth_page.html")
 
 @router.get("/complete-registration/{token}")
 def complete_registration_page(token: str):
-    return responses.html_response("complete_registration_page.html", token=token)
+    return responses.html_response(template="complete_registration_page.html", token=token)

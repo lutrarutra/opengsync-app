@@ -10,7 +10,7 @@ router = APIRouter(prefix="/experiments", tags=["experiments"], dependencies=[De
 
 @router.get("/")
 def experiments_page():
-    return responses.html_response("experiments_page.html", title="Experiments")
+    return responses.html_response(template="experiments_page.html", title="Experiments")
 
 
 @router.get("/{experiment_id}")
@@ -52,7 +52,7 @@ def experiment_page(
     steps_completed = sum(1 for item in steps if item)
 
     return responses.html_response(
-        "experiment_page.html", experiment=experiment, title=experiment.name, path_list=path_list,
+        template="experiment_page.html", experiment=experiment, title=experiment.name, path_list=path_list,
         pools=experiment.pools,
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,

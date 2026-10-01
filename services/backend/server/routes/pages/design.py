@@ -17,7 +17,7 @@ def design(session: SyncSession = Depends(dependencies.db_session)):
     ))
 
     return responses.html_response(
-        "design_page.html", title="Design",
+        template="design_page.html", title="Design",
         num_flowcell_designs=num_flowcell_designs,
         num_archived_flowcell_designs=num_archived_flowcell_designs,
     )

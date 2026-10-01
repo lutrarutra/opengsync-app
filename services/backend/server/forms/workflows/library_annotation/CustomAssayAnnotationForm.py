@@ -1,7 +1,9 @@
 import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import categories as C
+from opengsync_db import categories as C, SyncSession
+
+from ....core import dependencies
 
 from ....components import inputs
 from ....components.tables import DropdownColumn, CategoricalDropDown, DuplicateCellValue, InvalidCellValue
@@ -21,7 +23,7 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
         self.sample_pooling_table = workflow.tables["sample_pooling_table"]
         self.sample_pools = self.sample_pooling_table["sample_pool"].unique().tolist()
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
-        self.spreadsheet.columns["sample_pool"].choices = self.sample_pools  # type: ignore
+        self.spreadsheet.columns["sample_pool"].set_choices(self.sample_pools)  # type: ignore
         self.spreadsheet.set_data(self.sample_pooling_table.drop_duplicates(subset=["sample_pool"]))
         self.mux_type = C.MUXType.get(workflow.metadata["mux_type_id"]) if workflow.metadata.get("mux_type_id") is not None else None
 
@@ -40,6 +42,7 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: CustomAssayAnnotationForm = Depends(CustomAssayAnnotationForm.Validate()),
+            session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             df = form.spreadsheet.data
             form.workflow.tables["library_table"] = df.rename(columns={"sample_pool": "sample_name"})
@@ -48,9 +51,13 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
                     form.spreadsheet.add_general_error(f"No library type(s) specified for '{sample_pool}'")           
                 
             duplicated = df.duplicated(subset=["sample_pool", "library_type_id"], keep=False)
-            df["library_type"] = df["library_type_id"].map(C.LibraryType.get)
+            existing = form.workflow.existing_libraries(session)
             for idx, row in df.iterrows():
-                library_type: C.LibraryType = row["library_type"]
+                library_type = C.LibraryType.get(row["library_type_id"])
+                pool_samples = form.sample_pooling_table.loc[form.sample_pooling_table["sample_pool"] == row["sample_pool"], "sample_name"]
+                if (in_request := [s for s in pool_samples.unique() if (s, library_type.id) in existing]):
+                    form.spreadsheet.add_error(idx, "library_type_id", DuplicateCellValue(f"You already have '{library_type.abbreviation}'-library from sample(s) {', '.join(in_request)} in the request"))
+
                 if duplicated.at[idx]:
                     form.spreadsheet.add_error(idx, "library_type_id", DuplicateCellValue(f"Library type '{library_type.name}' is duplicated for sample pool '{row['sample_pool']}'"))
 
@@ -83,7 +90,7 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
 
             for (sample_pool, sample_name), _df in form.sample_pooling_table.groupby(["sample_pool", "sample_name"], sort=False):
                 for _, row in df.loc[df["sample_pool"] == sample_pool].iterrows():
-                    library_name = add_library(sample_pool, C.LibraryType(row["library_type"]))  # type: ignore
+                    library_name = add_library(sample_pool, C.LibraryType.get(row["library_type_id"]))  # type: ignore
 
                     sample_pooling_table["sample_name"].append(sample_name)
                     sample_pooling_table["library_name"].append(library_name)

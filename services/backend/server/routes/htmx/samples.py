@@ -126,7 +126,7 @@ def render_sample_attribute_spreadsheet(
         if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user_id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         df = T.seq_request_sample_table(
-            session.get_pandas(Q.pd.seq_request_sample_table(seq_request_id), limit=None)
+            session.get_pandas(Q.pd.seq_request_sample_table(seq_request_id).order_by(models.Sample.id), limit=None)
         )
     else:
         raise exc.BadRequestException("seq_request_id must be provided.")
@@ -145,7 +145,7 @@ def render_sample_attribute_spreadsheet(
 
     spreadsheet = StaticSpreadsheet(df, columns=columns, )
 
-    return spreadsheet.render()
+    return responses.htmx_response(content=spreadsheet.render())
 
 router.include_router(
     forms.models.SampleForm.Router(),

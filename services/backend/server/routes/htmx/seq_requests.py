@@ -231,7 +231,7 @@ def render_seq_request_feed(
 
     seq_requests, _ = session.page(stmt, limit=PAGE_LIMIT, page=page, options=options)
     return responses.htmx_response(
-        "components/dashboard/seq_requests-feed.html",
+        template="components/dashboard/seq_requests-feed.html",
         seq_requests=seq_requests,
         current_page=page,
         limit=PAGE_LIMIT,
@@ -562,7 +562,7 @@ def render_seq_request_overview(
         )
 
     return responses.htmx_response(
-        "components/plots/request_overview.html",
+        template="components/plots/request_overview.html",
         nodes=nodes,
         links=links,
         contains_pooled=contains_pooled,
@@ -625,7 +625,7 @@ def get_seq_request_submit_checklist(
     checklist = seq_request.get_submit_checklist()
 
     return responses.htmx_response(
-        "components/checklists/seq_request-submit.html",
+        template="components/checklists/seq_request-submit.html",
         seq_request=seq_request,
         **checklist,
     )
@@ -662,7 +662,7 @@ def get_seq_request_review_checklist(
     contains_mux_samples = any(library.is_multiplexed for library in seq_request.libraries)
 
     return responses.htmx_response(
-        "components/checklists/seq_request-review.html",
+        template="components/checklists/seq_request-review.html",
         seq_request=seq_request,
         contains_mux_samples=contains_mux_samples,
         **checklist,
@@ -756,7 +756,7 @@ def get_seq_request_sample_table(
     spreadsheet = StaticSpreadsheet(df, columns=columns)
 
     return responses.htmx_response(
-        "components/itable.html", seq_request=seq_request, spreadsheet=spreadsheet
+        template="components/itable.html", seq_request=seq_request, spreadsheet=spreadsheet
     )
 
 

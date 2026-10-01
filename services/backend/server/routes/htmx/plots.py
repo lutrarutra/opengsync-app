@@ -70,7 +70,7 @@ def experiment_library_reads(
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
     return responses.htmx_response(
-        "components/plots/experiment_library_reads.html",
+        template="components/plots/experiment_library_reads.html",
         experiment=experiment,
     )
 
@@ -130,7 +130,7 @@ def experiment_pool_reads(
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
     return responses.htmx_response(
-        "components/plots/experiment_pool_reads.html",
+        template="components/plots/experiment_pool_reads.html",
         experiment=experiment,
     )
 
@@ -188,7 +188,7 @@ def experiment_pool_per_library_reads(
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
     return responses.htmx_response(
-        "components/plots/experiment_pool_per_library_reads.html",
+        template="components/plots/experiment_pool_per_library_reads.html",
         experiment=experiment,
     )
 
@@ -238,7 +238,7 @@ def experiment_pool_per_library_reads_data(
 
 @router.get("/weekday_usage", name="plots_api.weekday_usage", dependencies=_ADMIN)
 def weekday_usage():
-    return responses.htmx_response("components/plots/weekday_usage.html")
+    return responses.htmx_response(template="components/plots/weekday_usage.html")
 
 
 @router.post("/weekday_usage", dependencies=_ADMIN)

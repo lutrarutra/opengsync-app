@@ -219,7 +219,7 @@ def render_plate_tab(
             orm.selectinload(models.Plate.sample_links),
         )
     )
-    return responses.htmx_response("components/plate.html", plate=plate)
+    return responses.htmx_response(template="components/plate.html", plate=plate)
 
 
 @router.get("/render-feed", dependencies=[Depends(dependencies.require_insider)])
@@ -239,7 +239,7 @@ def render_pool_feed(
         ],
     )
     return responses.htmx_response(
-        "components/dashboard/pools-feed.html",
+        template="components/dashboard/pools-feed.html",
         pools=pools,
         current_page=page,
         limit=PAGE_LIMIT,

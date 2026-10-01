@@ -37,7 +37,7 @@ def render_comment_thread(
     else:
         raise exc.BadRequestException("At least one of seq_request_id, experiment_id, or lab_prep_id must be provided.")
 
-    return responses.htmx_response("components/comment-thread.html", comments=comments)
+    return responses.htmx_response(template="components/comment-thread.html", comments=comments)
 
 router.include_router(forms.models.TODOCommentForm.Router())
 

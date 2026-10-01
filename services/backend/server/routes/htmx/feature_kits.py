@@ -70,7 +70,7 @@ def export_feature_kit_features(
     features_df["feature_type"] = features_df["type"].apply(lambda x: x.modality)
 
     return responses.file_response(
-        features_df.to_csv(index=False), filename=f"{feature_kit.name.replace(' ', '_').lower()}.csv",
+        path=features_df.to_csv(index=False), filename=f"{feature_kit.name.replace(' ', '_').lower()}.csv",
         content_type="text/csv",
     )
 

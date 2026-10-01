@@ -26,21 +26,30 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
     @classmethod
     def is_applicable(cls, workflow: LibraryAnnotationWorkflow) -> bool:
         df = workflow.tables["barcode_table"]
-        df = df[(df["index_well"] != "del") | (df["index_well"].isna())]
+        df = df[(df["index_type_id"] != C.IndexType.TENX_ATAC_INDEX.id) & ((df["index_well"] != "del") | (df["index_well"].isna()))]
         return (not df.empty) and bool(df["kit_i7"].isna().all() and df["kit_i5"].isna().all())
 
     def __init__(self, workflow: LibraryAnnotationWorkflow) -> None:
         super().__init__(workflow)
-        self.barcode_table = workflow.tables["barcode_table"]
-        self.index_type = barcodes.check_index_type(self.barcode_table)
+        # Work on the table as entered in the previous step: after 'Back', barcode_table is
+        # already matched/reverse-complemented and must not be transformed a second time.
+        if (input_table := workflow.tables.get("barcode_match_input_table")) is None:
+            input_table = workflow.tables["barcode_table"]
+            workflow.tables["barcode_match_input_table"] = input_table.copy()
+        self.barcode_table = input_table.copy()
+        # 10X ATAC indices (entered in the previous step) are not matched/re-oriented here
+        self.matched_rows = self.barcode_table["index_type_id"] != C.IndexType.TENX_ATAC_INDEX.id
+        self.index_type = barcodes.check_index_type(self.barcode_table[self.matched_rows])
         self._context["index_type"] = self.index_type
+        # Kit options are needed for both rendering and resolving the submitted kit on POST
+        self._set_kit_options()
 
-    def prepare(self) -> None:
+    def _set_kit_options(self) -> None:
         from ....core.context import ctx
 
         session = ctx.session
 
-        df = self.barcode_table.copy()
+        df = self.barcode_table[self.matched_rows].copy()
         df["rc_sequence_i7"] = df["sequence_i7"].apply(
             lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
         )
@@ -160,6 +169,7 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
 
             form.assert_valid()
             barcode_table = form.barcode_table
+            rows = form.matched_rows
 
             kit_i7_id = form.i7_kit.data
             kit_i7 = None
@@ -180,23 +190,23 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
                 kit_i7_df = T.index_kit_barcodes_per_index(kit_i7_df, kit_i7.type)
 
                 if rc_i7:
-                    barcode_table["sequence_i7"] = barcode_table["sequence_i7"].apply(
+                    barcode_table.loc[rows, "sequence_i7"] = barcode_table.loc[rows, "sequence_i7"].apply(
                         lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
                     )
 
-                barcode_table["name_i7"] = barcode_table["sequence_i7"].map(
+                barcode_table.loc[rows, "name_i7"] = barcode_table.loc[rows, "sequence_i7"].map(
                     kit_i7_df.set_index("sequence_i7")["name_i7"]
                 )
-                barcode_table["kit_i7_id"] = kit_i7.id
-                barcode_table["kit_i7"] = kit_i7.identifier
-                barcode_table["orientation_i7_id"] = C.BarcodeOrientation.FORWARD.id
+                barcode_table.loc[rows, "kit_i7_id"] = kit_i7.id
+                barcode_table.loc[rows, "kit_i7"] = kit_i7.identifier
+                barcode_table.loc[rows, "orientation_i7_id"] = C.BarcodeOrientation.FORWARD.id
             elif form.i7_option.data == "rc":
-                barcode_table["sequence_i7"] = barcode_table["sequence_i7"].apply(
+                barcode_table.loc[rows, "sequence_i7"] = barcode_table.loc[rows, "sequence_i7"].apply(
                     lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
                 )
-                barcode_table["orientation_i7_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
+                barcode_table.loc[rows, "orientation_i7_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
             elif form.i7_option.data == "forward":
-                barcode_table["orientation_i7_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
+                barcode_table.loc[rows, "orientation_i7_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
 
             kit_i5_id = form.i5_kit.data
             if kit_i5_id is not None and kit_i5_id > 0:
@@ -220,21 +230,21 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
                     kit_i5_df = T.index_kit_barcodes_per_index(kit_i5_df, kit_i5.type)
 
                 if rc_i5:
-                    barcode_table["sequence_i5"] = barcode_table["sequence_i5"].apply(
+                    barcode_table.loc[rows, "sequence_i5"] = barcode_table.loc[rows, "sequence_i5"].apply(
                         lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
                     )
 
-                barcode_table["name_i5"] = barcode_table["sequence_i5"].map(kit_i5_df.set_index("sequence_i5")["name_i5"])
-                barcode_table["kit_i5_id"] = kit_i5.id
-                barcode_table["kit_i5"] = kit_i5.identifier
-                barcode_table["orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
+                barcode_table.loc[rows, "name_i5"] = barcode_table.loc[rows, "sequence_i5"].map(kit_i5_df.set_index("sequence_i5")["name_i5"])
+                barcode_table.loc[rows, "kit_i5_id"] = kit_i5.id
+                barcode_table.loc[rows, "kit_i5"] = kit_i5.identifier
+                barcode_table.loc[rows, "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
             elif form.i5_option.data == "rc":
-                barcode_table["sequence_i5"] = barcode_table["sequence_i5"].apply(
+                barcode_table.loc[rows, "sequence_i5"] = barcode_table.loc[rows, "sequence_i5"].apply(
                     lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
                 )
-                barcode_table["orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
+                barcode_table.loc[rows, "orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
             elif form.i5_option.data == "forward":
-                barcode_table["orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
+                barcode_table.loc[rows, "orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
 
             form.workflow.metadata["barcode_match_form"] = {
                 "i7_kit": kit_i7_id,

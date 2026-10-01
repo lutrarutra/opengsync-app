@@ -7,6 +7,7 @@ from opengsync_db import models, categories as C, queries as Q, SyncSession
 from opengsync_db.core.blueprints import pd_transforms as T
 
 from ....core import dependencies, exceptions as exc
+from ....utils import barcodes
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown, InvalidCellValue, MissingCellValue
 from ...HTMXForm import RouteFunc, htmx_route
@@ -22,10 +23,10 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
         TextColumn("index_well", "Index Well", 100, max_length=8),
         CategoricalDropDown("kit", "Kit", 200, categories={}, required=False),
         TextColumn("name", "Barcode Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
-        TextColumn("sequence_1", "Sequence 1", 180),
-        TextColumn("sequence_2", "Sequence 2", 180),
-        TextColumn("sequence_3", "Sequence 3", 180),
-        TextColumn("sequence_4", "Sequence 4", 180),
+        TextColumn("sequence_1", "Sequence 1", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
+        TextColumn("sequence_2", "Sequence 2", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
+        TextColumn("sequence_3", "Sequence 3", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
+        TextColumn("sequence_4", "Sequence 4", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
     ])
 
     @classmethod
@@ -119,8 +120,9 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
             data["sequence_i7"].append(sequence_i7)
             data["sequence_i5"].append(sequence_i5)
 
-        # Copy existing non-ATAC barcodes if present
+        # Copy existing non-ATAC barcodes if present (ATAC rows from an earlier submit are replaced)
         if (barcode_table := self.workflow.tables.get("barcode_table")) is not None:
+            barcode_table = barcode_table[barcode_table["index_type_id"] != C.IndexType.TENX_ATAC_INDEX.id]
             for _, row in barcode_table.iterrows():
                 add_barcode(
                     library_name=row["library_name"],
@@ -208,6 +210,10 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                     per_index=True,
                 )
                 kit_df = T.index_kit_barcodes_per_index(kit_df, kit.type)
+                # One row per well: name + sequence_1..4 (per_index yields four i7 rows per well)
+                kit_df = kit_df.groupby(["well", "name_i7"], sort=False)["sequence_i7"].agg(list).reset_index().rename(columns={"name_i7": "name"})
+                for i in range(4):
+                    kit_df[f"sequence_{i + 1}"] = kit_df["sequence_i7"].str[i]
                 kits[identifier] = (kit, kit_df)
                 df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 
@@ -232,7 +238,7 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                         ] = kit_row[f"sequence_{i}"]
 
             for idx, row in df.iterrows():
-                if row["index_well"] == "del":
+                if pd.notna(row["index_well"]) and row["index_well"] == "del":
                     continue
                 if row["library_name"] not in form.library_table["library_name"].values:
                     form.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))

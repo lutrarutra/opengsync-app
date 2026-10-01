@@ -100,7 +100,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                 raise exc.OpeNGSyncServerException("Library properties table not found for visium samples.")
             
             spatial_libraries = self.library_table[self.library_table["library_type_id"].isin(spatial_library_type_ids)]["library_name"].values  # type: ignore
-            self._context["spatial_table"] = self.library_properties_table[self.library_properties_table["library_name"] == spatial_libraries]
+            self._context["spatial_table"] = self.library_properties_table[self.library_properties_table["library_name"].isin(spatial_libraries)]
         else:
             self._context["spatial_table"] = None
 
@@ -312,13 +312,14 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
             for idx, row in parsing.safe_iter(form.library_table, LibraryTableRow):
                 library_type = C.LibraryType.get(row.library_type_id)
 
+                properties = None
                 if form.library_properties_table is not None:
-                    visium_row = form.library_properties_table[form.library_properties_table["library_name"] == row.library_name].iloc[0]
-                    properties = {k: v for k, v in visium_row.to_dict().items() if pd.notna(v)}
-                    properties.pop("library_name", None)
-                    properties.pop("sample_name", None)
-                else:
-                    properties = None
+                    # Only spatial libraries have a properties row
+                    property_rows = form.library_properties_table[form.library_properties_table["library_name"] == row.library_name]
+                    if len(property_rows) > 0:
+                        properties = {k: v for k, v in property_rows.iloc[0].to_dict().items() if pd.notna(v)}
+                        properties.pop("library_name", None)
+                        properties.pop("sample_name", None)
 
                 if library_type == C.LibraryType.PARSE_SC_CRISPR:
                     if (crispr_guide_table := form.workflow.tables.get("crispr_guide_table")) is None:
@@ -480,7 +481,9 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
 
                 form.feature_table["feature_id"] = form.feature_table["feature_id"].astype(int)
                 
-                for _, library_row in parsing.safe_iter(form.library_table, LibraryTableRow):
+                # Features belong to antibody-capture libraries only; rows without a sample apply to all of them
+                abc_library_table = form.library_table[form.library_table["library_name"].isin(form.abc_libraries)]
+                for _, library_row in parsing.safe_iter(abc_library_table, LibraryTableRow):
                     mask = (
                         (form.feature_table["library_name"] == library_row.library_name) |
                         form.feature_table["library_name"].isna()

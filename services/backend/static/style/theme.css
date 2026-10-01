@@ -150,6 +150,38 @@ a input {
     color: var(--color-cemm-secondary-darker);
 }
 
+/* Count badge in tab handles, see tab_count() in core/templates.py */
+.tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5em;
+    height: 1.5em;
+    padding: 0 0.45em;
+    margin-left: 0.35em;
+    border-radius: 999px;
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    vertical-align: 0.1em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-white);
+    background-color: var(--color-cemm-secondary);
+}
+
+.tab-count-zero {
+    color: var(--color-gray-600);
+    background-color: var(--color-gray-200);
+}
+
+.tab-count-done {
+    background-color: var(--color-cemm-green-dark);
+}
+
+.tab-count-pending {
+    background-color: var(--color-cemm-red);
+}
+
 .breadcrumb a {
     color: var(--color-cemm-secondary);
 }

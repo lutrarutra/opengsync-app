@@ -23,7 +23,7 @@
                 id="form-tab-libraries-btn"
                 data-bs-target="#form-tab-libraries" type="button" role="tab"
                 aria-controls="form-tab-libraries" aria-selected="false">
-                Libraries ({{ library_table | length }})</button>
+                Libraries {{ tab_count(library_table | length) }}</button>
             </li>
             {% for pool in pools %}
             <li class="nav-item" role="presentation">

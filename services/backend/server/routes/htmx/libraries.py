@@ -255,7 +255,7 @@ def render_library_reads(
     average_stats_ss = StaticSpreadsheet(df=library_stats_average, columns=average_columns, id=f"library-{library_id}-reads-average")
     
     return responses.htmx_response(
-        "components/library-reads.html", library=library,
+        template="components/library-reads.html", library=library,
         per_lane_stats_ss=per_lane_stats_ss, average_stats_ss=average_stats_ss
     )
 
@@ -279,7 +279,7 @@ def render_prep_feed(
         ),
         limit=None,
     )
-    return responses.htmx_response("components/dashboard/preps-feed.html", df=df)
+    return responses.htmx_response(template="components/dashboard/preps-feed.html", df=df)
 
 
 @router.get("/render-feed/{service_type_id}", dependencies=[Depends(dependencies.require_insider)])
@@ -360,7 +360,7 @@ def render_prep_feed_detail(
         ))
 
     return responses.htmx_response(
-        "components/dashboard/preps-feed-detail.html",
+        template="components/dashboard/preps-feed-detail.html",
         service_type=service_type,
         df=pd.DataFrame(data),
     )

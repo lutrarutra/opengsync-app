@@ -10,7 +10,7 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 @router.get("/")
 def groups_page():
-    return responses.html_response("groups_page.html", title="Groups")
+    return responses.html_response(template="groups_page.html", title="Groups")
 
 
 @router.get("/{group_id}")
@@ -26,7 +26,7 @@ def group_page(
     ))
 
     return responses.html_response(
-        "group_page.html",
+        template="group_page.html",
         group=group,
         title=f"Group {group_id}",
         access_level=access_level,

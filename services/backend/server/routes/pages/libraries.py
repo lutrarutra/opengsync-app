@@ -10,7 +10,7 @@ router = APIRouter(prefix="/libraries", tags=["libraries"])
 
 @router.get("/")
 def libraries_page():
-    return responses.html_response("libraries_page.html", title="Libraries")
+    return responses.html_response(template="libraries_page.html", title="Libraries")
 
 
 @router.get("/{library_id}")
@@ -37,7 +37,7 @@ def library_page(
         orm.with_expression(models.Library._num_data_paths, models.Library.num_data_paths.expression),
     ))
     return responses.html_response(
-        "library_page.html",
+        template="library_page.html",
         library=library,
         access_level=access_level,
         title=f"Library #{library_id:04d}",

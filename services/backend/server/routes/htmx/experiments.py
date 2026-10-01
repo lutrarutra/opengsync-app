@@ -169,7 +169,7 @@ def experiment_overview(
     )
 
     if df.empty:
-        return responses.htmx_response("components/plots/experiment_overview.html", links=[], nodes=[])
+        return responses.htmx_response(template="components/plots/experiment_overview.html", links=[], nodes=[])
     
     nodes = []
     links = []
@@ -240,7 +240,7 @@ def experiment_overview(
                     library_node = libraries[row["library_id"]]
     
     return responses.htmx_response(
-        "components/plots/experiment_overview.html",
+        template="components/plots/experiment_overview.html",
         links=links, nodes=nodes
     )
 
@@ -297,7 +297,7 @@ def experiment_stats(
     pool_stats = StaticSpreadsheet(df=pool_stats_df, columns=columns, id=f"experiment-{experiment_id}-pool-stats")
     
     return responses.htmx_response(
-        "components/experiment-stats.html",
+        template="components/experiment-stats.html",
         experiment=experiment, library_stats=library_stats, pool_stats=pool_stats,
         num_total_reads=units.Quantity(experiment.get_demultiplexed_reads(), units.read),
         num_library_reads=units.Quantity(experiment.get_demultiplexed_reads(include_undetermined=False), units.read)
@@ -392,12 +392,12 @@ def render_experiment_sample_pooling_table(
         pipet = df["pipet"].sum()
         eb_volume = target_total_volume - pipet
         return responses.htmx_response(
-            "components/experiment-pooling-ratios.html", experiment=experiment, df=df,
+            template="components/experiment-pooling-ratios.html", experiment=experiment, df=df,
             target_molarity=target_molarity, target_total_volume=target_total_volume,
             pipet=pipet, eb_volume=eb_volume
         )
     
-    return responses.htmx_response("components/lane-pooling-ratios.html", experiment=experiment, df=df)
+    return responses.htmx_response(template="components/lane-pooling-ratios.html", experiment=experiment, df=df)
 
 
 @router.get("/render-feed", dependencies=[Depends(dependencies.require_insider)])
@@ -421,7 +421,7 @@ def render_experiment_feed(
         options=[orm.selectinload(models.Experiment.operator)],
     )
     return responses.htmx_response(
-        "components/dashboard/experiments-feed.html",
+        template="components/dashboard/experiments-feed.html",
         experiments=experiments,
         current_page=page,
         limit=PAGE_LIMIT,

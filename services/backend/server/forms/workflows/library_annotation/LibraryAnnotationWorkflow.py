@@ -2,7 +2,7 @@ from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
-from opengsync_db import categories as C, models
+from opengsync_db import categories as C, models, queries as Q, SyncSession
 
 from ....core import dependencies, exceptions as exc, redis, responses
 from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
@@ -41,6 +41,15 @@ class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
             return form
         return dependency
 
+def require_seq_request_write(
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+) -> C.AccessLevel:
+    """Every step of the workflow modifies the request, so all of them need WRITE (legacy checked this per route)."""
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException("You do not have permission to edit this sequencing request.")
+    return access_level
+
+
 class LibraryAnnotationWorkflow(HTMXWorkflow):    
     def __init__(self, step: str, seq_request_id: int, r: redis.RedisClient, uuid: str | None = None) -> None:
         super().__init__(uuid=uuid, r=r, step=step)
@@ -71,7 +80,7 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
 
     @classmethod
     def Router(cls) -> APIRouter:
-        router = APIRouter(prefix="/library-annotation/{seq_request_id}", tags=["library-annotation"], dependencies=[Depends(dependencies.seq_request_permissions)])
+        router = APIRouter(prefix="/library-annotation/{seq_request_id}", tags=["library-annotation"], dependencies=[Depends(require_seq_request_write)])
         router.add_api_route("/begin", LibraryAnnotationWorkflow.Begin(), methods=["GET"], name="LibraryAnnotationWorkflow.Begin")
         router.include_router(wf.ProjectSelectForm.Router(cls.__name__))
         router.include_router(wf.SampleAnnotationForm.Router(cls.__name__))
@@ -167,10 +176,11 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                 else:
                     raise exc.OpeNGSyncServerException("No applicable next step found after PoolMappingForm.")
             case wf.BarcodeInputForm:
-                if wf.BarcodeMatchForm.is_applicable(self):
-                    next_form = wf.BarcodeMatchForm(self)
-                elif wf.TENXATACBarcodeInputForm.is_applicable(self):
+                # ATAC indices are entered before matching, so BarcodeMatch runs once for all inputs
+                if wf.TENXATACBarcodeInputForm.is_applicable(self):
                     next_form = wf.TENXATACBarcodeInputForm(self)
+                elif wf.BarcodeMatchForm.is_applicable(self):
+                    next_form = wf.BarcodeMatchForm(self)
                 elif wf.FeatureAnnotationForm.is_applicable(self):
                     next_form = wf.FeatureAnnotationForm(self)
                 elif wf.OpenSTAnnotationForm.is_applicable(self):
@@ -295,6 +305,17 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
             case _:
                 raise ValueError(f"Unknown form type: {form.__class__.__name__}")
 
+        self._link_previous(form, next_form)
+        return next_form
+
+    def advance_to(self, form: "LibraryAnnotationWorkflowStep", next_form_cls: type["LibraryAnnotationWorkflowStep"]) -> "LibraryAnnotationWorkflowStep":
+        """Route ``form`` to a fixed next step, with the same bookkeeping as ``get_next_step``."""
+        self.add_step(form.__class__.__name__)
+        next_form = next_form_cls(self)
+        self._link_previous(form, next_form)
+        return next_form
+
+    def _link_previous(self, form: "LibraryAnnotationWorkflowStep", next_form: "LibraryAnnotationWorkflowStep") -> None:
         # Store the back URL on the destination step.  This preserves the
         # current step's own back URL when navigating forward after returning
         # from a later step.
@@ -303,12 +324,17 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
             seq_request_id=self.seq_request_id,
         ).include_query_params(uuid=self.uuid)
         self.add_step(next_form.__class__.__name__)
-        return next_form
+
+    def existing_libraries(self, session: SyncSession) -> set[tuple[str, int]]:
+        """(sample name, library type id) of every library already linked to a sample of this request."""
+        df = session.get_pandas(Q.pd.seq_request_samples(self.seq_request_id), limit=None)
+        return {(row["sample_name"], C.LibraryType.get(row["library_type"]).id) for _, row in df.iterrows()}
 
     def add_comment(self, context: str, text: str) -> None:
-        if "comments" not in self.metadata:
-            self.metadata["comments"] = []
-        self.metadata["comments"].append({"context": context, "comment": text})
+        # One comment per context (as in legacy), so re-submitting a step after 'Back' replaces it
+        comments = [c for c in self.metadata.get("comments", []) if c["context"] != context]
+        comments.append({"context": context, "comment": text})
+        self.metadata["comments"] = comments
 
     def get_comments(self) -> list[dict[str, str]]:
         return self.metadata.get("comments", [])

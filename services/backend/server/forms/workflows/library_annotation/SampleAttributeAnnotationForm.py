@@ -27,6 +27,14 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
         self.workflow = workflow
         sample_table = workflow.tables["sample_table"].copy()
         sample_table["sample_id"] = sample_table["sample_id"].astype(object).replace(pd.NA, "(new)")
+        # Attributes of existing samples (incl. custom ones) get their own columns
+        for col in sample_table.columns:
+            if col.startswith("_attr_") and (label := col.removeprefix("_attr_")) not in self.spreadsheet.columns.keys():
+                self.spreadsheet.add_column(column=TextColumn(
+                    label=label, name=label.replace("_", " ").title(),
+                    width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH,
+                ))
+        sample_table.columns = sample_table.columns.str.removeprefix("_attr_")
         self.spreadsheet.configure(df=sample_table, csrf_token=self.csrf_token_value, post_url=self.post_url)
 
     @htmx_route("GET")
