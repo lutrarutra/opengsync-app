@@ -1,4 +1,4 @@
-"""Experiment checklist: the 'All Requests Accepted' step lists the experiment's requests."""
+"""Experiment checklist: the 'Requests Accepted' step lists the experiment's requests."""
 
 from fastapi.testclient import TestClient
 
@@ -27,7 +27,7 @@ def test_checklist_lists_experiment_seq_requests(
     response = get(client, f"/htmx/experiments/{experiment.id}/checklist", insider_token, htmx=True)
 
     assert response.status_code == 200
-    assert "⚠️ All Requests Accepted" in response.text
+    assert "⚠️ Requests Accepted" in response.text
     assert accepted_request.name in response.text
     assert draft_request.name in response.text
     assert unrelated_request.name not in response.text
@@ -39,5 +39,5 @@ def test_checklist_lists_experiment_seq_requests(
     response = get(client, f"/htmx/experiments/{experiment.id}/checklist", insider_token, htmx=True)
 
     assert response.status_code == 200
-    assert "✅ All Requests Accepted" in response.text
+    assert "✅ Requests Accepted" in response.text
     assert 'class="table-warning"' not in response.text
