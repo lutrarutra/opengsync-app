@@ -32,6 +32,7 @@ from .ShareToken import ShareToken
 from .DataPath import DataPath
 from .Protocol import Protocol
 from .APIToken import APIToken
+from .UserPasskey import UserPasskey
 from .TODOComment import TODOComment
 
 from . import links
@@ -72,6 +73,7 @@ __all__ = [
     "DataPath",
     "Protocol",
     "APIToken",
+    "UserPasskey",
     "TODOComment",
     "links",
 ]

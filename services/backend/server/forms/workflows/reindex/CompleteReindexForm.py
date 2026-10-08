@@ -198,8 +198,8 @@ class CompleteReindexForm(ReindexWorkflowStep):
                         )
 
             match_form = form.workflow.metadata.get("barcode_match_form", {})
-            i7_primer = match_form.get("i7_primer") or form.workflow.metadata.get("i7_primer")
-            i5_primer = match_form.get("i5_primer") or form.workflow.metadata.get("i5_primer")
+            i7_primer = match_form.get("i7_primer")
+            i5_primer = match_form.get("i5_primer")
             if i7_primer:
                 for sr_id in seq_request_ids:
                     session.save(Q.comment.create(

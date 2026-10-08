@@ -225,7 +225,6 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
             form: CompleteSASForm = Depends(CompleteSASForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),
-            _ = Depends(dependencies.audit_log),
         ) -> Response:
             
             seq_request = session.get_one(Q.seq_request.select(id=form.workflow.seq_request_id))

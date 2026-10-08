@@ -146,7 +146,8 @@ class SampleAttributeTableAction(HTMXForm):
             for label, col in form.spreadsheet.columns.items():
                 if label not in df.columns and col.can_be_deleted:
                     for sample in form.project.samples:
-                        sample.delete_sample_attribute(label)
+                        if sample.get_attribute(label) is not None:
+                            sample.delete_sample_attribute(label)
 
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=form.project.id).include_query_params(tab="project-attributes-tab"),

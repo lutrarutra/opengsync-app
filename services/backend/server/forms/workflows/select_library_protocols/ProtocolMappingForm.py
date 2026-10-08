@@ -157,7 +157,6 @@ class ProtocolMappingForm(SelectLibraryProtocolsWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: ProtocolMappingForm = Depends(ProtocolMappingForm.Validate()),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             library_table = form.library_table.copy()
             for entry in form.subforms:

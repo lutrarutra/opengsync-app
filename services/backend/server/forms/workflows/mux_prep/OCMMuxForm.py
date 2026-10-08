@@ -108,7 +108,6 @@ class OCMMuxForm(MuxPrepWorkflowStep):
         def route(
             form: OCMMuxForm = Depends(OCMMuxForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             df = form.spreadsheet.data
             duplicate_barcode = df.duplicated(subset=["sample_pool", "barcode_id"], keep=False)

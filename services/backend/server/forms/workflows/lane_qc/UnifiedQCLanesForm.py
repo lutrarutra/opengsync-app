@@ -84,7 +84,6 @@ class UnifiedQCLanesForm(LaneQCWorkflowStep):
         def route(
             form: UnifiedQCLanesForm = Depends(UnifiedQCLanesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             assert form.experiment is not None
             for lane in form.experiment.lanes:

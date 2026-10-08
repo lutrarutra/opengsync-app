@@ -23,7 +23,7 @@ class ParameterSubForm(SubHTMXForm):
 
 
 class GenerateSequencerLoadingChecklistAction(HTMXForm):
-    template_path = "forms/sequencer_loading_checklist_form.html"
+    template_path = "actions/sequencer-loading-checklist.html"
 
     parameters = inputs.dynamic.SubFormList[ParameterSubForm](min_elements=1)
 
@@ -75,14 +75,14 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
             for param in form._params:
                 if param["type"] == "number":
                     entry = form.parameters.append_entry()
-                    entry.param_label._data = param["label"]
-                    entry.param_value._data = param.get("default", None)
-                    entry.var_name._data = param["var_name"]
+                    entry.param_label.data = param["label"]
+                    entry.param_value.data = param.get("default", None)
+                    entry.var_name.data = param["var_name"]
                 elif param["type"] == "list":
                     for lane in form.experiment.lanes:
                         entry = form.parameters.append_entry()
                         entry.param_label.data = f"{param['label']} (Lane {lane.number})"
-                        entry.param_value._data = param.get("default", None)
+                        entry.param_value.data = param.get("default", None)
                         entry.var_name.data = f"{param['var_name']}_lane_{lane.number}"
 
             return form.make_response()
@@ -114,7 +114,7 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
                 for lane in row["lane"].split(","):
                     df.at[idx, "PhiX [µL]"] += template_context.get(f"phi_x_lane_{lane}", 0.0)
 
-            df["count"] = df["lane"].apply(lambda x: len(x.split(",")))
+            df["count"] = df["lane"].apply(lambda x: len(x.split(","))).astype(int)
             df["Pool [µL]"] = template_context.get("pool_volume", np.nan) * df["count"]
             df["NaOH [µL]"] = template_context.get("naoh", np.nan) * df["count"]
             df["Pre-load Buffer [µL]"] = template_context.get("preload", np.nan) * df["count"]

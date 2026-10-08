@@ -82,6 +82,7 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
                 if form.set_requestor_as_owner.data and current_user.is_insider
                 else current_user.id
             )
+            form.workflow.header["seq_request_id"] = form.seq_request.id
             form.workflow.header["submission_type_id"] = form.seq_request.submission_type.id
             form.workflow.header["submitter"] = {
                 "id": form.seq_request.requestor.id if form.set_requestor_as_owner.data and current_user.is_insider else current_user.id,

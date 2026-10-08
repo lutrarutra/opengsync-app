@@ -1,27 +1,22 @@
-import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import models, categories as C, queries as Q, SyncSession
+from opengsync_db import categories as C
 
-from opengsync_db.core.blueprints import pd_transforms as T
-
-from ....core import exceptions as exc, dependencies
-from ....utils import barcodes
-from ....components import inputs
+from ...common.BarcodeMatchMixin import BarcodeMatchMixin
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
-class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
+class BarcodeMatchForm(BarcodeMatchMixin, LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-barcode-match.html"
 
-    i7_kit = inputs.selectable.SelectableInputField("i7 Kit", [(0, "Custom")], required=False, default=-1)
-    i5_kit = inputs.selectable.SelectableInputField("i5 Kit", [(0, "Custom")], required=False, default=-1)
-    i7_option = inputs.string.StringInputField("Index i7 was not found in the database. Please select how to proceed:", required=False)
-    i5_option = inputs.string.StringInputField("Index i5 was not found in the database. Please select how to proceed:", required=False)
-    i7_primer = inputs.string.TextAreaInputField("i7 Primer Sequence", required=False, placeholder="Required if using custom kit")
-    i5_primer = inputs.string.TextAreaInputField("i5 Primer Sequence", required=False, placeholder="Required if using custom kit")
+    i7_kit = BarcodeMatchMixin.make_kit_field("i7")
+    i5_kit = BarcodeMatchMixin.make_kit_field("i5")
+    i7_option = BarcodeMatchMixin.make_option_field("i7")
+    i5_option = BarcodeMatchMixin.make_option_field("i5")
+    i7_primer = BarcodeMatchMixin.make_primer_field("i7")
+    i5_primer = BarcodeMatchMixin.make_primer_field("i5")
 
     @classmethod
     def is_applicable(cls, workflow: LibraryAnnotationWorkflow) -> bool:
@@ -36,113 +31,14 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
         if (input_table := workflow.tables.get("barcode_match_input_table")) is None:
             input_table = workflow.tables["barcode_table"]
             workflow.tables["barcode_match_input_table"] = input_table.copy()
-        self.barcode_table = input_table.copy()
-        # 10X ATAC indices (entered in the previous step) are not matched/re-oriented here
-        self.matched_rows = self.barcode_table["index_type_id"] != C.IndexType.TENX_ATAC_INDEX.id
-        self.index_type = barcodes.check_index_type(self.barcode_table[self.matched_rows])
-        self._context["index_type"] = self.index_type
-        # Kit options are needed for both rendering and resolving the submitted kit on POST
-        self._set_kit_options()
-
-    def _set_kit_options(self) -> None:
-        from ....core.context import ctx
-
-        session = ctx.session
-
-        df = self.barcode_table[self.matched_rows].copy()
-        df["rc_sequence_i7"] = df["sequence_i7"].apply(
-            lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
-        )
-        df["rc_sequence_i5"] = df["sequence_i5"].apply(
-            lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
-        )
-
-        sequences_i7 = [s for s in df["sequence_i7"].tolist() if pd.notna(s)]
-        sequences_i5 = [s for s in df["sequence_i5"].tolist() if pd.notna(s)]
-        rc_sequences_i7 = [s for s in df["rc_sequence_i7"].tolist() if pd.notna(s)]
-        rc_sequences_i5 = [s for s in df["rc_sequence_i5"].tolist() if pd.notna(s)]
-
-        unique_sequences_i7 = list(set(sequences_i7))
-        if unique_sequences_i7:
-            kits_i7 = session.get_pandas(
-                Q.pd.match_barcodes_to_kit(
-                    unique_sequences_i7,
-                    len(unique_sequences_i7),
-                    C.BarcodeType.INDEX_I7.id,
-                ),
-                limit=None,
-            )
-        else:
-            kits_i7 = pd.DataFrame()
-
-        unique_sequences_i5 = list(set(sequences_i5))
-        if unique_sequences_i5:
-            kits_i5 = session.get_pandas(
-                Q.pd.match_barcodes_to_kit(
-                    unique_sequences_i5,
-                    len(unique_sequences_i5),
-                    C.BarcodeType.INDEX_I5.id,
-                ),
-                limit=None,
-            )
-        else:
-            kits_i5 = pd.DataFrame()
-
-        unique_rc_sequences_i7 = list(set(rc_sequences_i7))
-        if unique_rc_sequences_i7:
-            kits_rc_i7 = session.get_pandas(
-                Q.pd.match_barcodes_to_kit(
-                    unique_rc_sequences_i7,
-                    len(unique_rc_sequences_i7),
-                    C.BarcodeType.INDEX_I7.id,
-                ),
-                limit=None,
-            )
-        else:
-            kits_rc_i7 = pd.DataFrame()
-
-        unique_rc_sequences_i5 = list(set(rc_sequences_i5))
-        if unique_rc_sequences_i5:
-            kits_rc_i5 = session.get_pandas(
-                Q.pd.match_barcodes_to_kit(
-                    unique_rc_sequences_i5,
-                    len(unique_rc_sequences_i5),
-                    C.BarcodeType.INDEX_I5.id,
-                ),
-                limit=None,
-            )
-        else:
-            kits_rc_i5 = pd.DataFrame()
-
-        kit_i7s: list[tuple[int, str]] = []
-        for _, row in kits_i7.iterrows():
-            kit_i7s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}'))
-        for _, row in kits_rc_i7.iterrows():
-            kit_i7s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + " (Reverse Complement)"))
-
-        kit_i5s: list[tuple[int, str]] = []
-        for _, row in kits_i5.iterrows():
-            kit_i5s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}'))
-        for _, row in kits_rc_i5.iterrows():
-            kit_i5s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + " (Reverse Complement)"))
-
-        self.i7_kit.set_options([(0, "Custom")] + kit_i7s)
-        self.i5_kit.set_options([(0, "Custom")] + kit_i5s)
-
-        self._context["kits"] = list(set(kit_i7s + kit_i5s))
+        self.init_barcode_match(input_table)
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
             form: BarcodeMatchForm = Depends(BarcodeMatchForm.Init()),
         ) -> Response:
-            d = form.workflow.metadata.get("barcode_match_form", {})
-            form.i7_kit.data = d.get("i7_kit", -1)
-            form.i5_kit.data = d.get("i5_kit", -1)
-            form.i7_option.data = d.get("i7_option")
-            form.i5_option.data = d.get("i5_option")
-            form.i7_primer.data = d.get("i7_primer")
-            form.i5_primer.data = d.get("i5_primer")
+            form.fill_barcode_match(form.workflow.metadata.get("barcode_match_form", {}))
             return form.make_response()
         return route
 
@@ -150,116 +46,17 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: BarcodeMatchForm = Depends(BarcodeMatchForm.Validate()),
-            session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            if form.i7_kit.data == -1:
-                form.i7_kit.errors.append("Please select an i7 kit or choose Custom.")
-            if form.i5_kit.data == -1 and form.index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]:
-                form.i5_kit.errors.append("Please select an i5 kit or choose Custom.")
-
-            if form.i7_kit.data == 0 and not form.i7_option.data:
-                form.i7_option.errors.append("Please select how to proceed with the i7 index.")
-            if form.i7_kit.data == 0 and not form.i7_primer.data:
-                form.i7_primer.errors.append("Please provide the i7 primer sequence.")
-
-            if form.i5_kit.data == 0 and not form.i5_primer.data and form.index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]:
-                form.i5_primer.errors.append("Please provide the i5 primer sequence.")
-            if form.i5_kit.data == 0 and not form.i5_option.data and form.index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]:
-                form.i5_option.errors.append("Please select how to proceed with the i5 index.")
-
+            form.validate_barcode_match()
             form.assert_valid()
-            barcode_table = form.barcode_table
-            rows = form.matched_rows
 
-            kit_i7_id = form.i7_kit.data
-            kit_i7 = None
-            kit_i7_df = None
-            if kit_i7_id is not None and kit_i7_id > 0:
-                selected_i7 = form.i7_kit.value or ""
-                rc_i7 = selected_i7.endswith(" (Reverse Complement)")
-
-                kit_i7 = session.get_one(Q.index_kit.select(id=kit_i7_id))
-                kit_i7_df = T.index_kit_barcodes(
-                    session.get_pandas(
-                        Q.pd.index_kit_barcodes(kit_i7.id),
-                        limit=None,
-                    ),
-                    per_adapter=False,
-                    per_index=True,
-                )
-                kit_i7_df = T.index_kit_barcodes_per_index(kit_i7_df, kit_i7.type)
-
-                if rc_i7:
-                    barcode_table.loc[rows, "sequence_i7"] = barcode_table.loc[rows, "sequence_i7"].apply(
-                        lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
-                    )
-
-                barcode_table.loc[rows, "name_i7"] = barcode_table.loc[rows, "sequence_i7"].map(
-                    kit_i7_df.set_index("sequence_i7")["name_i7"]
-                )
-                barcode_table.loc[rows, "kit_i7_id"] = kit_i7.id
-                barcode_table.loc[rows, "kit_i7"] = kit_i7.identifier
-                barcode_table.loc[rows, "orientation_i7_id"] = C.BarcodeOrientation.FORWARD.id
-            elif form.i7_option.data == "rc":
-                barcode_table.loc[rows, "sequence_i7"] = barcode_table.loc[rows, "sequence_i7"].apply(
-                    lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
-                )
-                barcode_table.loc[rows, "orientation_i7_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
-            elif form.i7_option.data == "forward":
-                barcode_table.loc[rows, "orientation_i7_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
-
-            kit_i5_id = form.i5_kit.data
-            if kit_i5_id is not None and kit_i5_id > 0:
-                selected_i5 = form.i5_kit.value or ""
-                rc_i5 = selected_i5.endswith(" (Reverse Complement)")
-
-                if kit_i5_id == kit_i7_id:
-                    assert kit_i7 is not None and kit_i7_df is not None
-                    kit_i5 = kit_i7
-                    kit_i5_df = kit_i7_df
-                else:
-                    kit_i5 = session.get_one(Q.index_kit.select(id=kit_i5_id))
-                    kit_i5_df = T.index_kit_barcodes(
-                        session.get_pandas(
-                            Q.pd.index_kit_barcodes(kit_i5.id),
-                            limit=None,
-                        ),
-                        per_adapter=False,
-                        per_index=True,
-                    )
-                    kit_i5_df = T.index_kit_barcodes_per_index(kit_i5_df, kit_i5.type)
-
-                if rc_i5:
-                    barcode_table.loc[rows, "sequence_i5"] = barcode_table.loc[rows, "sequence_i5"].apply(
-                        lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
-                    )
-
-                barcode_table.loc[rows, "name_i5"] = barcode_table.loc[rows, "sequence_i5"].map(kit_i5_df.set_index("sequence_i5")["name_i5"])
-                barcode_table.loc[rows, "kit_i5_id"] = kit_i5.id
-                barcode_table.loc[rows, "kit_i5"] = kit_i5.identifier
-                barcode_table.loc[rows, "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
-            elif form.i5_option.data == "rc":
-                barcode_table.loc[rows, "sequence_i5"] = barcode_table.loc[rows, "sequence_i5"].apply(
-                    lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None
-                )
-                barcode_table.loc[rows, "orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
-            elif form.i5_option.data == "forward":
-                barcode_table.loc[rows, "orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
-
-            form.workflow.metadata["barcode_match_form"] = {
-                "i7_kit": kit_i7_id,
-                "i5_kit": kit_i5_id,
-                "i7_option": form.i7_option.data,
-                "i5_option": form.i5_option.data,
-                "i7_primer": form.i7_primer.data,
-                "i5_primer": form.i5_primer.data,
-            }
+            form.workflow.tables["barcode_table"] = form.apply_barcode_match()
+            form.workflow.metadata["barcode_match_form"] = form.barcode_match_metadata()
 
             if form.i7_primer.data:
                 form.workflow.add_comment(context="i7_primer", text=form.i7_primer.data)
             if form.i5_primer.data:
                 form.workflow.add_comment(context="i5_primer", text=form.i5_primer.data)
 
-            form.workflow.tables["barcode_table"] = barcode_table
             return form.workflow.get_next_step(form).make_response()
         return route

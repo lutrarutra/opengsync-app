@@ -4,31 +4,20 @@ from collections.abc import Callable, Awaitable
 from sqlalchemy import inspect
 from starlette.types import ASGIApp, Receive, Scope, Send, Message
 from starlette.datastructures import UploadFile
-from fastapi import Response, Request
-from starlette.background import BackgroundTask, BackgroundTasks
+from fastapi import Response
+from fastapi.responses import PlainTextResponse
+from starlette.concurrency import run_in_threadpool
 from loguru import logger
 
 from opengsync_db import models, SyncSession
 
-from . import runtime, secrets, config, redis as rds
+from . import runtime, secrets, config, audit, redis as rds
 from ..utils import share_fs_cache
 
 async def state_initialization_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     runtime.RequestState.apply_defaults(request.state)
     response = await call_next(request)
     return response
-
-def add_background_task(response: Response, task: BackgroundTask):
-    if response.background is None:
-        response.background = task
-    elif isinstance(response.background, BackgroundTasks):
-        response.background.add_task(task.func, *task.args, **task.kwargs)
-    else:
-        old_task = response.background
-        combined_tasks = BackgroundTasks()
-        combined_tasks.add_task(old_task.func, *old_task.args, **old_task.kwargs)
-        combined_tasks.add_task(task.func, *task.args, **task.kwargs)
-        response.background = combined_tasks
 
 class XForwardedPrefixMiddleware:
     """Apply a reverse proxy's URL prefix to the ASGI request scope.
@@ -91,9 +80,13 @@ async def timing_middleware(request: runtime.Request, call_next: Callable[[runti
     request.state.process_time = str(process_time)
     return response
 
-def __save_audit_log(request: runtime.Request, user_id, status_code: int):
+def _write_audit_log(request: runtime.Request, status_code: int, changes: list[dict]) -> None:
+    """Write one audit line for committed DB changes, explicitly audited routes and error responses."""
+    if not changes and getattr(request.state, "audit", None) is None and status_code < 400:
+        return
+
     share_key = getattr(request.state, "share_audit_key", None)
-    if share_key and status_code < 400:
+    if share_key and status_code < 400 and not changes:
         ttl = getattr(request.state, "share_audit_ttl", None) or 3600
         try:
             with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
@@ -101,6 +94,11 @@ def __save_audit_log(request: runtime.Request, user_id, status_code: int):
                     return
         except Exception:
             logger.exception("Failed to debounce share audit for {}", share_key)
+
+    # set by get_user_id (cookie or API token), also on routes that never load the user
+    user_id = getattr(request.state, "user_id", None)
+    if isinstance(current_user := getattr(request.state, "current_user", None), models.User):
+        user_id = inspect(current_user).dict.get("id", user_id)
 
     route = request.scope.get("route")
     audit_state = getattr(request.state, "audit", None)
@@ -112,6 +110,7 @@ def __save_audit_log(request: runtime.Request, user_id, status_code: int):
         route=getattr(audit_state, "route", None) or getattr(route, "path", request.url.path),
         resource_id=getattr(audit_state, "resource_id", None),
         metadata=getattr(audit_state, "metadata", None) or {},
+        changes=changes,
         query_params=dict(request.query_params),
         ip=request.headers.get("x-real-ip") or (request.client.host if request.client else "1.1.1.1"),
         agent=request.headers.get("user-agent", "unknown"),
@@ -119,26 +118,6 @@ def __save_audit_log(request: runtime.Request, user_id, status_code: int):
         status_code=status_code,
     ).info("audit logged")
 
-async def audit_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
-    response = await call_next(request)
-
-    if response.status_code >= 400 or getattr(request.state, "audit", None) is not None:
-
-        user_id = None
-        if (current_user := getattr(request.state, "current_user", None)) is not None:
-            if isinstance(current_user, models.User):
-                user_id = inspect(current_user).dict["id"]
-        
-        add_background_task(
-            response,
-            BackgroundTask(
-                __save_audit_log, 
-                request=request,
-                user_id=user_id, 
-                status_code=response.status_code
-            )
-        )            
-    return response
 
 async def parse_form_data(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     if request.method in ("POST", "PUT", "PATCH"):
@@ -189,7 +168,13 @@ async def csrf_middleware(request: runtime.Request, call_next: Callable[[runtime
 
 
 class DBSessionCleanupMiddleware:
-    """Commit or roll back, then close dependency-created DB sessions."""
+    """Commit or roll back dependency-created DB sessions, write the audit log, then close them.
+
+    The transaction is finished before the response start is forwarded, so a
+    failed commit becomes a 500 instead of a success response for a write
+    that was rolled back. It is finished once more when the request ends, to
+    cover writes made while streaming the body or in background tasks.
+    """
 
     def __init__(self, app: ASGIApp):
         self.app = app
@@ -204,29 +189,54 @@ class DBSessionCleanupMiddleware:
             await self.app(scope, receive, send)
             return
 
-        request = Request(scope, receive=receive)
+        request = runtime.Request(scope, receive=receive)
         status_code: int | None = None
+        commit_failed = False
+        changes: list[dict] = []
 
         async def send_wrapper(message: Message) -> None:
-            nonlocal status_code
+            nonlocal status_code, commit_failed
+
+            if commit_failed:
+                return  # the original response was replaced by a 500
 
             if message["type"] == "http.response.start":
                 status_code = message["status"]
+                try:
+                    changes.extend(await run_in_threadpool(_finish_transaction, request, status_code))
+                except Exception:
+                    logger.exception("Commit failed, responding with 500")
+                    commit_failed = True
+                    status_code = 500
+                    await PlainTextResponse("Internal Server Error", status_code=500)(scope, receive, send)
+                    return
 
             await send(message)
 
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            session: SyncSession | None = getattr(request.state, "db_session", None,)
-
-            if session is not None:
+            try:
+                changes.extend(await run_in_threadpool(_finish_transaction, request, status_code, True))
+            finally:
                 try:
-                    rollback = getattr(request.state, "rollback", False)
+                    # no status means the app raised before responding
+                    await run_in_threadpool(_write_audit_log, request, status_code or 500, changes)
+                except Exception:
+                    logger.exception("Failed to write audit log")
 
-                    if not rollback and status_code is not None and 200 <= status_code < 300:
-                        session.commit()
-                    else:
-                        session.rollback()
-                finally:
-                    session.close()
+
+def _finish_transaction(request: runtime.Request, status_code: int | None, close: bool = False) -> list[dict]:
+    """Commit on 2xx (unless a rollback was requested), otherwise roll back; returns the committed changes."""
+    session: SyncSession | None = getattr(request.state, "db_session", None)
+    if session is None:
+        return []
+    try:
+        if not getattr(request.state, "rollback", False) and status_code is not None and 200 <= status_code < 300:
+            session.commit()
+            return audit.pop_changes(session)
+        session.rollback()
+        return []
+    finally:
+        if close:
+            session.close()

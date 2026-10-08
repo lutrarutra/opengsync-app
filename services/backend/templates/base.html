@@ -334,6 +334,13 @@
     <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
     <script src="{{ url_for('static', filename='js/callbacks.js') }}"></script>
+    <script id="passkey-config" type="application/json">{{ {
+        "registerOptions": url_for('passkey_register_options') | string,
+        "registerVerify": url_for('passkey_register_verify') | string,
+        "loginOptions": url_for('passkey_login_options') | string,
+        "loginVerify": url_for('passkey_login_verify') | string,
+    } | tojson }}</script>
+    <script src="{{ url_for('static', filename='js/passkey.js') }}"></script>
 </body>
 
 </html>

@@ -366,13 +366,13 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `AddUserToGroupAction`: add member; nonexistent user; owner affiliation rejected; duplicate user; WRITE permission; CSRF; 404.
 - [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants. *(Partial: valid share and traversal/absolute/symlink/sibling-prefix rejection in `test_share_root_abuse.py`.)*
 - [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path. *(Partial: project association and insider-only in `forms/test_associate_path_action.py`; share-root escapes in `test_share_root_abuse.py`. GET `Begin` is unreachable — shadowed by the `/htmx/files/{subpath:path}` catch-all.)*
-- [ ] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure.
+- [x] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure. *(`forms/test_merge_projects_action.py`; insider-only check in `test_action_access.py`.)*
 
 
 
 ### Sample, library, pool, and prep actions
 
-- [ ] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback.
+- [x] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback. *(`forms/test_sample_attribute_table_action.py`: predefined/custom typing, clear cell, delete/rename column, unknown/foreign/mismatched/missing/duplicate rows, short and duplicate headers, max length, all-or-nothing save, insider-only, CSRF. Two tests fail — see findings.)*
 - [x] `StoreSamplesAction`: store samples/libraries/pools; pooled library keeps POOLED; request progression per submission type (raw → SAMPLES_RECEIVED, pooled → PREPARED, unpooled → SAMPLES_RECEIVED, QC-only → libraries QC_PENDING); empty selection rejected; unknown ID and CSRF change nothing; repeat is harmless; request context limits all tables and redirects back. *(Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
 - [x] `LibraryPrepAction`: add accepted libraries; empty selection rejected; insider-only; CSRF; 404.
 - [ ] `UploadLibraryPrepSpreadsheetAction`: valid spreadsheet; missing columns; malformed spreadsheet; duplicate libraries; invalid statuses; partial rollback.
@@ -381,7 +381,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `DilutePoolsAction`: valid dilution; zero/negative values; concentration and volume bounds; multiple pools; persistence and rollback.
 - [ ] `EditLibraryPropertiesAction`: project context; sequence-request context; library context; dynamic columns; invalid/missing values; unauthorized context.
 - [ ] `LibraryFeaturesAction`: add/edit/remove features; duplicate feature; invalid feature kit; library status/permission checks.
-- [ ] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks.
+- [x] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks. *(`forms/test_check_barcode_clashes_action.py`: error/warning/no clash, single-index, per-pool and per-lane grouping, forged library IDs hidden, request/pool/experiment access. Two tests fail — see findings.)*
 - [x] `SelectExperimentPoolsAction`: link pools; skip already-linked; empty selection; insider-only; CSRF; 404.
 
 
@@ -393,11 +393,21 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `QueryBarcodeSequencesAction`: render form; empty/no-match search; CSRF ignored (no Validate).
 - [ ] `BarcodeConstraintsAction`: compatible set; incompatible set; missing library; duplicate barcode; invalid kit/type; controlled validation response.
 - [x] `SetExperimentCyclesAction`: update cycles; empty cycles; insider-only; pre-fill; CSRF; 404.
-- [ ] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks.
-- [ ] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output.
+- [x] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks. *(`forms/test_generate_sequencer_loading_checklist_action.py`: per-lane inputs, file + DB record, volume scaling and lane merging, zero cells, missing/non-numeric values, no-template workflow, insider-only, CSRF. Two tests fail — see findings.)*
+- [x] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output. *(`forms/test_billing_action.py`: workbook sheets, lane/flow-cell share, capacity and missing-reads warnings, request resolution for request-less pools, multiple experiments, unknown ID, CSRF. Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
 - [ ] `ReseqAction`: indexed libraries; raw libraries; mixed selection; invalid status; duplicate resequencing; permission checks.
 
 
+
+Findings from §3 tests (fixed 2026-10-07):
+
+- `SampleAttributeTableAction.Submit` — deleting a column raised `KeyError` for samples without that attribute (legacy had the same loop). Now guarded with `get_attribute()`, like the empty-cell branch.
+- `CheckBarcodeClashesAction.SelectSamples` only required a login. Now insider-only on GET (legacy `begin`) and POST (legacy POST only required a login, which exposed any library's barcodes).
+- `CheckBarcodeClashesAction.Render?experiment_id=` returned 200 for an unknown experiment. Now 404, as legacy.
+- `GenerateSequencerLoadingChecklistAction.Begin` wrote `field._data` without marking the field validated, so labels, defaults and hidden `var_name`s rendered empty and the form could not be submitted. Now uses the `.data` setter, matching legacy `append_entry({...})`.
+- `GenerateSequencerLoadingChecklistAction.Submit` raised `TypeError` for an experiment without laned pools (empty lane column is string-typed under pandas 3). The lane count is now cast to `int`.
+
+Fixed while testing (trivial): `GenerateSequencerLoadingChecklistAction.template_path` pointed at the pre-rename `forms/sequencer_loading_checklist_form.html`; it now uses `actions/sequencer-loading-checklist.html`, which was ported off the WTForms API (`subform.csrf_token`, bare `{{ subform.var_name }}`). Removed two stray `</div>` from `forms/sample_attribute_table_form.html`.
 
 ### Specialized action variants
 
@@ -440,43 +450,51 @@ Every workflow needs tests for: begin, initial state, each valid step, invalid s
 
 ### `LibraryAnnotationWorkflow`
 
-Existing tests cover simple raw bulk RNA-seq and simple pooled bulk RNA-seq. Extend them with the following separate flows:
+Tests live in `services/pytest/tests/server/workflows/library_annotation/`, one scenario per file, driven by `_workflow.AnnotationWorkflow`. The two `test_simple_*_bulk_rna_seq.py` files also hold the step-by-step validation cases.
 
 - [x] Raw samples → bulk RNA-seq happy path.
 - [x] Pooled libraries → bulk RNA-seq happy path.
-- [ ] Raw samples → each supported service type.
-- [ ] Pooled libraries → each supported service type.
-- [ ] Existing project flow.
-- [ ] New project flow.
-- [ ] Existing project without write access.
-- [ ] Project selection validation and duplicate title.
-- [ ] Empty/malformed sample spreadsheet.
-- [ ] Sample attribute creation.
-- [ ] Existing sample attribute reuse.
-- [ ] Pooled-library mapping flow.
-- [ ] New pool mapping flow.
-- [ ] Existing/taken pool name failure.
-- [ ] Oligo multiplexing branch.
-- [ ] Parse multiplexing branch.
-- [ ] On-chip multiplexing branch.
-- [ ] Flex branch.
-- [ ] Flex + antibody branch.
-- [ ] Feature annotation branch.
-- [ ] Custom assay branch.
-- [ ] Define multiplexed samples branch.
-- [ ] OpenST branch.
-- [ ] Visium branch.
-- [ ] Parse CRISPR guide branch.
-- [ ] Standard barcode input and barcode-match branch.
-- [ ] 10X ATAC barcode branch.
-- [ ] Barcode clash/duplicate validation.
-- [ ] Back navigation from every applicable step.
-- [ ] Inapplicable-step rejection.
-- [ ] Completion creates all expected projects, samples, libraries, pools, indices, and attributes.
-- [ ] Completion failure rolls back all created records.
-- [ ] Expired workflow UUID and cross-user UUID isolation.
+- [x] Raw samples → each supported service type. *(Remaining services in `test_service_type_matrix.py`.)*
+- [x] Pooled libraries → each supported service type. *(Remaining services in `test_service_type_matrix.py`.)*
+- [x] Existing project flow. *(`test_raw_existing_project_samples.py`, `test_duplicate_libraries_in_request.py`.)*
+- [x] New project flow.
+- [x] Existing project without write access. *(Another user's draft and own non-DRAFT project are rejected; unknown ID is 404.)*
+- [x] Project selection validation and duplicate title.
+- [x] Empty/malformed sample spreadsheet. *(Empty, missing columns, invalid JSON, empty/short/long/invalid names, unknown genome, duplicates incl. after space → `_`.)*
+- [x] Sample attribute creation.
+- [x] Existing sample attribute reuse. *(Existing sample is matched by name, its attributes incl. custom ones are pre-filled and kept.)*
+- [x] Pooled-library mapping flow.
+- [x] New pool mapping flow. *(Contact and pool-name validation in `test_simple_pooled_bulk_rna_seq.py`.)*
+- [x] Existing/taken pool name failure.
+- [x] Oligo multiplexing branch.
+- [x] Parse multiplexing branch.
+- [x] On-chip multiplexing branch.
+- [x] Flex branch. *(Raw 4-/16-plex with auto pools, pooled 16-plex, unpooled 4-plex.)*
+- [x] Flex + antibody branch.
+- [x] Feature annotation branch. *(`test_input_features.py` for validation.)*
+- [x] Custom assay branch.
+- [x] Define multiplexed samples branch.
+- [x] OpenST branch.
+- [x] Visium branch.
+- [x] Parse CRISPR guide branch.
+- [x] Standard barcode input and barcode-match branch. *(Kit well/name lookup, custom sequences, custom-kit forward/rc options; `test_input_index_barcodes.py` for validation.)*
+- [x] 10X ATAC barcode branch. *(Kit and custom indices.)*
+- [x] Barcode clash/duplicate validation. *(`test_barcode_clash_review.py`. As in legacy, clashes are not rejected: the review step flags identical indices within a pool and submission goes through.)*
+- [x] Back navigation from every applicable step. *(`test_back_navigation_every_step.py` re-runs every scenario with Back + re-submit after each step.)*
+- [x] Inapplicable-step rejection. *(`test_step_order.py`.)*
+- [x] Completion creates all expected projects, samples, libraries, pools, indices, and attributes. *(Asserted per scenario; Redis cleanup via `assert_cleaned_up()`.)*
+- [x] Completion failure rolls back all created records. *(`test_completion_rollback.py`: nothing persisted, state kept, retry succeeds.)*
+- [x] Expired workflow UUID and cross-user UUID isolation. *(`test_workflow_state.py`.)*
 
 
+
+Findings from `LibraryAnnotationWorkflow` tests:
+
+- ~~**Run not bound to its request.**~~ Fixed 2026-10-08. `require_seq_request_write` only checks the request in the URL, so a run (UUID) of request A could be read and completed on any other writable request. Project selection now stores `header["seq_request_id"]`, and `LibraryAnnotationWorkflow.Init` rejects (400) a run bound to another request on every step, and a run without state on every step but project selection. This also turns unknown/expired UUIDs into a 400.
+- ~~**Out-of-order steps are a 500.**~~ Fixed 2026-10-08. Posting a step that does not apply, a `Previous` of a step never reached, or skipping ahead now gives 400: `LibraryAnnotationWorkflow.Init` only allows steps in the run's step tracker (every step routed to so far, incl. the current one).
+- ~~**Back from feature annotation crashes for multiplexed custom pools.**~~ Fixed 2026-10-08: `FeatureAnnotationForm.Previous` drops duplicate library names before mapping them to samples.
+
+Not a finding: project selection posts without the UUID (as legacy `select_project`), so going back to it and submitting starts a new run.
 
 ### `BAReportWorkflow`
 
@@ -648,16 +666,18 @@ Test the two execution flavors separately:
 
 ### `ShareProjectDataAction`
 
-- [ ] Share one project.
-- [ ] Valid internal/external access options.
-- [ ] Expiration/time-validity variants.
-- [ ] Recipient email variants.
-- [ ] Anonymous-send option.
-- [ ] Mark-project-delivered option.
-- [ ] Missing/invalid data paths.
-- [ ] Unauthorized project.
-- [ ] Completion creates/updates share token and paths.
-- [ ] Rollback and duplicate submission behavior.
+Covered by `forms/test_share_project_data_action.py`.
+
+- [x] Share one project.
+- [ ] Valid internal/external access options. *(Tests always submit `internal_share=false`.)*
+- [x] Expiration/time-validity variants.
+- [x] Recipient email variants.
+- [ ] Anonymous-send option. *(Tests always submit `anonymous_send=false`.)*
+- [x] Mark-project-delivered option.
+- [x] Missing/invalid data paths.
+- [x] Unauthorized project.
+- [x] Completion creates/updates share token and paths.
+- [x] Rollback and duplicate submission behavior. *(A new share expires the previous token.)*
 
 
 

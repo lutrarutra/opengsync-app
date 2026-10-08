@@ -35,7 +35,7 @@ def test_input_whitespace(
         "pool_forms-0-num_m_reads_requested": " 50 ",
     }, next_step="barcode-input")
     wf.post("barcode-input", spreadsheet(BARCODE_COLUMNS, [[library, "", "", "  i7_custom ", " ACGTACGT ", "", "", ""]]), next_step="barcode-match")
-    wf.post("barcode-match", {"i7_kit": "0", "i7_option": " forward ", "i7_primer": "  AATGATACGGCGACCACCGA  "}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": "0", "i7_option": "forward", "i7_primer": "  AATGATACGGCGACCACCGA  "}, next_step="complete-s-a-s")
     wf.complete()
 
     session.expire_all()

@@ -74,6 +74,9 @@ class ResetPasswordForm(HTMXForm):
 
             user.password = bcrypt.generate_password_hash(form.password.data)
             user.pw_set_datetime = dt.datetime.now(dt.timezone.utc)
+            # A reset may follow an account compromise, so passkeys must be re-registered.
+            # The user handle is kept so passkey.js can tell password managers to drop the old ones.
+            session.execute(Q.passkey.delete_all(user.id))
             r.delete(f"user:{user.id}")
 
             return responses.htmx_response(

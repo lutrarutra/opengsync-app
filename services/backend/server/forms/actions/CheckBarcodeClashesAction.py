@@ -65,7 +65,7 @@ class CheckBarcodeClashesAction(HTMXForm):
     def RenderSelectSamples(cls) -> RouteFunc:
         def route(
             form: CheckBarcodeClashesAction = Depends(CheckBarcodeClashesAction.Init()),
-            _: models.User = Depends(dependencies.require_user),
+            _: models.User = Depends(dependencies.require_insider),
         ) -> Response:
             return form.make_response()
         return route
@@ -75,7 +75,7 @@ class CheckBarcodeClashesAction(HTMXForm):
         def route(
             form: CheckBarcodeClashesAction = Depends(CheckBarcodeClashesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_user),
+            current_user: models.User = Depends(dependencies.require_insider),
         ) -> Response:
             if not form.library_ids.data:
                 raise exc.BadRequestException("No libraries selected.")
@@ -113,6 +113,8 @@ class CheckBarcodeClashesAction(HTMXForm):
             elif experiment_id is not None:
                 if not current_user.is_insider:
                     raise exc.NoPermissionsException("You do not have permission to view libraries for this experiment.")
+                if session.first(Q.experiment.select(id=experiment_id)) is None:
+                    raise exc.NotFoundException()
                 libraries_df = T.experiment_barcodes(
                     session.get_pandas(
                         Q.pd.experiment_barcodes(experiment_id),

@@ -81,7 +81,6 @@ class FlexReMuxForm(LibraryRemuxWorkflowStep):
         def route(
             form: FlexReMuxForm = Depends(FlexReMuxForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             df = form.spreadsheet.data
             duplicate_barcode = df.duplicated(subset=["barcode_id"], keep=False) & pd.notna(df["barcode_id"])

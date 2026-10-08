@@ -1,5 +1,6 @@
 from . import (
     api_token,
+    passkey,
     flow_cell_design,
     lab_prep,
     links,
@@ -45,6 +46,7 @@ __all__ = [
     "user",
     "seq_request",
     "api_token",
+    "passkey",
     "event",
     "data_path",
     "experiment",

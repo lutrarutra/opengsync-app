@@ -24,7 +24,6 @@ app.exception_handler(exc.TooManyRequestsException)(exc.TooManyRequestsException
 app.exception_handler(db_exc.NotFoundException)(exc.NotFoundException.Handler)
 app.exception_handler(exc.NotFoundException)(exc.NotFoundException.Handler)
 
-app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.audit_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.timing_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.csrf_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.parse_form_data)  # type: ignore

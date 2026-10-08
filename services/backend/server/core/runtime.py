@@ -25,6 +25,7 @@ NOT_CHECKED: NotCheckedType = "NOT_CHECKED"
 
 class RequestState(State):
     current_user: models.User | None | NotCheckedType
+    user_id: int | None
     form_data: dict | None
     audit: audit.AuditLogger | None
     clear_rate_limit: bool
@@ -39,6 +40,8 @@ class RequestState(State):
     def apply_defaults(cls, state: State):
         if not hasattr(state, "current_user"):
             state.current_user = NOT_CHECKED
+        if not hasattr(state, "user_id"):
+            state.user_id = None
         if not hasattr(state, "audit"):
             state.audit = None
         if not hasattr(state, "clear_rate_limit"):

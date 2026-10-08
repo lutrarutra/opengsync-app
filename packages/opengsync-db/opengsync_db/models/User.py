@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from .MediaFile import MediaFile
     from .LabPrep import LabPrep
     from .APIToken import APIToken
+    from .UserPasskey import UserPasskey
 
 
 class UserMixin:
@@ -82,6 +83,8 @@ class User(Base, UserMixin):
         sa.DateTime(timezone=True), nullable=True, default=None,
     )
     role: Mapped[UserRole] = mapped_column(EnumColumn[UserRole](UserRole), nullable=False, name="role_id", key="role")
+    # Opaque WebAuthn user.id; generated on first passkey registration and stored by password managers.
+    webauthn_user_handle: Mapped[bytes | None] = mapped_column(sa.LargeBinary(64), nullable=True, unique=True, default=None)
 
     affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
@@ -92,6 +95,7 @@ class User(Base, UserMixin):
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
     api_tokens: Mapped[list["APIToken"]] = relationship("APIToken", back_populates="owner", lazy="select", cascade="all, delete-orphan")
+    passkeys: Mapped[list["UserPasskey"]] = relationship("UserPasskey", back_populates="user", lazy="select", cascade="all, delete-orphan")
     assigned_projects: Mapped[list["Project"]] = relationship(
         "Project",
         secondary="project_assignee_link",

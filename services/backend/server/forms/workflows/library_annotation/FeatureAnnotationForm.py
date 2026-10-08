@@ -58,7 +58,8 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
         ) -> Response:
             feature_table = form.workflow.tables["feature_table"].copy()
             # feature_table is keyed by library; the spreadsheet by the library's sample (pool) name
-            library_sample_map = form.abc_libraries.set_index("library_name")["sample_name"]
+            # One row per sample for multiplexed pools: the pool's library name repeats
+            library_sample_map = form.abc_libraries.drop_duplicates("library_name").set_index("library_name")["sample_name"]
             feature_table["sample_name"] = feature_table["library_name"].map(library_sample_map)
             form.spreadsheet.set_data(feature_table)
             return form.make_response()

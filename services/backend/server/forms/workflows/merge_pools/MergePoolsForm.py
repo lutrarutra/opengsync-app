@@ -119,7 +119,6 @@ class MergePoolsForm(MergePoolsWorkflowStep):
             form: "MergePoolsForm" = Depends(MergePoolsForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             pool_table = form.workflow.tables["pool_table"]
             library_table = form.workflow.tables["library_table"]

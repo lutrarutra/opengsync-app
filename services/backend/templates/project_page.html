@@ -12,13 +12,6 @@
             <h1>{% if project.identifier %}{{ project.identifier }}{% else %}<span class="text-secondary">#{{ project.id }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
-            {% if current_user.is_insider %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                hx-get="{{ url_for('SplitProjectWorkflow.Begin', project_id=project.id) }}"
-                hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
-                Split Project
-            </button>
-            {% endif %}
             {% if current_user.is_insider and project.status == C.ProjectStatus.PROCESSING %}
             {{
                 confirm_action_button(
@@ -31,27 +24,59 @@
                 )
             }}
             {% endif %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('ProjectForm.Edit', project_id=project.id) }}"
-                hx-target="#xl-modal-content" data-bs-toggle="modal"
-                hx-swap="innerHTML" hx-trigger="click">
-                Edit Project
-            </button>
             <a type="button" class="btn btn-primary" href="{{ url_for('export_project_data', project_id=project.id) }}">
-                Export Project
+                Export (.xlsx)
             </a>
-            {{
-                confirm_action_button(
-                    text="Delete Project",
-                    title='Delete project ' + project.title,
-                    url=url_for('delete_project', project_id=project.id),
-                    color="danger",
-                    method="hx-delete",
-                    disabled_tooltip="Non-empty project cannot be deleted.",
-                    tooltip="Delete project. This action cannot be undone.",
-                    disabled=project.num_samples > 0
-                )
-            }}
+            <div class="dropdown">
+                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        {{ modal_button("Edit", class="dropdown-item", url=url_for('ProjectForm.Edit', project_id=project.id)) }}
+                    </li>
+                    {% if current_user.is_insider %}
+                    <li>
+                        {{ modal_button("Split", class="dropdown-item", size="fullscreen", url=url_for('SplitProjectWorkflow.Begin', project_id=project.id)) }}
+                    </li>
+                    {% if project.status == C.ProjectStatus.ARCHIVED %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Unarchive", class="dropdown-item", title='Unarchive project ' + project.title,
+                                url=url_for('unarchive_project', project_id=project.id), method="hx-post",
+                                tooltip="Restore the project status. Samples and libraries are not changed.",
+                                tooltip_position="left",
+                            )
+                        }}
+                    </li>
+                    {% else %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Archive", class="dropdown-item", title='Archive project ' + project.title,
+                                url=url_for('archive_project', project_id=project.id), method="hx-post",
+                                tooltip="Set the project status to archived. Samples and libraries are not changed.",
+                                tooltip_position="left",
+                            )
+                        }}
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Delete", class="dropdown-item", title='Delete project ' + project.title,
+                                url=url_for('delete_project', project_id=project.id), method="hx-delete",
+                                disabled=project.num_samples > 0,
+                                disabled_tooltip="Non-empty project cannot be deleted.",
+                                tooltip="Delete project. This action cannot be undone.",
+                                tooltip_position="left",
+                            )
+                        }}
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 

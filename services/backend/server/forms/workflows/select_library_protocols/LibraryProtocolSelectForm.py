@@ -102,7 +102,6 @@ class LibraryProtocolSelectForm(SelectLibraryProtocolsWorkflowStep):
         def route(
             form: LibraryProtocolSelectForm = Depends(LibraryProtocolSelectForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             df = form.spreadsheet.data
             form.assert_valid()

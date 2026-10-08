@@ -64,6 +64,26 @@
     </div>
     <div class="flip-card card"
         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+        hx-get="{{ url_for('IndexCheckWorkflow.Begin') }}"
+        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <i class="bi bi-arrow-left-right" style="font-size: 40px;"></i>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Check Index Orientations</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Verify the orientation of custom barcodes and store all indices in forward orientation.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
         hx-get="{{ url_for('CheckBarcodeClashesAction.SelectSamples') }}"
         hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
         <div class="flip-card-container">

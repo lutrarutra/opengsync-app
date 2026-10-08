@@ -63,7 +63,6 @@ class QubitMeasureForm(QubitMeasureWorkflowStep):
         def route(
             form: "QubitMeasureForm" = Depends(QubitMeasureForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _ = Depends(dependencies.audit_log),
         ) -> Response:
             for entry in form.sample_forms.entries:
                 sample = session.get_one(Q.sample.select(id=entry.id_.data))

@@ -2,11 +2,11 @@ from typing import Generic, Literal, TypeVar, overload
 
 from .BaseInputField import BaseInputField
 
-T_int = TypeVar("T_int", int, int | None, covariant=True)
+_DataT = TypeVar("_DataT", int, int | None, str, str | None, covariant=True)
 
 
-class SelectableInputField(BaseInputField, Generic[T_int]):
-    data: T_int
+class SelectableInputField(BaseInputField, Generic[_DataT]):
+    data: _DataT
 
     @overload
     def __init__(
@@ -34,12 +34,38 @@ class SelectableInputField(BaseInputField, Generic[T_int]):
         read_only: bool = False,
     ) -> None: ...
 
+    @overload
+    def __init__(
+        self: "SelectableInputField[str]",
+        label: str,
+        options: list[tuple[str, str]],
+        *,
+        default: str | None = None,
+        description: str | None = None,
+        required: Literal[True] = True,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "SelectableInputField[str | None]",
+        label: str,
+        options: list[tuple[str, str]],
+        *,
+        default: str | None = None,
+        description: str | None = None,
+        required: Literal[False],
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
     def __init__(
         self,
         label: str,
-        options: list[tuple[int, str]],
+        options: list[tuple[int, str]] | list[tuple[str, str]],
         *,
-        default: int | None = None,
+        default: int | str | None = None,
         description: str | None = None,
         required: bool = True,
         hidden: bool = False,
@@ -60,7 +86,7 @@ class SelectableInputField(BaseInputField, Generic[T_int]):
         self.set_options(options)
         self._mapping = dict(options)
 
-    def set_options(self, options: list[tuple[int, str]]) -> None:
+    def set_options(self, options: list[tuple[int, str]] | list[tuple[str, str]]) -> None:
         """Set the options for the selectable input field."""
         self.options = options
         if self.default is None:

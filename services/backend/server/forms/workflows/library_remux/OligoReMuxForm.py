@@ -171,7 +171,6 @@ class OligoReMuxForm(LibraryRemuxWorkflowStep):
         def route(
             form: OligoReMuxForm = Depends(OligoReMuxForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             df = form.spreadsheet.data
             kit_feature = pd.notna(df["kit"]) & pd.notna(df["feature"])

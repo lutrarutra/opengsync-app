@@ -2,9 +2,8 @@ from fastapi import Depends
 from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession
-from opengsync_db.categories import UserRole
 
-from ...core import responses, secrets, dependencies, exceptions as exc
+from ...core import responses, secrets, dependencies, auth, passkeys, exceptions as exc
 from ...components import inputs
 from ..HTMXForm import HTMXForm, htmx_route, RouteFunc
 
@@ -13,7 +12,8 @@ class LoginForm(HTMXForm):
 
     template_path = "forms/auth/login.html"
 
-    email = inputs.string.StringInputField("Email", placeholder="Enter your email")
+    # "webauthn" lets the browser offer saved passkeys in this field's autofill.
+    email = inputs.string.StringInputField("Email", placeholder="Enter your email", autocomplete="username webauthn")
     password = inputs.string.PasswordInputField("Password",  placeholder="Enter your password")
 
     @htmx_route("GET")
@@ -52,23 +52,13 @@ class LoginForm(HTMXForm):
                 raise exc.FormValidationException(form)
 
             # Check role
-            if user.role == UserRole.DEACTIVATED:
-                form.email.errors.append("Account is deactivated. Please contact us to activate your account.")
+            if (rejection := auth.login_rejection(user)) is not None:
+                form.email.errors.append(rejection)
                 raise exc.FormValidationException(form)
 
-            if user.role == UserRole.TEMPORARY:
-                user.role = UserRole.DEACTIVATED
-                form.email.errors.append("Account is deactivated. Please contact us to activate your account.")
-                raise exc.FormValidationException(form)
-
-            response.set_cookie(
-                key="access_token",
-                value=secrets.create_login_token(user),
-                httponly=True,
-                secure=True,
-                samesite="lax",
-                max_age=60 * 60 * 24 * 7,  # 7 days
-            )
+            auth.set_login_cookie(response, user)
+            # Tells passkey.js on the next page to offer saving a passkey to the password manager.
+            passkeys.set_upgrade_cookie(response)
 
             return responses.htmx_response(
                 redirect=responses.url_for("dashboard"), response=response,

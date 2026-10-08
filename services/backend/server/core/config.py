@@ -75,6 +75,13 @@ class Settings(BaseSettings):
 
     JWT_ALGORITHM: str = "HS256"
 
+    # WebAuthn / passkeys. RP ID must be the (registrable) domain users see, e.g. "lims.example.org".
+    # Changing it later invalidates every registered passkey. Empty = derive from the request host.
+    WEBAUTHN_RP_ID: str = ""
+    WEBAUTHN_RP_NAME: str = "OpeNGSync"
+    # Comma-separated allowed origins, e.g. "https://lims.example.org". Empty = derive from the request.
+    WEBAUTHN_ORIGINS: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     _app_config: AppConfig | None = PrivateAttr(default=None)
 

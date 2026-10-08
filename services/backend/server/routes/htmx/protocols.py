@@ -49,7 +49,7 @@ def render_protocol_table(
     return table.make_response(protocols=protocols)
 
 
-@router.delete("/{protocol_id}/delete", dependencies=[Depends(dependencies.require_admin), Depends(dependencies.audit_log)])
+@router.delete("/{protocol_id}/delete", dependencies=[Depends(dependencies.require_admin)])
 def delete_protocol(
     protocol_id: int,
     session: SyncSession = Depends(dependencies.db_session),
@@ -61,7 +61,7 @@ def delete_protocol(
         flash=responses.flash("Protocol deleted!", "success"),
     )
 
-@router.delete("/{protocol_id}/remove-kit", dependencies=[Depends(dependencies.require_insider), Depends(dependencies.audit_log)])
+@router.delete("/{protocol_id}/remove-kit", dependencies=[Depends(dependencies.require_insider)])
 def remove_kit_from_protocol(
     protocol_id: int,
     kit_id: int = Query(..., description="ID of the kit to remove from the protocol"),
@@ -82,7 +82,7 @@ def remove_kit_from_protocol(
         # redirect=responses.url_for("protocols_page"),
     )
 
-@router.delete("/{protocol_id}/remove-kit-combination", dependencies=[Depends(dependencies.require_insider), Depends(dependencies.audit_log)])
+@router.delete("/{protocol_id}/remove-kit-combination", dependencies=[Depends(dependencies.require_insider)])
 def remove_kit_combination_from_protocol(
     protocol_id: int,
     kit_id: int = Query(..., description="ID of the kit to remove from the protocol"),

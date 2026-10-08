@@ -33,6 +33,7 @@ from . import (
     features,
     plots,
     api_tokens,
+    passkeys,
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -49,6 +50,7 @@ router.include_router(experiments.router, dependencies=[Depends(auth.dependencie
 router.include_router(sequencers.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(share_tokens.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(users.router, dependencies=[Depends(auth.dependencies.require_user_id)])
+router.include_router(passkeys.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(affiliations.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(groups.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(libraries.router, dependencies=[Depends(auth.dependencies.require_user_id)])

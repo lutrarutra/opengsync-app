@@ -83,7 +83,6 @@ class FlexABCForm(MuxPrepWorkflowStep):
         def route(
             form: FlexABCForm = Depends(FlexABCForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             df = form.spreadsheet.data
             gex_table = form.workflow.tables["gex_table"]

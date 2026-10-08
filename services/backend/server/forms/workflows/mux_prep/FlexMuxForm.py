@@ -124,7 +124,6 @@ class FlexMuxForm(MuxPrepWorkflowStep):
         def route(
             form: FlexMuxForm = Depends(FlexMuxForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             from .FlexABCForm import FlexABCForm
 

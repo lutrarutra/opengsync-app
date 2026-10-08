@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 import yaml
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -10,6 +11,29 @@ from redis import ConnectionPool
 from opengsync_db import SyncDBHandler
 
 from . import config, mailer, secrets, templates
+
+
+def _audit_format(record) -> str:
+    """Flat, one-object-per-line JSON for the audit sink (DuckDB-friendly)."""
+    extra = record["extra"]
+    process_time = extra.get("process_time")
+    extra["_json"] = json.dumps({
+        "ts": record["time"].isoformat(),
+        "user_id": extra.get("user_id"),
+        "method": extra.get("method"),
+        "path": extra.get("path"),
+        "route": extra.get("route"),
+        "status_code": extra.get("status_code"),
+        "process_time": float(process_time) if process_time else None,
+        "resource_id": extra.get("resource_id"),
+        "metadata": extra.get("metadata") or {},
+        "changes": extra.get("changes") or [],
+        "query_params": extra.get("query_params") or {},
+        "ip": extra.get("ip"),
+        "agent": extra.get("agent"),
+    }, default=str)
+    return "{extra[_json]}\n"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,8 +78,8 @@ async def lifespan(app: FastAPI):
     logger.add(
         f"{config.settings.app_config.log_folder}/audits/{{time:YYYY-MM-DD}}.jsonl",
         rotation="1 day",
-        compression="zip",
-        serialize=True,
+        compression="gz",
+        format=_audit_format,
         filter=lambda record: record["extra"].get("audit") is True,
         level="INFO",
     )

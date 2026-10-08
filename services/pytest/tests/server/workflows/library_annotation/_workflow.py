@@ -18,6 +18,10 @@ MOUSE = C.GenomeRef.MOUSE.display_name
 class AnnotationWorkflow:
     """Drives one library-annotation workflow run for a sequencing request."""
 
+    # When set (see ``test_back_navigation_every_step.py``), every successful step is followed
+    # by 'Back' to that step and re-submitting the same data, which must lead to the same step.
+    back_and_resubmit: bool = False
+
     def __init__(self, client: OpenGSyncTestClient, token: str, seq_request_id: int) -> None:
         self.client = client
         self.token = token
@@ -31,15 +35,31 @@ class AnnotationWorkflow:
         assert response.status_code == 200, response.text
         return response
 
-    def post(self, step: str, data: dict[str, Any] | None = None, status: int = 200, next_step: str | None = None):
-        """POST a step and, when ``next_step`` is given, assert the rendered step is that one."""
+    def post(self, step: str, data: dict[str, Any] | None = None, status: int | None = 200, next_step: str | None = None):
+        """POST a step and, when ``next_step`` is given, assert the rendered step is that one.
+
+        ``status=None`` skips the status check (the caller asserts on the response).
+        """
         response = post_form(
             self.client, f"{self.prefix}/{step}", data or {},
             token=self.token, params=self.params,
         )
+        if status is None:
+            return response
         assert response.status_code == status, f"{step}: expected status {status}, got {response.status_code}"
         if next_step is not None:
             assert self.rendered_step(response) == next_step, f"{step}: expected next step '{next_step}', got '{self.rendered_step(response)}'"
+        # project-select posts without the workflow UUID (as legacy), so going back to it and
+        # submitting starts a new workflow; that is covered in test_workflow_state.py instead.
+        if self.back_and_resubmit and response.status_code == 200 and step != "project-select":
+            reached = self.rendered_step(response)
+            self.back(step)
+            response = post_form(
+                self.client, f"{self.prefix}/{step}", data or {},
+                token=self.token, params=self.params,
+            )
+            assert response.status_code == 200, f"{step}: re-submit after 'Back' returned {response.status_code}"
+            assert self.rendered_step(response) == reached, f"{step}: re-submit after 'Back' led to '{self.rendered_step(response)}', not '{reached}'"
         return response
 
     def rendered_step(self, response) -> str | None:
@@ -53,7 +73,7 @@ class AnnotationWorkflow:
         """GET a step's 'Previous' route, i.e. what the 'Back' button of the following step does."""
         response = get(self.client, f"{self.prefix}/{step}", self.token, params=self.params)
         assert response.status_code == status, f"back to {step}: expected status {status}, got {response.status_code}"
-        assert self.rendered_step(response) == step
+        assert self.rendered_step(response) == step, f"back to {step}: rendered '{self.rendered_step(response)}'"
         return response
 
     def back_step(self, response) -> str | None:

@@ -91,7 +91,6 @@ class QCLanesForm(LaneQCWorkflowStep):
         def route(
             form: QCLanesForm = Depends(QCLanesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             for entry in form.fields:
                 lane = session.first(Q.lane.select(id=entry.lane_id.data))

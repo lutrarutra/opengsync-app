@@ -315,6 +315,58 @@ def complete_project(
     )
 
 
+@router.post("/{project_id}/archive", dependencies=[Depends(dependencies.require_insider)])
+def archive_project(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    """Archive the project. Only the project status changes; samples/libraries are untouched."""
+    project = session.get_one(Q.project.select(id=project_id))
+
+    project.status = C.ProjectStatus.ARCHIVED
+    session.save(project)
+
+    return responses.htmx_response(
+        redirect=ctx.request.url_for("project_page", project_id=project.id),
+        flash=responses.flash(f"Archived project '{project.title}'", "success"),
+    )
+
+
+@router.post("/{project_id}/unarchive", dependencies=[Depends(dependencies.require_insider)])
+def unarchive_project(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    """Restore an archived project. The previous status is not stored, so it is derived
+    from the libraries: none -> DRAFT, all finished -> DELIVERED, otherwise PROCESSING."""
+    project = session.get_one(Q.project.select(id=project_id))
+
+    if project.status != C.ProjectStatus.ARCHIVED:
+        return responses.htmx_response(
+            redirect=ctx.request.url_for("project_page", project_id=project_id),
+            flash=responses.flash(f"Project '{project.title}' is not archived.", "warning"),
+        )
+
+    finished_statuses = {
+        C.LibraryStatus.SHARED,
+        C.LibraryStatus.FAILED,
+        C.LibraryStatus.REJECTED,
+        C.LibraryStatus.ARCHIVED,
+    }
+    if not project.libraries:
+        project.status = C.ProjectStatus.DRAFT
+    elif all(library.status in finished_statuses for library in project.libraries):
+        project.status = C.ProjectStatus.DELIVERED
+    else:
+        project.status = C.ProjectStatus.PROCESSING
+    session.save(project)
+
+    return responses.htmx_response(
+        redirect=ctx.request.url_for("project_page", project_id=project.id),
+        flash=responses.flash(f"Unarchived project '{project.title}'", "success"),
+    )
+
+
 @router.get(
     "/{project_id}/sample-attributes",
     dependencies=[Depends(dependencies.project_permissions)],

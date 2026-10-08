@@ -62,7 +62,20 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
             uuid: str | None = Query(None, description="The UUID of the workflow state."),
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "LibraryAnnotationWorkflow":
-            return cls(uuid=uuid, r=r, seq_request_id=seq_request_id, step=step)
+            workflow = cls(uuid=uuid, r=r, seq_request_id=seq_request_id, step=step)
+            # The state is keyed by UUID only, so a run must be bound to the request it was
+            # started for: WRITE on the request in the URL says nothing about the run's data.
+            # Project selection starts (binds) a run; every other step needs a bound run.
+            bound_seq_request_id = workflow.header.get("seq_request_id")
+            if bound_seq_request_id is None and step != "ProjectSelectForm":
+                raise exc.BadRequestException("This annotation has expired. Please start again.")
+            if bound_seq_request_id is not None and bound_seq_request_id != seq_request_id:
+                raise exc.BadRequestException("This annotation belongs to another sequencing request.")
+            # Every step has its own URL; only steps this run has been routed to (the tracker
+            # holds every reached step, incl. the one currently shown) may be shown or posted.
+            if step != "ProjectSelectForm" and step not in workflow.step_tracker.steps:
+                raise exc.BadRequestException("This step is not part of the current annotation.")
+            return workflow
         return dependency
     
     @classmethod

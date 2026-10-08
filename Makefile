@@ -37,10 +37,10 @@ dev-build-logs:
 	$(COMPOSE_DEV) build --progress=plain --build-arg VERSION=$(VERSION)
 
 dev-migrate:
-	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null; alembic --config /app/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null'
+	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null; alembic --config /app/alembic/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null'
 
 dev-downgrade:
-	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
+	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
 
 dev-logs-all:
 	$(COMPOSE_DEV) logs -f
@@ -63,10 +63,10 @@ prod-build-logs:
 
 prod-migrate:
 	$(MAKE) test
-	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null; alembic --config /app/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic.ini current 2>/dev/null'
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null; alembic --config /app/alembic/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null'
 
 prod-downgrade:
-	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
 
 prod-run:
 	$(COMPOSE_PROD) up -d --remove-orphans --wait

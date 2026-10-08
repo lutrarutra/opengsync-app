@@ -4,6 +4,7 @@ import time
 from typing import TypeVar
 from collections.abc import Callable
 import hashlib
+import hmac
 
 from fastapi import Depends, Request, Header, Cookie, Query
 from fastapi_cache import FastAPICache
@@ -283,6 +284,7 @@ def _resolve_user_id_by_api_token(
     return db_token.owner_id
 
 def get_user_id(
+    request: runtime.Request = TaskiqDepends(),
     access_token: str | None = Cookie(None),
     api_token: str | None = Header(None, alias="X-API-Token"),
     session: SyncSession = Depends(db_session),
@@ -291,7 +293,8 @@ def get_user_id(
     """Return the authenticated user's ID without loading the user ORM object.
 
     Browser requests authenticate with the login cookie; API clients authenticate
-    with the X-API-Token header.
+    with the X-API-Token header. The ID is also kept on ``request.state.user_id``
+    so the audit log can attribute requests that never load the user.
     """
 
     if access_token:
@@ -307,10 +310,13 @@ def get_user_id(
             elif auth_response.role == C.UserRole.DEACTIVATED:
                 raise exc.UserAccountSuspendedException()
             else:
+                request.state.user_id = auth_response.id
                 return auth_response.id
 
     if api_token:
-        return _resolve_user_id_by_api_token(api_token, session, r)
+        user_id = _resolve_user_id_by_api_token(api_token, session, r)
+        request.state.user_id = user_id
+        return user_id
 
     return None
 
@@ -370,6 +376,14 @@ def mail_client(request: runtime.Request = TaskiqDepends(get_runtime_request)) -
 
 def get_bcrypt(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     return request.app.state.bcrypt
+
+def verify_csrf_header(
+    csrf_cookie: str | None = Cookie(None, alias="csrf_token"),
+    csrf_header: str | None = Header(None, alias="X-CSRF-Token"),
+) -> None:
+    """Double-submit CSRF check for JSON (fetch) endpoints, which send the token as a header."""
+    if not csrf_cookie or not csrf_header or not hmac.compare_digest(csrf_cookie, csrf_header):
+        raise exc.NoPermissionsException("Security token invalid or missing. Please reload the page.")
 
 def audit_log(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     request.state.audit = audit.AuditLogger(request)

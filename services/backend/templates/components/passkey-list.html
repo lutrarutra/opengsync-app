@@ -1,0 +1,65 @@
+{% from "components/button.jinja2" import confirm_action_button %}
+<div id="passkey-list" class="passkey-list" hx-target="#passkey-list" hx-swap="outerHTML"
+{% if is_owner and user_handle %}
+    data-signal-rp-id="{{ rp_id }}"
+    data-signal-user-handle="{{ user_handle }}"
+    data-signal-credential-ids='{{ credential_ids | tojson }}'
+{% endif %}>
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2>Passkeys</h2>
+        </div>
+        {% if is_owner %}
+        <div>
+            <button type="button" class="btn btn-success passkey-register-btn"
+            data-list-url="{{ url_for('render_passkey_list', user_id=user.id) }}">
+                Add Passkey
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <p class="desc">
+        Passkeys are saved in your password manager and let you sign in without typing your password.
+        Resetting your password removes all passkeys.
+    </p>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Created</th>
+                    <th scope="col">Last Used</th>
+                    <th scope="col" class="col-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for passkey in passkeys %}
+                <tr>
+                    <td>
+                        <i class="bi bi-key"></i> {{ passkey.name }}
+                        {% if passkey.backed_up %}<span class="desc">synced</span>{% endif %}
+                    </td>
+                    <td>{{ passkey.created_utc | format_datetime }}</td>
+                    <td>{{ passkey.last_used_utc | format_datetime if passkey.last_used_utc else "Never" }}</td>
+                    <td>
+                        {{
+                            confirm_action_button(
+                                text="Remove",
+                                title="Remove passkey?",
+                                body="You will no longer be able to sign in with this passkey.",
+                                method="hx-delete",
+                                url=url_for('delete_passkey', passkey_id=passkey.id),
+                                class="btn btn-sm btn-outline-danger",
+                            )
+                        }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="desc">No passkeys registered.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

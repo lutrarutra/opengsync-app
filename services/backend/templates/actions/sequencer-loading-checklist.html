@@ -6,13 +6,13 @@
     <div class="modal-body">
         <div id="sequencer-loading-checklist-form">
             {{ form.csrf_token.render() }}
+            {{ form.render_general_errors() }}
 
             {% for subform in form.parameters %}
             <div class="row">
-                {{ subform.csrf_token.render() }}
-                {{ subform.param_label.render(class="col-6") }}
-                {{ subform.param_value.render(class="col-6") }}
-                {{ subform.var_name }}
+                {{ subform.param_label.render("col-6") }}
+                {{ subform.param_value.render("col-6") }}
+                {{ subform.var_name.render() }}
             </div>
             {% endfor %}
         </div>

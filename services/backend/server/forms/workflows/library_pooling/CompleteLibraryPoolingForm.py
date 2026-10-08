@@ -59,7 +59,6 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
             form: CompleteLibraryPoolingForm = Depends(CompleteLibraryPoolingForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_insider),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             lab_prep = session.get_one(
                 Q.lab_prep.select(id=form.workflow.lab_prep_id).options(

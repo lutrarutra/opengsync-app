@@ -56,7 +56,6 @@ class LibraryEditTableForm(RelibWorkflowStep):
         def route(
             form: "LibraryEditTableForm" = Depends(LibraryEditTableForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.audit_log),
         ) -> Response:
             class RowSchema(BaseModel):
                 library_id: int

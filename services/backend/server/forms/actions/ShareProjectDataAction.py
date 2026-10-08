@@ -129,7 +129,6 @@ class ShareProjectDataAction(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),
             mailer: Mailer = Depends(dependencies.mail_client),
             redis: rds.RedisClient = Depends(dependencies.redis),
-            _=Depends(dependencies.audit_log),
         ):
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException()
