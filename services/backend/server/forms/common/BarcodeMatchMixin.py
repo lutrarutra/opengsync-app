@@ -49,6 +49,7 @@ class BarcodeMatchMixin:
                 ("idk", f"I don't know in which orientation the {index} barcodes are provided"),
             ],
             required=False,
+            placeholder="Select an option",
         )
 
     @staticmethod

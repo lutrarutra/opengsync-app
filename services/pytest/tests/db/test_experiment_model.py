@@ -1,5 +1,5 @@
 from opengsync_db import SyncSession, actions, queries as Q
-from opengsync_db.categories import ExperimentWorkFlow
+from opengsync_db.categories import ExperimentWorkFlow, SeqRequestStatus
 
 from .create_units import (
     create_user, create_seq_request, create_library, create_pool,
@@ -161,3 +161,32 @@ def test_experiment_lanes(session: SyncSession):
         session.refresh(pool)
         assert pool is not None
         assert len(pool.lane_links) == 0
+
+
+def test_experiment_checklist_seq_requests_accepted(session: SyncSession):
+    user = create_user(session)
+    experiment = create_experiment(session, user, ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
+
+    checklist = experiment.get_checklist()
+    assert checklist["seq_requests"] == []
+    assert checklist["seq_requests_accepted"] is None
+
+    accepted_request = create_seq_request(session, user)
+    accepted_request.status = SeqRequestStatus.ACCEPTED
+    submitted_request = create_seq_request(session, user)
+    submitted_request.status = SeqRequestStatus.SUBMITTED
+    unrelated_request = create_seq_request(session, user)
+
+    for seq_request in (accepted_request, accepted_request, submitted_request):
+        library = create_library(session, user, seq_request)
+        library.experiment_id = experiment.id
+    create_library(session, user, unrelated_request)
+    session.flush()
+
+    checklist = experiment.get_checklist()
+    assert [seq_request.id for seq_request in checklist["seq_requests"]] == sorted([accepted_request.id, submitted_request.id])
+    assert checklist["seq_requests_accepted"] is False
+
+    submitted_request.status = SeqRequestStatus.FINISHED
+    session.flush()
+    assert experiment.get_checklist()["seq_requests_accepted"] is True

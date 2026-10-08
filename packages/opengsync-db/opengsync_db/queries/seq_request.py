@@ -128,6 +128,7 @@ def select(
     show_drafts: bool = True,
     requestor_id: int | None = None,
     project_id: int | None = None,
+    experiment_id: int | None = None,
     group_id: int | None = None,
     viewer_id: int | None = None,
     statement: sql.Select[tuple[SeqRequest]] = sa.select(SeqRequest),
@@ -143,6 +144,7 @@ def select(
         show_drafts=show_drafts,
         requestor_id=requestor_id,
         project_id=project_id,
+        experiment_id=experiment_id,
         group_id=group_id,
         viewer_id=viewer_id,
     ))
@@ -162,6 +164,7 @@ def where_clauses(
     show_drafts: bool = True,
     requestor_id: int | None = None,
     project_id: int | None = None,
+    experiment_id: int | None = None,
     group_id: int | None = None,
     viewer_id: int | None = None,
 ) -> list[sa.ColumnElement[bool]]:
@@ -216,6 +219,13 @@ def where_clauses(
                 (Library.id == links.SampleLibraryLink.library_id) &
                 (Library.seq_request_id == SeqRequest.id)
             ).correlate_except(Sample, links.SampleLibraryLink, Library).exists()
+        )
+    if experiment_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Library.experiment_id == experiment_id) &
+                (Library.seq_request_id == SeqRequest.id)
+            ).correlate_except(Library).exists()
         )
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)

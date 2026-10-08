@@ -41,6 +41,7 @@ def experiment_page(
         checklist["reads_assigned"],
         checklist["pool_qubits_measured"],
         checklist["pool_fragment_sizes_measured"],
+        checklist["seq_requests_accepted"],
         checklist["lane_qubit_measured"],
         checklist["lane_fragment_size_measured"],
         checklist["laning_completed"],

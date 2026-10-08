@@ -16,6 +16,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
         *,
         default: int | None = None,
         description: str | None = None,
+        placeholder: str | None = None,
         required: Literal[True] = True,
         hidden: bool = False,
         read_only: bool = False,
@@ -29,6 +30,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
         *,
         default: int | None = None,
         description: str | None = None,
+        placeholder: str | None = None,
         required: Literal[False],
         hidden: bool = False,
         read_only: bool = False,
@@ -42,6 +44,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
         *,
         default: str | None = None,
         description: str | None = None,
+        placeholder: str | None = None,
         required: Literal[True] = True,
         hidden: bool = False,
         read_only: bool = False,
@@ -55,6 +58,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
         *,
         default: str | None = None,
         description: str | None = None,
+        placeholder: str | None = None,
         required: Literal[False],
         hidden: bool = False,
         read_only: bool = False,
@@ -67,6 +71,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
         *,
         default: int | str | None = None,
         description: str | None = None,
+        placeholder: str | None = None,
         required: bool = True,
         hidden: bool = False,
         read_only: bool = False,
@@ -83,6 +88,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
             hidden=hidden,
             read_only=read_only,
         )
+        self.placeholder = placeholder or f"Select {label} ({'Required' if required else 'Optional'})"
         self.set_options(options)
         self._mapping = dict(options)
 
@@ -90,7 +96,7 @@ class SelectableInputField(BaseInputField, Generic[_DataT]):
         """Set the options for the selectable input field."""
         self.options = options
         if self.default is None:
-            self.options = [("", f"Select {self.label} ({'Required' if self.required else 'Optional'})")] + options  # type: ignore
+            self.options = [("", self.placeholder)] + options  # type: ignore
         self._mapping = dict(options)
 
     @property

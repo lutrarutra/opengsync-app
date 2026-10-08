@@ -271,6 +271,46 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-seq-requests" aria-expanded="false" aria-controls="sops-accordiod-collapse-seq-requests">
+                <b>{% if seq_requests_accepted is none %}❗{% elif seq_requests_accepted %}✅{% else %}⚠️{% endif %} Requests Accepted</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-seq-requests" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Notes:</b>
+                <ul>
+                    <li>All requests with libraries in this experiment must have status <b>{{ C.SeqRequestStatus.ACCEPTED.display_name }}</b> or later.</li>
+                    <li>Completed automatically once every request is accepted.</li>
+                </ul>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col">ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Submission Type</th>
+                            <th>Group</th>
+                            <th>Requestor</th>
+                        </thead>
+                        <tbody>
+                            {% for seq_request in seq_requests %}
+                            <tr {% if seq_request.status < C.SeqRequestStatus.ACCEPTED %}class="table-warning"{% endif %}>
+                                <th scope="row">{{ seq_request.id }}</th>
+                                <td class="x-scroll-cell"><a class="scroll-container" href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
+                                <td>{{ seq_request.status.icon }} {{ seq_request.status.label }}</td>
+                                <td>{{ seq_request.submission_type.abbreviation }}</td>
+                                <td>{% if seq_request.group_id %}<a href="{{ url_for('group_page', group_id=seq_request.group_id) }}">{{ seq_request.group.type.icon }} {{ seq_request.group.name }}</a>{% endif %}</td>
+                                <td><a href="{{ url_for('user_page', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }}</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-8" aria-expanded="false" aria-controls="sops-accordiod-collapse-8">
                 <b>{% if laning_completed is none %}❗{% elif laning_completed %}✅{% else %}⚠️{% endif %} Lane Pools (Pooling into Lanes)</b>
             </button>

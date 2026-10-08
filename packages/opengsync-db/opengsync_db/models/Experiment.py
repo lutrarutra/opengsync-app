@@ -7,7 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType
+from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType, SeqRequestStatus
 from ..core.EnumColumn import EnumColumn
 from .Base import Base
 from . import links
@@ -69,9 +69,19 @@ class Experiment(Base):
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="experiment", lazy="select")
 
     def get_checklist(self) -> dict:
-        if orm.object_session(self) is None:
+        if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session must be open for checklist")
-        
+
+        from .. import queries as Q
+        from .SeqRequest import SeqRequest
+        seq_requests = session.execute(
+            Q.seq_request.select(experiment_id=self.id).options(
+                orm.selectinload(SeqRequest.requestor),
+                orm.selectinload(SeqRequest.group),
+            ).order_by(SeqRequest.id)
+        ).scalars().all()
+        seq_requests_accepted = all(seq_request.status >= SeqRequestStatus.ACCEPTED for seq_request in seq_requests) if seq_requests else None
+
         pools_added = len(self.pools) > 0
         lanes_assigned = self.workflow.combined_lanes or all(len(pool.lane_links) > 0 for pool in self.pools) if pools_added else None
         reads_assigned = True if pools_added else None
@@ -146,6 +156,8 @@ class Experiment(Base):
             "missing_pool_reads": missing_pool_reads,
             "pool_qubits_measured": pool_qubits_measured,
             "pool_fragment_sizes_measured": pool_fragment_sizes_measured,
+            "seq_requests": seq_requests,
+            "seq_requests_accepted": seq_requests_accepted,
             "lane_qubit_measured": lane_qubit_measured,
             "missing_lane_qubits": missing_lane_qubits,
             "lane_fragment_size_measured": lane_fragment_size_measured,

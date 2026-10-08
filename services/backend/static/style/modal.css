@@ -27,6 +27,78 @@
     padding-right: 20px;
 }
 
+/* fade the edge(s) behind which tabs are hidden; classes are toggled in nav.js */
+.nav-tabs {
+    --tab-fade-width: 48px;
+}
+
+.nav-tabs.overflow-right {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--tab-fade-width)), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - var(--tab-fade-width)), transparent);
+}
+
+.nav-tabs.overflow-left {
+    -webkit-mask-image: linear-gradient(to left, #000 calc(100% - var(--tab-fade-width)), transparent);
+    mask-image: linear-gradient(to left, #000 calc(100% - var(--tab-fade-width)), transparent);
+}
+
+.nav-tabs.overflow-left.overflow-right {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--tab-fade-width), #000 calc(100% - var(--tab-fade-width)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--tab-fade-width), #000 calc(100% - var(--tab-fade-width)), transparent);
+}
+
+/* wrapper + arrows are inserted around .nav-tabs in nav.js; arrows take their own space next to the
+   tab list (the list shrinks), so they never cover a tab handle */
+.nav-tabs-scroller {
+    display: flex;
+    min-width: 0;
+}
+
+.nav-tabs-scroller > .nav-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.nav-tabs-arrow {
+    flex: 0 0 28px;
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    background: transparent;
+    color: var(--color-gray-600);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.nav-tabs-arrow:hover {
+    color: var(--color-gray-900);
+}
+
+/* padding (not margin) keeps a gap to the tabs without breaking the bottom border line */
+.nav-tabs-arrow-left {
+    order: -1;
+    padding-right: 4px;
+}
+
+.nav-tabs-arrow-right {
+    padding-left: 4px;
+}
+
+/* both arrows keep their space while the list overflows, so the list width doesn't change mid-scroll;
+   an arrow with nothing left to reveal on its side is only dimmed */
+.nav-tabs.overflowing ~ .nav-tabs-arrow {
+    display: flex;
+}
+
+.nav-tabs:not(.overflow-left) ~ .nav-tabs-arrow-left,
+.nav-tabs:not(.overflow-right) ~ .nav-tabs-arrow-right {
+    color: var(--color-gray-300, #dee2e6);
+    pointer-events: none;
+    cursor: default;
+}
+
 .modal-content {
     display: flex;
     flex-direction: column;
@@ -52,6 +124,13 @@
             height: 42px;
             position: sticky;
             margin-bottom: 5px;
+        }
+        /* margin goes on the wrapper so the arrows' bottom border lines up with the tabs' */
+        .nav-tabs-scroller {
+            margin-bottom: 5px;
+            .nav-tabs {
+                margin-bottom: 0;
+            }
         }
         .tab-content {
             flex: 1;
