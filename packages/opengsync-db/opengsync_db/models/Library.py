@@ -245,7 +245,7 @@ class Library(Base):
     
     @property
     def molarity(self) -> float | None:
-        if self.avg_fragment_size is None or self.qubit_concentration is None:
+        if not self.avg_fragment_size or self.qubit_concentration is None:
             return None
         return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     

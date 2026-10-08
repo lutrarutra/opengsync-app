@@ -16,7 +16,7 @@ class SubForm(SubHTMXForm):
     id_ = inputs.numeric.IntInputField("ID", required=True, read_only=True)
     name = inputs.string.StringInputField("Name", required=True, read_only=True)
     type = inputs.string.StringInputField("Type", required=True, read_only=True)
-    avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", unit="bp.", required=False, ge=0)
+    avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", unit="bp.", required=False, ge=1)
 
 class CompleteBAReport(BAReportWorkflowStep):
     template_path = "workflows/ba_report/bar-3.html"

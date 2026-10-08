@@ -23,7 +23,7 @@ class SubForm(SubHTMXForm):
     id_ = inputs.numeric.IntInputField("ID", required=True, read_only=True)
     name = inputs.string.StringInputField("Name", required=True, read_only=True)
     type = inputs.string.StringInputField("Type", required=True, read_only=True)
-    avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", unit="bp.", required=False, ge=0)
+    avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", unit="bp.", required=False, ge=1)
 
 class BAReportForm(BAReportWorkflowStep):
     template_path = "workflows/ba_report/bar-1.html"
@@ -143,7 +143,8 @@ class BAReportForm(BAReportWorkflowStep):
                         if not temp_df.empty and "Average Size [bp]" in temp_df.columns:
                             val = temp_df["Average Size [bp]"].values[0]
                             # Convert to float first in case there are decimals, then int
-                            data["avg_fragment_size"].append(int(float(val)))
+                            size = int(float(val))
+                            data["avg_fragment_size"].append(size if size > 0 else None)
                         else:
                             data["avg_fragment_size"].append(None)
                     except Exception as e:

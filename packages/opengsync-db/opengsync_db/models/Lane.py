@@ -152,7 +152,7 @@ class Lane(Base):
 
     @hybrid_property
     def original_molarity(self) -> float | None:  # type: ignore[override]
-        if self.original_qubit_concentration is None or self.avg_fragment_size is None:
+        if self.original_qubit_concentration is None or not self.avg_fragment_size:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
 
@@ -162,7 +162,8 @@ class Lane(Base):
             (
                 sa.and_(
                     Lane.original_qubit_concentration.is_not(None),
-                    Lane.avg_fragment_size.is_not(None)
+                    Lane.avg_fragment_size.is_not(None),
+                    Lane.avg_fragment_size > 0
                 ),
                 sa.cast(Lane.original_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
             ),
@@ -177,7 +178,7 @@ class Lane(Base):
     
     @hybrid_property
     def lane_molarity(self) -> float | None:  # type: ignore[override]
-        if self.original_qubit_concentration is None or self.avg_fragment_size is None:
+        if self.original_qubit_concentration is None or not self.avg_fragment_size:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
@@ -187,7 +188,8 @@ class Lane(Base):
             (
                 sa.and_(
                     Lane.original_qubit_concentration.is_not(None),
-                    Lane.avg_fragment_size.is_not(None)
+                    Lane.avg_fragment_size.is_not(None),
+                    Lane.avg_fragment_size > 0
                 ),
                 sa.cast(Lane.original_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
             ),
@@ -196,7 +198,7 @@ class Lane(Base):
 
     @hybrid_property
     def sequencing_molarity(self) -> float | None:  # type: ignore[override]
-        if self.sequencing_qubit_concentration is None or self.avg_fragment_size is None:
+        if self.sequencing_qubit_concentration is None or not self.avg_fragment_size:
             return None
         return self.sequencing_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
 
@@ -206,7 +208,8 @@ class Lane(Base):
             (
                 sa.and_(
                     Lane.sequencing_qubit_concentration.is_not(None),
-                    Lane._avg_fragment_size.is_not(None)
+                    Lane._avg_fragment_size.is_not(None),
+                    Lane.avg_fragment_size > 0
                 ),
                 sa.cast(Lane.sequencing_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
             ),

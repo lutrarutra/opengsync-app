@@ -31,7 +31,7 @@ class PoolDilution(Base):
     volume_ul: Mapped[float | None] = mapped_column(sa.Float, nullable=True)
 
     def molarity(self, pool: models.Pool) -> float | None:
-        if pool.avg_fragment_size is None:
+        if not pool.avg_fragment_size:
             return None
         return self.qubit_concentration / (pool.avg_fragment_size * 660) * 1_000_000
     
