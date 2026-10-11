@@ -3,6 +3,8 @@
 {% from 'components/legends.jinja2' import color_legend %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 
+{# where this form submits, read by the chat widget for context #}
+<span hidden data-submit-url="{{ url_for('EditKitBarcodesForm.Submit', index_kit_id=index_kit.id) }}"></span>
 <div class="modal-content" id="kit_barcodes-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Edit Barcodes</h1>

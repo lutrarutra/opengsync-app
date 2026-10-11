@@ -1,5 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group, form_cell %}
 
+{# where this form submits, read by the chat widget for context #}
+<span hidden data-submit-url="{{ form.post_url }}"></span>
 <div class="modal-content" id="ba_report-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Bio Analyzer Report</h1>

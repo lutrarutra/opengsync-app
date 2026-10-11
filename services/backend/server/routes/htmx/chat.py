@@ -49,7 +49,7 @@ def _assistant_html(message: chat.ChatMessage) -> Markup | None:
     return html
 
 
-@router.get("")
+@router.get("", name="chat_conversation")
 def get_conversation(
     user_id: int = Depends(dependencies.require_user_id),
     r: rds.RedisClient = Depends(dependencies.redis),
@@ -76,6 +76,7 @@ def audit_message(request: runtime.Request) -> audit.AuditLogger:
 
 @router.post(
     "/messages",
+    name="chat_post_message",
     dependencies=[
         Depends(audit_message),
         Depends(dependencies.verify_csrf_header),
@@ -102,11 +103,14 @@ def post_message(
     if store.pending() is not None:
         raise exc.TooManyRequestsException("Please wait for the current reply to finish.")
 
-    page = _page_pattern(request, str(form.get("page_path") or "") or None)
-    message = chat.ChatMessage(user_message=text, page=page)
+    page = _route_pattern(request, str(form.get("page_path") or "") or None)
+    # the form/workflow step open in a modal, identified by the URL it posts to
+    open_form = _route_pattern(request, str(form.get("form_path") or "") or None, methods=("POST", "PUT", "PATCH"))
+    message = chat.ChatMessage(user_message=text, page=page, form=open_form)
     store.add(message)
     audit_logger.resource_id = message.id
     audit_logger.metadata["page"] = page
+    audit_logger.metadata["form"] = open_form
 
     return responses.htmx_response(
         template="components/chat/message.html",
@@ -114,20 +118,21 @@ def post_message(
     )
 
 
-def _page_pattern(request: runtime.Request, page_path: str | None) -> str | None:
-    """Route pattern of a page URL, e.g. `/browser/{subpath:path}`. The URL itself is never passed on:
-    path segments can hold share/reset tokens or folder and file names."""
-    if not page_path or not page_path.startswith("/"):
+def _route_pattern(request: runtime.Request, url_path: str | None, methods: tuple[str, ...] = ("GET",)) -> str | None:
+    """Route pattern of a URL path, e.g. `/browser/{subpath:path}`. The URL itself is never passed on:
+    path segments can hold record ids, share/reset tokens or folder and file names."""
+    if not url_path or not url_path.startswith("/"):
         return None
-    path = page_path.split("?")[0]
+    path = url_path.split("?")[0]
     root_path = request.scope.get("root_path", "")
     if root_path and path.startswith(root_path):
         path = path[len(root_path):] or "/"
-    for candidate in dict.fromkeys([path, path.rstrip("/") or "/", path.rstrip("/") + "/"]):  # routes may end in "/"
-        scope = {"type": "http", "path": candidate, "method": "GET", "root_path": ""}
-        for route in request.app.routes:
-            if isinstance(route, APIRoute) and route.matches(scope)[0] == Match.FULL:
-                return route.path
+    for method in methods:
+        for candidate in dict.fromkeys([path, path.rstrip("/") or "/", path.rstrip("/") + "/"]):  # routes may end in "/"
+            scope = {"type": "http", "path": candidate, "method": method, "root_path": ""}
+            for route in request.app.routes:
+                if isinstance(route, APIRoute) and route.matches(scope)[0] == Match.FULL:
+                    return route.path
     return None
 
 
@@ -162,7 +167,7 @@ def _final_events(message: chat.ChatMessage) -> list[str]:
     return [_sse("message", str(_assistant_html(message) or "")), _sse("done")]
 
 
-@router.get("/stream/{msg_id}")
+@router.get("/stream/{msg_id}", name="chat_stream")
 def stream_reply(
     msg_id: str,
     request: runtime.Request,
@@ -180,7 +185,7 @@ def stream_reply(
     elif not store.acquire_lock(msg_id):
         events = _wait_for_reply(request, user_id, msg_id)  # another stream is already generating this reply
     else:
-        deps = chat.ChatDeps(user_role=current_user.role, page=message.page)
+        deps = chat.ChatDeps(user_role=current_user.role, page=message.page, form=message.form)
         events = _generate_reply(request, agent, deps, user_id, message)
 
     return StreamingResponse(

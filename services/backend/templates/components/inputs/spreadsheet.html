@@ -1,4 +1,4 @@
-<div class="spreadsheet-container" {% if field.height %}style="height: {{ field.height }};"{% endif %}>
+<div class="spreadsheet-container" data-submit-url="{{ field.post_url }}" {% if field.height %}style="height: {{ field.height }};"{% endif %}>
     <div class="invalid-feedback-container">
         {% if field._errors %}
         <p>Errors:</p>

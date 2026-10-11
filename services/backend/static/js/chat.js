@@ -3,7 +3,7 @@
     const widget = document.getElementById("chat-widget");
     if (!widget) return;
 
-    const BASE = widget.dataset.baseUrl;
+    const CONVERSATION_URL = widget.dataset.conversationUrl;
     const STORAGE_OPEN = "chat:open";
     const CONSENT_COOKIE = "chat_consent";
     const CONSENT_MAX_AGE = 60 * 60 * 24 * 365;  // 1 year
@@ -62,7 +62,7 @@
     // ---------- conversation ----------
 
     function loadConversation() {
-        return htmx.ajax("GET", BASE, {
+        return htmx.ajax("GET", CONVERSATION_URL, {
             target: messages, swap: "innerHTML", headers: csrfHeaders(),
         }).then(() => {
             loaded = true;
@@ -136,8 +136,30 @@
 
     // ---------- htmx integration ----------
 
+    // The form or workflow step open in a modal, as the URL path it submits to (the server maps it to a route pattern)
+    function openFormPath() {
+        const modals = document.querySelectorAll(".modal.show");
+        const modal = modals[modals.length - 1];
+        // data-submit-url marks forms that submit from JavaScript (e.g. spreadsheet steps) instead of hx-post
+        const target = modal?.querySelector("[data-submit-url]") || modal?.querySelector("[hx-post], [hx-put], [hx-patch]");
+        const url = target && (
+            target.getAttribute("data-submit-url") || target.getAttribute("hx-post")
+            || target.getAttribute("hx-put") || target.getAttribute("hx-patch")
+        );
+        if (!url) return "";
+        try {
+            return new URL(url, window.location.href).pathname;
+        } catch (err) {
+            return "";
+        }
+    }
+
     form.addEventListener("htmx:configRequest", (e) => {
-        if (streaming) e.preventDefault();
+        if (streaming) {
+            e.preventDefault();
+            return;
+        }
+        e.detail.parameters["form_path"] = openFormPath();
     });
 
     form.addEventListener("htmx:beforeRequest", () => {

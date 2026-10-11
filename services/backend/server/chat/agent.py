@@ -87,6 +87,7 @@ done by the facility staff only at a high level (e.g. "the facility then prepare
 class ChatDeps:
     user_role: C.UserRole
     page: str | None = None  # route pattern of the page the user is on, e.g. `/projects/{project_id}`
+    form: str | None = None  # route pattern the open form/workflow step posts to
 
 
 def build_agent(model: Model | str | None = None) -> Agent[ChatDeps, str]:
@@ -109,6 +110,11 @@ def build_agent(model: Model | str | None = None) -> Agent[ChatDeps, str]:
         parts = [template.format(role=role.label)]
         if ctx.deps.page:
             parts.append(f"The user is currently viewing the page `{ctx.deps.page}`.")
+        if ctx.deps.form:
+            parts.append(
+                f"The user has a form or workflow step open that submits to `{ctx.deps.form}`. Questions are likely "
+                "about it: find its code by searching for that route (form class, template, validation)."
+            )
         if _is_last_request(ctx):
             parts.append(LAST_REQUEST_INSTRUCTIONS.format(
                 organization=personalization.organization, email=personalization.email,

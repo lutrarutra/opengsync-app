@@ -5,6 +5,8 @@
 {% endif %}
 {% endmacro %}
 
+{# where this form submits, read by the chat widget for context #}
+<span hidden data-submit-url="{{ form.post_url }}"></span>
 <div id="barcode-constraints-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Check Sequencing Index Constraints</h1>

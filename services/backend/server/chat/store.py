@@ -24,6 +24,7 @@ class ChatMessage(BaseModel):
     assistant_text: str = ""
     status: Literal["pending", "done", "error"] = "pending"
     page: str | None = None  # route pattern only (never the URL, which can contain tokens or file names)
+    form: str | None = None  # route pattern of the form/workflow step open in a modal, if any
     created_at: datetime = Field(default_factory=config.settings.now)
 
 

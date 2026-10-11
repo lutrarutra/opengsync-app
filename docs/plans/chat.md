@@ -135,7 +135,7 @@ All routes act on the current user's single conversation (no ids in the URL besi
 - ✨ toggle button, 🤖 in the header; one size (640px wide, full height); open state remembered in `localStorage`. No "new conversation" button
 - First open shows a notice (AI, may be inaccurate, no personal data, external service, 24h retention) that must be accepted; stored in a `chat_consent` cookie for 1 year, and `POST /htmx/chat/messages` returns 403 without it
 - Plain textarea input, send via `hx-post`, stream via `htmx-ext-sse`; Enter sends, Shift+Enter newline; send disabled while a reply streams
-- Sends `page_path` (`location.pathname`) with each message; server resolves it to an entity and converts to a token
+- Sends `page_path` (`location.pathname`) and `form_path` (where the form/workflow step in the open modal submits: `data-submit-url`, else the first `hx-post`/`hx-put`/`hx-patch`); the server maps both to route patterns (e.g. `/htmx/workflows/library-annotation/{seq_request_id}/select-service`) and passes only those. Forms that submit from JavaScript are marked with `data-submit-url` (spreadsheet component, BA report, share project data, edit kit barcodes, barcode constraints)
 - Disclaimer: "Don't enter personal data. Responses may be inaccurate." Empty state notes the 24h retention
 
 **Step 6.2** — `templates/components/chat/conversation.html`, `message.html`

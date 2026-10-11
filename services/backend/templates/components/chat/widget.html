@@ -1,12 +1,12 @@
 {#
     Floating AI support chat (docs/plans/chat.md, Phase 6).
     One conversation per user, stored in Redis under the user's id (24h TTL).
-    Expected endpoints:
-        GET    /htmx/chat                    -> components/chat/conversation.html
-        POST   /htmx/chat/messages           -> components/chat/message.html (user bubble + assistant placeholder)
-        GET    /htmx/chat/stream/{msg_id}    -> SSE: "message" (full re-rendered assistant HTML), "error", "done"
+    Endpoints (always build URLs with url_for, the app may run behind a path prefix):
+        chat_conversation   GET  /htmx/chat                  -> components/chat/conversation.html
+        chat_post_message   POST /htmx/chat/messages         -> components/chat/message.html (user bubble + assistant placeholder)
+        chat_stream         GET  /htmx/chat/stream/{msg_id}  -> SSE: "message" (full re-rendered assistant HTML), "error", "done"
 #}
-<div id="chat-widget" data-base-url="/htmx/chat" hx-headers='js:{"X-CSRF-Token": getCookie("csrf_token") || ""}'>
+<div id="chat-widget" data-conversation-url="{{ url_for('chat_conversation') }}" hx-headers='js:{"X-CSRF-Token": getCookie("csrf_token") || ""}'>
     <button type="button" id="chat-toggle" class="chat-toggle" aria-label="Open assistant chat" aria-expanded="false" aria-controls="chat-panel" title="Ask the assistant">
         <span class="chat-toggle-open" aria-hidden="true">✨</span>
         <i class="bi bi-x-lg chat-toggle-close"></i>
@@ -50,8 +50,9 @@
             </div>
         </div>
 
-        <form id="chat-form" class="chat-form" hx-post="/htmx/chat/messages" hx-target="#chat-messages" hx-swap="beforeend" hx-trigger="submit">
+        <form id="chat-form" class="chat-form" hx-post="{{ url_for('chat_post_message') }}" hx-target="#chat-messages" hx-swap="beforeend" hx-trigger="submit">
             <input type="hidden" name="page_path" id="chat-page-path">
+            <input type="hidden" name="form_path" id="chat-form-path">
             <div class="chat-input-row">
                 <textarea name="message" id="chat-input" rows="1" maxlength="4000" placeholder="Message…" autocomplete="off" required></textarea>
                 <button type="submit" id="chat-send" class="chat-send" title="Send" aria-label="Send">
