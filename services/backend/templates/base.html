@@ -35,11 +35,13 @@
 </head>
 
 <body>
+    {% if not current_user %}
     <div style="position: absolute; bottom: 15px; left: 15px; z-index: 1100;">
         <a href="{{ url_for('help') }}" target="_blank" type="button" style="z-index: 1100;">
             <img src="{{ url_for('static', filename='images/help.svg') }}" width="26px" style="z-index: 1100;">
         </a>
     </div>
+    {% endif %}
     {% if current_user %}
         {% set user_role = current_user.role %}
     {% else %}
@@ -333,6 +335,7 @@
     <script src="{{ url_for('static', filename='js/colors.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/clickable-cards.js') }}"></script>
     <script src="{{ url_for('static', filename='js/callbacks.js') }}"></script>
     <script id="passkey-config" type="application/json">{{ {
         "registerOptions": url_for('passkey_register_options') | string,
@@ -341,6 +344,9 @@
         "loginVerify": url_for('passkey_login_verify') | string,
     } | tojson }}</script>
     <script src="{{ url_for('static', filename='js/passkey.js') }}"></script>
+    {% if current_user and chat_enabled is defined and chat_enabled %}
+    {% include "components/chat/widget.html" %}
+    {% endif %}
 </body>
 
 </html>

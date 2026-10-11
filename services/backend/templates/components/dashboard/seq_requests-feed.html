@@ -8,24 +8,27 @@
 {% if loop.last and limit == loop.index %}
 hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq-requests-feed-indicator" hx-swap="outerHTML" hx-indicator="#seq-requests-feed-indicator"
 {% endif %}>
-    <div class="row">
-        <div class="col-4">
+    <div class="feed-head">
+        <div class="feed-title">
             <a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a>
+            <span class="feed-subtitle"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></span>
         </div>
-        <div class="col-8">
+        <div class="feed-actions">
             {% if current_user.is_insider and current_user not in seq_request.assignees %}
-            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('self_assign_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn feed-assign" hx-post="{{ url_for('self_assign_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
             {% if seq_request.assignees %}{{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}
-            <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
-            <span class="badge">{{ seq_request.submission_type.display_name }}</span>
         </div>
     </div>
-    <div class="row pb-1">
-        <div class="col-8"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></div>
-        <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
+    <div class="feed-meta">
+        <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+        <span><i class="bi bi-box-seam"></i>{{ seq_request.submission_type.display_name }}</span>
+        <span><i class="bi bi-collection"></i>{{ seq_request.num_libraries }} libraries</span>
     </div>
-    {{ seq_request_status_bar(seq_request) }}
+    <div class="status-row">
+        {{ seq_request_status_bar(seq_request) }}
+        <span class="status-label">{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</span>
+    </div>
 </div>
 {% endfor %}
 {{ spinner(id="seq-requests-feed-indicator") }}

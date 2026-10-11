@@ -1,4 +1,5 @@
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/workflow_tile.jinja2" import workflow_tile with context %}
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
@@ -280,165 +281,27 @@
                     {% if seq_request.submission_type == C.SubmissionType.QC_ONLY %}<p class="text-muted">QC-only libraries are not submitted for sequencing.</p>{% endif %}
                 </div>
             </div>
-            <div class="workflow-container">
+            <div class="workflow-tiles">
                 {% if current_user.is_insider %}
-                <div class="flip-card card{% if seq_request.status != C.SeqRequestStatus.ACCEPTED %} disabled text-muted{% endif %}"
-                    {% if seq_request.status == C.SeqRequestStatus.ACCEPTED %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('StoreSamplesAction.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content"
-                    hx-swap="innerHTML" hx-trigger="click"
-                    {% else %}{{ tooltip("Samples can only be stored once the request has been accepted.", category="warning") }}{% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/store.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Store Samples</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Store samples received from customers.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ workflow_tile("Store Samples", "Store samples received from customers.", url_for('StoreSamplesAction.Begin', seq_request_id=seq_request.id), img="store.svg",
+                    disabled_reason=none if seq_request.status == C.SeqRequestStatus.ACCEPTED else "Samples can only be stored once the request has been accepted.") }}
                 {% endif %}
+                {% set can_edit_libraries = seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}
                 {% if seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES %}
-                <div class="flip-card card {% if seq_request.status != C.SeqRequestStatus.DRAFT and not current_user.is_insider %} disabled text-muted{% endif %}"
-                    {% if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('MergePoolsWorkflow.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"
-                    {% else %}{{ tooltip("You can no longer edit libraries after the request has been submitted.", category="warning") }}{% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/merge.svg') }}" width="60px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Merge Pools</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Merge pools by combining all libraries from selected pools into a new pool.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ workflow_tile("Merge Pools", "Merge pools by combining all libraries from selected pools into a new pool.", url_for('MergePoolsWorkflow.Begin', seq_request_id=seq_request.id), img="merge.svg",
+                    disabled_reason=none if can_edit_libraries else "You can no longer edit libraries after the request has been submitted.") }}
                 {% endif %}
                 {% if seq_request.submission_type in [C.SubmissionType.POOLED_LIBRARIES, C.SubmissionType.UNPOOLED_LIBRARIES] %}
-                <div class="flip-card card{% if seq_request.status != C.SeqRequestStatus.DRAFT and not current_user.is_insider %} disabled text-muted{% endif %}"
-                    {% if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('ReindexWorkflow.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
-                    {% else %}{{ tooltip("You can no longer edit libraries after the request has been submitted.", category="warning") }}{% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/barcode.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Re-Index Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Make changes to library indices.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('CheckBarcodeClashesAction.Render', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/clash.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Check Barcode Clashes</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Checks barcode conflicts, in preparation for pooling libraries.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ workflow_tile("Re-Index Libraries", "Make changes to library indices.", url_for('ReindexWorkflow.Begin', seq_request_id=seq_request.id), img="barcode.svg",
+                    disabled_reason=none if can_edit_libraries else "You can no longer edit libraries after the request has been submitted.") }}
+                {{ workflow_tile("Check Barcode Clashes", "Checks barcode conflicts, in preparation for pooling libraries.", url_for('CheckBarcodeClashesAction.Render', seq_request_id=seq_request.id), img="clash.svg") }}
                 {% if current_user.is_insider %}
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('IndexCheckWorkflow.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <i class="bi bi-arrow-left-right" style="font-size: 40px;"></i>
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Check Index Orientations</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Verify the orientation of custom barcodes and store all indices in forward orientation.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ workflow_tile("Check Index Orientations", "Verify the orientation of custom barcodes and store all indices in forward orientation.", url_for('IndexCheckWorkflow.Begin', seq_request_id=seq_request.id), bi="bi-arrow-left-right") }}
                 {% endif %}
                 {% endif %}
                 {% if current_user.is_insider and seq_request.submission_type != C.SubmissionType.QC_ONLY %}
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('ReseqAction.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/redo.svg') }}" width="70px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Re-Sequence Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Clone libraries for re-sequencing. Libraries will be added to the original (this) sequencing request.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('RelibWorkflow.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <i class="bi bi-pencil-square" style="font-size: 45px;"></i>
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Edit Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Make changes to libraries.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ workflow_tile("Re-Sequence Libraries", "Clone libraries for re-sequencing. Libraries will be added to the original (this) sequencing request.", url_for('ReseqAction.Begin', seq_request_id=seq_request.id), img="redo.svg") }}
+                {{ workflow_tile("Edit Libraries", "Make changes to libraries.", url_for('RelibWorkflow.Begin', seq_request_id=seq_request.id), bi="bi-pencil-square") }}
                 {% endif %}
             </div>
         </div>

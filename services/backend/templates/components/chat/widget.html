@@ -1,0 +1,67 @@
+{#
+    Floating AI support chat (docs/plans/chat.md, Phase 6).
+    One conversation per user, stored in Redis under the user's id (24h TTL).
+    Expected endpoints:
+        GET    /htmx/chat                    -> components/chat/conversation.html
+        POST   /htmx/chat/messages           -> components/chat/message.html (user bubble + assistant placeholder)
+        GET    /htmx/chat/stream/{msg_id}    -> SSE: "message" (full re-rendered assistant HTML), "error", "done"
+#}
+<div id="chat-widget" data-base-url="/htmx/chat" hx-headers='js:{"X-CSRF-Token": getCookie("csrf_token") || ""}'>
+    <button type="button" id="chat-toggle" class="chat-toggle" aria-label="Open assistant chat" aria-expanded="false" aria-controls="chat-panel" title="Ask the assistant">
+        <span class="chat-toggle-open" aria-hidden="true">✨</span>
+        <i class="bi bi-x-lg chat-toggle-close"></i>
+    </button>
+
+    <section id="chat-panel" class="chat-panel" role="dialog" aria-label="Assistant chat" hidden>
+        <header class="chat-header">
+            <div class="chat-title">
+                <span aria-hidden="true">🤖</span>
+                <span>Assistant</span>
+            </div>
+            <div class="chat-header-actions">
+                <a href="{{ url_for('help') }}" target="_blank" class="chat-icon-btn" title="Help">
+                    <i class="bi bi-question-circle"></i>
+                </a>
+                <button type="button" class="chat-icon-btn" id="chat-close" title="Close">
+                    <i class="bi bi-dash-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="chat-consent" class="chat-consent" hidden>
+            <h2>Before you start</h2>
+            <p>This assistant is an AI language model. It answers questions about how {{ organization_name }}'s LIMS works by looking at the platform's source code and documentation.</p>
+            <ul>
+                <li><strong>Answers may be inaccurate.</strong> Double-check anything important, and for binding information contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</li>
+                <li><strong>Don't enter personal data</strong> (names, email addresses, phone numbers) or other confidential information. Your messages are processed by an external AI service.</li>
+                <li>The assistant can't see your projects, samples or other data, and it can't change anything.</li>
+                <li>Your conversation is stored for {{ chat_history_ttl_hours | default(24) }} hours and then deleted. Your messages are also recorded in our audit log to detect misuse.</li>
+            </ul>
+            <div class="chat-consent-actions">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="chat-consent-decline">Not now</button>
+                <button type="button" class="btn btn-primary btn-sm" id="chat-consent-accept">Accept and continue</button>
+            </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages" aria-live="polite">
+            <div class="chat-empty">
+                <i class="bi bi-chat-square-text"></i>
+                <p>Ask about your projects, requests or how to use OpeNGSync.</p>
+            </div>
+        </div>
+
+        <form id="chat-form" class="chat-form" hx-post="/htmx/chat/messages" hx-target="#chat-messages" hx-swap="beforeend" hx-trigger="submit">
+            <input type="hidden" name="page_path" id="chat-page-path">
+            <div class="chat-input-row">
+                <textarea name="message" id="chat-input" rows="1" maxlength="4000" placeholder="Message…" autocomplete="off" required></textarea>
+                <button type="submit" id="chat-send" class="chat-send" title="Send" aria-label="Send">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
+            <p class="chat-disclaimer">Don't enter personal data. Responses may be inaccurate.</p>
+        </form>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.3/dist/sse.min.js"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>

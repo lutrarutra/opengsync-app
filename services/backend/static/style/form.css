@@ -239,3 +239,13 @@ textarea.disabled:focus {
 select.form-control:has(option:checked[value=""]) {
     color: #6c757d;
 }
+
+/* Options inherit the select's color in non-native dropdowns (e.g. Chrome/Edge on Windows),
+   so reset them to avoid real options looking disabled while the placeholder is selected */
+select.form-control option {
+    color: var(--bs-body-color);
+}
+
+select.form-control option[value=""] {
+    color: #6c757d;
+}

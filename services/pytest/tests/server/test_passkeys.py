@@ -80,7 +80,6 @@ def test_registration_options_require_discoverable_credential(client: TestClient
     assert options["authenticatorSelection"]["residentKey"] == "required"
     assert options["attestation"] == "none"
     assert options["excludeCredentials"] == []
-    assert data["has_passkeys"] is False
     assert data["credential_ids"] == []
     assert b64url_decode(data["user_handle"]) == b64url_decode(options["user"]["id"])
 
@@ -117,7 +116,6 @@ def test_registration_options_exclude_existing_passkeys(client: TestClient, user
 
     data = _post_json(client, REGISTER_OPTIONS, token=user_token).json()
 
-    assert data["has_passkeys"] is True
     [excluded] = data["options"]["excludeCredentials"]
     assert b64url_decode(excluded["id"]) == authenticator.credential_id
     assert data["credential_ids"] == [excluded["id"]]
@@ -330,7 +328,7 @@ def test_login_form_offers_passkey_autofill(client: TestClient):
 
     assert response.status_code == 200
     assert 'autocomplete="username webauthn"' in response.text
-    assert "passkey-login-btn" in response.text
+    assert "passkey-login-btn" not in response.text
 
 
 def test_pages_include_passkey_config(client: TestClient):

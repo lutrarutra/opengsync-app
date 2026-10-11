@@ -3,6 +3,7 @@
 Share-root escape attempts are covered in ``server/test_share_root_abuse.py``.
 """
 
+import json
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,7 @@ from opengsync_db import SyncSession, queries as Q
 from server.core import config
 
 from ...db.create_units import create_project
-from .._http import assert_htmx_redirect, post_form
+from .._http import post_form
 
 SUBMIT_PATH = "/htmx/files/associate-path"
 
@@ -47,7 +48,15 @@ def test_submit_associates_path_with_project(
         token=insider_token, params={"path": "results/report.html"},
     )
 
-    assert_htmx_redirect(response, "/browser/")
+    # Empty OK response; the form closes its modal, and the browser updates the row's badges from HX-Trigger.
+    assert response.status_code == 204
+    assert "HX-Redirect" not in response.headers
+    events = json.loads(response.headers["HX-Trigger"])
+    assert events["dataPathAssociationsUpdated"]["path"] == "results/report.html"
+    [association] = events["dataPathAssociationsUpdated"]["associations"]
+    assert association["label"] == (project.identifier or project.title)
+    assert association["href"].endswith(f"/{project.id}")
+
     [data_path] = _data_paths(session, "results/report.html")
     assert data_path.project_id == project.id
 

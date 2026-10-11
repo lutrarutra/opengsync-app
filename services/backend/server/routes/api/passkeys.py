@@ -44,7 +44,6 @@ def register_options(
     options = passkeys.registration_options(request, r, user, existing, conditional=body.conditional)
     return {
         "options": options,
-        "has_passkeys": len(existing) > 0,
         # For PublicKeyCredential.signalAllAcceptedCredentials()
         "rp_id": passkeys.rp_id(request),
         "user_handle": bytes_to_base64url(passkeys.ensure_user_handle(user)),

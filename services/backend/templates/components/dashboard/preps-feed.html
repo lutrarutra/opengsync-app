@@ -2,14 +2,17 @@
 
 {% for service_type_id, _df in df.groupby("service_type") %}
 {% set service_type = C.ServiceType(service_type_id) %}
+{% set n_waiting = (_df["status"] == C.LibraryStatus.ACCEPTED).sum() %}
+{% set n_preparing = (_df["status"] == C.LibraryStatus.PREPARING).sum() %}
+{% set n_stored = (_df["status"] == C.LibraryStatus.STORED).sum() %}
 <div class="element-banner">
-    <div class="title-row row">
-        <div class="title col-4"><a type="button" hx-get="{{ url_for('render_prep_feed_detail', service_type_id=service_type_id) }}"
+    <div class="feed-head">
+        <div class="feed-title"><a type="button" hx-get="{{ url_for('render_prep_feed_detail', service_type_id=service_type_id) }}"
         hx-target="#assay-type-todo-modal-content" hx-swap="innerHTML" data-bs-target="#assay-type-todo-modal" data-bs-toggle="modal">{{ service_type.abbreviation }}</a></div>
-        <div class="col-8">
-            <span class="badge">Waiting: {{ (_df["status"] == C.LibraryStatus.ACCEPTED).sum() }} 📭</span>
-            <span class="badge">Preparing: {{ (_df["status"] == C.LibraryStatus.PREPARING).sum() }} {{ C.LibraryStatus.PREPARING.icon }}</span>
-            <span class="badge">Stored: {{ (_df["status"] == C.LibraryStatus.STORED).sum() }} {{ C.LibraryStatus.STORED.icon }}</span>
+        <div class="feed-chips">
+            <span class="feed-chip {% if n_waiting %}feed-chip-warn{% else %}feed-chip-muted{% endif %}">📭 Waiting <b>{{ n_waiting }}</b></span>
+            <span class="feed-chip {% if not n_preparing %}feed-chip-muted{% endif %}">{{ C.LibraryStatus.PREPARING.icon }} Preparing <b>{{ n_preparing }}</b></span>
+            <span class="feed-chip {% if not n_stored %}feed-chip-muted{% endif %}">{{ C.LibraryStatus.STORED.icon }} Stored <b>{{ n_stored }}</b></span>
         </div>
     </div>
 </div>

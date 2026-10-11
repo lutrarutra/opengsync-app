@@ -5,9 +5,6 @@
         {{ form.email.render("col-6") }}
         {{ form.password.render("col-6") }}
         <div class="col-6" style="display: flex; flex-direction: row; justify-content: flex-end; gap: 10px; padding: 0 5px;">
-            <button type="button" class="btn btn-outline-primary passkey-login-btn" style="display: none;">
-                <i class="bi bi-key"></i> Sign in with a passkey
-            </button>
             <button class="btn btn-success"
             hx-include="#login-form" hx-target="#login-form" hx-swap="outerHTML"
             hx-post="{{ url_for('LoginForm.Login') }}">

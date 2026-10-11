@@ -10,7 +10,33 @@
                 {{ form.directory_path.render("col-6") }}
                 {{ form.time_valid_min.render("col-6") }}
             </div>
-            {{ form.recipients.render() }}
+            <div class="form-group" id="share-directory-recipients">
+                <a>Recipients</a>
+                <div class="recipient-list d-flex flex-column">
+                    {% for entry in form.recipients %}
+                    <div class="recipient-row d-flex gap-2 align-items-start">
+                        {{ entry.email.render("flex-grow-1", hide_label=True) }}
+                        <button type="button" class="btn btn-outline-danger recipient-remove" aria-label="Remove recipient">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <template class="recipient-row-template">
+                    <div class="recipient-row d-flex gap-2 align-items-start">
+                        {{ form.recipient_template.email.render("flex-grow-1", hide_label=True) }}
+                        <button type="button" class="btn btn-outline-danger recipient-remove" aria-label="Remove recipient">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </template>
+                {% for error in form.recipients.errors.get(None, []) %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+                <button type="button" class="btn btn-sm btn-outline-primary recipient-add">
+                    <i class="bi bi-plus-lg"></i> Add recipient
+                </button>
+            </div>
             {{ form.anonymous_send.render() }}
         </div>
     </div>
@@ -26,3 +52,67 @@
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    const container = document.getElementById('share-directory-recipients');
+    const list = container.querySelector('.recipient-list');
+    const prefix = '{{ form.recipients.name }}';
+    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // The server rebuilds rows from recipients-0-email, recipients-1-email, ... so indices must stay contiguous.
+    function renumber() {
+        const rows = list.querySelectorAll('.recipient-row');
+        const pattern = new RegExp('^' + prefix + '-(\\d+|__INDEX__)-');
+        rows.forEach(function(row, index) {
+            row.querySelectorAll('[name], [id], [aria-describedby]').forEach(function(el) {
+                ['name', 'id', 'aria-describedby'].forEach(function(attr) {
+                    const value = el.getAttribute(attr);
+                    if (value) el.setAttribute(attr, value.replace(pattern, prefix + '-' + index + '-'));
+                });
+            });
+        });
+        rows.forEach(function(row) {
+            row.querySelector('.recipient-remove').disabled = rows.length === 1;
+        });
+    }
+
+    function validate(input) {
+        const value = input.value.trim();
+        const invalid = value !== '' && !EMAIL_PATTERN.test(value);
+        input.classList.toggle('is-invalid', invalid);
+        const feedback = input.closest('.form-group').querySelector('.invalid-feedback-container');
+        if (feedback) feedback.textContent = invalid ? 'Invalid email address.' : '';
+        return !invalid;
+    }
+
+    function addRow() {
+        const row = container.querySelector('.recipient-row-template').content.firstElementChild.cloneNode(true);
+        list.appendChild(row);
+        renumber();
+        row.querySelector('input').focus();
+    }
+
+    container.querySelector('.recipient-add').addEventListener('click', addRow);
+
+    list.addEventListener('click', function(event) {
+        const button = event.target.closest('.recipient-remove');
+        if (!button || button.disabled) return;
+        button.closest('.recipient-row').remove();
+        renumber();
+    });
+
+    list.addEventListener('input', function(event) {
+        if (event.target.matches('input[type="email"]')) validate(event.target);
+    });
+
+    // Enter on a valid address starts the next one instead of submitting.
+    list.addEventListener('keydown', function(event) {
+        if (event.key !== 'Enter' || !event.target.matches('input[type="email"]')) return;
+        event.preventDefault();
+        if (event.target.value.trim() && validate(event.target)) addRow();
+    });
+
+    renumber();
+})();
+</script>

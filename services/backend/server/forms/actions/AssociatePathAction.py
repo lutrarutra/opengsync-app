@@ -1,8 +1,9 @@
 from pathlib import Path
 
 from fastapi import Depends, Query
+from sqlalchemy import orm
 
-from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, categories as C
+from opengsync_db import models, queries as Q, SyncSession, exceptions as db_exc, categories as C
 
 from ...core import dependencies, responses, config, exceptions as exc
 from ...utils.file_browser import is_within_root
@@ -120,7 +121,40 @@ class AssociatePathAction(HTMXForm):
                 except db_exc.LinkAlreadyExists:
                     pass
 
-            parent = form.path.parent
-            kwargs = {} if parent == Path() or parent.as_posix() == "." else {"subpath": parent.as_posix()}
-            return responses.htmx_response(redirect=responses.url_for("browser_page", **kwargs))
+            session.flush()
+            data_paths = session.get_all(
+                statement=Q.data_path.select(path=posix_path),
+                limit=None,
+                options=[
+                    orm.joinedload(models.DataPath.project),
+                    orm.joinedload(models.DataPath.experiment),
+                    orm.joinedload(models.DataPath.seq_request),
+                    orm.joinedload(models.DataPath.library),
+                ],
+            )
+
+            # Same badges, in the same order, as components/file-browser/entries.html renders.
+            associations: list[dict[str, str | None]] = []
+            for data_path in data_paths:
+                if data_path.project:
+                    associations.append({
+                        "label": data_path.project.identifier or data_path.project.title,
+                        "href": str(responses.url_for("project_page", project_id=data_path.project.id)),
+                    })
+                if data_path.experiment:
+                    associations.append({"label": data_path.experiment.name, "href": None})
+                if data_path.seq_request:
+                    associations.append({"label": data_path.seq_request.name, "href": None})
+                if data_path.library:
+                    associations.append({
+                        "label": data_path.library.name,
+                        "href": str(responses.url_for("library_page", library_id=data_path.library.id)),
+                    })
+
+            return responses.htmx_response(
+                flash=responses.flash("Path associated.", "success"),
+                trigger={
+                    "dataPathAssociationsUpdated": {"path": posix_path, "associations": associations},
+                },
+            )
         return route

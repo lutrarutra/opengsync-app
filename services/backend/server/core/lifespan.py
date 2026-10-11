@@ -101,10 +101,15 @@ async def lifespan(app: FastAPI):
     app.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
     app.state.bcrypt = secrets.BcryptCompat()
 
+    from .. import chat
+    app.state.chat_agent = chat.build_agent() if config.settings.app_config.chat.enabled else None
+
     from .templates import j2
     from .config import settings
     j2.env.globals["contact_email"] = settings.app_config.personalization.email
     j2.env.globals["organization_name"] = settings.app_config.personalization.organization
+    j2.env.globals["chat_enabled"] = settings.app_config.chat.enabled
+    j2.env.globals["chat_history_ttl_hours"] = settings.app_config.chat.history_ttl_hours
 
     # FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix="fastapi-cache")
     yield

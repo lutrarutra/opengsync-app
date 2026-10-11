@@ -8,6 +8,7 @@ from ...core.mailer import Mailer
 from ...core import dependencies, exceptions as exc, responses, config
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ..SubHTMXForm import SubHTMXForm
 
 
 TIME_VALID_CHOICES = [
@@ -17,6 +18,10 @@ TIME_VALID_CHOICES = [
     (60 * 24 * 14, "2 Week"),
     (60 * 24 * 30, "1 Month"),
 ]
+
+
+class RecipientSubForm(SubHTMXForm):
+    email = inputs.string.EmailInputField("Recipient", placeholder="name@example.com")
 
 
 class ShareDirectoryAction(HTMXForm):
@@ -32,17 +37,19 @@ class ShareDirectoryAction(HTMXForm):
         TIME_VALID_CHOICES,
         default=TIME_VALID_CHOICES[3][0],
     )
-    recipients = inputs.string.TextAreaInputField(
-        "Recipients",
-        required=True,
-        description="Comma-separated email addresses",
-    )
+    recipients = inputs.dynamic.SubFormList[RecipientSubForm](min_elements=1)
     anonymous_send = inputs.boolean.CheckboxInputField("Anonymous Send")
 
     def __init__(self, path: str | None = None) -> None:
         super().__init__()
         self.path = path
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit")
+        # Blank row the + button clones (private, so it is not validated as a sub-form).
+        self._recipient_template = RecipientSubForm(prefix=f"{self.recipients.name}-__INDEX__")
+
+    @property
+    def recipient_template(self) -> RecipientSubForm:
+        return self._recipient_template
 
     @classmethod
     def Init(cls) -> FormFunc:
@@ -61,6 +68,7 @@ class ShareDirectoryAction(HTMXForm):
         ):
             if path is not None:
                 form.directory_path.data = path
+            form.recipients.append_entry()
             return form.make_response()
         return route
 
@@ -75,16 +83,8 @@ class ShareDirectoryAction(HTMXForm):
             if not current_user.is_insider:
                 raise exc.NoPermissionsException()
 
-            # Parse and validate recipients
-            recipients = [email.strip() for email in form.recipients.data.split(",") if email.strip()]
-            if not recipients:
-                form.recipients.errors.append("At least one recipient email is required.")
-                raise exc.FormValidationException(form)
-
-            for email in recipients:
-                if not email or "@" not in email:
-                    form.recipients.errors.append(f"Invalid email address: {email}")
-                    raise exc.FormValidationException(form)
+            # Each address is validated by its EmailInputField, and min_elements requires at least one.
+            recipients = [entry.email.data for entry in form.recipients]
 
             # Validate directory path exists under share_root
             share_root = config.settings.app_config.share_root

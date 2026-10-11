@@ -5,7 +5,7 @@
 {% macro comment_list(comments) %}
 <ul style="list-style-type: none; padding-left: 0;">
     {% for comment in comments %}
-    {% if comment.task_status_id %}
+    {% if comment.task_status is not none and comment.task_status.id %}
     <li>
         <div><span class="cm-callback" style="cursor: pointer;" {{
             context_menu([

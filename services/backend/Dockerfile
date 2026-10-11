@@ -49,6 +49,7 @@ ENV PYTHONPATH=/app/services/backend
 RUN uv sync --frozen --no-editable --no-dev
 
 COPY services/backend/templates /templates
+COPY docs/*.md /app/docs/
 COPY services/backend/static/js /static/js
 COPY services/backend/static/images /static/images
 COPY services/backend/static/resources /static/resources

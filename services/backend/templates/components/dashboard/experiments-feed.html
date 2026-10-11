@@ -6,16 +6,21 @@
 {% if loop.last and limit == loop.index %}
 hx-get="{{ url_for('render_experiment_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-feed-indicator" hx-swap="outerHTML" hx-indicator="#experiments-feed-indicator"
 {% endif %}>
-    <div class="row pb-1">
-        <div class="title col-6">
+    <div class="feed-head">
+        <div class="feed-title">
             <a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a>
         </div>
-        <div class="col-6">
+        <div class="feed-actions">
             <span class="badge assignee-badge {% if experiment.operator == current_user %}badge-success{% endif %}" {{ tooltip(experiment.operator.name, category="success" if experiment.operator == current_user else "primary") }}>{{ experiment.operator.initials }}</span>
-            {{ experiment.timestamp_created_str("%-d. %b.") }}
         </div>
     </div>
-    {{ experiment_status_bar(experiment) }}
+    <div class="feed-meta">
+        <span><i class="bi bi-calendar3"></i>{{ experiment.timestamp_created_str("%-d. %b.") }}</span>
+    </div>
+    <div class="status-row">
+        {{ experiment_status_bar(experiment) }}
+        <span class="status-label">{{ experiment.status.label }} {{ experiment.status.icon | safe }}</span>
+    </div>
 </div>
 {% endfor %}
 {{ spinner(id="experiments-feed-indicator") }}

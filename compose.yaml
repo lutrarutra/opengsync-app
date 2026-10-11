@@ -44,6 +44,7 @@ services:
             MAIL_PASSWORD: ${MAIL_PASSWORD}
             SECRET_KEY: ${SECRET_KEY}
             MAIL_USER: ${MAIL_USER}
+            CHAT_API_KEY: ${CHAT_API_KEY:-}
             ENVIRONMENT: prod
         expose:
             - "5000"

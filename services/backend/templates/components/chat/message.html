@@ -1,0 +1,18 @@
+{#
+    Single chat turn.
+    - user_message: str (raw user text, rendered escaped)
+    - assistant_html: Markup | None (rendered, de-pseudonymised reply; None while streaming)
+    - msg_id: used to connect the SSE stream when assistant_html is None
+#}
+<div class="chat-msg chat-msg-user">
+    <div class="chat-bubble">{{ user_message }}</div>
+</div>
+<div class="chat-msg chat-msg-assistant">
+    {% if assistant_html is defined and assistant_html is not none %}
+    <div class="chat-bubble">{{ assistant_html }}</div>
+    {% else %}
+    <div class="chat-bubble chat-streaming" hx-ext="sse" sse-connect="/htmx/chat/stream/{{ msg_id }}" sse-swap="message,error" sse-close="done" hx-swap="innerHTML">
+        <span class="chat-typing"><span></span><span></span><span></span></span>
+    </div>
+    {% endif %}
+</div>

@@ -55,14 +55,14 @@
                     <div class="flow-cell-comment-container">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('TODOCommentForm.Render', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
                                 <em class="text-muted">Flow Cell Notes:</em>
                             </div>
                             <div>
                                 {{
                                     modal_button(
                                         text='<i class="bi bi-pencil-square"></i>' | safe,
-                                        url=url_for('edit_flow_cell_design', flow_cell_design_id=design.id),
+                                        url=url_for('FlowCellDesignForm.Edit', flow_cell_design_id=design.id),
                                         container="a", class="", tooltip='Edit Design', size="sm"
                                     )
                                 }}

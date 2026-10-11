@@ -36,6 +36,7 @@ services:
             - ./services/backend/static/resources:/static/resources:ro
             - ./services/backend/static/style/email.css:/static/style/email.css:ro
             - ./services/backend/templates:/templates:ro
+            - ./docs:/app/docs:ro
             - ${UPLOADS_DIR}:/uploads
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
@@ -55,6 +56,7 @@ services:
             MAIL_PASSWORD: ${MAIL_PASSWORD}
             SECRET_KEY: ${SECRET_KEY}
             MAIL_USER: ${MAIL_USER}
+            CHAT_API_KEY: ${CHAT_API_KEY:-}
             ENVIRONMENT: dev
         ports:
             - ${OPENGSYNC_PORT:-5000}:${OPENGSYNC_PORT:-5000}

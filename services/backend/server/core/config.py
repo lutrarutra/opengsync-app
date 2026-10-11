@@ -29,6 +29,18 @@ class SchedulerConfig(BaseModel):
     status_update_interval_min: int
 
 
+class ChatConfig(BaseModel):
+    enabled: bool = False
+    # "test" = offline echo model (no LLM). Otherwise a pydantic-ai model string, e.g. "openai:gpt-4.1-mini"
+    # (hosted providers read their standard env var, e.g. OPENAI_API_KEY / ANTHROPIC_API_KEY),
+    # or, together with `base_url`, the model name served by an OpenAI-compatible endpoint (vLLM, Ollama, ...)
+    model: str = "test"
+    base_url: str | None = None
+    history_ttl_hours: int = 72
+    max_history_turns: int = 5  # questions (with answers) kept: shown in the widget and sent back to the model
+    max_requests_per_turn: int = 25  # model requests per reply, each tool-call round trip counts as one
+
+
 class AppConfig(BaseModel):
     """Pydantic model for opengsync.yaml"""
     personalization: Personalization
@@ -48,6 +60,7 @@ class AppConfig(BaseModel):
     log_folder: str
     illumina_run_folder: str
     scheduler: SchedulerConfig
+    chat: ChatConfig = ChatConfig()
 
 
 class Settings(BaseSettings):
@@ -74,6 +87,9 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
 
     JWT_ALGORITHM: str = "HS256"
+
+    # API key for chat.base_url (OpenAI-compatible endpoint)
+    CHAT_API_KEY: str = ""
 
     # WebAuthn / passkeys. RP ID must be the (registrable) domain users see, e.g. "lims.example.org".
     # Changing it later invalidates every registered passkey. Empty = derive from the request host.

@@ -1,5 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/workflow_tile.jinja2' import workflow_tile with context %}
 {% from 'components/status_bar.jinja2' import pool_status_bar with context %}
 
 {% extends "base.html" %}
@@ -157,50 +158,10 @@
                     <h3>Workflows</h3>
                 </div>
             </div>
-            <div class="workflow-container">
+            <div class="workflow-tiles">
                 {% if current_user.is_insider %}
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('SelectPoolLibrariesAction.Begin', pool_id=pool.id) }}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/select.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Add Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Select existing libraries to add to this pool.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('ReindexWorkflow.Begin', pool_id=pool.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/barcode.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Re-Index Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Make changes to library indices.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ workflow_tile("Add Libraries", "Select existing libraries to add to this pool.", url_for('SelectPoolLibrariesAction.Begin', pool_id=pool.id), modal="xl", img="select.svg") }}
+                {{ workflow_tile("Re-Index Libraries", "Make changes to library indices.", url_for('ReindexWorkflow.Begin', pool_id=pool.id), img="barcode.svg") }}
                 {% endif %}
             </div>
         </div>

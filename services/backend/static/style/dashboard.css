@@ -39,22 +39,41 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 8px;
+            background-color: var(--color-white);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
             overflow: hidden;
 
             .dash-component-header {
-                height: 50px !important;
+                height: 42px !important;
                 flex-shrink: 0;
                 display: flex;
-                align-items: center;
+                align-items: flex-end;
                 padding: 0 10px;
-                background-color: var(--color-gray-200);
-                border-bottom: solid var(--bs-border-color);
+                border-bottom: 1px solid var(--bs-border-color);
                 justify-content: space-between;
 
+                .dash-component-title-container,
+                > h4 {
+                    align-self: center;
+                }
+
+                .nav-tabs {
+                    border-bottom: none;
+                    height: auto !important;
+                    margin-bottom: -1px;
+
+                    .nav-link.active {
+                        background-color: var(--color-gray-100);
+                        border-bottom-color: var(--color-gray-100);
+                    }
+                }
+
                 h4 {
-                    color: var(--color-gray-600);
+                    color: var(--color-gray-700);
+                    font-size: 1.05rem;
+                    font-weight: 600;
                     margin: 0;
                     display: flex;
                     align-items: center;
@@ -68,8 +87,9 @@
             .dash-component-content {
                 flex: 1;
                 overflow: hidden;
-                padding: 5px 0px 5px 0px;
+                padding: 0;
                 margin: 0;
+                background-color: var(--color-gray-100);
                 height: 100%;
                 width: 100% !important;
                 max-width: 100% !important;
@@ -78,17 +98,80 @@
                 .tab-pane {
                     height: 100%;
                     overflow: hidden;
+                }
 
-                    .workflow-container {
-                        height: 100%;
-                        margin-right: 5px;
-                        padding: 0 5px 0px 15px;
-                        justify-content: space-evenly;
-                        align-content: flex-start;
-                        overflow-y: auto;
-                    }
+                .workflow-tiles {
+                    height: 100%;
+                    overflow-y: auto;
+                    scrollbar-width: thin;
                 }
             }
+        }
+    }
+
+    /* Dashboard feeds: distinct white cards on the shaded panel body */
+    .banner-container {
+        gap: 8px;
+        padding: 8px 10px;
+
+        & .element-banner {
+            background-color: var(--color-white);
+            border: 1px solid var(--color-gray-200);
+            border-radius: 6px;
+            padding: 8px 12px;
+            gap: 2px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+            &:hover {
+                border-color: var(--color-gray-300);
+                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            & .badge {
+                font-size: 12px;
+            }
+        }
+    }
+
+    /* Compact status indicator: one small square per step, labels live in tooltips + current label */
+    .status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-top: 4px;
+        --status-pip-size: 10px;
+
+        & > .progress-stacked {
+            display: flex;
+            gap: 3px;
+            height: auto;
+            overflow: visible;
+            background-color: transparent;
+        }
+
+        & > .progress,
+        & > .progress-stacked > .progress {
+            flex: none;
+            width: var(--status-pip-size) !important;
+            height: var(--status-pip-size);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        & .progress-bar {
+            width: 100% !important;
+            font-size: 0;
+        }
+
+        & .progress-bar.bg-transparent {
+            background-color: var(--color-gray-300) !important;
+            background-image: none;
+        }
+
+        & .status-label {
+            font-size: 0.8rem;
+            color: var(--color-gray-600);
         }
     }
 }
@@ -117,3 +200,98 @@
         }
     }
 }
+
+
+/* Cards with a title link are clickable as a whole (see js/clickable-cards.js) */
+.banner-container .element-banner:has(.feed-title a):hover {
+    cursor: pointer;
+}
+
+.banner-container .element-banner .feed-title a:hover {
+    background-color: transparent;
+}
+
+/* Feed card building blocks: title line, muted meta line, soft chips */
+.element-banner {
+    .feed-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .feed-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        .feed-subtitle {
+            margin-left: 6px;
+            color: var(--color-gray-700);
+        }
+    }
+
+    .feed-actions {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .feed-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 14px;
+        font-size: 0.8125rem;
+        color: var(--color-gray-600);
+
+        i {
+            margin-right: 4px;
+            color: var(--color-gray-500);
+        }
+    }
+
+    .feed-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding-top: 2px;
+    }
+
+    .feed-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--color-gray-200);
+        background-color: var(--color-gray-100);
+        color: var(--color-gray-700);
+        font-size: 0.75rem;
+        line-height: 1.5;
+
+        b {
+            font-weight: 600;
+        }
+
+        &.feed-chip-ok {
+            background-color: #f1f7e6;
+            border-color: #d9eab5;
+            color: var(--color-cemm-green-dark);
+        }
+
+        &.feed-chip-warn {
+            background-color: #fdf8dc;
+            border-color: #efe39a;
+            color: var(--color-cemm-yellow-dark);
+        }
+
+        &.feed-chip-muted {
+            background-color: transparent;
+            color: var(--color-gray-500);
+        }
+    }
+}
+

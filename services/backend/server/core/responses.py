@@ -80,6 +80,7 @@ def htmx_response(
     response: Response | None = None,
     flash: FlashMessage | str | None = None,
     refresh_table: str | None = None,
+    trigger: dict[str, object] | None = None,
     **context
 ) -> Response:
     if template and content:
@@ -111,6 +112,9 @@ def htmx_response(
 
     if refresh_table:
         events["refreshTable"] = refresh_table
+
+    if trigger:
+        events.update(trigger)
 
     if events:
         headers = {"HX-Trigger": json.dumps(events)}

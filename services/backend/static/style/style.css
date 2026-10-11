@@ -18,6 +18,7 @@
 @import "./design.css";
 @import "./multiple-select.css";
 @import "./search-select.css";
+@import "./chat.css";
 
 .assignee-badge {
     height: 24px;

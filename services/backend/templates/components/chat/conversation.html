@@ -1,0 +1,15 @@
+{#
+    The user's conversation (last 24h), swapped into #chat-messages.
+    - messages: list of {msg_id: str, user_message: str, assistant_html: Markup | None}
+#}
+{% for m in messages %}
+    {% with user_message=m.user_message, assistant_html=m.assistant_html, msg_id=m.msg_id %}
+        {% include "components/chat/message.html" %}
+    {% endwith %}
+{% else %}
+<div class="chat-empty">
+    <i class="bi bi-chat-square-text"></i>
+    <p>Ask about your projects, requests or how to use OpeNGSync.</p>
+    <p class="chat-empty-note">Messages are kept for 24 hours.</p>
+</div>
+{% endfor %}

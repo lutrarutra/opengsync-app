@@ -96,5 +96,25 @@ function toggleBrowserDirectory(toggle) {
         document.body.classList.remove('waiting');
     }
 }
+
+// Sent by AssociatePathAction: re-render the association badges of that path without reloading the tree.
+if (!window.fileBrowserAssociationsBound) {
+    window.fileBrowserAssociationsBound = true;
+    document.addEventListener('dataPathAssociationsUpdated', function(event) {
+        const { path, associations } = event.detail;
+        document.querySelectorAll('.browser-entry-row[data-path]').forEach(function(row) {
+            if (row.dataset.path !== path) return;
+            const container = row.querySelector('.browser-entry-associations');
+            if (!container) return;
+            container.replaceChildren(...associations.map(function(association) {
+                const badge = document.createElement(association.href ? 'a' : 'span');
+                badge.className = 'badge';
+                badge.textContent = association.label;
+                if (association.href) badge.href = association.href;
+                return badge;
+            }));
+        });
+    });
+}
 </script>
 {% endmacro %}

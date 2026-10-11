@@ -258,10 +258,10 @@ def test_serve_data_file_rejects_symlink_retargeted_after_association(
 # ── Staff: ShareDirectoryAction ─────────────────────────────────────────────
 
 
-def _share_directory(client: TestClient, token: str, directory_path: str):
+def _share_directory(client: TestClient, token: str, directory_path: str, recipients: tuple[str, ...] = ("someone@example.com",)):
     return post_form(client, "/htmx/files/share-directory", {
         "directory_path": directory_path,
-        "recipients": "someone@example.com",
+        **{f"recipients-{i}-email": email for i, email in enumerate(recipients)},
         "time_valid_min": str(60 * 24),
     }, token=token)
 
@@ -274,6 +274,28 @@ def test_share_directory_control(
     [share_token] = session.get_all(Q.share_token.select(owner_id=insider.id), limit=None)
     assert [p.path for p in share_token.paths] == ["shared"]
     assert len(fake_mailer.sent) == 1
+
+
+def test_share_directory_sends_to_every_recipient(
+    client: TestClient, insider_token: str, fake_mailer, layout: Layout,
+):
+    response = _share_directory(client, insider_token, "shared", ("a@example.com", "b@example.com"))
+    assert response.status_code in (200, 204), response.text
+    [sent] = fake_mailer.sent
+    assert sorted(sent["kwargs"]["recipients"]) == ["a@example.com", "b@example.com"]
+
+
+@pytest.mark.parametrize("recipients", [(), ("a@example.com", "not-an-email"), ("a@example.com", "")])
+def test_share_directory_rejects_bad_recipients(
+    client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
+    fake_mailer, layout: Layout, recipients: tuple[str, ...],
+):
+    response = _share_directory(client, insider_token, "shared", recipients)
+
+    assert_form_invalid(response)
+    session.expire_all()
+    assert session.count(Q.share_token.select(owner_id=insider.id)) == 0
+    assert fake_mailer.sent == []
 
 
 @pytest.mark.parametrize("path", DIR_ESCAPES)

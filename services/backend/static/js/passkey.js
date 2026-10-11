@@ -1,13 +1,12 @@
 // Passkey (WebAuthn) support:
 //  - login page: the password manager offers saved passkeys in the email field's autofill
-//    (conditional mediation), plus an explicit "Sign in with a passkey" button.
-//  - after a password login: the password manager is asked to save a passkey (conditional create);
-//    browsers without that get a one-time prompt instead.
+//    (conditional mediation).
+//  - after a password login: the password manager is asked to save a passkey (conditional create)
+//    and shows its own save prompt.
 //  - keeps the password manager in sync with passkeys removed on the server (Signal API).
 // Endpoint URLs come from #passkey-config in base.html.
 (function () {
     const UPGRADE_COOKIE = "passkey_upgrade";
-    const PROMPT_DISMISSED_KEY = "passkey_prompt_dismissed";
     const config = JSON.parse(document.getElementById("passkey-config")?.textContent || "{}");
     const supported = !!(window.PublicKeyCredential && navigator.credentials);
 
@@ -114,14 +113,6 @@
         }).catch(() => {});
     }
 
-    function promptDismissed() {
-        try { return localStorage.getItem(PROMPT_DISMISSED_KEY) === "1"; } catch (e) { return false; }
-    }
-
-    function dismissPrompt() {
-        try { localStorage.setItem(PROMPT_DISMISSED_KEY, "1"); } catch (e) {}
-    }
-
     function findIn(el, selector) {
         if (!el || !el.querySelector) return null;
         return el.matches?.(selector) ? el : el.querySelector(selector);
@@ -147,24 +138,6 @@
             });
         } catch (e) {
             if (e.name !== "AbortError") console.debug("Passkey autofill unavailable:", e);
-            return;
-        }
-        await finishLogin(credential);
-    }
-
-    async function loginWithPasskey() {
-        // Only one WebAuthn request may be pending at a time.
-        conditionalAbort?.abort();
-        conditionalAbort = null;
-
-        let credential;
-        try {
-            const { options } = await postJSON(config.loginOptions);
-            credential = await navigator.credentials.get({ publicKey: parseRequestOptions(options) });
-        } catch (e) {
-            // NotAllowedError: the user closed the dialog.
-            if (e.name !== "NotAllowedError") showFlashToast({ category: "error", message: e.message });
-            startConditionalLogin();
             return;
         }
         await finishLogin(credential);
@@ -218,38 +191,18 @@
         }
         signalAcceptedCredentials(reg.rp_id, reg.user_handle, reg.credential_ids);
 
-        if (caps.conditionalCreate) {
-            try {
-                // Succeeds only if the password manager just filled the password; it then saves
-                // the passkey and shows its own confirmation.
-                const credential = await navigator.credentials.create({
-                    publicKey: parseCreationOptions(reg.options),
-                    mediation: "conditional",
-                });
-                await postJSON(config.registerVerify, credentialToJSON(credential));
-                return;
-            } catch (e) {
-                // InvalidStateError: the password manager already holds a passkey for this account.
-                if (e.name === "InvalidStateError") return;
-            }
-        }
-
-        // Fallback prompt for users without any passkey, unless declined before in this browser.
-        if (reg.has_passkeys || promptDismissed()) return;
-        // Let the "Logged In!" toast finish first; Swal shows one popup at a time.
-        await new Promise(resolve => setTimeout(resolve, 1600));
-        const result = await Swal.fire({
-            title: "Save a passkey?",
-            text: "Your password manager can store a passkey so you can sign in without typing your password.",
-            icon: "question",
-            showDenyButton: true,
-            confirmButtonText: "Save passkey",
-            denyButtonText: "Not now",
-        });
-        if (result.isConfirmed) {
-            await registerPasskey();
-        } else if (result.isDenied) {
-            dismissPrompt();
+        if (!caps.conditionalCreate) return;
+        try {
+            // Succeeds only if the password manager just filled the password; it then saves
+            // the passkey and shows its own confirmation.
+            const credential = await navigator.credentials.create({
+                publicKey: parseCreationOptions(reg.options),
+                mediation: "conditional",
+            });
+            await postJSON(config.registerVerify, credentialToJSON(credential));
+        } catch (e) {
+            // InvalidStateError: the password manager already holds a passkey for this account.
+            // NotAllowedError: the password wasn't autofilled or the user declined.
         }
     }
 
@@ -260,7 +213,6 @@
 
         const form = findIn(el, ".passkey-login-form");
         if (form) {
-            form.querySelectorAll(".passkey-login-btn").forEach(btn => { btn.style.display = ""; });
             startConditionalLogin();
         }
 
@@ -272,11 +224,6 @@
                 JSON.parse(list.dataset.signalCredentialIds || "[]"),
             );
         }
-    });
-
-    $(document).on("click", ".passkey-login-btn", function (e) {
-        e.preventDefault();
-        loginWithPasskey();
     });
 
     $(document).on("click", ".passkey-register-btn", async function () {

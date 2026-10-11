@@ -314,7 +314,8 @@ def render_prep_feed_detail(
         "seq_request": [],
         "num_waiting_samples": [],
         "num_preparing_libraries": [],
-        "num_pooled_libraries": [],
+        "num_stored_libraries": [],
+        "library_status_counts": [],
         "library_type_counts": [],
         "num_waiting_libraries": [],
         "num_waiting_pools": [],
@@ -342,15 +343,13 @@ def render_prep_feed_detail(
         data["num_preparing_libraries"].append(sum(
             ls.status == C.LibraryStatus.PREPARING for ls in seq_request.libraries
         ))
-        data["num_pooled_libraries"].append(sum(
-            ls.status in [
-                C.LibraryStatus.POOLED,
-                C.LibraryStatus.SEQUENCED,
-                C.LibraryStatus.SHARED,
-                C.LibraryStatus.ARCHIVED,
-            ]
-            for ls in seq_request.libraries
+        data["num_stored_libraries"].append(sum(
+            ls.status == C.LibraryStatus.STORED for ls in seq_request.libraries
         ))
+        status_counts: dict[C.LibraryStatus, int] = {}
+        for ls in seq_request.libraries:
+            status_counts[ls.status] = status_counts.get(ls.status, 0) + 1
+        data["library_status_counts"].append(dict(sorted(status_counts.items(), key=lambda x: x[0].id)))
         data["library_type_counts"].append(seq_request.library_type_counts)
         data["num_waiting_libraries"].append(sum(
             ls.status == C.LibraryStatus.ACCEPTED for ls in seq_request.libraries

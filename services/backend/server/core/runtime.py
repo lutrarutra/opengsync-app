@@ -5,6 +5,10 @@ from starlette.datastructures import State
 from redis import ConnectionPool
 from typing import cast
 
+from typing import Any
+
+from pydantic_ai import Agent
+
 from opengsync_db import SyncDBHandler, models
 
 from . import mailer, audit, secrets
@@ -14,6 +18,7 @@ class AppState(State):
     mailer: mailer.Mailer
     redis_pool: ConnectionPool
     bcrypt: secrets.BcryptCompat
+    chat_agent: Agent[Any, str] | None
 
 class CodeFlowerServer(FastApiApp):
     @property

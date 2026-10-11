@@ -1,6 +1,6 @@
 ## Plan: AI support chat — floating assistant with read-only, pseudonymised tools
 
-**TL;DR**: Add a floating chat window (available on every page) that talks to an LLM through a **Pydantic AI** agent running **inside the existing backend** as a new router. The browser sends messages via normal POSTs and receives the reply via **Server-Sent Events (SSE)**. The agent has no direct DB or file access — it can only call a small set of **read-only tools** (code search/read + focused data lookups) that run with the **logged-in user's permissions**. Everything the model sees about records is **pseudonymised** (`PROJECT_0001`, `SAMPLE_0004`, …) via a per-conversation mapping; tokens are turned back into real titles/links only when rendering HTML for the user. No MCP server is needed.
+**TL;DR**: Add a floating chat window (available on every page) that talks to an LLM through a **Pydantic AI** agent running **inside the existing backend** as a new router. The browser sends messages via normal POSTs and receives the reply via **Server-Sent Events (SSE)**. The agent has no direct DB or file access — it can only call a small set of **read-only tools** (code search/read + focused data lookups) that run with the **logged-in user's permissions**. Everything the model sees about records is **pseudonymised** (`PROJECT_0001`, `SAMPLE_0004`, …) via a per-user mapping; tokens are turned back into real titles/links only when rendering HTML for the user. No MCP server is needed. Each user has a **single conversation**, stored in Redis under their user id and kept for **24 hours**.
 
 ---
 
@@ -11,14 +11,15 @@
 - **Tools, not SQL**: the model never writes SQL. ~10–15 focused, read-only tools wrapping existing `opengsync_db` blueprints (`db.projects.find`, `db.projects.get_access_type`, …). No write tools in v1; future write actions must be *proposed* by the model and confirmed by the user via a UI button
 - **User identity comes from deps, never from the model**: no tool takes a `user_id` argument; the user is injected through `RunContext[ChatDeps]`
 - **Access checks mirror the HTML routes**: tools call the same access helpers (e.g. `get_access_type` → refuse on `AccessType.NONE`). Where possible, factor shared helpers so routes and tools can't diverge
-- **Pseudonymisation (not anonymisation)**: per-conversation sequential tokens (`SAMPLE_0001`, …), *not* raw DB ids — the model can't correlate across conversations or infer record counts. Mapping (`kind → {db_id: n}`) is stored in Redis alongside the conversation history. Legally this is still personal data (GDPR) — see open questions on provider
+- **Single conversation per user**: no conversation ids, no "new conversation" action. History and mapping are keyed by user id and share a 24h TTL (refreshed on each message), so the conversation effectively resets after 24h of inactivity
+- **Pseudonymisation (not anonymisation)**: per-user sequential tokens (`SAMPLE_0001`, …), *not* raw DB ids — the model can't infer record counts. Mapping (`kind → {db_id: n}`) is stored in Redis alongside the conversation history and expires with it, so numbering restarts with each new conversation. Legally this is still personal data (GDPR) — see open questions on provider
 - **Tools accept and return tokens only**: unknown/foreign tokens raise `ModelRetry`. Side effect: the model can only reference entities a tool has already shown it in this conversation (no id-guessing)
 - **Tool return models are restricted types**: fields may only be `Ref` (token), enums, numbers, dates, bools. **No plain `str`** — no titles, identifiers (`project.identifier` counts as a name), sample names, person names, emails, or free-text fields (descriptions, comments, notes). Enforced by a unit test over every tool's return model
-- **User input is scrubbed before every model call**: primary mechanism is an `@`-mention picker in the chat input that inserts tokens; safety net is a Pydantic AI `history_processor` that replaces names of user-accessible entities with tokens and masks emails/phone numbers by regex
+- **User input is scrubbed before every model call**: a Pydantic AI `history_processor` replaces names of user-accessible entities with tokens and masks emails/phone numbers by regex. An `@`-mention picker that inserts tokens directly is deferred (see Later)
 - **Page context is passed as tokens** ("user is viewing EXPERIMENT_0002"), never names
 - **De-pseudonymisation happens on render only**: model text (tokens) → Markdown → sanitised HTML → regex token swap → browser. Titles are `html.escape`d (user-controlled input). Stored `message_history` stays pseudonymised — only outgoing HTML contains real names
 - **Titles are looked up at render time**, not stored in the mapping — renamed entities show current names, and access is re-checked (revoked → token left as-is)
-- **Streaming re-renders the whole accumulated message** on each chunk (swap bubble innerHTML), which also removes the split-token-across-chunks problem. Label lookups are cached per conversation
+- **Streaming re-renders the whole accumulated message** on each chunk (swap bubble innerHTML), which also removes the split-token-across-chunks problem. Label lookups are cached per stream
 - **Code access is allowlisted, read-only**: only `/app/services/backend/server`, `/app/packages/opengsync-db/opengsync_db` and `/templates` inside the image. Paths are resolved and checked with `Path.is_relative_to`; no config, `.env`, notebooks, `data/`, `uploads/`, `logs/`, `media/`, tests or fixtures
 - **One DB session per tool call**, not the request-scoped `dependencies.db_session`: the SSE generator outlives the normal request lifecycle, and Pydantic AI runs sync tools in a thread pool (SQLAlchemy sessions are not thread-safe). Open via `app.state.db_handler.get_session()` inside each tool
 - **Static context in the system prompt**: a curated summary of workflows (seq request → library → pool → experiment), status enums and checklist steps, so the model doesn't search code for basics. Cache-friendly (stable prefix)
@@ -30,8 +31,9 @@
 
 ```
 [floating chat widget (HTMX + sse ext)]
-   │ POST /htmx/chat/{conv_id}/messages   → store user msg, return bubble + SSE placeholder
-   │ GET  /htmx/chat/{conv_id}/stream/{id} → SSE: agent.run_stream(...), re-rendered HTML chunks
+   │ GET  /htmx/chat                 → render the user's conversation
+   │ POST /htmx/chat/messages        → store user msg, return bubble + SSE placeholder
+   │ GET  /htmx/chat/stream/{msg_id} → SSE: agent.run_stream(...), re-rendered HTML chunks
    ▼
 [chat router] ── ChatDeps(user, db_handler, pseudo, redis) ──► Pydantic AI Agent ──► LLM
                                                                 │
@@ -41,8 +43,9 @@
                      │         get_seq_request / get_experiment_status / list_samples / ...
                      └─ every tool: own DB session, access check, returns tokens only
 
-Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
-       chat:{user_id}:{conv_id}:mapping   (kind → {db_id: n}, TTL)
+Redis: chat:{user_id}:history   (pseudonymised ModelMessages, 24h TTL)
+       chat:{user_id}:mapping   (kind → {db_id: n}, 24h TTL)
+       chat:{user_id}:messages  (display list: msg_id, user text, status; 24h TTL)
 ```
 
 ---
@@ -51,9 +54,10 @@ Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
 
 #### Phase 1: Foundations
 
-**Step 1.1** — Dependencies & config
+**Step 1.1** — Dependencies & config ✅
+- Done: `pydantic-ai-slim[openai,anthropic]`; `ChatConfig` (`enabled`, `model` — `"test"` = offline echo model, `base_url`, `history_ttl_hours`, `max_history_turns`, `max_requests_per_turn`) under `chat:` in `opengsync.yaml`; `CHAT_API_KEY` env for `base_url`; `chat_enabled` template global; routes return 404 when disabled
 - Add `pydantic-ai-slim[<provider>]` to `services/backend/pyproject.toml`
-- Add `ChatConfig` to `AppConfig` in `server/core/config.py`: `enabled`, `model`, `base_url` (for OpenAI-compatible/self-hosted), `api_key` (env), `max_tool_calls`, `max_history_messages`, `history_ttl`, `rate_limit`
+- Add `ChatConfig` to `AppConfig` in `server/core/config.py`: `enabled`, `model`, `base_url` (for OpenAI-compatible/self-hosted), `api_key` (env), `max_tool_calls`, `max_history_messages`, `history_ttl` (default 24h), `rate_limit`
 - Feature flag: router and widget only mounted/rendered when `chat.enabled`
 
 **Step 1.2** — `server/chat/pseudonymizer.py`
@@ -65,8 +69,9 @@ Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
 - `Ref` type (annotated `str` produced only via `Pseudonymizer.token`)
 - `ToolResult` base model + validator/test helper that rejects plain `str` fields
 
-**Step 1.4** — `server/chat/history.py`
-- Load/save `ModelMessagesTypeAdapter`-serialised history and mapping from Redis, TTL from config, truncate to `max_history_messages`
+**Step 1.4** — `server/chat/store.py` ✅ (basic loop)
+- Load/save `ModelMessagesTypeAdapter`-serialised history and mapping from Redis keyed by `user_id`, TTL from config (24h, refreshed on every write), keep the last `max_history_turns` (default 5) turns, also used to cap the widget display list; older ones compacted to question + answer (tool calls and results dropped; latest turn kept complete)
+- Also keep a display list per user (`msg_id`, user text, pending/done) so the widget can re-render the conversation and reconnect to a still-pending stream
 
 #### Phase 2: Agent & tools
 
@@ -74,12 +79,12 @@ Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
 - `ChatDeps(user: models.User, db_handler, pseudo: Pseudonymizer, page_context: str | None)`
 - `session()` context manager opening a fresh DB session per tool call
 
-**Step 2.2** — `server/chat/agent.py`
+**Step 2.2** — `server/chat/agent.py` ✅ (basic loop: no tools/deps yet; page context passed as path pattern, e.g. `/projects/{id}`)
 - `Agent(model, deps_type=ChatDeps, instructions=...)`; instructions include: role, "refer to entities only by exact reference e.g. PROJECT_0003", "never ask for or repeat personal data", the static workflow/status summary (Step 2.5)
 - Dynamic instruction adds pseudonymised page context
 - `history_processors=[scrub_user_input]` (Phase 3)
 
-**Step 2.3** — `server/chat/tools/code.py`
+**Step 2.3** — `server/chat/tools/code.py` ✅ (available to all users; roots exposed as `server/`, `opengsync_db/`, `templates/` and `docs/` (top-level `.md` only, so `docs/plans/` and `docs/mirgation/` stay hidden); only .py/.html/.jinja*/.j2/.md/.txt files)
 - `list_dir(path)`, `grep_code(pattern, path=None, max_results=50)`, `read_file(path, start=1, end=200)`
 - Pure Python regex search over the allowlist (no shell), resolved-path allowlist check, line/byte caps
 
@@ -91,7 +96,7 @@ Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
 - Each: open session → resolve tokens → fetch → access check → build `ToolResult` with tokens → close session
 - Cap all `limit`s; error messages must not contain names (use tokens)
 
-**Step 2.5** — `server/chat/context.md` (or generated)
+**Step 2.5** — `server/chat/context.md` (or generated) — partly done: the system prompt has hard rules to answer only from looked-up code plus a short code map (in `agent.py`)
 - Curated static summary: entity hierarchy, status enums and meaning, checklist steps. Optionally generated from enums at build time so it doesn't drift
 
 #### Phase 3: Input scrubbing
@@ -100,44 +105,46 @@ Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
 - `scrub_user_input` history processor: for user-part text, replace titles/identifiers/names of entities the user can access (fuzzy, via existing `similarity` searches) with tokens (adding to mapping); regex-mask emails and phone numbers
 - Optional later: Microsoft Presidio for person names in free text
 
-**Step 3.2** — Mention picker endpoint
-- `GET /htmx/chat/mentions?q=...` → returns accessible entities (projects, requests, samples) for autocomplete; selected item inserts its token into the input (token assigned server-side in the conversation mapping)
 
 #### Phase 4: Rendering (de-pseudonymisation)
 
-**Step 4.1** — `server/chat/render.py`
+**Step 4.1** — `server/chat/render.py` (Markdown → safe HTML done: raw HTML escaped, unsafe URLs dropped; token swap pending)
 - `render_message(text, pseudo, db_handler, user, label_cache) -> Markup`
   1. Markdown → HTML (existing `markdown` dep), sanitise (allowlist tags)
   2. Collect tokens, resolve to db ids, batch-fetch titles per kind, re-check access
   3. `TOKEN_RE.sub` with callback → `<a href="{url}" class="entity-ref">{html.escape(title)}</a>`; unknown/revoked tokens left as-is
-- Label cache per conversation (in-memory for the stream; optional short Redis TTL)
+- Label cache per stream (in-memory; optional short Redis TTL)
 
-#### Phase 5: Routes
+#### Phase 5: Routes ✅ (implemented)
 
 **Step 5.1** — `server/routes/htmx/chat.py`
-- `POST /htmx/chat/new` → new `conv_id`, empty mapping/history
-- `POST /htmx/chat/{conv_id}/messages` → validate ownership (`conv_id` keyed by user), store pending user message, return user bubble + assistant placeholder with `sse-connect`; `rate_limit` dependency
-- `GET /htmx/chat/{conv_id}/stream/{msg_id}` → `StreamingResponse(media_type="text/event-stream")`, header `X-Accel-Buffering: no`; runs `agent.run_stream(..., message_history=..., deps=..., usage_limits=...)`, on each delta re-renders the accumulated text and emits an SSE event; stops on `request.is_disconnected()`; on completion saves pseudonymised history + mapping
-- `GET /htmx/chat/{conv_id}` → re-render existing conversation (widget reopen)
-- `DELETE /htmx/chat/{conv_id}` → clear history + mapping
+All routes act on the current user's single conversation (no ids in the URL besides `msg_id`).
+- `GET /htmx/chat` → render `components/chat/conversation.html` from the user's display list (widget open / page load); pending messages render with `assistant_html=None` so the widget reconnects to their stream
+- `POST /htmx/chat/messages` (form fields `message`, `page_path`) → store pending user message, return `components/chat/message.html` (user bubble + assistant placeholder with `sse-connect`); `rate_limit` dependency; reject while a reply is still pending
+- `GET /htmx/chat/stream/{msg_id}` → `msg_id` must belong to the user (404 otherwise). `StreamingResponse(media_type="text/event-stream")`, header `X-Accel-Buffering: no`; runs `agent.run_stream_events(..., message_history=..., deps=..., usage_limits=...)` (not `run_stream`, which stops at the first text and skips later tool calls), shows a status line while a tool runs, on each delta re-renders the accumulated text and emits a `message` event (full bubble HTML); `error` event on failure; `done` event at the end (closes the client stream). Stops on `request.is_disconnected()`; on completion saves pseudonymised history + mapping and refreshes the TTL
+- CSRF: the widget sends `X-CSRF-Token` on every request (`dependencies.verify_csrf_header`)
 - Register in `server/routes/htmx/__init__.py` with `require_user_id`
 
 **Step 5.2** — nginx
 - Prefer `X-Accel-Buffering: no` response header (no config change). If insufficient, add `location /htmx/chat/` with `proxy_buffering off;` and longer `proxy_read_timeout`
 
-#### Phase 6: UI
+#### Phase 6: UI ✅ (implemented)
 
-**Step 6.1** — `templates/components/chat/widget.html`
-- Floating button + collapsible panel, included from `templates/base.html` when `chat.enabled` and user logged in
-- Input with `@`-mention autocomplete (Step 3.2), send via `hx-post`, stream via `htmx-ext-sse`
-- Passes current page context (entity type + id) with each message; server converts to token
-- Disclaimer: "Don't enter personal data. Responses may be inaccurate."
+**Step 6.1** — `templates/components/chat/widget.html` + `static/js/chat.js` + `static/style/chat.css`
+- Floating button in the bottom-left corner (replaces the help icon for logged-in users; help link moved into the chat header), included from `templates/base.html` when the user is logged in and `chat_enabled` is not false (wire to `chat.enabled`)
+- ✨ toggle button, 🤖 in the header; one size (640px wide, full height); open state remembered in `localStorage`. No "new conversation" button
+- First open shows a notice (AI, may be inaccurate, no personal data, external service, 24h retention) that must be accepted; stored in a `chat_consent` cookie for 1 year, and `POST /htmx/chat/messages` returns 403 without it
+- Plain textarea input, send via `hx-post`, stream via `htmx-ext-sse`; Enter sends, Shift+Enter newline; send disabled while a reply streams
+- Sends `page_path` (`location.pathname`) with each message; server resolves it to an entity and converts to a token
+- Disclaimer: "Don't enter personal data. Responses may be inaccurate." Empty state notes the 24h retention
 
-**Step 6.2** — `templates/components/chat/message.html`
-- User and assistant bubbles; assistant bubble innerHTML swapped on each SSE event
+**Step 6.2** — `templates/components/chat/conversation.html`, `message.html`
+- `conversation.html`: `messages: list[{msg_id, user_message, assistant_html | None}]`
+- `message.html`: user bubble (escaped text) + assistant bubble; while pending, the assistant bubble connects to `/htmx/chat/stream/{msg_id}` and its innerHTML is swapped on each `message`/`error` event
 
 #### Phase 7: Observability & audit
-- Log per turn: user id, conv id, tool names called, token usage, latency (no mapping, no real names)
+- Done: every user message is audited (`POST /htmx/chat/messages`, raw text in `metadata.message`, also for rejected attempts); replies are not. Per-reply tool names and token usage are logged.
+- Log per turn: user id, msg id, tool names called, token usage, latency (no mapping, no real names)
 - Optionally record tool calls via existing `server/core/audit.py`
 
 ---
@@ -158,6 +165,9 @@ Redis: chat:{user_id}:{conv_id}:history   (pseudonymised ModelMessages, TTL)
 - `services/backend/server/routes/htmx/chat.py`
 - `services/backend/templates/components/chat/widget.html`
 - `services/backend/templates/components/chat/message.html`
+- `services/backend/templates/components/chat/conversation.html`
+- `services/backend/static/js/chat.js`
+- `services/backend/static/style/chat.css`
 - `services/pytest/tests/server/chat/` (see Verification)
 
 **Files to modify:**
@@ -206,7 +216,7 @@ Use Pydantic AI's `TestModel` / `FunctionModel` — no real LLM calls in tests.
 16. Stored history after a turn contains no real titles (round-trip via `FunctionModel` echoing tool output)
 
 **Phase E: Routes** (`test_chat_routes.py`)
-17. Unauthenticated → 401/redirect; other user's `conv_id` → 404
+17. Unauthenticated → 401/redirect; another user's `msg_id` on the stream route → 404
 18. Message POST is rate-limited
 19. SSE stream emits events with `text/event-stream` and `X-Accel-Buffering: no`
 20. Chat disabled in config → routes not mounted, widget not rendered
@@ -214,9 +224,16 @@ Use Pydantic AI's `TestModel` / `FunctionModel` — no real LLM calls in tests.
 #### Manual Verification
 1. Open widget on several pages; ask "what are my projects?" → real titles shown as links in the UI
 2. Inspect logged model requests → only tokens, no titles/names/emails
-3. Use `@`-mention to reference a project; confirm token in stored history
+3. Mention a project by name; confirm only its token is in the stored history
 4. Close the tab mid-answer → generation stops (check logs/usage)
 5. Through nginx: reply streams incrementally, not all at once
+
+---
+
+### Later (out of scope for v1)
+- **`@`-mention picker**: `GET /htmx/chat/mentions?q=...` returns accessible entities for autocomplete; the selected item inserts its token into the input (token assigned server-side in the user's mapping). Exact references instead of relying on fuzzy scrubbing; ideally shown as a labelled chip rather than the raw token
+- Write actions proposed by the model and confirmed via a UI button
+- MCP wrapper over the tool functions
 
 ---
 
@@ -224,6 +241,5 @@ Use Pydantic AI's `TestModel` / `FunctionModel` — no real LLM calls in tests.
 1. **LLM provider**: hosted (needs GDPR DPA, EU residency, zero data retention) vs. self-hosted via OpenAI-compatible server (vLLM/Ollama)? Determines `pydantic-ai-slim` extra and whether pseudonymisation is the primary or secondary safeguard
 2. **Who gets the chat**: all users, or insiders only for v1?
 3. **Code tools for regular users**: should non-insiders be able to read code, or only data tools + static context?
-4. **Conversation persistence**: Redis with TTL (ephemeral, e.g. 24h) vs. Postgres (history list, audit)?
-5. **Which fields are acceptable to the model**: are dates, organisms, library types, sample counts OK? Are any fields (e.g. `project.identifier` like `BSF_0123`) considered non-identifying?
-6. **Entity kinds in scope for v1**: projects, seq requests, samples, libraries, pools, experiments — anything else (lab preps, seq runs, files)?
+4. **Which fields are acceptable to the model**: are dates, organisms, library types, sample counts OK? Are any fields (e.g. `project.identifier` like `BSF_0123`) considered non-identifying?
+5. **Entity kinds in scope for v1**: projects, seq requests, samples, libraries, pools, experiments — anything else (lab preps, seq runs, files)?

@@ -12,49 +12,46 @@
             {% for _, row in df.iterrows() %}
             {% set seq_request = row["seq_request"] %}
             <div class="element-banner">
-                <div class="row">
-                    <div class="col-6"><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
-                    <div class="col-6">
+                <div class="feed-head">
+                    <div class="feed-title">
+                        <a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a>
+                        <span class="feed-subtitle"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></span>
+                    </div>
+                    <div class="feed-actions">
                         {% if current_user not in seq_request.assignees %}
-                        <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('self_assign_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
+                        <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn feed-assign" hx-post="{{ url_for('self_assign_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
                         {% endif %}
-                        <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
-                        <span class="badge">{{ seq_request.submission_type.display_name }}</span>
+                        {% if seq_request.assignees %}{{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-8"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></div>
-                    <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
+                <div class="feed-meta">
+                    <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+                    <span><i class="bi bi-box-seam"></i>{{ seq_request.submission_type.display_name }}</span>
+                    {% for library_type, count in row["library_type_counts"].items() %}
+                    <span {{ tooltip(library_type.label, position="top") }}>{{ library_type.abbreviation }} <b>{{ count }}</b></span>
+                    {% endfor %}
                 </div>
-                <div class="row pb-1">
-                    <div class="col-6">
-                        {% for library_type, count in row["library_type_counts"].items() %}
-                        <span class="badge">{{ library_type.abbreviation }}: {{ count }}</span>
-                        {% endfor %}
-                    </div>
-                    <div class="col-6">
-                        {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
-                        <span class="badge {% if row['num_waiting_samples'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
-                            Waiting Samples: {{ row["num_waiting_samples"] }}  📭
-                        </span>
-                        {% elif seq_request.submission_type == C.SubmissionType.UNPOOLED_LIBRARIES %}
-                        <span class="badge {% if row['num_waiting_libraries'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
-                            Waiting Libraries: {{ row["num_waiting_libraries"] }}  📭
-                        </span>
-                        {% else %}
-                        <span class="badge {% if row['num_waiting_pools'] == seq_request.num_pools %}badge-success{% else %}badge-warning{% endif %}">
-                            Waiting Pools: {{ row["num_waiting_pools"] }}  📭
-                        </span>
-                        {% endif %}
-                        <span class="badge {% if row['num_preparing_libraries'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
-                            Preparing Libraries: {{ row["num_preparing_libraries"] }} {{ C.LibraryStatus.PREPARING.icon }}
-                        </span>
-                        <span class="badge {% if row['num_pooled_libraries'] == seq_request.num_libraries %}badge-success{% else %}badge-warning{% endif %}">
-                            Pooled Libraries: {{ row["num_pooled_libraries"] }} {{ C.LibraryStatus.POOLED.icon }}
-                        </span>
-                    </div>
+                <div class="feed-meta">
+                    <span><i class="bi bi-collection"></i>{{ seq_request.num_libraries }} libraries</span>
+                    {% for status, count in row["library_status_counts"].items() %}
+                    <span {{ tooltip(status.description, position="top") }}>{{ status.icon }} {{ status.label }} <b>{{ count }}</b></span>
+                    {% endfor %}
                 </div>
-                {{ seq_request_status_bar(seq_request) }}
+                <div class="feed-chips">
+                    {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
+                    <span class="feed-chip {% if row['num_waiting_samples'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">📭 Waiting samples <b>{{ row["num_waiting_samples"] }}</b></span>
+                    {% elif seq_request.submission_type == C.SubmissionType.UNPOOLED_LIBRARIES %}
+                    <span class="feed-chip {% if row['num_waiting_libraries'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">📭 Waiting libraries <b>{{ row["num_waiting_libraries"] }}</b></span>
+                    {% else %}
+                    <span class="feed-chip {% if row['num_waiting_pools'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">📭 Waiting pools <b>{{ row["num_waiting_pools"] }}</b></span>
+                    {% endif %}
+                    <span class="feed-chip {% if row['num_preparing_libraries'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">{{ C.LibraryStatus.PREPARING.icon }} Preparing libraries <b>{{ row["num_preparing_libraries"] }}</b></span>
+                    <span class="feed-chip {% if row['num_stored_libraries'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">{{ C.LibraryStatus.STORED.icon }} To be pooled <b>{{ row["num_stored_libraries"] }}</b></span>
+                </div>
+                <div class="status-row">
+                    {{ seq_request_status_bar(seq_request) }}
+                    <span class="status-label">{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</span>
+                </div>
             </div>
             {% endfor %}
         </div>

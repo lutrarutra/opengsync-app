@@ -21,7 +21,8 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
                 hx-target="#associate-path-form-container" hx-swap="outerHTML" hx-include="#associate-path-form"
-                hx-post="{{ form.post_url | safe }}">
+                hx-post="{{ form.post_url | safe }}"
+                hx-on::after-request="if (event.detail.xhr.status === 204) $('#xl-modal').modal('hide')">
                 Submit
             </button>
         </div>

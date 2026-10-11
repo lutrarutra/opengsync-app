@@ -50,6 +50,7 @@
 <div class="browser-entry{% if is_directory %} browser-directory{% else %} browser-file{% endif %}{% if is_data_path %} browser-data-path{% endif %}">
     {# the menu sits on the row, not the entry: expanded children render inside the entry and would open it too #}
     <div class="browser-entry-row{% if entry_actions %} cm-callback{% endif %}"
+         {% if admin_browser %}data-path="{{ relative_path }}"{% endif %}
          {% if entry_actions %}{{ context_menu(entry_actions) }}{% endif %}>
         {% if not browser_path.exists %}
         <span class="browser-entry-file-name browser-entry-unavailable">

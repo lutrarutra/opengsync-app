@@ -8,6 +8,7 @@ import hmac
 
 from fastapi import Depends, Request, Header, Cookie, Query
 from fastapi_cache import FastAPICache
+from pydantic_ai import Agent
 from loguru import logger
 from redis.exceptions import RedisError
 from taskiq import TaskiqDepends
@@ -373,6 +374,11 @@ def require_insider(user: models.User = Depends(require_user)) -> models.User:
 
 def mail_client(request: runtime.Request = TaskiqDepends(get_runtime_request)) -> mailer.Mailer:
     return request.app.state.mailer
+
+def chat_agent(request: runtime.Request = TaskiqDepends(get_runtime_request)) -> Agent:
+    if (agent := getattr(request.app.state, "chat_agent", None)) is None:
+        raise exc.NotFoundException()
+    return agent
 
 def get_bcrypt(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     return request.app.state.bcrypt
