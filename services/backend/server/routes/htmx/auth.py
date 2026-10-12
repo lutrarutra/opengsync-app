@@ -44,7 +44,7 @@ def send_reset_password_email(
     user = session.get_one(Q.user.select(id=user_id))
         
     token = secrets.create_password_reset_token(user_id=user.id)
-    link = responses.url_for("reset_password_page", token=token)
+    link = responses.external_url_for("reset_password_page", token=token)
     email.send_password_reset(recipient_email=user.email, reset_link=link)
 
     return responses.htmx_response(
@@ -68,7 +68,7 @@ def activate_user(
     user.role = C.UserRole.CLIENT
 
     token = secrets.create_password_reset_token(user_id=user.id)
-    link = responses.url_for("reset_password_page", token=token)
+    link = responses.external_url_for("reset_password_page", token=token)
     email.send_password_reset(recipient_email=user.email, reset_link=link)
 
     return responses.htmx_response(

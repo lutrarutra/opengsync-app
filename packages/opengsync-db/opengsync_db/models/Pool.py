@@ -277,4 +277,9 @@ class Pool(Base):
             sa.text("lower(name) gin_trgm_ops"),
             postgresql_using="gin",
         ),
+        sa.Index(
+            "trgm_pool_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
     )

@@ -85,10 +85,16 @@ class SelectSamplesForm(ReindexWorkflowStep):
                 "library_type": [],
             }
 
-            for library in form.selected_library_ids.get_selected_libraries(session, options=[
-                orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i7),
-                orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i5),
-            ]):
+            for library in form.selected_library_ids.get_selected_libraries(
+                session,
+                seq_request_id=form.workflow.seq_request_id,
+                lab_prep_id=form.workflow.lab_prep_id,
+                pool_id=form.workflow.pool_id,
+                options=[
+                    orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i7),
+                    orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i5),
+                ],
+            ):
                 library_table_data["library_id"].append(library.id)
                 library_table_data["library_name"].append(library.name)
                 library_table_data["library_type"].append(library.type)

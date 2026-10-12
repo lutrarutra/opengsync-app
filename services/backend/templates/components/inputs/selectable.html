@@ -8,7 +8,7 @@
     </a>
     <div class="select-container">
         {% if field.read_only %}
-        <input type="hidden" name="{{ field.name }}" value="{{ field.data | default('', true) }}">
+        <input type="hidden" name="{{ field.name }}" value="{{ selected_value if selected_value is not none else '' }}">
         {% endif %}
         <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {{ 'disabled' if field.read_only else '' }}" 
         {% if field.read_only %}disabled{% endif %}

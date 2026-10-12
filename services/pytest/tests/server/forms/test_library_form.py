@@ -6,6 +6,8 @@ request owned by (or shared with) the viewer, matching the legacy Flask route.
 
 import uuid
 
+import re
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -118,7 +120,7 @@ def test_edit_persists_fields_and_derives_name(
     client: TestClient,
     session: SyncSession,
     user,
-    user_token: str,
+    insider_token: str,
 ):
     library = _library_for(session, user)
 
@@ -131,7 +133,7 @@ def test_edit_persists_fields_and_derives_name(
             genome=C.GenomeRef.MOUSE.id,
             status=C.LibraryStatus.PREPARING.id,
         ),
-        token=user_token,
+        token=insider_token,
     )
 
     assert_htmx_redirect(response, f"/libraries/{library.id}")
@@ -478,3 +480,48 @@ def test_edit_name_collision_across_libraries_is_allowed(
 
     assert_htmx_redirect(response, f"/libraries/{second.id}")
     assert _reload(session, second).sample_name == first.sample_name
+
+def test_edit_client_cannot_change_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    library = _library_for(session, user)
+
+    response = post_form(
+        client,
+        _edit_path(library.id),
+        _payload("Renamed_Library", status=C.LibraryStatus.PREPARING.id),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, "Only insiders can change library status.")
+    assert _reload(session, library).status == C.LibraryStatus.DRAFT
+
+
+def test_edit_client_can_save_with_unchanged_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    library = _library_for(session, user)
+
+    response = post_form(client, _edit_path(library.id), _payload("Renamed_Library"), token=user_token)
+
+    assert_htmx_redirect(response, f"/libraries/{library.id}")
+    assert _reload(session, library).sample_name == "Renamed_Library"
+
+
+def test_edit_status_is_read_only_for_client(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+):
+    library = _library_for(session, user)
+
+    assert re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, _edit_path(library.id), user_token).text)
+    assert not re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, _edit_path(library.id), insider_token).text)

@@ -433,4 +433,14 @@ class Library(Base):
             sa.text("lower(sample_name) gin_trgm_ops"),
             postgresql_using="gin",
         ),
+        sa.Index(
+            "trgm_library_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_library_sample_name_compact_idx",
+            sa.text("regexp_replace(lower(sample_name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
     )

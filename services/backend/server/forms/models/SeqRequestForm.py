@@ -388,6 +388,15 @@ class SeqRequestForm(HTMXForm):
                         role=C.UserRole.DEACTIVATED,
                     ), flush=True)
 
+            group = None
+            if form.basic_info.group_id.data:
+                group = session.get_one(Q.group.select(id=form.basic_info.group_id.data))
+                if not requestor.is_insider and session.first(
+                    Q.affiliation.select(user_id=requestor.id, group_id=group.id)
+                ) is None:
+                    form.basic_info.group_id.errors.append("Requestor must be part of the selected group.")
+                    raise exc.FormValidationException(form)
+
             contact_person = Q.contact.create(
                 form.contact.name.data,
                 form.contact.email.data,
@@ -442,7 +451,7 @@ class SeqRequestForm(HTMXForm):
                     organization_contact=organization,
                     billing_contact=billing_contact,
                     requestor=requestor,
-                    group=session.get_one(Q.group.select(id=form.basic_info.group_id.data)) if form.basic_info.group_id.data else None,
+                    group=group,
                 ),
                 flush=True,
             )

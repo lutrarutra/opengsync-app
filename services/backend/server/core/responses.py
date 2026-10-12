@@ -269,8 +269,7 @@ def bytes_response(*, data: bytes | io.BytesIO, filename: str, content_type: str
     return response
 
 
-def url_for(name: str, **path_params) -> URL:
-    request = ctx.request
+def _normalize_path_params(path_params: dict) -> dict:
     normalized: dict = {}
     for key, value in path_params.items():
         if isinstance(value, Path):
@@ -278,4 +277,14 @@ def url_for(name: str, **path_params) -> URL:
         if value is None or value == "" or value == ".":
             continue
         normalized[key] = value
-    return request.url_for(name, **normalized)
+    return normalized
+
+
+def url_for(name: str, **path_params) -> URL:
+    return ctx.request.url_for(name, **_normalize_path_params(path_params))
+
+
+def external_url_for(name: str, **path_params) -> URL:
+    """Absolute URL for links sent outside the app (emails). Built from ``external_base_url``,
+    not the request's Host header, so a forged Host cannot redirect tokens in those links."""
+    return templates.absolute_url_for(ctx.request, name, external=True, **_normalize_path_params(path_params))

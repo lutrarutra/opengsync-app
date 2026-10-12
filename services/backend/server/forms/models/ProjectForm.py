@@ -37,7 +37,8 @@ class ProjectForm(HTMXForm):
     def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
         def dependency(
             project_id: int | None = None,
-            session: SyncSession = Depends(dependencies.db_session)
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
         ) -> "ProjectForm":
             if form_type == "edit" and project_id is None:
                 raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
@@ -45,7 +46,9 @@ class ProjectForm(HTMXForm):
             project = None
             if project_id is not None:
                 project = session.get_one(Q.project.select(id=project_id))
-            return ProjectForm(form_type=form_type, project=project)
+            form = ProjectForm(form_type=form_type, project=project)
+            form.status.read_only = not current_user.is_insider
+            return form
         
         return dependency
 

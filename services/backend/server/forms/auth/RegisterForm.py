@@ -72,7 +72,7 @@ class RegisterForm(HTMXForm):
                 return responses.htmx_response(redirect=responses.url_for("login_page"))
 
             token = secrets.generate_registration_token(email=form.email.data, role=UserRole.get(form.role.data))
-            link = responses.url_for("complete_registration_page", token=token)
+            link = responses.external_url_for("complete_registration_page", token=token)
             try:
                 mailer.send_registration(form.email.data, link)
             except Exception as e:

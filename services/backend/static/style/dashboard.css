@@ -35,6 +35,36 @@
             overflow: hidden;
         }
 
+        /* feed totals (tab_count badges filled by the feeds), sized like the ones in the tab handles */
+        .dash-component-title-container h4 .tab-count {
+            margin-left: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* title links to the full list page; the chevron nudges right on hover */
+        .dash-title-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: inherit;
+            text-decoration: none;
+
+            .bi {
+                color: var(--color-gray-500);
+                font-size: 0.7em;
+                transition: transform 0.12s ease, color 0.12s ease;
+            }
+
+            &:hover {
+                color: var(--color-cemm-secondary);
+
+                .bi {
+                    color: var(--color-cemm-secondary);
+                    transform: translateX(3px);
+                }
+            }
+        }
+
         .dash-component-container {
             flex: 1;
             display: flex;
@@ -192,7 +222,7 @@
         padding: 0;
 
         .dash-component-container {
-            min-height: calc(100vh - 60px);
+            min-height: calc(100vh - var(--navbar-height));
         }
         .dash-left, .dash-right {
             width: 100%;

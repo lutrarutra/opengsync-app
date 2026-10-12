@@ -406,7 +406,7 @@ def render_experiment_feed(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     PAGE_LIMIT = 10
-    experiments, _ = session.page(
+    experiments, total = session.page(
         Q.experiment.select(
             status_in=[
                 C.ExperimentStatus.DRAFT,
@@ -425,6 +425,7 @@ def render_experiment_feed(
         experiments=experiments,
         current_page=page,
         limit=PAGE_LIMIT,
+        total=total,
     )
 
 

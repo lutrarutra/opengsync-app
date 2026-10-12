@@ -31,16 +31,21 @@ class LibraryForm(HTMXForm):
     def __init__(self, library: models.Library) -> None:
         super().__init__()
         self.library = library
+        self.access_level = C.AccessLevel.NONE
         self.post_url = responses.url_for("LibraryForm.Edit", library_id=library.id)
 
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(
             library_id: int,
-            session: SyncSession = Depends(dependencies.db_session)
+            session: SyncSession = Depends(dependencies.db_session),
+            access_level: C.AccessLevel = Depends(dependencies.library_permissions),
         ) -> "LibraryForm":
             library = session.get_one(Q.library.select(id=library_id))
-            return LibraryForm(library=library)
+            form = LibraryForm(library=library)
+            form.access_level = access_level
+            form.status.read_only = access_level < C.AccessLevel.INSIDER
+            return form
 
         return dependency
 
@@ -75,6 +80,10 @@ class LibraryForm(HTMXForm):
             # Validate name characters
             if error := _check_name(form.name.data):
                 form.name.errors.append(error)
+                raise exc.FormValidationException(form)
+
+            if access_level < C.AccessLevel.INSIDER and form.status.data != form.library.status.id:
+                form.status.errors.append("Only insiders can change library status.")
                 raise exc.FormValidationException(form)
 
             form.library.sample_name = form.name.data

@@ -12,7 +12,6 @@ router = APIRouter(prefix="/api-tokens", tags=["api-tokens"])
 class APITokenTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, sortable=True),
-        TableCol(title="UUID", label="uuid", col_size=3),
         TableCol(title="Owner", label="owner_id", col_size=2, searchable=True, sortable=True),
         TableCol(title="Valid (min)", label="time_valid_min", col_size=1, sortable=True),
         TableCol(title="Created", label="created_utc", col_size=2, sortable=True),

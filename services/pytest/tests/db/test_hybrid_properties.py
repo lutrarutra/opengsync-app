@@ -207,7 +207,7 @@ def test_user_hybrid_properties(session: SyncSession):
         "name": f"{user.first_name} {user.last_name}",
     })
 
-    token = models.APIToken(time_valid_min=10, owner_id=user.id)
+    token = models.APIToken(time_valid_min=10, owner_id=user.id, token_hash=models.APIToken.hash("user"))
     session.add(token)
     project = create_project(session, user)
     create_sample(session, user, project)
@@ -222,7 +222,7 @@ def test_user_hybrid_properties(session: SyncSession):
     other_project = create_project(session, other)
     create_sample(session, other, other_project)
     create_seq_request(session, other)
-    session.add(models.APIToken(time_valid_min=10, owner_id=other.id))
+    session.add(models.APIToken(time_valid_min=10, owner_id=other.id, token_hash=models.APIToken.hash("other")))
     session.add(links.UserAffiliation(
         user_id=other.id, group_id=group.id, affiliation_type=AffiliationType.MEMBER,
     ))
@@ -505,7 +505,7 @@ def test_library_hybrid_properties(session: SyncSession):
 
 def test_api_token_hybrid_properties(session: SyncSession):
     user = create_user(session)
-    token = models.APIToken(time_valid_min=10, owner_id=user.id)
+    token = models.APIToken(time_valid_min=10, owner_id=user.id, token_hash=models.APIToken.hash("user"))
     session.add(token)
     session.flush()
     assert_hybrids(session, token, models.APIToken, {"expiration": token.expiration})

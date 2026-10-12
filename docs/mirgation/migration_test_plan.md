@@ -6,10 +6,18 @@
 >
 > Existing coverage lives in `services/pytest/tests/server/forms/auth/` (login, register, complete registration, change password, reset password, API token), `server/forms/test_htmx_form.py`, `server/forms/test_sub_htmx_form.py`, `server/forms/test_seq_request_form.py`, `server/forms/test_project_form.py`, `server/forms/test_sample_form.py`, `server/forms/test_library_form.py`, `server/forms/test_experiment_form.py`, `server/test_forms.py`, `server/test_access.py`, `server/workflows/test_htmx_workflow.py`, and `server/workflows/` (library annotation, relib, split project, lane QC).
 
+## Progress (2026-10-12)
+
+- Action test files: all passing (382 tests; 6 strict xfails for the unported lane-step templates). Full suite not rerun for this snapshot.
+- §3 actions with suites: assignees (project, request), share email, process/submit request, add user to group, merge projects, sample attribute table, store samples, library prep, select pool libraries, check barcode clashes, select experiment pools, query barcode sequences, set cycles, sequencer loading checklist, billing. Partial: share directory, associate path, lane pools / read distribution / flow-cell loading (routing + access only).
+- §3 actions without suites: `LibraryFeaturesAction`, `SamplePoolingAction`, `EditLibraryPropertiesAction`, `UploadLibraryPrepSpreadsheetAction`, `AddKitsToProtocolAction`, `EditKitFeaturesAction`, `BarcodeConstraintsAction`, `ReseqAction` and `DilutePoolsAction` (templates not ported), the `EditKitBarcodes` variants.
+- Cross-cutting: `test_action_access.py` (every insider/admin-only action and workflow, dependency check + client GET), `test_route_shadowing.py`, `test_share_root_abuse.py`.
+- Next: `LibraryFeaturesAction`, `SamplePoolingAction`, then `AddKitsToProtocolAction`, `BarcodeConstraintsAction`, spreadsheet uploads.
+
 ## 0. Shared test infrastructure
 
 - [x] Add reusable authenticated-client fixtures for anonymous user, normal user, second user, insider, and admin.
-- [ ] Add reusable database fixtures/factories for every model used by forms and actions. *(Partial: 13 factories in `db/create_units.py` — user, project, contact, seq request, sample, library, pool, feature, feature kit, sequencer, experiment, file, group. Kits, plates, lanes, seq runs, protocols, and designs are missing.)*
+- [ ] Add reusable database fixtures/factories for every model used by forms and actions. *(Partial: 22 factories in `db/create_units.py` — user, project, contact, seq request, sample, library, pool, feature, feature kit, sequencer, experiment, file, group, kit, index kit, protocol, seq run, pool design, flow-cell design, TODO comment, plate, lab prep. Lanes (and lane–pool links) are still missing.)*
 - [x] Add helpers for GET form rendering, POST validation, CSRF failure, HTMX headers, redirects, flash messages, and database assertions.
 - [x] Add tests for `HTMXForm` route registration and generated endpoint names. *(`forms/test_htmx_form.py`: route collection, default paths, inheritance/override, `Router()` names and prefixes, app registry + `url_path_for` resolution.)*
 - [x] Add tests for `HTMXForm.Init()` and `HTMXForm.Validate()` dependency behavior. *(Fresh isolated instances; CSRF cookie/field matching, missing cookie, non-POST/PUT rejection, required-field and Pydantic length errors, value preservation, error clearing.)*
@@ -364,15 +372,15 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `ProcessSeqRequestAction`: accept; reject; pending revision; comment; assign to self; insider permissions; CSRF; 404.
 - [x] `SubmitSeqRequestAction`: valid submission; missing required fields; invalid state; owner versus insider behavior; CSRF; 404.
 - [x] `AddUserToGroupAction`: add member; nonexistent user; owner affiliation rejected; duplicate user; WRITE permission; CSRF; 404.
-- [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants. *(Partial: valid share and traversal/absolute/symlink/sibling-prefix rejection in `test_share_root_abuse.py`.)*
-- [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path. *(Partial: project association and insider-only in `forms/test_associate_path_action.py`; share-root escapes in `test_share_root_abuse.py`. GET `Begin` is unreachable — shadowed by the `/htmx/files/{subpath:path}` catch-all.)*
-- [x] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure. *(`forms/test_merge_projects_action.py`; insider-only check in `test_action_access.py`.)*
+- [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants. *(Partial: valid share and traversal/absolute/symlink/sibling-prefix rejection in `test_share_root_abuse.py`; GET form render in `forms/test_experiment_lane_actions.py`. Duplicate share, expiry and recipient variants still open.)*
+- [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path. *(Partial: project association and insider-only in `forms/test_associate_path_action.py`; share-root escapes in `test_share_root_abuse.py`. GET form render covered in `forms/test_experiment_lane_actions.py` (it used to be shadowed by the `/htmx/files/{subpath:path}` catch-all — see §6).)*
+- [x] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure. *(`forms/test_merge_projects_action.py`: unique samples move, same-name samples merge (links, attributes, measurements, status), assignees, conflicts, same/missing/unknown/non-numeric project, CSRF, rollback via a failure injected after the merge; insider-only check in `test_action_access.py`. Three failures found here were fixed in `e31216ed` — see findings.)*
 
 
 
 ### Sample, library, pool, and prep actions
 
-- [x] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback. *(`forms/test_sample_attribute_table_action.py`: predefined/custom typing, clear cell, delete/rename column, unknown/foreign/mismatched/missing/duplicate rows, short and duplicate headers, max length, all-or-nothing save, insider-only, CSRF. Two tests fail — see findings.)*
+- [x] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback. *(`forms/test_sample_attribute_table_action.py`: predefined/custom typing, clear cell, delete/rename column, unknown/foreign/mismatched/missing/duplicate rows, short and duplicate headers, max length, all-or-nothing save, insider-only, CSRF. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `StoreSamplesAction`: store samples/libraries/pools; pooled library keeps POOLED; request progression per submission type (raw → SAMPLES_RECEIVED, pooled → PREPARED, unpooled → SAMPLES_RECEIVED, QC-only → libraries QC_PENDING); empty selection rejected; unknown ID and CSRF change nothing; repeat is harmless; request context limits all tables and redirects back. *(Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
 - [x] `LibraryPrepAction`: add accepted libraries; empty selection rejected; insider-only; CSRF; 404.
 - [ ] `UploadLibraryPrepSpreadsheetAction`: valid spreadsheet; missing columns; malformed spreadsheet; duplicate libraries; invalid statuses; partial rollback.
@@ -381,7 +389,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [ ] `DilutePoolsAction`: valid dilution; zero/negative values; concentration and volume bounds; multiple pools; persistence and rollback.
 - [ ] `EditLibraryPropertiesAction`: project context; sequence-request context; library context; dynamic columns; invalid/missing values; unauthorized context.
 - [ ] `LibraryFeaturesAction`: add/edit/remove features; duplicate feature; invalid feature kit; library status/permission checks.
-- [x] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks. *(`forms/test_check_barcode_clashes_action.py`: error/warning/no clash, single-index, per-pool and per-lane grouping, forged library IDs hidden, request/pool/experiment access. Two tests fail — see findings.)*
+- [x] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks. *(`forms/test_check_barcode_clashes_action.py`: error/warning/no clash, single-index, per-pool and per-lane grouping, forged library IDs hidden, request/pool/experiment access. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `SelectExperimentPoolsAction`: link pools; skip already-linked; empty selection; insider-only; CSRF; 404.
 
 
@@ -393,7 +401,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `QueryBarcodeSequencesAction`: render form; empty/no-match search; CSRF ignored (no Validate).
 - [ ] `BarcodeConstraintsAction`: compatible set; incompatible set; missing library; duplicate barcode; invalid kit/type; controlled validation response.
 - [x] `SetExperimentCyclesAction`: update cycles; empty cycles; insider-only; pre-fill; CSRF; 404.
-- [x] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks. *(`forms/test_generate_sequencer_loading_checklist_action.py`: per-lane inputs, file + DB record, volume scaling and lane merging, zero cells, missing/non-numeric values, no-template workflow, insider-only, CSRF. Two tests fail — see findings.)*
+- [x] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks. *(`forms/test_generate_sequencer_loading_checklist_action.py`: per-lane inputs, file + DB record, volume scaling and lane merging, zero cells, missing/non-numeric values, no-template workflow, insider-only, CSRF. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output. *(`forms/test_billing_action.py`: workbook sheets, lane/flow-cell share, capacity and missing-reads warnings, request resolution for request-less pools, multiple experiments, unknown ID, CSRF. Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
 - [ ] `ReseqAction`: indexed libraries; raw libraries; mixed selection; invalid status; duplicate resequencing; permission checks.
 
@@ -401,6 +409,10 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 Findings from §3 tests (fixed 2026-10-07):
 
+- `merge_projects` (`opengsync_db/core/actions.py`, same code as legacy `ActionsBP`) — fixed in `e31216ed`:
+  - same-name merge deleted the moved library links: `Sample.library_links` is `delete-orphan`, and the links stayed in the source sample's collection when it was deleted. Links are now re-parented through the relationship (duplicates dropped).
+  - attributes were only copied inside the per-link loop, so a source sample without libraries lost its source-only attributes.
+  - `dst.status >= src.status` raised `TypeError` when the source sample had no status (the default); the comparison is now `None`-safe.
 - `SampleAttributeTableAction.Submit` — deleting a column raised `KeyError` for samples without that attribute (legacy had the same loop). Now guarded with `get_attribute()`, like the empty-cell branch.
 - `CheckBarcodeClashesAction.SelectSamples` only required a login. Now insider-only on GET (legacy `begin`) and POST (legacy POST only required a login, which exposed any library's barcodes).
 - `CheckBarcodeClashesAction.Render?experiment_id=` returned 200 for an unknown experiment. Now 404, as legacy.

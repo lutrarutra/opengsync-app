@@ -7,7 +7,6 @@
         <thead>
             <tr>
                 {{ table_col("api-token-table", table, "id") }}
-                {{ table_col("api-token-table", table, "uuid") }}
                 {{ table_col("api-token-table", table, "owner_id") }}
                 {{ table_col("api-token-table", table, "time_valid_min") }}
                 {{ table_col("api-token-table", table, "created_utc") }}
@@ -18,7 +17,6 @@
             {% for token in tokens %}
             <tr>
                 <th scope="row">{{ token.id }}</th>
-                <td><code>{{ token.uuid }}</code></td>
                 <td><a href="{{ url_for('user_page', user_id=token.owner_id) }}">{{ token.owner.name }}{% if current_user.id == token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td>{{ token.time_valid_min }}</td>
                 <td>{{ token.created_utc | format_datetime }}</td>

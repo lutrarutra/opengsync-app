@@ -51,6 +51,11 @@ async def lifespan(app: FastAPI):
         config.settings.inject_app_config(app_config)
         templates.j2.env.globals["sample_submission_windows"] = config.settings.app_config.sample_submission_windows
         logger.info("AppConfig injected from opengsync.yaml")
+        if config.settings.ENVIRONMENT == "prod" and not app_config.external_base_url:
+            logger.warning(
+                "external_base_url is not set: links in emails (registration, password reset, shares) "
+                "are built from the request's Host header, which clients control."
+            )
     else:
         logger.warning("opengsync.yaml not found, app_config unavailable")
 

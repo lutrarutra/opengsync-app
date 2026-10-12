@@ -29,16 +29,23 @@ class SampleForm(HTMXForm):
     def __init__(self, sample: models.Sample) -> None:
         super().__init__()
         self.sample = sample
+        self.access_level = C.AccessLevel.NONE
         self.post_url = responses.url_for("SampleForm.Edit", sample_id=sample.id)
 
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(
             sample_id: int,
-            session: SyncSession = Depends(dependencies.db_session)
+            session: SyncSession = Depends(dependencies.db_session),
+            access_level: C.AccessLevel = Depends(dependencies.sample_permissions),
         ) -> "SampleForm":
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this sample.")
             sample = session.get_one(Q.sample.select(id=sample_id))
-            return SampleForm(sample=sample)
+            form = SampleForm(sample=sample)
+            form.access_level = access_level
+            form.status.read_only = access_level < C.AccessLevel.INSIDER
+            return form
 
         return dependency
 
@@ -61,6 +68,11 @@ class SampleForm(HTMXForm):
             # Validate name characters
             if error := _check_sample_name(form.name.data):
                 form.name.errors.append(error)
+                raise exc.FormValidationException(form)
+
+            current_status_id = form.sample.status.id if form.sample.status is not None else None
+            if form.access_level < C.AccessLevel.INSIDER and form.status.data != current_status_id:
+                form.status.errors.append("Only insiders can change sample status.")
                 raise exc.FormValidationException(form)
 
             for user_sample in form.sample.project.samples:

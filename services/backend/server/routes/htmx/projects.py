@@ -567,7 +567,7 @@ def render_project_feed(
     else:
         user_id = current_user.id
 
-    projects, _ = session.page(
+    projects, total = session.page(
         Q.project.select(user_id=user_id, status_in=status_in).order_by(
             models.Project.status.desc(), models.Project.id.desc()
         ),
@@ -590,6 +590,7 @@ def render_project_feed(
         projects=projects,
         current_page=page,
         limit=PAGE_LIMIT,
+        total=total,
     )
 
 @router.post("/{project_id}/add-assignee", dependencies=[Depends(dependencies.require_insider)])

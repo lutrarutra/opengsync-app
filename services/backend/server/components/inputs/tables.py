@@ -186,11 +186,29 @@ class LibrarySelectTableField(SelectTableField):
     def table_url(self) -> responses.URL:
         return responses.url_for('render_library_table').include_query_params(**self.query_params)
 
-    def get_selected_libraries(self, session: SyncSession, options: db_utils.QueryOptions = None) -> list[models.Library]:
-        """Query the database for the selected :class:`Library` objects."""
+    def get_selected_libraries(
+        self,
+        session: SyncSession,
+        options: db_utils.QueryOptions = None,
+        *,
+        seq_request_id: int | None = None,
+        lab_prep_id: int | None = None,
+        pool_id: int | None = None,
+    ) -> list[models.Library]:
+        """Query the database for the selected :class:`Library` objects.
+
+        The ids come from the client. Pass the scope the selection table was filtered by
+        (``seq_request_id``/``lab_prep_id``/``pool_id``) so an id outside it is rejected (404).
+        """
         if not self.data:
             return []
-        return [session.get_one(Q.library.select(id=lid), options=options) for lid in self.data]
+        return [
+            session.get_one(
+                Q.library.select(id=lid, seq_request_id=seq_request_id, lab_prep_id=lab_prep_id, pool_id=pool_id),
+                options=options,
+            )
+            for lid in self.data
+        ]
 
     def render_selected_table(self) -> str:
         """Render the selected libraries table as HTML."""
@@ -243,11 +261,28 @@ class PoolSelectTableField(SelectTableField):
     def table_url(self) -> responses.URL:
         return responses.url_for('render_pool_table').include_query_params(**self.query_params)
 
-    def get_selected_pools(self, session: SyncSession, options: db_utils.QueryOptions = None) -> list[models.Pool]:
-        """Query the database for the selected :class:`Pool` objects."""
+    def get_selected_pools(
+        self,
+        session: SyncSession,
+        options: db_utils.QueryOptions = None,
+        *,
+        seq_request_id: int | None = None,
+        lab_prep_id: int | None = None,
+    ) -> list[models.Pool]:
+        """Query the database for the selected :class:`Pool` objects.
+
+        The ids come from the client. Pass the scope the selection table was filtered by
+        (``seq_request_id``/``lab_prep_id``) so an id outside it is rejected (404).
+        """
         if not self.data:
             return []
-        return [session.get_one(Q.pool.select(id=pid), options=options) for pid in self.data]
+        return [
+            session.get_one(
+                Q.pool.select(id=pid, seq_request_id=seq_request_id, lab_prep_id=lab_prep_id),
+                options=options,
+            )
+            for pid in self.data
+        ]
 
     def render_selected_table(self) -> str:
         """Render the selected pools table as HTML."""

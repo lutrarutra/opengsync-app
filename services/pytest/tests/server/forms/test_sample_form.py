@@ -4,6 +4,8 @@ The form is edit-only — samples are created by the library-annotation and
 sequencing-request flows, not here.
 """
 
+import re
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -27,7 +29,8 @@ def _edit_path(sample_id: int) -> str:
     return EDIT.format(sample_id=sample_id)
 
 
-def _payload(name: str, status: int | None = C.SampleStatus.STORED.id) -> dict[str, str]:
+def _payload(name: str, status: int | None = None) -> dict[str, str]:
+    """``status`` defaults to unchanged for samples from ``create_sample`` (no status)."""
     data: dict[str, str] = {"name": name}
     if status is not None:
         data["status"] = str(status)
@@ -92,11 +95,11 @@ def test_edit_form_get_denied_for_stranger(
     assert get(client, _edit_path(sample.id), user_2_token).status_code == 403
 
 
-def test_edit_persists_name_and_status(
+def test_edit_insider_persists_name_and_status(
     client: TestClient,
     session: SyncSession,
     user,
-    user_token: str,
+    insider_token: str,
 ):
     project = create_project(session, user)
     sample = create_sample(session, user, project)
@@ -106,7 +109,7 @@ def test_edit_persists_name_and_status(
         client,
         _edit_path(sample.id),
         _payload("Renamed_Sample", C.SampleStatus.STORED.id),
-        token=user_token,
+        token=insider_token,
     )
 
     assert_htmx_redirect(response, f"/samples/{sample.id}")
@@ -117,11 +120,11 @@ def test_edit_persists_name_and_status(
     assert updated.status == C.SampleStatus.STORED
 
 
-def test_edit_can_clear_status(
+def test_edit_insider_can_clear_status(
     client: TestClient,
     session: SyncSession,
     user,
-    user_token: str,
+    insider_token: str,
 ):
     project = create_project(session, user)
     sample = create_sample(session, user, project)
@@ -132,7 +135,7 @@ def test_edit_can_clear_status(
         client,
         _edit_path(sample.id),
         _payload("Statusless_Sample", status=None),
-        token=user_token,
+        token=insider_token,
     )
 
     assert_htmx_redirect(response, f"/samples/{sample.id}")
@@ -206,27 +209,32 @@ def test_edit_allowed_for_group_member(
     assert _reload(session, sample).name == "Group_Renamed"
 
 
-def test_edit_allowed_on_non_draft_project(
+def test_edit_denied_on_non_draft_project(
     client: TestClient,
     session: SyncSession,
     user,
     user_token: str,
 ):
-    """Legacy parity: sample editing requires READ, not WRITE."""
+    """Editing needs WRITE, which owners only have while the project is a draft.
+
+    Legacy required only READ; tightened in the 2026-10 security review.
+    """
     project = create_project(session, user)
     sample = create_sample(session, user, project)
+    original = sample.name
     project.status = C.ProjectStatus.PROCESSING
     session.commit()
 
+    assert get(client, _edit_path(sample.id), user_token).status_code == 403
     response = post_form(
         client,
         _edit_path(sample.id),
-        _payload("Still_Editable"),
+        _payload("Not_Editable"),
         token=user_token,
     )
 
-    assert_htmx_redirect(response, f"/samples/{sample.id}")
-    assert _reload(session, sample).name == "Still_Editable"
+    assert response.status_code == 403
+    assert _reload(session, sample).name == original
 
 
 def test_edit_duplicate_name_within_project_rerenders(
@@ -267,12 +275,12 @@ def test_edit_keeping_own_name_is_allowed(
     response = post_form(
         client,
         _edit_path(sample.id),
-        _payload(sample.name, C.SampleStatus.STORED.id),
+        _payload(sample.name),
         token=user_token,
     )
 
     assert_htmx_redirect(response, f"/samples/{sample.id}")
-    assert _reload(session, sample).status == C.SampleStatus.STORED
+    assert _reload(session, sample).name == "Keep_My_Name"
 
 
 def test_edit_same_name_in_another_project_is_allowed(
@@ -402,3 +410,43 @@ def test_edit_csrf_mismatch_rerenders(
     assert_form_invalid(response)
     assert_flash(response, CSRF_FLASH, category="error")
     assert _reload(session, sample).name == sample.name
+
+def test_edit_client_cannot_change_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    session.commit()
+
+    response = post_form(
+        client,
+        _edit_path(sample.id),
+        _payload("Renamed_Sample", C.SampleStatus.STORED.id),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, "Only insiders can change sample status.")
+    reloaded = _reload(session, sample)
+    assert reloaded.status is None
+    assert reloaded.name == sample.name
+
+
+def test_edit_status_is_read_only_for_client(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    session.commit()
+
+    client_view = get(client, _edit_path(sample.id), user_token)
+    insider_view = get(client, _edit_path(sample.id), insider_token)
+
+    assert re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', client_view.text)
+    assert not re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', insider_view.text)

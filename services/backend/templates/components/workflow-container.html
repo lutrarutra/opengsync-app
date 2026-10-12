@@ -11,7 +11,7 @@
     {{ workflow_tile("Edit Libraries", "Make changes to libraries.", url_for('RelibWorkflow.Begin'), bi="bi-pencil-square") }}
     {{ workflow_tile("Re-Index Libraries", "Make changes to library indices.", url_for('ReindexWorkflow.Begin'), img="barcode.svg") }}
     {{ workflow_tile("Prepare Libraries", "Prepare libraries in the pool", url_for('LabPrepForm.Create'), modal="xl", img="prepare.svg") }}
-    {{ workflow_tile("Create Experiment", "Create a new sequencing experiment.", url_for('LabPrepForm.Create'), modal="xl", img="sequencer.svg") }}
-    {{ workflow_tile("Create Sequencing Request", "Create a new sequencing request.", url_for('LabPrepForm.Create'), modal="xl", img="select.svg") }}
+    {{ workflow_tile("Create Experiment", "Create a new sequencing experiment.", url_for('ExperimentForm.Create'), modal="xl", img="sequencer.svg") }}
+    {{ workflow_tile("Create Sequencing Request", "Create a new sequencing request.", url_for('SeqRequestForm.Create'), modal="xl", img="select.svg") }}
     {{ workflow_tile("Merge Projects", "Merge samples from two projects into one.", url_for('MergeProjectsAction.Begin'), modal="xl", img="merge.svg") }}
 </div>

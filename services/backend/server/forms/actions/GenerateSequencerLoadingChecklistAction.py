@@ -3,7 +3,7 @@ import datetime as dt
 
 import numpy as np
 import pandas as pd
-import jinja2
+from jinja2.sandbox import SandboxedEnvironment
 from fastapi import Depends
 from markupsafe import Markup
 
@@ -134,7 +134,9 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
                 preload_table.to_html(index=False, classes="table", border=0, justify="left")
             )
 
-            form.template_md = (
+            # User-controlled values (experiment/user names, posted labels) go into the header,
+            # which is prepended after rendering so it is never parsed as Jinja source.
+            header = (
                 f"# Experiment {form.experiment.name}\n"
                 f"- Generated: {dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"- Workflow: {form.experiment.workflow.display_name}\n"
@@ -144,10 +146,9 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
                     [f"- `{subform.param_label.data}`: {subform.param_value.data}" for subform in form.parameters]
                 )
                 + "\n\n"
-                + form.template_md
             )
-
-            final_markdown_text = jinja2.Template(form.template_md).render(**template_context)
+            body = SandboxedEnvironment().from_string(form.template_md).render(**template_context)
+            final_markdown_text = header + body
 
             file = session.save(
                 Q.media_file.create(

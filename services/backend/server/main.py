@@ -37,7 +37,7 @@ class ErrorResponse(BaseModel):
 
 router = APIRouter(responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 409: {"model": ErrorResponse}})
 
-if config.settings.ENVIRONMENT != "production":
+if config.settings.ENVIRONMENT != "prod":
     @routes.api.router.get("/invalidate-cache")
     def invalidate_cache(
         cache_invalidate: list[str] = Depends(dependencies.invalidate_cache),

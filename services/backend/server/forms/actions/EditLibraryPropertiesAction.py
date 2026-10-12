@@ -90,6 +90,15 @@ class EditLibraryPropertiesAction(HTMXForm):
         logger.debug(df)
 
         self.spreadsheet.configure(df=df, post_url=self.post_url, csrf_token=self.csrf_token_value)
+
+    def get_library(self, session: SyncSession, library_id: int) -> models.Library:
+        """Load a library named in the submitted rows. The ids come from the client, so they
+        must lie in the scope the access level was checked for (404 otherwise)."""
+        if self.library_id is not None and library_id != self.library_id:
+            raise exc.NotFoundException("Library not found")
+        return session.get_one(Q.library.select(
+            id=library_id, seq_request_id=self.seq_request_id, project_id=self.project_id,
+        ))
     
     @classmethod
     def Init(cls) -> FormFunc:
@@ -142,7 +151,7 @@ class EditLibraryPropertiesAction(HTMXForm):
             for label in form._to_delete:
                 for library_id in df["library_id"]:
                     if library_id:
-                        library = session.get_one(Q.library.select(id=int(library_id)))
+                        library = form.get_library(session, int(library_id))
                         if library.properties and label in library.properties:
                             library.properties.pop(label)
 
@@ -151,7 +160,7 @@ class EditLibraryPropertiesAction(HTMXForm):
                 library_name: str | None
 
             for idx, row in parsing.safe_iter(df, RowSchema):
-                library = session.get_one(Q.library.select(id=row.library_id))
+                library = form.get_library(session, row.library_id)
                 if library.properties is None:
                     library.properties = {}
                 

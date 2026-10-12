@@ -228,7 +228,7 @@ def render_pool_feed(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     PAGE_LIMIT = 10
-    pools, _ = session.page(
+    pools, total = session.page(
         Q.pool.select(status_in=[C.PoolStatus.STORED, C.PoolStatus.ACCEPTED]),
         page=page,
         limit=PAGE_LIMIT,
@@ -243,6 +243,7 @@ def render_pool_feed(
         pools=pools,
         current_page=page,
         limit=PAGE_LIMIT,
+        total=total,
     )
 
 

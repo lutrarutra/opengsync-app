@@ -35,6 +35,7 @@ from . import (
     api_tokens,
     passkeys,
     chat,
+    search,
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -71,3 +72,4 @@ router.include_router(features.router, dependencies=[Depends(auth.dependencies.r
 router.include_router(plots.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(api_tokens.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(chat.router, dependencies=[Depends(auth.dependencies.require_user_id)])
+router.include_router(search.router, dependencies=[Depends(auth.dependencies.require_insider)])

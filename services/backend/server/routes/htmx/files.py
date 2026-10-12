@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import orm
 from loguru import logger
-import markdown
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
@@ -17,7 +16,7 @@ from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
 from ...utils.file_browser import FileBrowser, is_within_root
-from ...utils.io import is_browser_friendly
+from ...utils.io import is_browser_friendly, render_markdown
 from ...forms.actions import ShareDirectoryAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
@@ -35,6 +34,11 @@ BROWSER_RENDERABLE_EXTENSIONS = {
     ".webp",
     ".ico",
 }
+
+# Renderable files that can carry script. They are served inline under a sandbox CSP so any
+# script runs in an opaque origin without access to the viewer's session.
+ACTIVE_CONTENT_EXTENSIONS = {".svg", ".html", ".htm", ".xml"}
+SANDBOX_HEADERS = {"Content-Security-Policy": "sandbox", "X-Content-Type-Options": "nosniff"}
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -241,7 +245,10 @@ def serve_media_file(
     renderable = file.extension.lower() in BROWSER_RENDERABLE_EXTENSIONS
     disposition = "inline" if renderable else "attachment"
     filename = f"{file.name}{file.extension}"
-    return responses.file_response(path=filepath, filename=filename, content_type=content_type, disposition=disposition)
+    extra_headers = SANDBOX_HEADERS if file.extension.lower() in ACTIVE_CONTENT_EXTENSIONS else None
+    return responses.file_response(
+        path=filepath, filename=filename, content_type=content_type, disposition=disposition, extra_headers=extra_headers,
+    )
 
 
 @router.get("/{media_file_id}/download", dependencies=[Depends(dependencies.media_file_permissions)])
@@ -282,7 +289,7 @@ def render_markdown_file(
 ):
     file = session.get_one(Q.media_file.select(id=media_file_id))
 
-    filepath = os.path.join("/media", file.path)
+    filepath = os.path.join(config.settings.app_config.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exc.NotFoundException("File not found on disk.")
@@ -290,21 +297,7 @@ def render_markdown_file(
     with open(filepath, "r") as f:
         content = f.read()
     
-    return responses.htmx_response(
-        content=markdown.markdown(
-            content,
-            extensions=[
-                'tables',
-                'pymdownx.tasklist'
-            ],
-            extension_configs={
-                'pymdownx.tasklist': {
-                    'custom_checkbox': True,
-                    'clickable_checkbox': True
-                }
-            }
-        )
-    )
+    return responses.htmx_response(content=render_markdown(content))
 
 @router.delete("/{media_file_id}/delete")
 def delete_media_file(

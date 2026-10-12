@@ -163,3 +163,16 @@ class Sample(Base):
         if self._attributes is None or key not in self._attributes:
             raise KeyError(f"Attribute '{key}' does not exist.")
         del self._attributes[key]
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_sample_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_sample_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

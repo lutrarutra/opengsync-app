@@ -54,12 +54,31 @@ def map_pandas_enum_columns(dataframe: Any, columns: list[sa.ColumnElement[Any]]
     return dataframe
 
 
+def escape_like(value: str) -> str:
+    """Escape LIKE/ILIKE wildcards so `value` matches literally (use with escape="\\")."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def safe_ilike(
     column: sql.ColumnElement | InstrumentedAttribute, value: str,
 ) -> sql.ColumnElement[bool]:
     """ILIKE with SQL wildcard characters escaped (exact substring match)."""
-    safe = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return column.ilike(f"%{safe}%", escape="\\")
+    return column.ilike(f"%{escape_like(value)}%", escape="\\")
+
+
+def compact_key(column: sql.ColumnElement | InstrumentedAttribute) -> sql.ColumnElement[str]:
+    """Lowercase with everything except [a-z0-9] removed: "scRNA_seq-01" and "scrnaseq01" compare equal.
+
+    The "trgm_*_compact_idx" indexes are built on exactly
+    `regexp_replace(lower(<column>), '[^a-z0-9]+', '', 'g')`; keep them in sync. The constants are
+    inlined rather than bound so Postgres can match the expression to the index under generic plans.
+    """
+    return sa.func.regexp_replace(
+        sa.func.lower(column),
+        sa.literal_column("'[^a-z0-9]+'"),
+        sa.literal_column("''"),
+        sa.literal_column("'g'"),
+    )
 
 
 def safe_trgm_search(

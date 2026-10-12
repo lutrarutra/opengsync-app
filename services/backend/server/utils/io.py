@@ -2,6 +2,8 @@ import re
 from io import BytesIO
 from typing import Union, Literal
 
+import markdown
+import nh3
 import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Side, Border
 from openpyxl.worksheet.worksheet import Worksheet
@@ -18,6 +20,26 @@ def is_browser_friendly(mimetype: str | None) -> bool:
             "application/json",
         }
     )
+
+
+_MARKDOWN_TAGS = nh3.ALLOWED_TAGS | {"input", "label"}
+_MARKDOWN_ATTRIBUTES = {tag: set(attrs) for tag, attrs in nh3.ALLOWED_ATTRIBUTES.items()}
+_MARKDOWN_ATTRIBUTES.setdefault("*", set()).add("class")
+_MARKDOWN_ATTRIBUTES["input"] = {"type", "checked", "disabled"}
+
+
+def render_markdown(text: str) -> str:
+    """Render user-supplied markdown to HTML.
+
+    Raw HTML is allowed (generated checklists embed tables) but the result is passed through
+    an allowlist sanitiser, so scripts, event handlers and ``javascript:`` URLs are removed.
+    """
+    html = markdown.markdown(
+        text,
+        extensions=["tables", "pymdownx.tasklist"],
+        extension_configs={"pymdownx.tasklist": {"custom_checkbox": True, "clickable_checkbox": True}},
+    )
+    return nh3.clean(html, tags=_MARKDOWN_TAGS, attributes=_MARKDOWN_ATTRIBUTES)
 
 
 def parse_markdown_template(raw_md: str) -> tuple[list[dict[str, Union[str, float | None]]], str]:

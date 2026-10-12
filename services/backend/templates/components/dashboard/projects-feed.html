@@ -3,6 +3,9 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
+
+{# first page: fill the count badge in the dashboard header #}
+{% if current_page == 0 %}<span id="dash-count-projects" hx-swap-oob="true">{{ tab_count(total) }}</span>{% endif %}
 {% for project in projects %}
 <div class="element-banner"
 {% if loop.last and limit == loop.index %}

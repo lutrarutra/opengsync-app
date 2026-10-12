@@ -6,6 +6,8 @@ is only reachable through a direct POST.  Those tests therefore assert rejection
 and non-persistence instead of rendered error text.
 """
 
+import re
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -676,3 +678,18 @@ def test_edit_group_requires_owner_membership(
     session.expire_all()
     session.refresh(project)
     assert project.group_id is None
+
+def test_status_is_read_only_for_client(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    session.commit()
+    read_only = r'<select[^>]*\bdisabled\b[^>]*name="status"'
+
+    for path in (_edit_path(project.id), CREATE):
+        assert re.search(read_only, get(client, path, user_token).text), path
+        assert not re.search(read_only, get(client, path, insider_token).text), path

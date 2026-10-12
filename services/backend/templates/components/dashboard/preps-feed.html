@@ -1,5 +1,8 @@
 {% from "components/spinner.jinja2" import spinner %}
 
+{# fills the count badge in the dashboard header: libraries waiting for, in or done with prep #}
+<span id="dash-count-preps" hx-swap-oob="true">{{ tab_count(df.shape[0]) }}</span>
+
 {% for service_type_id, _df in df.groupby("service_type") %}
 {% set service_type = C.ServiceType(service_type_id) %}
 {% set n_waiting = (_df["status"] == C.LibraryStatus.ACCEPTED).sum() %}

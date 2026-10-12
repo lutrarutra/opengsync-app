@@ -6,6 +6,8 @@ Pool access is derived from the associated sequencing request.  A pool without a
 
 import sqlalchemy as sa
 
+import re
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -322,7 +324,7 @@ def test_edit_persists_changes(
     client: TestClient,
     session: SyncSession,
     user,
-    user_token: str,
+    insider_token: str,
 ):
     seq_request = create_seq_request(session, user)
     pool = create_pool(session, user, seq_request)
@@ -340,7 +342,7 @@ def test_edit_persists_changes(
             contact_phone="+1 555 9999",
             num_m_reads_requested="50.5",
         ),
-        token=user_token,
+        token=insider_token,
     )
 
     assert_htmx_redirect(response, f"/pools/{pool.id}")
@@ -556,3 +558,46 @@ def test_clone_csrf_mismatch_rerenders(
     assert_form_invalid(response)
     assert_flash(response, CSRF_FLASH, category="error")
     assert _pool(session, "CSRF_Clone") is None
+
+def test_edit_client_cannot_change_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    pool = create_pool(session, user, create_seq_request(session, user))
+    _commit(session)
+
+    response = post_form(client, _edit_path(pool.id), _payload(status=C.PoolStatus.STORED.id), token=user_token)
+
+    assert_form_invalid(response, "Only insiders can change pool status.")
+    assert _reload(session, pool).status == C.PoolStatus.DRAFT
+
+
+def test_create_client_cannot_choose_status(
+    client: TestClient,
+    session: SyncSession,
+    user_token: str,
+):
+    response = post_form(client, "/htmx/pools/create", _payload(name="Stored_Pool", status=C.PoolStatus.STORED.id), token=user_token)
+
+    assert_form_invalid(response, "You can only create a pool with status DRAFT.")
+    session.expire_all()
+    assert session.first(Q.pool.select().where(models.Pool.name == "Stored_Pool")) is None
+
+
+def test_status_is_read_only_for_client(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+):
+    pool = create_pool(session, user, create_seq_request(session, user))
+    _commit(session)
+
+    for path in (_edit_path(pool.id), "/htmx/pools/create"):
+        assert re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, path, user_token).text), path
+        assert not re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, path, insider_token).text), path
+    # The read-only select still submits DRAFT (id 0) through its hidden input.
+    assert '<input type="hidden" name="status" value="0">' in get(client, "/htmx/pools/create", user_token).text

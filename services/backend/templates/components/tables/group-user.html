@@ -25,7 +25,7 @@
                             "target": "#group-user-table",
                             "title": "Remove user '{user}' from group '{group}'?".format(user=affiliation.user.name, group=group.name)
                         },},
-                        {"type": "hxpost", "label": "Make Owner", "disabled": false if access_level >= C.AccessLevel.WRITE else true, "config": {
+                        {"type": "hxpost", "label": "Make Owner", "disabled": false if (access_level >= C.AccessLevel.INSIDER or group.owner.id == current_user.id) else true, "config": {
                             "url": url_for('make_owner_of_group', group_id=group.id, user_id=affiliation.user.id).__str__(),
                             "target": "#group-user-table",
                             "title": "Make user '{user}' an owner of group '{group}'?".format(user=affiliation.user.name, group=group.name)

@@ -35,9 +35,11 @@ from . import (
     library_index,
     pd,
     todo_comment,
+    search,
 )
 
 __all__ = [
+    "search",
     "flow_cell_design",
     "lab_prep",
     "pool_design",

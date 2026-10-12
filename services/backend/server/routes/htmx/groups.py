@@ -115,10 +115,14 @@ def make_owner_of_group(
     current_user_id: int = Depends(dependencies.require_user_id),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException("You do not have permission to make users owners of this group.")
-
     group = session.get_one(Q.group.select(id=group_id))
+    # Ownership can only be handed over by the owner (or staff), not taken by a manager.
+    if (
+        group.owner.id != current_user_id
+        and session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException("Only the group owner can transfer ownership.")
+
     owner_affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=group.owner.id))
     owner_affiliation.affiliation_type = C.AffiliationType.MANAGER
     

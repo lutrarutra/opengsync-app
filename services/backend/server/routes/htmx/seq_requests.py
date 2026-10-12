@@ -229,12 +229,13 @@ def render_seq_request_feed(
             models.SeqRequest.timestamp_submitted_utc.desc(),
         )
 
-    seq_requests, _ = session.page(stmt, limit=PAGE_LIMIT, page=page, options=options)
+    seq_requests, total = session.page(stmt, limit=PAGE_LIMIT, page=page, options=options)
     return responses.htmx_response(
         template="components/dashboard/seq_requests-feed.html",
         seq_requests=seq_requests,
         current_page=page,
         limit=PAGE_LIMIT,
+        total=total,
     )
 
 @router.delete("/{seq_request_id}/delete")
@@ -943,6 +944,9 @@ def reseq_library(
         raise exc.NoPermissionsException()
 
     library = session.get_one(Q.library.select(id=library_id))
+
+    if library.seq_request_id != seq_request.id:
+        raise exc.BadRequestException()
 
     actions.clone_library(
         session=session,

@@ -11,7 +11,7 @@
             <div class="dash-top dash-component-container">
                 <div class="dash-component-header">
                     <div class="dash-component-title-container">
-                        <h4>Recent Sequencing Requests</h4>
+                        <h4><a class="dash-title-link" href="{{ url_for('seq_requests_page') }}">Recent Sequencing Requests<span id="dash-count-seq-requests"></span><i class="bi bi-chevron-right"></i></a></h4>
                     </div>
                 </div>
                 <div class="dash-component-content">
@@ -23,7 +23,7 @@
             <div class="dash-bottom dash-component-container">
                 <div class="dash-component-header">
                     <div class="dash-component-title-container">
-                        <h4>Recent Experiments</h4>
+                        <h4><a class="dash-title-link" href="{{ url_for('experiments_page') }}">Recent Experiments<span id="dash-count-experiments"></span><i class="bi bi-chevron-right"></i></a></h4>
                     </div>
                 </div>
                 <div class="dash-component-content">
@@ -41,19 +41,19 @@
                             <button class="nav-link active" data-bs-toggle="tab"
                             data-bs-target="#tab-projects" type="button" role="tab"
                             aria-controls="tab-projects" aria-selected="false">
-                            Projects</button>
+                            Projects<span id="dash-count-projects"></span></button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" data-bs-toggle="tab"
                             data-bs-target="#tab-pools" type="button" role="tab"
                             aria-controls="tab-pools" aria-selected="true">
-                            Pools</button>
+                            Pools<span id="dash-count-pools"></span></button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" data-bs-toggle="tab"
                             data-bs-target="#tab-todo-libraries" type="button" role="tab"
                             aria-controls="tab-todo-libraries" aria-selected="false">
-                            Preps</button>
+                            Preps<span id="dash-count-preps"></span></button>
                         </li>
                     </ul>
                 </div>
@@ -64,12 +64,12 @@
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="1">
-                        <div class="banner-container" hx-get="{{ url_for('render_pool_feed') }}" hx-trigger="intersect once">
+                        <div class="banner-container" hx-get="{{ url_for('render_pool_feed') }}" hx-trigger="load once">
                             {{ spinner() }}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="2">
-                        <div class="banner-container" hx-get="{{ url_for('render_prep_feed') }}" hx-trigger="intersect once">
+                        <div class="banner-container" hx-get="{{ url_for('render_prep_feed') }}" hx-trigger="load once">
                             {{ spinner() }}
                         </div>
                     </div>

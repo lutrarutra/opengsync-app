@@ -1,5 +1,7 @@
 """APITokenForm: rendering, creation, deactivation, ownership, and CSRF."""
 
+import re
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, queries as Q, models
@@ -82,9 +84,10 @@ def test_create_api_token_persists_and_shows_value_once(
     token = tokens[0]
     assert token.time_valid_min == 60 * 24 * 90
     assert not token.is_expired
-    # The generated token value is shown once in the completion template.
-    assert token.uuid in response.text
-    assert len(token.uuid) == 36
+    # The secret is shown once in the completion template; only its hash is stored.
+    secret = re.search(r'type="text" value="([A-Za-z0-9_-]{43})"', response.text)
+    assert secret is not None, response.text
+    assert token.token_hash == models.APIToken.hash(secret.group(1))
 
 
 def test_create_api_token_uses_default_validity(

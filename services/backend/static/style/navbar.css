@@ -1,185 +1,404 @@
-
 @import "./colors.css";
 
-nav#navbar.admin {
-    background-color: var(--color-cemm-red) !important;
-    .nav-item {
-        a.active {
-            background-color: var(--color-cemm-red-darker) !important;
-        }
-        a:hover {
-            transition: all 0.2s ease-in-out;
-            background-color: var(--color-cemm-red-darker) !important;
-        }
-    }
-    .nav-item-dropdown {
-        ul {
-            li {
-                background-color: var(--color-cemm-red) !important;
-            }
-            li:hover {
-                transition: all 0.2s ease-in-out;
-                background-color: var(--color-cemm-red-darker) !important;
-            }
-        }
-        &:has(.active) {
-            background-color: var(--color-cemm-red-darker) !important;
-        }
-    }
-    .login-btn {
-        background-color: var(--color-cemm-red-dark) !important;
-    }
+/* Top navbar (components/navbar.html, static/js/navbar.js) */
+
+/* page content starts below the bar */
+:root {
+    --navbar-height: 60px;
 }
 
 nav#navbar {
-    width: 100vw;
-    height: 60px;
-    background-color: var(--color-navbar);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    /* translucent overlays so the same rules work on the blue and the red (admin) bar */
+    --nav-hover: rgba(0, 0, 0, 0.08);
+    --nav-active: rgba(0, 0, 0, 0.16);
+    --nav-text: rgba(255, 255, 255, 0.92);
+
     position: fixed;
     top: 0;
     z-index: 15;
+    width: 100vw;
+    height: var(--navbar-height);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 16px;
+    background-color: var(--color-navbar);
+    color: var(--nav-text);
+}
 
-    a.user-btn p {
-        cursor: pointer;
+nav#navbar.admin {
+    background-color: var(--color-cemm-red);
+}
+
+/* left: burger + brand */
+
+nav#navbar .nav-left {
+    position: relative;
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+nav#navbar #icon-banner {
+    overflow: hidden;
+    max-width: 260px;
+    color: var(--color-white);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* dev only: on medium screens it widens the brand past the page margin, shifting the links a little */
+nav#navbar .nav-debug {
+    margin-left: -4px;
+    color: var(--color-white);
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* center: links and dropdowns */
+
+nav#navbar #navbar-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+nav#navbar .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 36px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--nav-text);
+    font-size: 0.93rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+nav#navbar .nav-link:hover,
+nav#navbar .nav-dropdown.open > .nav-link {
+    background-color: var(--nav-hover);
+    color: var(--color-white);
+}
+
+nav#navbar .nav-link.active,
+nav#navbar .nav-dropdown:has(.active) > .nav-link {
+    background-color: var(--nav-active);
+    color: var(--color-white);
+}
+
+/* top-level icons only show in the small-screen panel */
+nav#navbar #navbar-container .nav-link .nav-icon {
+    display: none;
+}
+
+nav#navbar .nav-dropdown-toggle .nav-caret {
+    font-size: 10px;
+    opacity: 0.75;
+    transition: transform 0.12s ease;
+}
+
+nav#navbar .nav-dropdown {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* dropdown cards: nav groups and the profile menu */
+
+nav#navbar .nav-menu {
+    position: absolute;
+    top: calc(100% - 6px);
+    left: 0;
+    min-width: 190px;
+    padding: 6px;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 10px;
+    background-color: var(--color-white);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+}
+
+nav#navbar .nav-dropdown.open > .nav-menu,
+nav#navbar .profile-menu.open > .nav-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+nav#navbar .nav-dropdown.open > .nav-dropdown-toggle .nav-caret {
+    transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+    nav#navbar .nav-dropdown:hover > .nav-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
     }
 
-    p:hover {
-        cursor: default;
-    }
-
-    a#icon-banner {
-        margin: auto 0 auto 0;
-        padding: 0 10px 0 10px;
-        font-size: 25px;
-        color: var(--color-gray-100);
-        text-decoration: none;
-    }
-    
-    #navbar-container {
-        width: 70vw;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        justify-self: center;
-        .nav-item {
-            width: 100%;
-            height: 100%;
-            a {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: var(--color-light);
-                text-decoration: none;
-            }
-            a.active {
-                background-color: var(--color-navbar-active);
-            }
-            a:hover {
-                transition: all 0.2s ease-in-out;
-                background-color: var(--color-navbar-active);
-            }
-        }
-        .nav-item-dropdown {
-            color: var(--color-light);
-            width: 100%;
-            height: 100%;
-            p {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0;
-                padding: 0;
-            }
-            ul {
-                display: none;
-                background-color: var(--color-navbar);
-                margin: 0;
-                padding: 0;
-                li {
-                    height: 60px;
-                    text-decoration: none;
-                    list-style: none;
-                    a {
-                        color: var(--color-light);
-                        width: 100%;
-                        height: 100%;
-                        text-align: center;
-                        vertical-align: middle;
-                        margin: 0;
-                        padding: 0;
-                    }
-                    a.active {
-                        background-color: var(--color-navbar-active);
-                    }
-                }
-                li:hover {
-                    transition: all 0.2s ease-in-out;
-                    background-color: var(--color-navbar-active);
-                }
-            }
-        }
-        .nav-item-dropdown:hover ul {
-            display: block;
-        }
-        .nav-item-dropdown:has(.active) {
-            background-color: var(--color-navbar-active);
-        }
-    }
-    .nav-right {
-        width: 15vw;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: end;
-        padding-right: 15px;
-        .login-btn {
-            height: 40px;
-            width: 100px;
-            display: flex;
-            align-content: center;
-            justify-content: left;
-            p {
-                margin: auto;
-                text-overflow: ".";
-                overflow: hidden;
-                white-space: nowrap;
-            }
-        }
-    }
-    .nav-left {
-        width: 15vw;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: start;
-        padding-left: 15px;
+    nav#navbar .nav-dropdown:hover > .nav-dropdown-toggle .nav-caret {
+        transform: rotate(180deg);
     }
 }
 
-#burger {
+nav#navbar .nav-menu-link {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-gray-800);
+    font-size: 0.9rem;
+    text-align: left;
+    text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
+}
+
+nav#navbar .nav-menu-link .bi {
+    width: 16px;
+    color: var(--color-gray-500);
+    font-size: 15px;
+    text-align: center;
+}
+
+nav#navbar .nav-menu-link:hover,
+nav#navbar .nav-menu-link:focus-visible {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-900);
+    outline: none;
+}
+
+nav#navbar .nav-menu-link.active {
+    background-color: color-mix(in srgb, var(--color-navbar) 12%, white);
+    color: var(--color-cemm-blue-dark);
+    font-weight: 600;
+}
+
+nav#navbar .nav-menu-link.active .bi {
+    color: var(--color-cemm-blue-dark);
+}
+
+nav#navbar .nav-menu-divider {
+    height: 1px;
+    margin: 6px 4px;
+    background-color: var(--color-gray-200);
+}
+
+/* right: search + profile */
+
+nav#navbar .nav-right {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+nav#navbar .profile-menu {
+    position: relative;
+}
+
+nav#navbar .profile-menu > .nav-menu {
+    top: calc(100% + 10px);
+    left: auto;
+    right: 0;
+    min-width: 230px;
+    max-width: 320px;
+}
+
+nav#navbar .profile-btn {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.18);
+    color: var(--color-white);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+nav#navbar .profile-btn:hover,
+nav#navbar .profile-menu.open > .profile-btn {
+    border-color: var(--color-white);
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+nav#navbar .profile-role {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 19px;
+    height: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--color-white);
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+nav#navbar .profile-link .profile-icon {
+    font-size: 22px;
+    width: 22px;
+}
+
+nav#navbar .profile-text {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+nav#navbar .profile-link .profile-settings {
+    margin-left: 4px;
+    color: var(--color-gray-400);
+    font-size: 14px;
+}
+
+nav#navbar .profile-link:hover .profile-settings {
+    color: var(--color-gray-700);
+}
+
+nav#navbar .profile-name,
+nav#navbar .profile-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+nav#navbar .profile-name {
+    color: var(--color-gray-900);
+    font-weight: 600;
+}
+
+/* people can have several accounts: the email tells which one is signed in */
+nav#navbar .profile-email {
+    color: var(--color-gray-500);
+    font-size: 0.78rem;
+}
+
+nav#navbar .nav-menu-link.sign-out:hover {
+    background-color: color-mix(in srgb, var(--color-danger) 8%, white);
+    color: var(--color-danger);
+}
+
+nav#navbar .nav-menu-link.sign-out:hover .bi {
+    color: var(--color-danger);
+}
+
+nav#navbar .sign-in-btn {
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 8px;
+    color: var(--color-white);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+nav#navbar .sign-in-btn:hover {
+    background-color: var(--nav-hover);
+}
+
+/* wide screens: links start at the content's left edge and the search ends at its right edge
+   (--page-margin/--page-padding from responsive.css); brand and profile sit in the grey side margins */
+@media screen and (min-width: 993px) {
+    nav#navbar {
+        --page-inset: calc(var(--page-margin) + var(--page-padding));
+        --profile-zone: 58px;
+        gap: 0;
+        padding: 0;
+    }
+
+    /* a brand wider than the margin pushes the links instead of overlapping them */
+    nav#navbar .nav-left {
+        flex: 0 0 auto;
+        min-width: var(--page-inset);
+        padding: 0 8px 0 12px;
+    }
+
+    nav#navbar .nav-right {
+        margin-left: 12px;
+        padding-right: max(var(--page-inset), var(--profile-zone));
+    }
+
+    nav#navbar .profile-menu {
+        position: absolute;
+        top: 0;
+        right: 12px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    nav#navbar .profile-menu > .nav-menu {
+        top: calc(100% - 2px);
+    }
+}
+
+/* burger (small screens only) */
+
+#burger {
     display: none;
-    div {
+    padding: 6px 4px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+
+    span {
+        display: block;
         width: 20px;
-        height: 3px;
-        background-color: white;
+        height: 2px;
+        margin: 4px 0;
         border-radius: 1px;
-        margin: 5px;
-        transition: all 0.3s ease;
+        background-color: var(--color-white);
+        transition: transform 0.2s ease, opacity 0.2s ease;
     }
 }
 
 #burger.toggle {
     .line1 {
-        transform: rotate(-45deg) translate(-5px, 6px);
+        transform: translateY(6px) rotate(45deg);
     }
 
     .line2 {
@@ -187,7 +406,7 @@ nav#navbar {
     }
 
     .line3 {
-        transform: rotate(45deg) translate(-5px, -6px);
+        transform: translateY(-6px) rotate(-45deg);
     }
 }
 
@@ -196,73 +415,95 @@ nav#navbar {
         #burger {
             display: block;
         }
+
+        /* slide-in panel: every dropdown is shown expanded under its group title */
         #navbar-container {
-            position: absolute;
-            left: 0px;
-            height: calc(100vh - 60px);
-            top: 60px;
-            width: 100%;
-            background-color: var(--color-dark);
-            opacity: 0.95;
-            display: flex;
+            position: fixed;
+            top: var(--navbar-height);
+            left: 0;
+            width: min(320px, 100vw);
+            height: calc(100vh - var(--navbar-height));
             flex-direction: column;
-            align-items: center;
-            transform: translateX(-100%);
-            transition: transform 0.5s ease-in;
-
-            .nav-item-dropdown {
-                color: var(--color-light);
-                width: 100%;
-        
-                p {
-                    display: none;
-                }
-                ul {
-                    display: flex;
-                    height: 60px;
-                    justify-content: space-evenly;
-                    background-color: var(--color-dark);
-                    margin: 0;
-                    padding: 0;
-                    li {
-                        width: 100%;
-                        height: 60px;
-                        text-decoration: none;
-                        list-style: none;
-                        a {
-                            color: var(--color-light);
-                            width: 100%;
-                            height: 100%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 0;
-                            padding: 0;
-                        }
-                        a.active {
-                            background-color: var(--color-navbar-active);
-                        }
-                    }
-                }
-            }
+            align-items: stretch;
+            gap: 2px;
+            padding: 12px;
+            overflow-y: auto;
+            background-color: var(--color-white);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+            transform: translateX(-105%);
+            transition: transform 0.2s ease;
         }
-        
+
         #navbar-container.nav-active {
-            transform: translateX(0%);
-            .nav-item {
-                opacity: 0;
+            transform: none;
+        }
+
+        #navbar-container > * {
+            flex-shrink: 0;
+        }
+
+        /* top-level links match the dropdown entries */
+        #navbar-container > .nav-link {
+            height: auto;
+            gap: 10px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            color: var(--color-gray-800);
+            font-size: 0.9rem;
+            font-weight: 400;
+
+            .nav-icon {
+                display: inline-block;
+                width: 16px;
+                color: var(--color-gray-500);
+                font-size: 15px;
+                text-align: center;
             }
         }
-    }
-}
 
-@keyframes navLinkFade {
-    from {
-        opacity: 0;
-        transform: translateX(-50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+        #navbar-container > .nav-link:hover {
+            background-color: var(--color-gray-100);
+        }
+
+        #navbar-container > .nav-link.active {
+            background-color: color-mix(in srgb, var(--color-navbar) 12%, white);
+            color: var(--color-cemm-blue-dark);
+            font-weight: 600;
+        }
+
+        .nav-dropdown {
+            height: auto;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .nav-dropdown-toggle {
+            height: auto;
+            margin-top: 12px;
+            padding: 0 12px 4px 12px;
+            background: transparent !important;
+            color: var(--color-gray-500) !important;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            pointer-events: none;
+
+            .nav-icon,
+            .nav-caret {
+                display: none;
+            }
+        }
+
+        #navbar-container .nav-menu {
+            position: static;
+            min-width: 0;
+            padding: 0;
+            border: 0;
+            box-shadow: none;
+            opacity: 1;
+            visibility: visible;
+            transform: none;
+        }
     }
 }

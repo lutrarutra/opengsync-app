@@ -38,7 +38,8 @@ class ProtocolForm(HTMXForm):
     def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
         def dependency(
             protocol_id: int | None = None,
-            session: SyncSession = Depends(dependencies.db_session)
+            session: SyncSession = Depends(dependencies.db_session),
+            _: models.User = Depends(dependencies.require_insider),
         ) -> "ProtocolForm":
             if form_type == "edit" and protocol_id is None:
                 raise exc.OpeNGSyncServerException("Protocol ID must be provided for edit form.")

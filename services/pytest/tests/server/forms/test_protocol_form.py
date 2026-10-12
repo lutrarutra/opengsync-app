@@ -1,4 +1,4 @@
-"""ProtocolForm: create + edit, no auth gate, name uniqueness."""
+"""ProtocolForm: create + edit (insiders only), name uniqueness."""
 
 from fastapi.testclient import TestClient
 
@@ -17,74 +17,91 @@ def _payload(**overrides: object) -> dict[str, str]:
     return data
 
 
-def test_create_render(client: TestClient, user_token: str):
-    response = get(client, f"{PREFIX}/create", user_token)
+def test_create_render(client: TestClient, insider_token: str):
+    response = get(client, f"{PREFIX}/create", insider_token)
     assert response.status_code == 200
     assert 'name="name"' in response.text
 
 
-def test_create_persists(client: TestClient, session: SyncSession, user_token: str):
-    response = post_form(client, f"{PREFIX}/create", _payload(), token=user_token)
+def test_create_persists(client: TestClient, session: SyncSession, insider_token: str):
+    response = post_form(client, f"{PREFIX}/create", _payload(), token=insider_token)
     assert_htmx_redirect(response)
     assert_flash(response, "Protocol Created!", "success")
     assert session.first(Q.protocol.select(name="TestProtocol")) is not None
 
 
-def test_create_name_too_short(client: TestClient, user_token: str):
-    response = post_form(client, f"{PREFIX}/create", _payload(name="ab"), token=user_token)
+def test_create_name_too_short(client: TestClient, insider_token: str):
+    response = post_form(client, f"{PREFIX}/create", _payload(name="ab"), token=insider_token)
     assert_form_invalid(response)
 
 
-def test_create_duplicate_name(client: TestClient, session: SyncSession, user_token: str):
+def test_create_duplicate_name(client: TestClient, session: SyncSession, insider_token: str):
     p = create_protocol(session)
     session.commit()
-    response = post_form(client, f"{PREFIX}/create", _payload(name=p.name), token=user_token)
+    response = post_form(client, f"{PREFIX}/create", _payload(name=p.name), token=insider_token)
     assert_form_invalid(response)
     assert "already exists" in response.text
 
 
-def test_create_csrf_mismatch(client: TestClient, session: SyncSession, user_token: str):
-    response = post_form_csrf_mismatch(client, f"{PREFIX}/create", _payload(), token=user_token)
+def test_create_csrf_mismatch(client: TestClient, session: SyncSession, insider_token: str):
+    response = post_form_csrf_mismatch(client, f"{PREFIX}/create", _payload(), token=insider_token)
     assert_form_invalid(response)
 
 
-def test_edit_render(client: TestClient, session: SyncSession, user_token: str):
+def test_edit_render(client: TestClient, session: SyncSession, insider_token: str):
     p = create_protocol(session)
     session.commit()
-    response = get(client, f"{PREFIX}/{p.id}/edit", user_token)
+    response = get(client, f"{PREFIX}/{p.id}/edit", insider_token)
     assert response.status_code == 200
     assert p.name in response.text
 
 
-def test_edit_render_unknown_is_404(client: TestClient, user_token: str):
-    assert get(client, f"{PREFIX}/999999/edit", user_token).status_code == 404
+def test_edit_render_unknown_is_404(client: TestClient, insider_token: str):
+    assert get(client, f"{PREFIX}/999999/edit", insider_token).status_code == 404
 
 
-def test_edit_persists(client: TestClient, session: SyncSession, user_token: str):
+def test_edit_persists(client: TestClient, session: SyncSession, insider_token: str):
     p = create_protocol(session)
     session.commit()
-    response = post_form(client, f"{PREFIX}/{p.id}/edit", _payload(name="Updated"), token=user_token)
+    response = post_form(client, f"{PREFIX}/{p.id}/edit", _payload(name="Updated"), token=insider_token)
     assert_htmx_redirect(response)
     assert_flash(response, "Protocol Updated!", "success")
     session.expire_all()
     assert session.get_one(Q.protocol.select(id=p.id)).name == "Updated"
 
 
-def test_edit_unknown_is_404(client: TestClient, user_token: str):
-    response = post_form(client, f"{PREFIX}/999999/edit", _payload(), token=user_token)
+def test_edit_unknown_is_404(client: TestClient, insider_token: str):
+    response = post_form(client, f"{PREFIX}/999999/edit", _payload(), token=insider_token)
     assert response.status_code == 404
 
 
-def test_edit_duplicate_name(client: TestClient, session: SyncSession, user_token: str):
+def test_edit_duplicate_name(client: TestClient, session: SyncSession, insider_token: str):
     p1 = create_protocol(session)
     p2 = create_protocol(session)
     session.commit()
-    response = post_form(client, f"{PREFIX}/{p2.id}/edit", _payload(name=p1.name), token=user_token)
+    response = post_form(client, f"{PREFIX}/{p2.id}/edit", _payload(name=p1.name), token=insider_token)
     assert_form_invalid(response)
 
 
-def test_edit_csrf_mismatch(client: TestClient, session: SyncSession, user_token: str):
+def test_edit_csrf_mismatch(client: TestClient, session: SyncSession, insider_token: str):
     p = create_protocol(session)
     session.commit()
-    response = post_form_csrf_mismatch(client, f"{PREFIX}/{p.id}/edit", _payload(), token=user_token)
+    response = post_form_csrf_mismatch(client, f"{PREFIX}/{p.id}/edit", _payload(), token=insider_token)
     assert_form_invalid(response)
+
+def test_create_denied_for_client(client: TestClient, session: SyncSession, user_token: str):
+    assert get(client, f"{PREFIX}/create", user_token).status_code == 403
+    response = post_form(client, f"{PREFIX}/create", _payload(), token=user_token)
+    assert response.status_code == 403
+    assert session.first(Q.protocol.select(name="TestProtocol")) is None
+
+
+def test_edit_denied_for_client(client: TestClient, session: SyncSession, user_token: str):
+    p = create_protocol(session)
+    original = p.name
+    session.commit()
+    assert get(client, f"{PREFIX}/{p.id}/edit", user_token).status_code == 403
+    response = post_form(client, f"{PREFIX}/{p.id}/edit", _payload(name="Hijacked_Protocol"), token=user_token)
+    assert response.status_code == 403
+    session.expire_all()
+    assert session.get_one(Q.protocol.select(id=p.id)).name == original

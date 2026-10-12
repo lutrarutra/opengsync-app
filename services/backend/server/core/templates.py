@@ -7,10 +7,12 @@ import pandas as pd
 import jinja2
 from markupsafe import Markup, escape
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import URL
 
 from opengsync_db import categories as C, models, units
 
 from . import context
+from .search import SEARCH_KINDS
 from .config import settings
 from ..utils import barcodes
 
@@ -41,9 +43,8 @@ def filesize(value: int | float):
     return f"{value:.1f} PB"
 
 def format_markdown(value: str) -> str:
-    from markupsafe import Markup
-    import markdown  #type: ignore
-    return Markup(markdown.markdown(value))
+    from ..utils.io import render_markdown
+    return Markup(render_markdown(value))
 
 j2.env.filters["format_timestamp"] = format_timestamp
 j2.env.filters["format_datetime"] = format_datetime
@@ -150,6 +151,7 @@ j2.env.globals["debug"] = settings.ENVIRONMENT == "dev"
 
 # Categories — whole module injected so templates use C.EnumName
 j2.env.globals["C"] = C
+j2.env.globals["SEARCH_KINDS"] = SEARCH_KINDS
 
 # Utilities
 j2.env.globals["isna"] = pd.isna
@@ -198,7 +200,8 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
     """
     request = ctx.get("request")
     if request is not None:
-        for key in ("_external", "_scheme", "_anchor"):
+        external = bool(path_params.pop("_external", False))
+        for key in ("_scheme", "_anchor"):
             path_params.pop(key, None)
 
         normalized: dict = {}
@@ -215,7 +218,7 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
         query_kwargs = {k: v for k, v in path_params.items() if k not in route_param_names}
 
         try:
-            url = request.url_for(name, **url_kwargs)
+            url = absolute_url_for(request, name, external=external, **url_kwargs)
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
@@ -229,6 +232,18 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
 
         return url
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")
+
+def absolute_url_for(request, name: str, *, external: bool = False, **path_params) -> URL:
+    """Absolute URL of a route.
+
+    With ``external`` (links that leave the app: emails, copy-paste commands) the configured
+    ``external_base_url`` is used instead of the request's Host header, which the client
+    controls. Without that setting it falls back to the request.
+    """
+    base = settings.app_config.external_base_url if external else None
+    if base:
+        return URL(base.rstrip("/") + request.app.url_path_for(name, **path_params))
+    return request.url_for(name, **path_params)
 
 def _get_route_param_names(router, name: str, provided: set[str] | None = None) -> set:
     """Extract path parameter names from a route by its name."""

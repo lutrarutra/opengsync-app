@@ -274,7 +274,7 @@ def _resolve_user_id_by_api_token(
             raise exc.UserAccountSuspendedException()
         return user_id
 
-    db_token = session.first(Q.api_token.select(uuid=token))
+    db_token = session.first(Q.api_token.select(token=token))
     if db_token is None or db_token.is_expired:
         return None
 

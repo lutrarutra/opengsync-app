@@ -40,6 +40,8 @@ dependencies = [
     "webauthn>=2.5",
     "pydantic-ai-slim[anthropic,openai]>=1.0",
     "regex>=2024.11.6",
+    "nh3>=0.2.18",
+    "pymdown-extensions>=10.21",
 ]
 
 [tool.setuptools_scm]

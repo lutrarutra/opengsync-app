@@ -3,7 +3,6 @@ from pathlib import Path
 
 import premailer
 import smtplib
-import jinja2 as j2
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -25,8 +24,6 @@ class Mailer:
         self.smtp_password = settings.MAIL_PASSWORD
         self.smtp_port = settings.MAIL_PORT
         self.use_tls = True
-        self.j2_loader = j2.PackageLoader(package_name="server", package_path="/templates")
-        self.j2_env = j2.Environment(loader=self.j2_loader, undefined=j2.StrictUndefined if settings.ENVIRONMENT != "prod" else j2.Undefined)
         self._email_style: str | None = None
 
     def _get_email_style(self) -> str:
@@ -40,7 +37,7 @@ class Mailer:
         self.__send_email(
             recipients=recipient_email,
             subject="Welcome back to OpeNGSync!",
-            body=self.j2_env.get_template("email/welcome-back.html").render(support_email=settings.app_config.personalization.email, style=style),
+            body=templates.render_template("email/welcome-back.html", support_email=settings.app_config.personalization.email, style=style),
             mime_type="html"
         )
 
@@ -49,7 +46,7 @@ class Mailer:
         self.__send_email(
             recipients=recipient_email,
             subject="Welcome to OpeNGSync!",
-            body=self.j2_env.get_template("email/register-user.html").render(link=verification_link, style=style),
+            body=templates.render_template("email/register-user.html", link=verification_link, style=style),
             mime_type="html"
         )
 
@@ -58,7 +55,7 @@ class Mailer:
         self.__send_email(
             recipients=recipient_email,
             subject="OpeNGSync Password Reset",
-            body=self.j2_env.get_template("email/password-reset.html").render(link=reset_link, style=style),
+            body=templates.render_template("email/password-reset.html", link=reset_link, style=style),
             mime_type="html"
         )
 
@@ -72,11 +69,12 @@ class Mailer:
         outdir = "BSF_DATA"
         style = self._get_email_style()
 
-        http_command = self.j2_env.get_template("snippets/rclone-http.sh.j2").render(token=share_token.uuid, outdir=outdir)
-        sync_command = self.j2_env.get_template("snippets/rclone-copy.sh.j2").render(token=share_token.uuid, outdir=outdir)
-        wget_command = self.j2_env.get_template("snippets/wget.sh.j2").render(token=share_token.uuid, outdir=outdir)
+        http_command = templates.render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
+        sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
+        wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
 
-        body = self.j2_env.get_template("email/share-directory.html").render(
+        body = templates.render_template(
+            "email/share-directory.html",
             style=style,
             browse_link=browse_link,
             author=author,
@@ -109,7 +107,7 @@ class Mailer:
         http_command = templates.render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
         sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
         wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
-        browse_link = str(responses.url_for("file_share.browse", token=share_token.uuid))
+        browse_link = str(responses.external_url_for("file_share.browse", token=share_token.uuid))
 
         internal_share_content = ""
         template_folder = Path(settings.app_config.template_folder)

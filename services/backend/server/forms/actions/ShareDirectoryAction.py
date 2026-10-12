@@ -123,7 +123,7 @@ class ShareDirectoryAction(HTMXForm):
             ), flush=True)
 
             # Send email
-            browse_link = str(responses.url_for("file_share.browse", token=share_token.uuid))
+            browse_link = str(responses.external_url_for("file_share.browse", token=share_token.uuid))
             mailer.send_share_directory(
                 recipients=list(set(recipients)),
                 share_token=share_token,

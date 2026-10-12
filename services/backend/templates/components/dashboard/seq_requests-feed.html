@@ -3,6 +3,9 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 
+
+{# first page: fill the count badge in the dashboard header #}
+{% if current_page == 0 %}<span id="dash-count-seq-requests" hx-swap-oob="true">{{ tab_count(total) }}</span>{% endif %}
 {% for seq_request in seq_requests %}
 <div class="element-banner"
 {% if loop.last and limit == loop.index %}

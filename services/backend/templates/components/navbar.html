@@ -1,0 +1,109 @@
+<nav id="navbar" {% if current_user and current_user.is_admin %}class="admin"{% endif %}>
+    <div class="nav-left">
+        <button type="button" id="burger" aria-label="Menu" aria-controls="navbar-container" aria-expanded="false">
+            <span class="line1"></span>
+            <span class="line2"></span>
+            <span class="line3"></span>
+        </button>
+        <a href="{{ url_for('dashboard') }}" id="icon-banner">{{ organization_name }}</a>
+        {% if debug %}
+        <i class="bi bi-bug nav-debug"></i>
+        {% endif %}
+    </div>
+    <div id="navbar-container">
+        <a class="nav-link {{ 'active' if active_page == 'dashboard-page' else '' }}" href="{{ url_for('dashboard') }}"><i class="bi bi-house nav-icon"></i><span class="nav-label">Dashboard</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'projects-page' else '' }}" href="{{ url_for('projects_page') }}"><i class="bi bi-folder nav-icon"></i><span class="nav-label">Projects</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'seq_requests-page' else '' }}" href="{{ url_for('seq_requests_page') }}"><i class="bi bi-inbox nav-icon"></i><span class="nav-label">Requests</span></a>
+        {% if current_user and current_user.is_insider %}
+        <div class="nav-dropdown">
+            <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-eyedropper nav-icon"></i><span class="nav-label">Lab</span><i class="bi bi-chevron-down nav-caret"></i></button>
+            <div class="nav-menu">
+                <a class="nav-menu-link {{ 'active' if active_page == 'lab_preps-page' else '' }}" href="{{ url_for('lab_preps_page') }}"><i class="bi bi-eyedropper"></i>Preps</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'design-page' else '' }}" href="{{ url_for('design') }}"><i class="bi bi-palette"></i>Design</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'experiments-page' else '' }}" href="{{ url_for('experiments_page') }}"><i class="bi bi-hdd-rack"></i>Experiments</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'seq_run-page' else '' }}" href="{{ url_for('seq_runs_page') }}"><i class="bi bi-activity"></i>Runs</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'browser-page' else '' }}" href="{{ url_for('browser_page') }}"><i class="bi bi-folder2-open"></i>Files</a>
+            </div>
+        </div>
+        <div class="nav-dropdown">
+            <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-prescription2 nav-icon"></i><span class="nav-label">Samples</span><i class="bi bi-chevron-down nav-caret"></i></button>
+            <div class="nav-menu">
+                <a class="nav-menu-link {{ 'active' if active_page == 'samples-page' else '' }}" href="{{ url_for('samples_page') }}"><i class="bi bi-prescription2"></i>Bio Samples</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'libraries-page' else '' }}" href="{{ url_for('libraries_page') }}"><i class="bi bi-flask"></i>Libraries</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'pools-page' else '' }}" href="{{ url_for('pools_page') }}"><i class="bi bi-droplet"></i>Pools</a>
+            </div>
+        </div>
+        {% endif %}
+        <div class="nav-dropdown">
+            <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-box-seam nav-icon"></i><span class="nav-label">Resources</span><i class="bi bi-chevron-down nav-caret"></i></button>
+            <div class="nav-menu">
+                {% if current_user and current_user.is_insider %}
+                <a class="nav-menu-link {{ 'active' if active_page == 'kits-page' else '' }}" href="{{ url_for('kits_page') }}"><i class="bi bi-box-seam"></i>Kits</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'protocols-page' else '' }}" href="{{ url_for('protocols_page') }}"><i class="bi bi-journal-text"></i>Protocols</a>
+                {% endif %}
+                <a class="nav-menu-link {{ 'active' if active_page == 'barcodes-page' else '' }}" href="{{ url_for('index_kits_page') }}"><i class="bi bi-upc"></i>Barcodes</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'feature_kits-page' else '' }}" href="{{ url_for('feature_kits_page') }}"><i class="bi bi-tags"></i>Features</a>
+            </div>
+        </div>
+        {% if current_user and current_user.is_insider %}
+        <div class="nav-dropdown">
+            <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-people nav-icon"></i><span class="nav-label">People</span><i class="bi bi-chevron-down nav-caret"></i></button>
+            <div class="nav-menu">
+                <a class="nav-menu-link {{ 'active' if active_page == 'users-page' else '' }}" href="{{ url_for('users_page') }}"><i class="bi bi-person"></i>Users</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'groups-page' else '' }}" href="{{ url_for('groups_page') }}"><i class="bi bi-people"></i>Groups</a>
+            </div>
+        </div>
+        {% if user_role == C.UserRole.ADMIN %}
+        <div class="nav-dropdown">
+            <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-gear nav-icon"></i><span class="nav-label">Admin</span><i class="bi bi-chevron-down nav-caret"></i></button>
+            <div class="nav-menu">
+                <a class="nav-menu-link {{ 'active' if active_page == 'share_tokens-page' else '' }}" href="{{ url_for('share_tokens') }}"><i class="bi bi-share"></i>Share</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'sequencers-page' else '' }}" href="{{ url_for('sequencers_page') }}"><i class="bi bi-hdd-network"></i>Sequencers</a>
+                <a class="nav-menu-link {{ 'active' if active_page == 'admin-page' else '' }}" href="{{ url_for('admin_page') }}"><i class="bi bi-gear"></i>Admin</a>
+            </div>
+        </div>
+        {% endif %}
+        {% elif current_user %}
+        <a class="nav-link {{ 'active' if active_page == 'groups-page' else '' }}" href="{{ url_for('groups_page') }}"><i class="bi bi-people nav-icon"></i><span class="nav-label">Groups</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'help-page' else '' }}" href="{{ url_for('help') }}"><i class="bi bi-question-circle nav-icon"></i><span class="nav-label">Help</span></a>
+        {% endif %}
+    </div>
+    <div class="nav-right">
+        {% if current_user and current_user.is_insider %}
+        {% include "components/global-search.html" %}
+        {% endif %}
+        {% if current_user %}
+        <div class="profile-menu" id="profile-menu">
+            <button type="button" class="profile-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false" title="{{ current_user.name }} ({{ user_role.label }})">
+                {{ current_user.initials | upper }}
+                <span class="profile-role" aria-hidden="true">{{ user_role.icon }}</span>
+            </button>
+            <div class="nav-menu" role="menu">
+                <a class="nav-menu-link profile-link" role="menuitem" href="{{ url_for('user_page', user_id=current_user.id) }}">
+                    <i class="bi bi-person-circle profile-icon"></i>
+                    <span class="profile-text">
+                        <span class="profile-name">{{ current_user.name }}</span>
+                        <span class="profile-email" title="{{ current_user.email }}">{{ current_user.email }}</span>
+                    </span>
+                    <i class="bi bi-gear profile-settings"></i>
+                </a>
+                <div class="nav-menu-divider"></div>
+                <button type="button" class="nav-menu-link sign-out" role="menuitem" hx-post="{{ url_for('logout') }}"
+                _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Sign Out',
+                        showDenyButton: true,
+                        icon: 'question',
+                        text: 'Proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"><i class="bi bi-box-arrow-right"></i>Sign out</button>
+            </div>
+        </div>
+        {% else %}
+        <a class="btn sign-in-btn" href="{{ url_for('login_page') }}"><i class="bi bi-box-arrow-in-right"></i> Sign In</a>
+        {% endif %}
+    </div>
+</nav>

@@ -3,7 +3,7 @@ from fastapi.responses import Response
 
 from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
 
-from ...core import dependencies
+from ...core import dependencies, exceptions as exc, redis as rds
 from ...components.tables import HTMXTable, TableCol
 from ...forms.models import FeatureKitForm
 
@@ -31,7 +31,15 @@ def render_feature_table(
     type_in: list[C.FeatureType] | None = Depends(dependencies.parse_enum_ids(C.FeatureType, "type_in")),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Feature, default=models.Feature.id.desc())),
     session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user),
+    r: rds.RedisClient = Depends(dependencies.redis),
 ) -> Response:
+    # Kit features are reference data; a library's (custom) features need access to the library.
+    if library_id:
+        dependencies.library_permissions(library_id=library_id, viewer_id=current_user.id, session=session, r=r)
+    elif not feature_kit_id and not current_user.is_insider:
+        raise exc.NoPermissionsException()
+
     table = FeatureTable(route="render_feature_table", page=page, order_by=order_by)
     stmt = Q.feature.select(library_id=library_id, feature_kit_id=feature_kit_id, type_in=type_in)
 

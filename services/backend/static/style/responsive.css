@@ -1,3 +1,23 @@
+/* grey side margins and the content padding inside them; the navbar aligns to the content edges (navbar.css) */
+:root {
+    --page-margin: max(10%, 120px);
+    --page-padding: 10px;
+}
+
+@media screen and (min-width: 1001px) and (max-width: 1440px) {
+    :root {
+        --page-margin: 5%;
+        --page-padding: 5px;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    :root {
+        --page-margin: 0px;
+        --page-padding: 5px;
+    }
+}
+
 #main {
     padding: 0;
     display: flex;
@@ -10,16 +30,16 @@
         position: sticky;
         top: 0;
         padding: 5px;
-        width: max(10%, 120px);
+        width: var(--page-margin);
         margin: 0;
         background-color: var(--color-gray-200);
     }
 
     #middle-container {
         margin: 0;
-        width: calc(100vw - max(10%, 120px) * 2);
+        width: calc(100vw - var(--page-margin) * 2);
         height: 100%;
-        padding: 0 10px 0 10px;
+        padding: 0 var(--page-padding);
         background-color: var(--color-gray-100);
         display: flex;
         flex-direction: column;
@@ -53,21 +73,6 @@
 }
 
 @media screen and (min-width: 1001px) and (max-width: 1440px) {
-    #left-margin, #right-margin {
-        width: 5% !important;
-    }
-
-    #main {
-        width: 100vw;
-        padding: 0;
-        margin: 0;
-        #middle-container {
-            width: calc(100vw - 10%) !important;
-            padding: 0 5px !important;
-            margin: 0 !important;
-        }
-
-    }
     #breadcrumb {
         font-size: 0.8rem;
     }
@@ -82,17 +87,5 @@
 @media screen and (max-width: 1000px) {
     #left-margin, #right-margin {
         display: none;
-        width: 0 !important;
-    }
-
-    #main {
-        width: 100vw;
-        padding: 0;
-        margin: 0;
-        #middle-container {
-            width: 100vw !important;
-            padding: 0 5px !important;
-            margin: 0 !important;
-        }
     }
 }

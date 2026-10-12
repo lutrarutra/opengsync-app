@@ -101,6 +101,30 @@ class FileInputField(BaseInputField, Generic[_DataT]):
             return FileUpload.model_validate(self._data, from_attributes=True)  # type: ignore
         return None  # type: ignore
 
+    def validate(self, raw_data: dict[str, Any]) -> bool:
+        """Enforce ``allowed_extensions`` and ``max_size_mb`` server-side; the HTML ``accept``
+        attribute is only a hint to the browser."""
+        upload = raw_data.get(self.name)
+        if not isinstance(upload, dict) or not upload.get("filename"):
+            return True
+
+        if self.allowed_extensions:
+            ext = os.path.splitext(upload["filename"])[1].lower().lstrip(".")
+            allowed = [e.lower().lstrip(".") for e in self.allowed_extensions]
+            if ext not in allowed:
+                self.errors.append(
+                    f"File type '.{ext}' is not allowed. Allowed types: {', '.join(allowed)}."
+                )
+                return False
+
+        if self.max_size_mb is not None:
+            size = len(upload.get("content") or b"")
+            if size > self.max_size_mb * 1024 * 1024:
+                self.errors.append(f"File is too large. Maximum size is {self.max_size_mb} MB.")
+                return False
+
+        return True
+
     def save(self, media_file: models.MediaFile):
         if self.data is None:
             raise ValueError("No file data to save.")

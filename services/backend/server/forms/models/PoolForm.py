@@ -16,7 +16,7 @@ class PoolForm(HTMXForm):
     name = inputs.string.StringInputField("Pool Name", max_length=models.Pool.name.type.length, min_length=4)
     pool_type = inputs.selectable.SelectableInputField("Pool Type", options=C.PoolType.as_selectable())
     num_m_reads_requested = inputs.numeric.FloatInputField("Number of M Reads Requested", required=False)
-    status = inputs.selectable.SelectableInputField("Status", options=C.PoolStatus.as_selectable())
+    status = inputs.selectable.SelectableInputField("Status", options=C.PoolStatus.as_selectable(), default=C.PoolStatus.DRAFT.id)
     contact = inputs.searchable.SearchableInputField("Contact", route="search_users", required=False)
     contact_name = inputs.string.StringInputField("Contact Name", max_length=models.Contact.name.type.length)
     contact_email = inputs.string.StringInputField("Contact Email", max_length=models.Contact.email.type.length)
@@ -45,13 +45,16 @@ class PoolForm(HTMXForm):
         def dependency(
             pool_id: int | None = None,
             session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
         ) -> "PoolForm":
             pool = None
             if pool_id is not None:
                 pool = session.get_one(Q.pool.select(id=pool_id).options(
                     orm.selectinload(models.Pool.contact),
                 ))
-            return PoolForm(form_type=form_type, pool=pool)
+            form = PoolForm(form_type=form_type, pool=pool)
+            form.status.read_only = not current_user.is_insider
+            return form
         return dependency
 
     @htmx_route("GET", "/create", name="Create")
@@ -76,6 +79,9 @@ class PoolForm(HTMXForm):
 
             if not form.contact_email.data and form.contact.data is None:
                 form.contact_email.errors.append("Select an existing contact or provide an email.")
+
+            if not current_user.is_insider and form.status.data != C.PoolStatus.DRAFT.id:
+                form.status.errors.append("You can only create a pool with status DRAFT.")
 
             if form.errors:
                 raise exc.FormValidationException(form)
@@ -142,6 +148,10 @@ class PoolForm(HTMXForm):
 
             if form.pool is None:
                 raise exc.OpeNGSyncServerException("Pool must be provided for edit form.")
+
+            if access_level < C.AccessLevel.INSIDER and form.status.data != form.pool.status.id:
+                form.status.errors.append("Only insiders can change pool status.")
+                raise exc.FormValidationException(form)
 
             form.pool.name = form.name.data
             form.pool.status = C.PoolStatus.get(form.status.data)

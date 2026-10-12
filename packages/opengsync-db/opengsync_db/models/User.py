@@ -139,7 +139,7 @@ class User(Base, UserMixin):
         from .. import queries as Q
         from .APIToken import APIToken
         return sa.select(
-            sa.func.count(APIToken.uuid)
+            sa.func.count(APIToken.id)
         ).where(
             *Q.api_token.where_clauses(owner_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]

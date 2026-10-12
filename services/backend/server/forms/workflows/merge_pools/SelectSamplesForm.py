@@ -47,9 +47,14 @@ class SelectSamplesForm(MergePoolsWorkflowStep):
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            pools = form.selected_pool_ids.get_selected_pools(session, options=[
-                orm.selectinload(models.Pool.libraries),
-            ])
+            pools = form.selected_pool_ids.get_selected_pools(
+                session,
+                seq_request_id=form.workflow.seq_request_id,
+                lab_prep_id=form.workflow.lab_prep_id,
+                options=[
+                    orm.selectinload(models.Pool.libraries),
+                ],
+            )
             if len(pools) < 2:
                 form.add_general_error("You must select at least 2 pools to merge.")
                 raise exc.FormValidationException(form)
