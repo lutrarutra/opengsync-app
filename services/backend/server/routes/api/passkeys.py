@@ -154,6 +154,7 @@ def login_verify(
     passkey.sign_count = verified.new_sign_count
     passkey.backed_up = verified.credential_backed_up
     passkey.last_used_utc = dt.datetime.now(dt.timezone.utc)
+    auth.record_login(user)
 
     resp = JSONResponse({"redirect": str(responses.url_for("dashboard"))})
     auth.set_login_cookie(resp, user)

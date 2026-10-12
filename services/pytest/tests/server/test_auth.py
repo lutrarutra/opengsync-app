@@ -1,4 +1,8 @@
+import datetime as dt
+
 from fastapi.testclient import TestClient
+
+from opengsync_db import SyncSession, categories as C
 
 from ._http import auth, get, post_form
 
@@ -66,6 +70,52 @@ def test_login_sets_access_token(client: TestClient, user):
     )
     assert response.status_code in (200, 204, 303)
     assert "access_token" in response.cookies or "access_token" in response.headers.get("set-cookie", "")
+
+
+def test_login_records_last_login(client: TestClient, session: SyncSession, user):
+    assert user.last_login is None
+
+    post_form(client, "/htmx/auth/login", {"email": user.email, "password": "testpassword"})
+
+    session.expire_all()
+    assert user.last_login is not None
+
+
+def test_failed_login_does_not_record_last_login(client: TestClient, session: SyncSession, user):
+    post_form(client, "/htmx/auth/login", {"email": user.email, "password": "wrong-password"})
+
+    session.expire_all()
+    assert user.last_login is None
+
+
+def _deactivate_stale(session: SyncSession, user) -> None:
+    user.role = C.UserRole.DEACTIVATED
+    user.last_login = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=400)
+    session.commit()
+
+
+def _is_recent(value: dt.datetime | None) -> bool:
+    return value is not None and value > dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
+
+
+def test_activate_user_restarts_inactivity_window(client: TestClient, session: SyncSession, user, insider_token: str, fake_mailer):
+    _deactivate_stale(session, user)
+
+    post_form(client, f"/htmx/auth/{user.id}/activate", {}, token=insider_token)
+
+    session.expire_all()
+    assert user.role == C.UserRole.CLIENT
+    assert _is_recent(user.last_login)
+
+
+def test_start_user_session_restarts_inactivity_window(client: TestClient, session: SyncSession, user, admin_token: str):
+    _deactivate_stale(session, user)
+
+    post_form(client, f"/htmx/auth/{user.id}/start-user-session", {}, token=admin_token)
+
+    session.expire_all()
+    assert user.role == C.UserRole.TEMPORARY
+    assert _is_recent(user.last_login)
 
 
 def test_dashboard_with_user_token(client: TestClient, user_token: str):

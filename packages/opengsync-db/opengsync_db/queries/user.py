@@ -67,13 +67,15 @@ def select(
     viewer_id: int | None = None,
     assignees_project_id: int | None = None,
     assignees_seq_request_id: int | None = None,
+    last_login_before: dt.datetime | None = None,
     statement: sql.Select[tuple[User]] = sa.select(User),
 ) -> sa.Select[tuple[User]]:
     return statement.where(*where_clauses(
         id=id, email=email, role=role, role_in=role_in, insider=insider,
         assignees_project_id=assignees_project_id,
         assignees_seq_request_id=assignees_seq_request_id,
-        group_id=group_id, viewer_id=viewer_id
+        group_id=group_id, viewer_id=viewer_id,
+        last_login_before=last_login_before,
     ))
 
 
@@ -87,6 +89,7 @@ def where_clauses(
     viewer_id: int | None = None,
     assignees_seq_request_id: int | None = None,
     insider: bool | None = None,
+    last_login_before: dt.datetime | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """Return WHERE clauses for filtering users.
     Reusable in correlated subqueries where .subquery() would break correlation.
@@ -106,6 +109,9 @@ def where_clauses(
             clauses.append(User.role.in_(UserRole.insiders()))
         else:
             clauses.append(User.role == UserRole.CLIENT)
+    if last_login_before is not None:
+        # Users who never logged in (NULL) are not matched.
+        clauses.append(User.last_login < last_login_before)
 
     if group_id is not None:
         clauses.append(sa.select(1).where(

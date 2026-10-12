@@ -51,7 +51,7 @@ class BarcodeConstraintsAction(HTMXForm):
 
     @classmethod
     def Init(cls) -> FormFunc:
-        def dependency() -> "BarcodeConstraintsAction":
+        def dependency(_=Depends(dependencies.require_insider)) -> "BarcodeConstraintsAction":
             return BarcodeConstraintsAction()
         return dependency
 
@@ -59,7 +59,6 @@ class BarcodeConstraintsAction(HTMXForm):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "BarcodeConstraintsAction" = Depends(BarcodeConstraintsAction.Init()),
-            _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
 
@@ -70,7 +69,6 @@ class BarcodeConstraintsAction(HTMXForm):
         def route(
             form: "BarcodeConstraintsAction" = Depends(BarcodeConstraintsAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ) -> responses.Response:
             kit_sequences_i7: list[str] = []
             kit_sequences_i5: list[str] = []
@@ -100,16 +98,18 @@ class BarcodeConstraintsAction(HTMXForm):
                     )
                     form.assert_valid()
 
-                if len(barcodes_df["sequence_i5"].str.len().unique()) != 1:
+                # Single-index kits have no i5 sequences
+                kit_has_i5 = bool(barcodes_df["sequence_i5"].notna().any())
+                if kit_has_i5 and len(barcodes_df["sequence_i5"].str.len().unique()) != 1:
                     form.spreadsheet.add_general_error(
                         f"The selected kit '{kit.name}' has i5 index sequences of different lengths and cannot be used."
                     )
                     form.assert_valid()
 
                 kit_i7_len = len(barcodes_df["sequence_i7"].values[0])  # type: ignore
-                kit_i5_len = len(barcodes_df["sequence_i5"].values[0])  # type: ignore
+                kit_i5_len = len(barcodes_df["sequence_i5"].values[0]) if kit_has_i5 else 0  # type: ignore
                 kit_sequences_i7 = barcodes_df["sequence_i7"].to_list()
-                kit_sequences_i5 = barcodes_df["sequence_i5"].to_list()
+                kit_sequences_i5 = barcodes_df["sequence_i5"].to_list() if kit_has_i5 else []
                 additional_sequences = [s1 + s2 for s1, s2 in zip(kit_sequences_i7, kit_sequences_i5)]
 
             df = form.spreadsheet.data

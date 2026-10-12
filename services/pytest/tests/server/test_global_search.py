@@ -115,6 +115,38 @@ def test_seq_request_by_identifier(session: SyncSession):
     assert rows[0].code == seq_request.identifier
 
 
+def _named_user(session: SyncSession, first_name: str, last_name: str):
+    user = create_user(session)
+    user.first_name, user.last_name = first_name, last_name
+    return session.save(user, flush=True)
+
+
+def test_projects_and_requests_match_owner_name(session: SyncSession):
+    owner = _named_user(session, "Ada", "Lovelace")
+    project = create_project(session, owner)
+    seq_request = create_seq_request(session, owner)
+
+    rows = _search(session, "ada lovelace", ["project", "seq_request"])
+    scores = {(row.kind, row.id): row.score for row in rows}
+    assert scores[("project", project.id)] == pytest.approx(0.9)  # exact full name, person-weighted
+    assert scores[("seq_request", seq_request.id)] == pytest.approx(0.9)
+    assert {row.detail for row in rows} == {"Ada Lovelace"}
+
+    # last name alone is a substring of the full name
+    rows = _search(session, "lovelace", ["project"])
+    assert rows[0].id == project.id and rows[0].score == pytest.approx(0.72)
+
+
+def test_title_match_outranks_equal_owner_match(session: SyncSession):
+    by_title = create_project(session, create_user(session))
+    by_title.title = "Babbage engine"
+    by_owner = create_project(session, _named_user(session, "Charles", "Babbage"))
+    session.flush()
+
+    rows = _search(session, "babbage", ["project"])
+    assert [row.id for row in rows][:2] == [by_title.id, by_owner.id]
+
+
 def test_library_detail_is_sample_and_request(session: SyncSession):
     (library,) = _libraries(session, "detail_check_lib")
     rows = _search(session, "detail_check_lib", ["library"])

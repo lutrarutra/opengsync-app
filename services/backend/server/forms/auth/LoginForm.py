@@ -56,6 +56,7 @@ class LoginForm(HTMXForm):
                 form.email.errors.append(rejection)
                 raise exc.FormValidationException(form)
 
+            auth.record_login(user)
             auth.set_login_cookie(response, user)
             # Tells passkey.js on the next page to offer saving a passkey to the password manager.
             passkeys.set_upgrade_cookie(response)

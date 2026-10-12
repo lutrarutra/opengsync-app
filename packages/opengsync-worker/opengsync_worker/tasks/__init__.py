@@ -9,6 +9,7 @@ from opengsync_db import SyncDBHandler
 
 from opengsync_worker import celery
 from opengsync_worker.tasks.clean_upload_folder import clean_upload_folder
+from opengsync_worker.tasks.deactivate_inactive_users import deactivate_inactive_users
 from opengsync_worker.tasks.rf_scanner import process_run_folder
 from opengsync_worker.tasks.status_updater import update_statuses
 
@@ -71,3 +72,18 @@ def clean_upload_folder_wrapper(upload_folder: str, upload_folder_file_age_days:
         clean_upload_folder(directory=Path(upload_folder), days_old=upload_folder_file_age_days)
     except Exception as e:
         logger.error(f"\n-------- Exception [ clean_upload_folder ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+
+
+@celery.task
+def deactivate_inactive_users_wrapper(inactivity_days: int):
+    db = connect()
+    rollback = False
+    logger.info("Starting inactive user deactivation task...")
+    try:
+        db.open_session()
+        deactivate_inactive_users(db, inactivity_days)
+    except Exception as e:
+        logger.error(f"\n-------- Exception [ deactivate_inactive_users ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+        rollback = True
+    finally:
+        db.close_session(rollback=rollback, commit=True)

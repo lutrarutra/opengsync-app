@@ -82,6 +82,10 @@ class User(Base, UserMixin):
     pw_set_datetime: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True, default=None,
     )
+    # Set on every successful password/passkey login; inactive users are deactivated by the worker.
+    last_login: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True, default=None,
+    )
     role: Mapped[UserRole] = mapped_column(EnumColumn[UserRole](UserRole), nullable=False, name="role_id", key="role")
     # Opaque WebAuthn user.id; generated on first passkey registration and stored by password managers.
     webauthn_user_handle: Mapped[bytes | None] = mapped_column(sa.LargeBinary(64), nullable=True, unique=True, default=None)

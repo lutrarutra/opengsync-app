@@ -10,6 +10,8 @@ from ..HTMXForm import RouteFunc, FormFunc, htmx_route, HTMXForm
 
 
 class AddKitsToProtocolAction(HTMXForm):
+    template_path = "workflows/add_kits_to_protocol/add-kit-combinations.html"
+
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         CategoricalDropDown("kit_identifier", "Kit", 600, categories={}, required=True),
         IntegerColumn("combination_num", "Combination", 200, required=False),
@@ -20,20 +22,23 @@ class AddKitsToProtocolAction(HTMXForm):
         self.protocol = protocol
         self._context["protocol"] = protocol
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit", protocol_id=protocol.id)
-        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
 
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(
             protocol_id: int,
+            _=Depends(dependencies.require_insider),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "AddKitsToProtocolAction":
-            
             protocol = session.get_one(Q.protocol.select(id=protocol_id))
             kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.kit.select(), limit=None)}
 
             form = AddKitsToProtocolAction(protocol=protocol)
             form.spreadsheet.columns["kit_identifier"].set_categories(kit_mapping)
+
+            # Pre-fill with the protocol's current kit combinations
+            df = session.get_pandas(Q.pd.protocol_kits(protocol_id=protocol.id), limit=None)
+            form.spreadsheet.configure(csrf_token=form.csrf_token_value, post_url=form.post_url, df=df)
             return form
         return dependency
 
@@ -41,7 +46,6 @@ class AddKitsToProtocolAction(HTMXForm):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "AddKitsToProtocolAction" = Depends(AddKitsToProtocolAction.Init()),
-            _ = Depends(dependencies.require_insider),
         ):
             return form.make_response()
         return route
@@ -51,7 +55,6 @@ class AddKitsToProtocolAction(HTMXForm):
         def route(
             form: "AddKitsToProtocolAction" = Depends(AddKitsToProtocolAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _ = Depends(dependencies.require_insider),
         ):
             df = form.spreadsheet.data
 

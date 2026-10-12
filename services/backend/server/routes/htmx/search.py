@@ -20,7 +20,7 @@ class SearchHit:
     url: str
     code: Markup | None
     label: Markup
-    detail: str | None
+    detail: Markup | None
 
 
 @dataclass
@@ -71,7 +71,8 @@ def global_search(
             url=str(responses.url_for(search_kind.endpoint, **{search_kind.id_param: row.id})),
             code=_highlight(row.code, query.text),
             label=_highlight(row.label, query.text) or escape(""),
-            detail=row.detail,
+            # details can match too (owner name, library sample name)
+            detail=_highlight(row.detail, query.text),
         ))
 
     # most relevant kind first, so "BSR_0012" puts requests on top; ties keep the registry order

@@ -3,7 +3,7 @@ from loguru import logger
 
 from opengsync_db import models, categories as C, queries as Q, SyncSession
 
-from ...core import dependencies, responses, mailer, secrets, exceptions as exc, redis as rds
+from ...core import dependencies, responses, mailer, secrets, auth, exceptions as exc, redis as rds
 from ... import forms
 
 router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(dependencies.audit_log)])
@@ -65,7 +65,7 @@ def activate_user(
     if user.role != C.UserRole.DEACTIVATED:
         raise exc.BadRequestException("User is already active.")
     
-    user.role = C.UserRole.CLIENT
+    auth.set_role(user, C.UserRole.CLIENT)
 
     token = secrets.create_password_reset_token(user_id=user.id)
     link = responses.external_url_for("reset_password_page", token=token)
@@ -89,7 +89,7 @@ def start_user_session(
     logger.info(f"Admin {current_user.email} started session for user '{user.email}'")
 
     if user.role == C.UserRole.DEACTIVATED:
-        user.role = C.UserRole.TEMPORARY
+        auth.set_role(user, C.UserRole.TEMPORARY)
         session.save(user)
         r.delete(f"user:{user.id}")
     

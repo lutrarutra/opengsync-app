@@ -223,6 +223,8 @@ def test_login_with_passkey(client: TestClient, session: SyncSession, user, user
     [passkey] = _passkeys(session, user.id)
     assert passkey.sign_count == 1
     assert passkey.last_used_utc is not None
+    session.expire_all()
+    assert user.last_login is not None
 
 
 def test_login_token_from_passkey_authenticates(client: TestClient, user, user_token: str):

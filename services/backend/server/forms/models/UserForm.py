@@ -3,7 +3,7 @@ from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
-from ...core import responses, dependencies, exceptions as exc
+from ...core import responses, dependencies, auth, exceptions as exc
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
@@ -66,7 +66,7 @@ class UserForm(HTMXForm):
             form.user.first_name = form.first_name.data
             form.user.last_name = form.last_name.data
             form.user.email = form.email.data
-            form.user.role = C.UserRole.get(form.role.data)
+            auth.set_role(form.user, C.UserRole.get(form.role.data))
 
             return responses.htmx_response(
                 redirect=responses.url_for("user_page", user_id=form.user.id),

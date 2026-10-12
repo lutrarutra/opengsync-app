@@ -174,13 +174,13 @@ def update_statuses(db: SyncDBHandler):
 
     db.session.flush()
 
-    for experiment in db.session.get_all(Q.experiment.select(
+    for experiment in db.session.get_all(__find_finished_experiments(Q.experiment.select(
         status_in=[
             C.ExperimentStatus.DRAFT,
             C.ExperimentStatus.LOADED,
             C.ExperimentStatus.SEQUENCING,
         ],
-    ), limit=None):
+    )), limit=None):
         if experiment.seq_run is None:
             experiment.status = C.ExperimentStatus.SEQUENCED
         else:

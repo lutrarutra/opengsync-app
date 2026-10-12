@@ -384,7 +384,8 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                     table_df[col.label] = table_df[col.label].apply(
                         lambda v, c=col: c.to_display(v)
                     )
-        self.table_data = table_df.replace(np.nan, "").values.tolist()
+        # Nullable Int64/Float64 columns cannot hold "", so convert to object first.
+        self.table_data = table_df.astype(object).where(table_df.notna(), "").values.tolist()
         self._validated = True
         return True
 

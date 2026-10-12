@@ -11,7 +11,6 @@ from fastapi_cache import FastAPICache
 from pydantic_ai import Agent
 from loguru import logger
 from redis.exceptions import RedisError
-from taskiq import TaskiqDepends
 
 from sqlalchemy import orm
 from sqlalchemy.orm import make_transient_to_detached
@@ -45,7 +44,7 @@ def _decode_redis_value(value: bytes | str | int) -> str:
         return value.decode("utf-8")
     return str(value)
 
-def get_runtime_request(request: Request = TaskiqDepends()) -> runtime.Request:
+def get_runtime_request(request: Request) -> runtime.Request:
     return request  # type: ignore
 
 def db_session(request: runtime.Request = Depends(get_runtime_request)):
@@ -54,20 +53,11 @@ def db_session(request: runtime.Request = Depends(get_runtime_request)):
         request.state.db_session = session
     return session
 
-def taskiq_session(request: runtime.Request = TaskiqDepends(get_runtime_request)):
-    with request.app.state.db_handler.get_session() as session:
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        
 def authenticate(token: str = Depends(auth.oauth2_scheme)):
     payload = secrets.validate_login_token(token)
     return payload
 
-def redis(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+def redis(request: runtime.Request):
     with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
         yield redis
 
@@ -98,7 +88,7 @@ def rate_limit(*limits: str):
         raise ValueError("At least one rate limit is required.")
 
     def dependency(
-        request: runtime.Request = TaskiqDepends(get_runtime_request),
+        request: runtime.Request,
         r: rds.RedisClient = Depends(redis),
     ):
         route_path = audit.route_path(request)
@@ -198,7 +188,7 @@ def _cache_share_token(share_token: models.ShareToken, r: rds.RedisClient) -> No
 
 def load_share_token(
     token: str,
-    request: runtime.Request = TaskiqDepends(get_runtime_request),
+    request: runtime.Request,
     r: rds.RedisClient = Depends(redis),
 ) -> models.ShareToken:
     if (share_token := _cached_share_token(token, r)) is None:
@@ -284,7 +274,7 @@ def _resolve_user_id_by_api_token(
     return db_token.owner_id
 
 def get_user_id(
-    request: runtime.Request = TaskiqDepends(),
+    request: runtime.Request,
     access_token: str | None = Cookie(None),
     api_token: str | None = Header(None, alias="X-API-Token"),
     session: SyncSession = Depends(db_session),
@@ -322,7 +312,7 @@ def get_user_id(
 
 
 def get_user(
-    request: runtime.Request = TaskiqDepends(),
+    request: runtime.Request,
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
     user_id: int | None = Depends(get_user_id),
@@ -371,15 +361,15 @@ def require_insider(user: models.User = Depends(require_user)) -> models.User:
         raise exc.NoPermissionsException()
     return user
 
-def mail_client(request: runtime.Request = TaskiqDepends(get_runtime_request)) -> mailer.Mailer:
+def mail_client(request: runtime.Request) -> mailer.Mailer:
     return request.app.state.mailer
 
-def chat_agent(request: runtime.Request = TaskiqDepends(get_runtime_request)) -> Agent:
+def chat_agent(request: runtime.Request) -> Agent:
     if (agent := getattr(request.app.state, "chat_agent", None)) is None:
         raise exc.NotFoundException()
     return agent
 
-def get_bcrypt(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+def get_bcrypt(request: runtime.Request):
     return request.app.state.bcrypt
 
 def verify_csrf_header(
@@ -390,13 +380,13 @@ def verify_csrf_header(
     if not csrf_cookie or not csrf_header or not hmac.compare_digest(csrf_cookie, csrf_header):
         raise exc.NoPermissionsException("Security token invalid or missing. Please reload the page.")
 
-def audit_log(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+def audit_log(request: runtime.Request):
     request.state.audit = audit.AuditLogger(request)
     return request.state.audit
 
 
 def audit_share_access(
-    request: runtime.Request = TaskiqDepends(get_runtime_request),
+    request: runtime.Request,
     share_token: models.ShareToken = Depends(load_share_token),
 ):
     """Attach an audit logger for share-link access.
@@ -638,7 +628,12 @@ def parse_order_by(
         try:
             attr, order = order_by.split(":")
             model_attr = getattr(model, attr)
-            return getattr(model_attr, "desc" if order == "desc" else "asc")()
+            direction = "desc" if order == "desc" else "asc"
+            order_by_expr = getattr(model_attr, direction)()
+            # hybrid expressions (e.g. count subqueries) lose their name, label them so HTMXTable can recover the sort column
+            if getattr(order_by_expr.element, "key", None) is None and getattr(order_by_expr.element, "name", None) is None:
+                order_by_expr = getattr(model_attr.label(attr), direction)()
+            return order_by_expr
         except (AttributeError, ValueError):
             raise exc.BadRequestException()
             

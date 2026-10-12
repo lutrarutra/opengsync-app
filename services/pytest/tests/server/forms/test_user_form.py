@@ -7,6 +7,8 @@ The form is edit-only (users are created via registration).  Access control:
 - **Stranger** → NONE: denied.
 """
 
+import datetime as dt
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -271,6 +273,39 @@ def test_edit_admin_can_change_role(
 
     updated = _reload(session, user)
     assert updated.role == C.UserRole.BIOINFORMATICIAN
+
+
+def test_edit_admin_reactivating_user_restarts_inactivity_window(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    admin_token: str,
+):
+    user.role = C.UserRole.DEACTIVATED
+    user.last_login = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=400)
+    session.commit()
+
+    response = post_form(client, _edit_path(user.id), _payload(), token=admin_token)
+
+    assert_htmx_redirect(response, f"/users/{user.id}")
+    updated = _reload(session, user)
+    assert updated.role == C.UserRole.CLIENT
+    assert updated.last_login > dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
+
+
+def test_edit_admin_role_change_keeps_last_login(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    admin_token: str,
+):
+    assert user.last_login is None
+
+    post_form(client, _edit_path(user.id), _payload(role=str(C.UserRole.TECHNICIAN.id)), token=admin_token)
+
+    updated = _reload(session, user)
+    assert updated.role == C.UserRole.TECHNICIAN
+    assert updated.last_login is None
 
 
 def test_edit_admin_can_change_email(

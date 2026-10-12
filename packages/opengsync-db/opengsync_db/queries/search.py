@@ -97,6 +97,14 @@ def _match(column, query: SearchQuery, compact: bool = False) -> _Match:
     return sa.or_(*filters), sa.case(*tiers, else_=fallback)
 
 
+# A match on the owner's name ranks just below an equally good match on the item itself.
+PERSON_WEIGHT = 0.9
+
+
+def _weighted(match: _Match, weight: float) -> _Match:
+    return match[0], match[1] * weight
+
+
 def _full_name(user) -> sa.ColumnElement[str]:
     # literal ' ' so the expression matches trgm_lims_user_full_name_idx
     return user.first_name + sa.literal_column("' '", sa.String) + user.last_name
@@ -143,7 +151,7 @@ def _ranked(
 
 def _seq_requests(query: SearchQuery, limit: int) -> sa.Subquery:
     requestor = orm.aliased(User)
-    matches = [_match(SeqRequest.name, query)]
+    matches = [_match(SeqRequest.name, query), _weighted(_match(_full_name(requestor), query), PERSON_WEIGHT)]
     if (digits := query.seq_request_digits) is not None:
         # typing "BSR_0012" passes through "bsr_001": exact id first, then ids whose padded form starts with it
         matches.append((
@@ -161,8 +169,11 @@ def _projects(query: SearchQuery, limit: int) -> sa.Subquery:
     owner = orm.aliased(User)
     return _ranked(
         "project", orm.join(Project, owner, owner.id == Project.owner_id), Project.id, Project.title,
-        [_match(Project.identifier, query), _match(Project.title, query)], limit,
-        code=Project.identifier, detail=_full_name(owner),
+        [
+            _match(Project.identifier, query), _match(Project.title, query),
+            _weighted(_match(_full_name(owner), query), PERSON_WEIGHT),
+        ],
+        limit, code=Project.identifier, detail=_full_name(owner),
     )
 
 

@@ -1,3 +1,5 @@
+import datetime as dt
+
 from opengsync_db import SyncSession, actions, queries as Q
 from opengsync_db.categories import UserRole
 
@@ -173,3 +175,19 @@ def test_user_links(session: SyncSession):
     assert user is not None
     assert user.num_seq_requests == 0
     assert len(user.requests) == 0
+
+
+def test_select_last_login_before(session: SyncSession):
+    now = dt.datetime.now(dt.timezone.utc)
+    stale = create_user(session)
+    stale.last_login = now - dt.timedelta(days=400)
+    recent = create_user(session)
+    recent.last_login = now - dt.timedelta(days=10)
+    never = create_user(session)
+    session.flush()
+
+    ids = {u.id for u in session.get_all(Q.user.select(last_login_before=now - dt.timedelta(days=365)), limit=None)}
+
+    assert stale.id in ids
+    assert recent.id not in ids
+    assert never.id not in ids

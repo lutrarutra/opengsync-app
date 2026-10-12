@@ -27,6 +27,9 @@ class SchedulerConfig(BaseModel):
     upload_folder_clean_schedule: str
     rf_scan_interval_min: int
     status_update_interval_min: int
+    # Non-admin users who have not logged in for this many days are set to DEACTIVATED.
+    user_inactivity_days: int = 365
+    user_deactivation_schedule: str = "0 2 * * *"
 
 
 class ChatConfig(BaseModel):

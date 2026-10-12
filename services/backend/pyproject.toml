@@ -29,7 +29,6 @@ dependencies = [
     "premailer",
     "pygments",
     "jinja2",
-    "taskiq",
     "proxmoxer",
     "fastapi-cache2",
     "openpyxl",

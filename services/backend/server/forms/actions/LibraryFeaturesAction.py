@@ -22,9 +22,15 @@ class LibraryFeaturesAction(HTMXForm):
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         CategoricalDropDown("kit", "Kit", 250, categories={}, required=False),
-        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=True),
+        TextColumn(
+            "identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=True,
+            clean_up_fnc=parsing.normalize_to_ascii, validation_fnc=parsing.check_string,
+        ),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
-        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length),
+        TextColumn(
+            "sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length,
+            clean_up_fnc=lambda x: parsing.make_alpha_numeric(x, keep=[], replace_white_spaces_with=""),
+        ),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length),
         DropdownColumn("read", "Read", 100, choices=["R2", "R1"]),
     ])
@@ -39,12 +45,15 @@ class LibraryFeaturesAction(HTMXForm):
     def Init(cls) -> FormFunc:
         def dependency(
             library_id: int,
+            _=Depends(dependencies.require_insider),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "LibraryFeaturesAction":
             library = session.get_one(
                 Q.library.select(id=library_id),
                 options=[orm.selectinload(models.Library.features)],
             )
+            if library.type not in (C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX):
+                raise exc.BadRequestException("Only 10x Antibody Capture and 10x SC ABC Flex libraries have features that can be edited.")
             form = LibraryFeaturesAction(library=library)
 
             # Build kit dropdown
@@ -78,7 +87,6 @@ class LibraryFeaturesAction(HTMXForm):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LibraryFeaturesAction" = Depends(LibraryFeaturesAction.Init()),
-            _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
         return route
@@ -88,7 +96,6 @@ class LibraryFeaturesAction(HTMXForm):
         def route(
             form: "LibraryFeaturesAction" = Depends(LibraryFeaturesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ) -> responses.Response:
             df = form.spreadsheet.data
 
@@ -147,26 +154,29 @@ class LibraryFeaturesAction(HTMXForm):
                     form.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "read", DuplicateCellValue("duplicate feature definition"))
 
-                if kit_feature.at[idx]:
-                    assert row.kit is not None
-                    kit, kit_df = kits[row.kit]
-                    if row.identifier is not None:
-                        if row.identifier not in kit_df["identifier"].values:
-                            df.at[idx, "feature_id"] = kit_df.loc[kit_df["identifier"] == row.identifier, "feature_id"].values[0]
-                            form.spreadsheet.add_error(idx, "identifier", InvalidCellValue(f"Identifier '{row.identifier}' not found in kit '{row.kit}'"))
-                            continue
-                    if row.feature is not None:
-                        if row.feature not in kit_df["name"].values:
-                            form.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row.feature}' not found in kit '{row.kit}'"))
-                            continue
-
-                elif not custom_feature.at[idx] and not kit_feature.at[idx]:
-                    for col in ["kit", "feature", "sequence", "pattern", "read"]:
-                        form.spreadsheet.add_error(idx, col, MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
-
-                elif custom_feature.at[idx] and kit_feature.at[idx]:
+                if custom_feature.at[idx] and kit_feature.at[idx]:
                     for col in ["kit", "feature", "sequence", "pattern", "read"]:
                         form.spreadsheet.add_error(idx, col, InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
+
+                elif kit_feature.at[idx]:
+                    assert row.kit is not None
+                    kit, kit_df = kits[row.kit]
+                    if row.identifier is not None and row.identifier not in kit_df["identifier"].values:
+                        form.spreadsheet.add_error(idx, "identifier", InvalidCellValue(f"Identifier '{row.identifier}' not found in kit '{row.kit}'"))
+                        continue
+                    if row.feature is not None and row.feature not in kit_df["name"].values:
+                        form.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row.feature}' not found in kit '{row.kit}'"))
+                        continue
+
+                    match = pd.Series(True, index=kit_df.index)
+                    if row.identifier is not None:
+                        match &= kit_df["identifier"] == row.identifier
+                    if row.feature is not None:
+                        match &= kit_df["name"] == row.feature
+                    if not match.any():
+                        form.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Identifier '{row.identifier}' and Feature '{row.feature}' refer to different features in kit '{row.kit}'"))
+                        continue
+                    df.at[idx, "feature_id"] = int(kit_df.loc[match, "feature_id"].iloc[0])
 
                 elif custom_feature.at[idx]:
                     idx_seq = (df["sequence"] == row.sequence) & (df["pattern"] == row.pattern) & (df["read"] == row.read)
@@ -175,14 +185,14 @@ class LibraryFeaturesAction(HTMXForm):
                         form.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination."))
                         form.spreadsheet.add_error(idx, "read", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination."))
 
-                elif kit_feature.at[idx]:
-                    idx_kit_feature = True
-                    if row.kit is not None:
-                        idx_kit_feature = idx_kit_feature & (df["kit"] == row.kit)
-                    if row.feature is not None:
-                        idx_kit_feature = idx_kit_feature & (df["feature"] == row.feature)
-                    if df[idx_kit_feature].shape[0] > 1:
-                        form.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Duplicate 'Kit' + 'Feature' specified."))
+                else:
+                    for col in ["kit", "feature", "sequence", "pattern", "read"]:
+                        form.spreadsheet.add_error(idx, col, MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+
+            # Two rows resolving to the same kit feature
+            duplicate_kit_feature = df["feature_id"].notna() & df.duplicated(subset=["feature_id"], keep=False)
+            for idx in df.index[duplicate_kit_feature]:
+                form.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Duplicate 'Kit' + 'Feature' specified."))
 
             form.assert_valid()
 
@@ -190,18 +200,18 @@ class LibraryFeaturesAction(HTMXForm):
             form.library.features = []
 
             class FeatureRow(BaseModel):
-                feature_id: float | None
+                feature_id: int | None
                 identifier: str | None
-                feature: str
-                sequence: str
-                pattern: str
-                read: str
+                feature: str | None
+                sequence: str | None
+                pattern: str | None
+                read: str | None
 
             for _, row in parsing.safe_iter(df, FeatureRow):
                 if row.feature_id is not None:
-                    feature = session.get_one(Q.feature.select(id=int(row.feature_id)))
-                    form.library.features.append(feature)
+                    form.library.features.append(session.get_one(Q.feature.select(id=row.feature_id)))
                 else:
+                    assert row.feature is not None and row.sequence is not None and row.pattern is not None and row.read is not None
                     form.library.features.append(Q.feature.create(
                         identifier=row.identifier,
                         name=row.feature,

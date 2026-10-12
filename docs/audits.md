@@ -454,7 +454,7 @@ What a line says is reliable: every entry in `changes` was flushed by the ORM an
 - **Cascade deletes in SQLAlchemy listeners.** `opengsync_db/core/listeners.py` deletes orphaned samples and features, and a deleted request's external pools, directly on the connection. The parent delete is logged; the orphans aren't.
 - **Database-level cascades and triggers** (`ON DELETE CASCADE`): only the row the app deleted is listed.
 - **Raw SQL.** `sa.text("UPDATE ...")` through `session.execute`, or anything run on `session.connection()`, isn't recognised as a write. No route does this today.
-- **Other sessions.** Taskiq/background jobs (`taskiq_session`), any session opened with `db_handler.get_session()` outside the request, `psql` and Alembic migrations aren't audited.
+- **Other sessions.** Celery background jobs, any session opened with `db_handler.get_session()` outside the request, `psql` and Alembic migrations aren't audited.
 
 **Precision of `changes`**
 
