@@ -10,7 +10,7 @@ combined-lane experiment actions, and the file-browser share/associate forms.
 
 import re
 
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from fastapi.testclient import TestClient
 from starlette.routing import Mount
 
@@ -18,15 +18,16 @@ _PARAM = re.compile(r"\{[^}:]+(:[^}]+)?\}")
 
 
 def _api_routes(routes):
-    for route in routes:
-        if isinstance(route, APIRoute):
+    # Included routers stay nested; their route contexts carry the full prefixed path.
+    for route in iter_route_contexts(routes):
+        if isinstance(route.original_route, APIRoute):
             yield route
-        elif isinstance(route, Mount) and getattr(route, "routes", None):
+        elif isinstance(route.original_route, Mount) and getattr(route, "routes", None):
             yield from _api_routes(route.routes)
 
 
 def _shadowed_routes(app) -> list[str]:
-    seen: list[APIRoute] = []
+    seen: list[RouteContext] = []
     shadowed: list[str] = []
     for route in _api_routes(app.routes):
         # Concrete URLs this route should answer: params filled with a number and with a word.

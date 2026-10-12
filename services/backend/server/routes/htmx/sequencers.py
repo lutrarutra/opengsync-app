@@ -41,8 +41,10 @@ def search_sequencers(
 
     if selected_id is not None and not word:
         stmt = Q.sequencer.select(id=selected_id, statement=stmt)
-    elif word is not None:
+    elif word:
         stmt = Q.sequencer.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Sequencer.name.asc())
 
     sequencers, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/sequencer.html", sequencers=sequencers)

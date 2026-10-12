@@ -163,4 +163,4 @@ def request_validation_exception_handler(
 ) -> Response:
     logger.debug(f"Request validation failed: {exc.errors()}")
     message = "Invalid request."
-    return error_response(request, status.HTTP_422_UNPROCESSABLE_ENTITY, message)
+    return error_response(request, status.HTTP_422_UNPROCESSABLE_CONTENT, message)

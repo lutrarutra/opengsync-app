@@ -53,7 +53,7 @@ def render_feature_table(
         table.template = "components/tables/feature_kit-feature.html"
         table.url_params["feature_kit_id"] = feature_kit_id
     else:
-        table.template = "components/tables/feature.html"
+        table.template = "components/tables/feature_kit-feature.html"
 
     features = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(features=features)

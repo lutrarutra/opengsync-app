@@ -17,7 +17,7 @@ emails, barcode clashes on a request) are tested in their own modules instead.
 from dataclasses import dataclass
 
 import pytest
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, categories as C
@@ -79,8 +79,12 @@ SPECS = [
 ]
 
 
-def _routes(app, prefix: str) -> list[APIRoute]:
-    return [r for r in app.routes if isinstance(r, APIRoute) and r.name.startswith(f"{prefix}.")]
+def _routes(app, prefix: str) -> list[RouteContext]:
+    # Route contexts, not the original APIRoutes: their dependant includes router-level dependencies.
+    return [
+        r for r in iter_route_contexts(app.routes)
+        if isinstance(r.original_route, APIRoute) and r.name.startswith(f"{prefix}.")
+    ]
 
 
 def _dependency_calls(dependant):

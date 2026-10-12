@@ -100,14 +100,13 @@ def _write_audit_log(request: runtime.Request, status_code: int, changes: list[d
     if isinstance(current_user := getattr(request.state, "current_user", None), models.User):
         user_id = inspect(current_user).dict.get("id", user_id)
 
-    route = request.scope.get("route")
     audit_state = getattr(request.state, "audit", None)
     logger.bind(
         audit=True,
         user_id=user_id,
         method=request.method.upper(),
         path=request.url.path,
-        route=getattr(audit_state, "route", None) or getattr(route, "path", request.url.path),
+        route=getattr(audit_state, "route", None) or audit.route_path(request),
         resource_id=getattr(audit_state, "resource_id", None),
         metadata=getattr(audit_state, "metadata", None) or {},
         changes=changes,

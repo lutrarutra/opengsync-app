@@ -27,7 +27,6 @@ class FlexABCForm(MuxPrepWorkflowStep):
         ],
         allow_new_rows=False,
     )
-    allowed_barcodes = [f"AB{i:03}" for i in range(1, 17)]
 
     @classmethod
     def is_applicable(cls, workflow: MuxPrepWorkflow) -> bool:
@@ -47,9 +46,7 @@ class FlexABCForm(MuxPrepWorkflowStep):
         abc_table["gex_barcode"] = parsing.map_columns(abc_table, gex_table, "sample_name", "mux_barcode")
         abc_table["barcode_id"] = abc_table["mux"].apply(_mux_barcode)
         missing = abc_table["barcode_id"].isna()
-        abc_table.loc[missing, "barcode_id"] = abc_table.loc[missing, "gex_barcode"].apply(
-            lambda x: x.replace("BC", "AB") if pd.notna(x) else None
-        )
+        abc_table.loc[missing, "barcode_id"] = abc_table.loc[missing, "gex_barcode"]
         return abc_table.drop(columns=["gex_barcode"])
 
     @classmethod
@@ -98,11 +95,6 @@ class FlexABCForm(MuxPrepWorkflowStep):
                         InvalidCellValue(
                             f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(sample_table['sample_name'].astype(str).unique())}"
                         ),
-                    )
-                if pd.notna(row["barcode_id"]) and row["barcode_id"] not in FlexABCForm.allowed_barcodes:
-                    form.spreadsheet.add_error(
-                        idx, "barcode_id",
-                        InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(FlexABCForm.allowed_barcodes)}"),
                     )
                 if pd.notna(row["barcode_id"]) and duplicate_barcode.at[idx]:
                     form.spreadsheet.add_error(

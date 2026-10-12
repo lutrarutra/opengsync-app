@@ -3,6 +3,7 @@
 import types
 
 import pytest
+from fastapi.routing import iter_route_contexts
 from fastapi.testclient import TestClient
 
 from server.components import inputs
@@ -149,7 +150,7 @@ def test_api_token_form_routes_are_registered_on_the_app(client: TestClient):
         ("POST", "/{user_id}/create-api-token", "APITokenForm.Create"),
     }
 
-    app_names = {getattr(route, "name", None) for route in client.app.router.routes}
+    app_names = {route.name for route in iter_route_contexts(client.app.router.routes)}
     assert {"APITokenForm.Begin", "APITokenForm.Create"} <= app_names
     assert client.app.url_path_for("APITokenForm.Begin", user_id=7) == "/htmx/users/7/create-api-token"
 

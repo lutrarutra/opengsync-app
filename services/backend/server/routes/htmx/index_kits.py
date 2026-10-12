@@ -92,14 +92,17 @@ def render_index_kit_spreadsheet(
 
 @router.get("/search-index_kits", dependencies=[Depends(dependencies.require_user_id)])
 def search_index_kits(
-    word: str = Query(..., description="Search term for kit name or identifier"),
+    word: str | None = Query(None, description="Search term for kit name or identifier"),
     type: C.IndexType | None = Depends(dependencies.parse_enum_id(C.IndexType, "type")),
     type_in: list[C.IndexType] | None = Depends(dependencies.parse_enum_ids(C.IndexType, "type_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     stmt = Q.index_kit.select(type=type, type_in=type_in)
-    stmt = Q.index_kit.search(name=word, identifier=word, statement=stmt)
+    if word:
+        stmt = Q.index_kit.search(name=word, identifier=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.IndexKit.name.asc())
     
     kits, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/index_kit.html", results=kits)

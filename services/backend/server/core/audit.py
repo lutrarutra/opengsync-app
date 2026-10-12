@@ -1,13 +1,21 @@
 from fastapi import Request
-from fastapi.routing import APIRoute
 from sqlalchemy import event, inspect, orm
 
 from opengsync_db import SyncSession
 
+
+def route_path(request: Request) -> str:
+    """Path template of the matched route including router prefixes, e.g. `/htmx/protocols/{protocol_id}/delete`.
+
+    Included routers stay nested (FastAPI >= 0.137), so `scope["route"]` is the route as declared on its
+    own router, without the prefixes; FastAPI keeps the full path on the effective route context."""
+    route = request.scope.get("fastapi", {}).get("effective_route_context") or request.scope.get("route")
+    return getattr(route, "path", None) or request.url.path
+
+
 class AuditLogger:
     def __init__(self, request: Request):
-        route: APIRoute | None = request.scope.get("route")
-        self.route = route.path if route else request.url.path
+        self.route = route_path(request)
         self.method = request.method.upper()
 
         self.resource_id: str | None = None

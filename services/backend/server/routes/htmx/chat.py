@@ -3,7 +3,7 @@ import time
 from typing import AsyncIterator, TypeVar
 
 from fastapi import APIRouter, Depends
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 from starlette.routing import Match
 from fastapi.responses import Response, StreamingResponse
 from loguru import logger
@@ -130,8 +130,8 @@ def _route_pattern(request: runtime.Request, url_path: str | None, methods: tupl
     for method in methods:
         for candidate in dict.fromkeys([path, path.rstrip("/") or "/", path.rstrip("/") + "/"]):  # routes may end in "/"
             scope = {"type": "http", "path": candidate, "method": method, "root_path": ""}
-            for route in request.app.routes:
-                if isinstance(route, APIRoute) and route.matches(scope)[0] == Match.FULL:
+            for route in iter_route_contexts(request.app.routes):
+                if isinstance(route.original_route, APIRoute) and route.matches(scope)[0] == Match.FULL:
                     return route.path
     return None
 

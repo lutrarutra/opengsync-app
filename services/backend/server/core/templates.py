@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import jinja2
 from markupsafe import Markup, escape
+from fastapi.routing import iter_route_contexts
 from fastapi.templating import Jinja2Templates
 from starlette.datastructures import URL
 
@@ -16,7 +17,11 @@ from .search import SEARCH_KINDS
 from .config import settings
 from ..utils import barcodes
 
-j2 = Jinja2Templates(directory="/templates", undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined)
+j2 = Jinja2Templates(env=jinja2.Environment(
+    loader=jinja2.FileSystemLoader("/templates"),
+    autoescape=jinja2.select_autoescape(),
+    undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined,
+))
 
 def format_timestamp(value: float, format: str = "%Y-%m-%d %H:%M"):
     """Convert timestamp to readable string"""
@@ -248,8 +253,8 @@ def absolute_url_for(request, name: str, *, external: bool = False, **path_param
 def _get_route_param_names(router, name: str, provided: set[str] | None = None) -> set:
     """Extract path parameter names from a route by its name."""
     matches: list[set] = []
-    for route in router.routes:
-        if getattr(route, "name", None) != name:
+    for route in iter_route_contexts(router.routes):
+        if route.name != name:
             continue
         params = set(getattr(route, "param_convertors", {}).keys())
         matches.append(params)

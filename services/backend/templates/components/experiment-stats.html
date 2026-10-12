@@ -1,4 +1,3 @@
-{% from "components/spreadsheet.jinja2" import static_spreadsheet %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/metadata_group.jinja2" import metadata_quantity %}
 
@@ -19,7 +18,7 @@
                     {{ metadata_quantity("Total Reads", num_total_reads, class="col-3") }}
                 </div>
                 <h4>Library Stats</h4>
-                {{ static_spreadsheet(library_stats) }}
+                {{ library_stats.render() }}
                 <div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}"
                     hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
@@ -39,7 +38,7 @@
             data-bs-parent="#experimentStatsAccordion">
             <div class="accordion-body">
                 <h4>Pool Reads</h4>
-                {{ static_spreadsheet(pool_stats) }}
+                {{ pool_stats.render() }}
 
                 <div hx-get="{{ url_for('plots_api.experiment_pool_reads', experiment_id=experiment.id) }}"
                     hx-trigger="intersect once" hx-swap="outerHTML">

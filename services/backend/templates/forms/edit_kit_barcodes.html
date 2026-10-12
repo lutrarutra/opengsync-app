@@ -1,4 +1,3 @@
-{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
 {% from 'components/form_group.jinja2' import switch_input %}
 {% from 'components/legends.jinja2' import color_legend %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
@@ -20,7 +19,7 @@
         {% elif index_kit.type == C.IndexType.TENX_ATAC_INDEX %}
         {{ switch_input(form.rc_sequence) }}
         {% endif %}
-        {{ spreadsheet_input(element=form.spreadsheet) }}
+        {{ form.spreadsheet.render() }}
     </div>
     
     <div class="modal-footer">

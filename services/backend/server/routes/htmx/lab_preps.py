@@ -105,7 +105,7 @@ def uncomplete_lab_prep(
     lab_prep.status = C.PrepStatus.PREPARING
 
     return responses.htmx_response(
-        redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
+        redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
         flash=responses.flash("Lab prep reverted to preparing!", "success"),
     )
 
@@ -120,13 +120,13 @@ def delete_lab_prep(
 
     if lab_prep.status != C.PrepStatus.PREPARING:
         return responses.htmx_response(
-            redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
+            redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
             flash=responses.flash("Cannot delete completed prep.", "warning"),
         )
 
     session.delete(lab_prep)
     return responses.htmx_response(
-        redirect=request.url_for("lab_preps"),
+        redirect=request.url_for("lab_preps_page"),
         flash=responses.flash("Lab prep deleted!", "success"),
     )
 
@@ -147,7 +147,7 @@ def remove_library_from_prep(
     library.lab_prep = None
 
     return responses.htmx_response(
-        # redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
+        # redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
         flash=responses.flash("Library removed!", "success"),
     )
 
@@ -402,7 +402,7 @@ def complete_lab_prep(
     lab_prep.status = C.PrepStatus.COMPLETED
 
     return responses.htmx_response(
-        redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
+        redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
         flash=responses.flash("Lab prep completed!", "success"),
     )
 

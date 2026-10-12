@@ -85,7 +85,7 @@ class CommentForm(HTMXForm):
             elif form.experiment_id is not None:
                 redirect = responses.url_for("experiment_page", experiment_id=form.experiment_id).include_query_params(tab="experiment-comments-tab")
             elif form.lab_prep_id is not None:
-                redirect = responses.url_for("lab_prep", lab_prep_id=form.lab_prep_id).include_query_params(tab="comments-tab")
+                redirect = responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep_id).include_query_params(tab="comments-tab")
             else:
                 redirect = responses.url_for("dashboard")
 

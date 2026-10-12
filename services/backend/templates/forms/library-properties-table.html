@@ -1,4 +1,3 @@
-{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 
 <div id="library_properties_form-container" class="modal-content">
@@ -9,8 +8,7 @@
     <div class="modal-body">
         {{ form.csrf_token() }}
         {{ 
-            spreadsheet_input(
-                element=form.spreadsheet,
+            form.spreadsheet.render(
                 submit_btn_id="submit-spreadsheet-btn",
                 target_element_id="library_properties_form-container",
             )

@@ -69,16 +69,20 @@ def render_group_table(
 
 @router.get("/search")
 def search_groups(
-    word: str = Query(..., description="Search word for group name"),
+    word: str | None = Query(None, description="Search word for group name"),
     selected_id: int | None = Query(None, description="Currently selected group"),
     current_user: models.User = Depends(dependencies.require_user),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    stmt = Q.group.search(name=word)
+    stmt = Q.group.select()
 
     if selected_id is not None and not word:
         stmt = Q.group.select(id=selected_id, statement=stmt)
+    elif word:
+        stmt = Q.group.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Group.name.asc())
 
     if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)

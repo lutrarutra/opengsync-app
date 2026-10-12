@@ -757,7 +757,7 @@ def get_seq_request_sample_table(
     spreadsheet = StaticSpreadsheet(df, columns=columns)
 
     return responses.htmx_response(
-        template="components/itable.html", seq_request=seq_request, spreadsheet=spreadsheet
+        template="components/static-spreadsheet.html", seq_request=seq_request, spreadsheet=spreadsheet
     )
 
 

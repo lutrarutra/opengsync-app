@@ -47,7 +47,7 @@ nav#navbar #icon-banner {
     max-width: 260px;
     color: var(--color-white);
     font-size: 21px;
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: -0.01em;
     text-decoration: none;
     text-overflow: ellipsis;

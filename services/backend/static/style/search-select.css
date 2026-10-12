@@ -63,12 +63,36 @@
         display: none;
         align-items: center;
         justify-content: space-between;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
 
         &:hover {
             cursor: pointer;
         }
         li.selected-option {
             list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+
+            /* desc only gets leftover space, so it is cut first; name shrinks only once desc is gone */
+            .search-select-header {
+                flex: 0 0 auto;
+            }
+            .search-select-name {
+                flex: 0 1 auto;
+                min-width: 0;
+            }
+            .search-select-desc {
+                flex: 1 1 0;
+                min-width: 0;
+                text-align: right;
+                text-overflow: ellipsis;
+            }
         }
     }
 

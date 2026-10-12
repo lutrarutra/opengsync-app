@@ -123,8 +123,10 @@ def search_pools(
 
     if selected_id is not None and not word:
         stmt = Q.pool.select(id=selected_id, statement=stmt)
-    elif word is not None:
+    elif word:
         stmt = Q.pool.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Pool.name.asc())
 
     if not current_user.is_insider:
         stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
@@ -204,7 +206,7 @@ def delete_pool(
     session.delete(pool)
     
     return responses.htmx_response(
-        redirect=responses.url_for("pool_pages"),
+        redirect=responses.url_for("pools_page"),
         flash=responses.flash("Pool deleted", "success")
     )
 

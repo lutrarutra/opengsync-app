@@ -173,8 +173,10 @@ def search_projects(
 
     if selected_id is not None and not word:
         stmt = Q.project.select(id=selected_id, statement=stmt)
-    elif word is not None:
+    elif word:
         stmt = Q.project.search(title=word, identifier=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Project.title.asc())
 
     if not current_user.is_insider:
         if group_id is not None:

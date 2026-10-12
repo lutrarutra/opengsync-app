@@ -79,14 +79,17 @@ def render_kit_table(
 
 @router.get("/search-kits", dependencies=[Depends(dependencies.require_user_id)])
 def search_kits(
-    word: str = Query(..., description="Search term for kit name or identifier"),
+    word: str | None = Query(None, description="Search term for kit name or identifier"),
     kit_type: C.KitType | None = Depends(dependencies.parse_enum_id(C.KitType, "kit_type")),
     kit_type_in: list[C.KitType] | None = Depends(dependencies.parse_enum_ids(C.KitType, "kit_type_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     stmt = Q.kit.select(type=kit_type, type_in=kit_type_in)
-    stmt = Q.kit.search(name=word, identifier=word, statement=stmt)
+    if word:
+        stmt = Q.kit.search(name=word, identifier=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Kit.name.asc())
 
     kits, count = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/kit.html", results=kits)

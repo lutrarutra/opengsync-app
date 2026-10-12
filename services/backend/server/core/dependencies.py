@@ -101,8 +101,7 @@ def rate_limit(*limits: str):
         request: runtime.Request = TaskiqDepends(get_runtime_request),
         r: rds.RedisClient = Depends(redis),
     ):
-        route = request.scope.get("route")
-        route_path = getattr(route, "path", request.url.path)
+        route_path = audit.route_path(request)
         ip = request.headers.get("x-real-ip") or (
             request.client.host if request.client else "1.1.1.1"
         )

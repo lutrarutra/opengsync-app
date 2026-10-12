@@ -125,8 +125,10 @@ def search_users(
     )
     if selected_id is not None and not word:
         stmt = Q.user.select(id=selected_id, statement=stmt)
-    elif word is not None:
+    elif word:
         stmt = Q.user.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.User.first_name.asc(), models.User.last_name.asc())
         
     if not current_user.is_insider:
         if group_id is not None:

@@ -51,7 +51,8 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
                 prep_table = pd.read_excel(path, "prep_table")
                 prep_table = prep_table.dropna(subset=["library_id", "library_name"])
                 if prep_table["library_id"].isna().any() or (~prep_table["library_id"].isin(library_table["library_id"])).any():
-                    if not prep_table["library_name"].duplicated().any():
+                    # one prep table row per index: a library may span several rows
+                    if not prep_table.drop_duplicates(subset=["library_id", "library_name"])["library_name"].duplicated().any():
                         flash = responses.flash(
                             "Lab prep file is outdated, library_id mismatch. Attempting to map library_id using library_name. Please re-upload the lab prep file with correct library IDs to avoid potential issues.",
                             "warning",
@@ -64,11 +65,15 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
                             "Lab prep file is outdated, library_id mismatch. Please re-upload the lab prep file.",
                             "warning",
                         )
-                order = prep_table["library_id"].tolist()
-                library_table["library_id"] = pd.Categorical(library_table["library_id"], categories=order, ordered=True)
-                library_table = library_table.sort_values("library_id").reset_index(drop=True)
-                library_table["library_id"] = library_table["library_id"].astype(pd.Int64Dtype())
-                library_table["pool"] = parsing.map_columns(library_table, prep_table, idx_columns="library_id", col="pool")
+                # prep table can have multiple rows per library (one per index): order by first occurrence,
+                # take the first pool given; libraries missing from the prep table go last
+                prep_table = prep_table.dropna(subset=["library_id"])
+                order = {library_id: i for i, library_id in enumerate(prep_table["library_id"].drop_duplicates())}
+                library_table = library_table.sort_values(
+                    "library_id", key=lambda s: s.map(order), na_position="last", kind="stable"
+                ).reset_index(drop=True)
+                pools = prep_table.dropna(subset=["pool"]).drop_duplicates(subset="library_id", keep="first")
+                library_table["pool"] = parsing.map_columns(library_table, pools, idx_columns="library_id", col="pool")
 
         def clean_pool_value(value) -> str:
             if pd.isna(value):

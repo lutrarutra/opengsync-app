@@ -12,7 +12,7 @@ requires-python = ">=3.14"
 dependencies = [
     "opengsync-db",
     "loguru >= 0.7",
-    "fastapi < 0.133.0", #https://github.com/taskiq-python/taskiq-fastapi/pull/27 when this get merged we can update this
+    "fastapi >= 0.138",
     "uvicorn[standard]",
     "gunicorn",
     "pydantic[email]",
