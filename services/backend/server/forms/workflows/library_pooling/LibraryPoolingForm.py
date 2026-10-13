@@ -33,6 +33,9 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
         super().__init__(workflow=workflow)
         self.lab_prep: models.LabPrep | None = None
         self.library_table = pd.DataFrame()
+        # Warning about the prep file, shown on Begin (not part of the template context, which
+        # make_response() also receives on re-render)
+        self.prefill_flash = None
 
     @classmethod
     def build(cls, workflow: LibraryPoolingWorkflow, session: SyncSession) -> Self:
@@ -93,7 +96,7 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
         form = cls(workflow=workflow)
         form.lab_prep = lab_prep
         form.library_table = library_table
-        form._context["flash"] = flash
+        form.prefill_flash = flash
         form.spreadsheet.configure(
             csrf_token=form.csrf_token_value,
             post_url=form.post_url,

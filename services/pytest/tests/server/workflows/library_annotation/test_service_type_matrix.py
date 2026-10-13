@@ -193,7 +193,8 @@ def test_pooled_openst(client, session: SyncSession, user, user_token):
 @pytest.mark.parametrize("service, barcodes", [
     (S.TENX_SC_4_PLEX_FLEX, ["BC001", "BC002", "BC004"]),
     (S.TENX_SC_FLEX_V2, ["BC001", "BC017", "BC032"]),  # Apex has no 16/4-plex upper bound
-], ids=["4_PLEX", "APEX"])
+    (S.TENX_SC_FLEX_V2, ["A-A01", "A-F01", "B-H12"]),  # Flex v2 style barcodes
+], ids=["4_PLEX", "APEX", "APEX_NON_BC"])
 def test_pooled_10x_flex_multiplexed(client, session: SyncSession, user, user_token, service: C.ServiceType, barcodes: list[str]):
     samples = ["Flex_1", "Flex_2", "Flex_3"]
     seq_request, wf = _start(client, session, user, user_token, C.SubmissionType.POOLED_LIBRARIES, f"Pooled {service.abbreviation}", samples)

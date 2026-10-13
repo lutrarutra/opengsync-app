@@ -14,7 +14,7 @@ from opengsync_db import SyncSession, models
 from server import chat
 from server.core import config, dependencies
 
-from ._http import CSRF
+from ._http import CSRF, cookie_header
 from .test_audit_log import audit_records  # noqa: F401 (fixture)
 
 
@@ -80,9 +80,7 @@ def send(
     headers = {"HX-Request": "true", "X-Real-IP": "198.51.100.20", **(headers or {})}
     if csrf:
         headers["X-CSRF-Token"] = CSRF
-    return client.post(
-        "/htmx/chat/messages", data={"message": message, **form}, headers=headers, cookies={"access_token": token},
-    )
+    return client.post("/htmx/chat/messages", data={"message": message, **form}, headers=headers | cookie_header(client, token))
 
 
 def msg_id(response) -> str:
@@ -92,7 +90,7 @@ def msg_id(response) -> str:
 
 
 def stream(client: TestClient, token: str, message_id: str):
-    return client.get(f"/htmx/chat/stream/{message_id}", cookies={"access_token": token})
+    return client.get(f"/htmx/chat/stream/{message_id}", headers=cookie_header(client, token))
 
 
 def events(response) -> list[tuple[str, str]]:
@@ -124,7 +122,7 @@ def test_requires_login(client: TestClient, model: ScriptedModel, path: str):
 
 def test_disabled_returns_404(client: TestClient, user_token: str):
     assert config.settings.app_config.chat.enabled is False
-    response = client.get("/htmx/chat", cookies={"access_token": user_token}, headers={"HX-Request": "true"})
+    response = client.get("/htmx/chat", headers={"HX-Request": "true", **cookie_header(client, user_token)})
     assert response.status_code == 404
 
 
@@ -168,7 +166,7 @@ def test_conversation_loop(client: TestClient, model: ScriptedModel, user_token:
     assert parsed[-1] == ("done", "")
     assert parsed[-2] == ("message", "<p>Hello <strong>there</strong></p>")
 
-    page = client.get("/htmx/chat", cookies={"access_token": user_token}, headers={"HX-Request": "true"})
+    page = client.get("/htmx/chat", headers={"HX-Request": "true", **cookie_header(client, user_token)})
     assert "How do I &lt;b&gt;submit&lt;/b&gt;?" in page.text
     assert "<p>Hello <strong>there</strong></p>" in page.text
     assert "sse-connect" not in page.text  # nothing pending anymore
@@ -336,7 +334,7 @@ PREFIX = {"X-Forwarded-Prefix": "/opengsync/"}
 def test_widget_urls_include_prefix(client: TestClient, model: ScriptedModel, user_token: str, monkeypatch):
     from server.core import templates
     monkeypatch.setitem(templates.j2.env.globals, "chat_enabled", True)
-    page = client.get("/", cookies={"access_token": user_token}, headers=PREFIX)
+    page = client.get("/", headers=PREFIX | cookie_header(client, user_token))
     assert page.status_code == 200
     assert 'data-conversation-url="http://testserver/opengsync/htmx/chat"' in page.text
     assert 'hx-post="http://testserver/opengsync/htmx/chat/messages"' in page.text

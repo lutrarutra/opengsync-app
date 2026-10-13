@@ -28,13 +28,15 @@ def _is_kit_barcode(kit, name) -> bool:
     return _has_value(kit) and _has_value(name)
 
 
-def _is_kit_index_row(row: pd.Series) -> bool:
-    """Same rule as LibraryIndex.is_kit_index(): i7 from a kit, and i5 too if present."""
-    if not _is_kit_barcode(row.get("kit_i7"), row.get("name_i7")):
-        return False
-    if not _has_value(row.get("sequence_i5")):
-        return True
-    return _is_kit_barcode(row.get("kit_i5"), row.get("name_i5"))
+def _suggested_orientation(row: pd.Series, barcode: str) -> str | None:
+    """Pre-fill: kit barcodes are always forward, custom barcodes follow the stored orientation."""
+    if not _has_value(row[f"sequence_{barcode}"]):
+        return None
+    if _is_kit_barcode(row[f"kit_{barcode}"], row[f"name_{barcode}"]):
+        return FORWARD
+    if row["orientation_id"] == C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED.id:
+        return REVERSE_COMPLEMENT
+    return FORWARD
 
 
 class VerifyOrientationsForm(IndexCheckWorkflowStep):
@@ -52,15 +54,19 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
                 required=True,
                 read_only=True,
             ),
+            TextColumn("name_i7", "i7 Name", 150, read_only=True),
+            TextColumn("sequence_i7", "i7 Sequence", 200, read_only=True),
             CategoricalDropDown(
-                "orientation", "Orientation", 200,
+                "orientation_i7", "i7 Orientation", 200,
                 categories={FORWARD: "Forward", REVERSE_COMPLEMENT: "Reverse Complement"},
                 required=True,
             ),
-            TextColumn("name_i7", "i7 Name", 150, read_only=True),
-            TextColumn("sequence_i7", "i7 Sequence", 200, read_only=True),
             TextColumn("name_i5", "i5 Name", 150, read_only=True),
             TextColumn("sequence_i5", "i5 Sequence", 200, read_only=True),
+            CategoricalDropDown(
+                "orientation_i5", "i5 Orientation", 200,
+                categories={FORWARD: "Forward", REVERSE_COMPLEMENT: "Reverse Complement"},
+            ),
         ],
         allow_new_rows=False,
     )
@@ -71,12 +77,12 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
         # Libraries without an index have nothing to verify
         self.barcode_table = barcode_table[barcode_table["library_index_id"].notna()].reset_index(drop=True)
 
-        if "orientation" not in self.barcode_table.columns:
-            # Suggest reverse complement where the stored orientation already says so
-            self.barcode_table["orientation"] = [
-                REVERSE_COMPLEMENT if orientation_id == C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED.id else FORWARD
-                for orientation_id in self.barcode_table["orientation_id"]
-            ]
+        if "orientation_i7" not in self.barcode_table.columns:
+            # First visit: suggest orientations, afterwards the submitted choices are kept in the table
+            for barcode in ("i7", "i5"):
+                self.barcode_table[f"orientation_{barcode}"] = [
+                    _suggested_orientation(row, barcode) for _, row in self.barcode_table.iterrows()
+                ]
 
         self.spreadsheet.columns[INDEX_COLUMN].set_categories({
             int(row["library_index_id"]): f"{row['library_name']} [{int(row['library_index_id'])}]"
@@ -99,7 +105,7 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
         ) -> Response:
             barcode_table = form.barcode_table
 
-            # Only the index id and the orientation are read from the spreadsheet. Rows can be sorted, so each row
+            # Only the index id and the orientations are read from the spreadsheet. Rows can be sorted, so each row
             # is matched to its stored index by id, and everything else always comes from the stored table.
             unmatched = {int(barcode_table.at[i, "library_index_id"]): i for i in range(len(barcode_table))}
 
@@ -111,9 +117,19 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
                     rows_match = False
                     form.spreadsheet.add_error(idx, INDEX_COLUMN, InvalidCellValue("Row does not match an index of the selected libraries."))
                     continue
-                barcode_table.at[i, "orientation"] = row["orientation"]
-                if row["orientation"] == REVERSE_COMPLEMENT and _is_kit_index_row(barcode_table.iloc[i]):
-                    form.spreadsheet.add_error(idx, "orientation", InvalidCellValue("Barcodes from a kit are always in forward orientation."))
+                stored = barcode_table.iloc[i]
+                for barcode in ("i7", "i5"):
+                    column = f"orientation_{barcode}"
+                    orientation = row[column] if _has_value(row[column]) else None
+                    if not _has_value(stored[f"sequence_{barcode}"]):
+                        if orientation is not None:
+                            form.spreadsheet.add_error(idx, column, InvalidCellValue(f"Index has no {barcode} barcode."))
+                        continue
+                    if orientation is None:
+                        form.spreadsheet.add_error(idx, column, InvalidCellValue(f"Select the orientation of the {barcode} barcode."))
+                    elif orientation == REVERSE_COMPLEMENT and _is_kit_barcode(stored[f"kit_{barcode}"], stored[f"name_{barcode}"]):
+                        form.spreadsheet.add_error(idx, column, InvalidCellValue("Barcodes from a kit are always in forward orientation."))
+                    barcode_table.at[i, column] = orientation
 
             if rows_match and unmatched:
                 form.spreadsheet.add_general_error("Some indices are missing from the spreadsheet. Go back and select the libraries again.")
@@ -122,13 +138,12 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
             orientation_results = []
             for _, row in barcode_table.iterrows():
                 sequence_i7, sequence_i5 = _value(row["sequence_i7"]), _value(row["sequence_i5"])
-                was_rc = row["orientation"] == REVERSE_COMPLEMENT
-                if was_rc:
-                    # Only custom barcodes are reverse complemented, e.g. a custom i5 next to a kit i7
-                    if sequence_i7 is not None and not _is_kit_barcode(row["kit_i7"], row["name_i7"]):
-                        sequence_i7 = barcodes.reverse_complement(sequence_i7)
-                    if sequence_i5 is not None and not _is_kit_barcode(row["kit_i5"], row["name_i5"]):
-                        sequence_i5 = barcodes.reverse_complement(sequence_i5)
+                was_rc_i7 = sequence_i7 is not None and row["orientation_i7"] == REVERSE_COMPLEMENT
+                was_rc_i5 = sequence_i5 is not None and row["orientation_i5"] == REVERSE_COMPLEMENT
+                if was_rc_i7:
+                    sequence_i7 = barcodes.reverse_complement(sequence_i7)
+                if was_rc_i5:
+                    sequence_i5 = barcodes.reverse_complement(sequence_i5)
 
                 orientation_results.append({
                     "library_id": int(row["library_id"]),
@@ -137,7 +152,8 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
                     "sequence_i7": sequence_i7,
                     "sequence_i5": sequence_i5,
                     "orientation": C.BarcodeOrientation.FORWARD,
-                    "was_reverse_complemented": was_rc,
+                    "was_reverse_complemented_i7": was_rc_i7,
+                    "was_reverse_complemented_i5": was_rc_i5,
                 })
 
             # Keep the choices so going back from the summary shows them again

@@ -66,7 +66,11 @@ class BAReportWorkflow(HTMXWorkflow):
             r: redis.RedisClient = Depends(dependencies.redis),
             uuid: str | None = Query(None, description="The UUID of the workflow instance"),
         ) -> "BAReportWorkflow":
-            return cls(step=step, experiment_id=experiment_id, lab_prep_id=lab_prep_id, r=r, uuid=uuid)
+            workflow = cls(step=step, experiment_id=experiment_id, lab_prep_id=lab_prep_id, r=r, uuid=uuid)
+            # Later steps need a run that reached them (state expires / is cleared on completion)
+            if step != wf.SelectSamplesForm.__name__ and step not in workflow.step_tracker.steps:
+                raise exc.BadRequestException("This report has expired. Please start again.")
+            return workflow
         return dependency
     
 

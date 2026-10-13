@@ -8,10 +8,10 @@
     <div class="modal-body tab-body">
         <div class="input-help">
             <p>
-                Set the orientation of each index as it was submitted. <b>Reverse Complement</b> reverse-complements the
-                sequences, and all indices are then stored in forward orientation.
-                Barcodes from a kit are always forward; if only one of i7/i5 is from a kit, only the custom barcode is reverse-complemented.
-                Only the Orientation column can be edited.
+                Set the orientation of each i7 and i5 barcode as it was submitted. <b>Reverse Complement</b> reverse-complements
+                that barcode's sequence, and all indices are then stored in forward orientation.
+                Barcodes from a kit are always forward. Leave the i5 orientation empty for single-index libraries.
+                Only the Orientation columns can be edited.
             </p>
         </div>
         {{ form.spreadsheet.render(submit_btn_id="submit-spreadsheet-btn", target_element_id="verify-orientations-container") }}

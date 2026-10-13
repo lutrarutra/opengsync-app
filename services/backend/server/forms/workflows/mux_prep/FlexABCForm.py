@@ -27,6 +27,7 @@ class FlexABCForm(MuxPrepWorkflowStep):
         ],
         allow_new_rows=False,
     )
+    allowed_barcodes = [f"AB{i:03}" for i in range(1, 17)]
 
     @classmethod
     def is_applicable(cls, workflow: MuxPrepWorkflow) -> bool:
@@ -45,8 +46,11 @@ class FlexABCForm(MuxPrepWorkflowStep):
         ].copy()
         abc_table["gex_barcode"] = parsing.map_columns(abc_table, gex_table, "sample_name", "mux_barcode")
         abc_table["barcode_id"] = abc_table["mux"].apply(_mux_barcode)
+        # As legacy: an unset ABC barcode defaults to the sample's GEX barcode, BC### → AB###
         missing = abc_table["barcode_id"].isna()
-        abc_table.loc[missing, "barcode_id"] = abc_table.loc[missing, "gex_barcode"]
+        abc_table.loc[missing, "barcode_id"] = abc_table.loc[missing, "gex_barcode"].apply(
+            lambda x: x.replace("BC", "AB") if pd.notna(x) else None
+        )
         return abc_table.drop(columns=["gex_barcode"])
 
     @classmethod
@@ -96,7 +100,12 @@ class FlexABCForm(MuxPrepWorkflowStep):
                             f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(sample_table['sample_name'].astype(str).unique())}"
                         ),
                     )
-                if pd.notna(row["barcode_id"]) and duplicate_barcode.at[idx]:
+                if pd.notna(row["barcode_id"]) and row["barcode_id"] not in FlexABCForm.allowed_barcodes:
+                    form.spreadsheet.add_error(
+                        idx, "barcode_id",
+                        InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(FlexABCForm.allowed_barcodes)}"),
+                    )
+                elif pd.notna(row["barcode_id"]) and duplicate_barcode.at[idx]:
                     form.spreadsheet.add_error(
                         idx, "barcode_id",
                         DuplicateCellValue("'Barcode ID' is duplicated in library."),
@@ -113,5 +122,5 @@ class FlexABCForm(MuxPrepWorkflowStep):
             )
             combined = pd.concat([abc_table, gex_table], ignore_index=True).reset_index(drop=True)
             FlexMuxForm.update_barcodes(session, combined)
-            return form.workflow.complete_to_lab_prep()
+            return form.workflow.complete_to_lab_prep(tab="mux-tab")
         return route

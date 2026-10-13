@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from fastapi import Depends, Response
 
+from ....core import exceptions as exc
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from .CompleteBAReport import CompleteBAReport
@@ -24,11 +25,17 @@ class ParseBAExcelFileForm(BAReportWorkflowStep):
         def route(
             form: "ParseBAExcelFileForm" = Depends(ParseBAExcelFileForm.Validate()),
         ) -> Response:
-            samples_order = [int(s) for s in json.loads(form.left_order.data)]
-            excel_order = [
-                (str(s["name"]), (int(s["value"])) if s.get("value") else None)
-                for s in json.loads(form.right_order.data)
-            ]
+            try:
+                samples_order = [int(s) for s in json.loads(form.left_order.data)]
+                excel_order = [
+                    (str(s["name"]), (int(float(s["value"]))) if s.get("value") else None)
+                    for s in json.loads(form.right_order.data)
+                ]
+                if any(i not in form.sample_table.index for i in samples_order):
+                    raise ValueError("unknown sample")
+            except (ValueError, TypeError, KeyError, AttributeError):
+                form.add_general_error("Invalid sample/well assignment. Please assign the wells again.")
+                raise exc.FormValidationException(form)
 
             data = {
                 "id": [],
@@ -45,12 +52,14 @@ class ParseBAExcelFileForm(BAReportWorkflowStep):
                 data["id"].append(form.sample_table.at[sample_idx, "id"])
                 data["name"].append(form.sample_table.at[sample_idx, "name"])
                 data["type"].append(form.sample_table.at[sample_idx, "type"])
-                data["avg_fragment_size"].append(excel_value)
+                # A size must be positive (molarity divides by it); like the export parser, ≤ 0 means unknown
+                data["avg_fragment_size"].append(excel_value if excel_value is not None and excel_value > 0 else None)
                 data["well_name"].append(excel_name)
 
             ba_table = pd.DataFrame(data)
             form.workflow.tables["ba_table"] = ba_table
             form.workflow.add_step(form.__class__.__name__)
             next_step = CompleteBAReport(workflow=form.workflow)
+            form.workflow.add_step(next_step.__class__.__name__)
             return next_step.make_response()
         return route

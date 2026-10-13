@@ -221,15 +221,9 @@ def test_submit_with_sample_submission_time(
     user,
     insider_token: str,
 ):
-    """BUG: ``samples_delivered_by_mail`` is a ``BooleanInputField`` which
-    hardcodes ``required=True``, so submitting with ONLY a sample submission
-    time is always rejected at the Pydantic validation level.  The custom
-    mutual-exclusion check is never reached.
-
-    Expected: 204 + status change.  Actual: 202 form error.
-    To fix, either set ``required=False`` on the field or make the form
-    handle the mutual-exclusion differently.
-    """
+    """An unchecked ``samples_delivered_by_mail`` checkbox (sent empty or not at all) is False,
+    so a sample submission time alone submits the request. (Was rejected as "required" until
+    missing/empty booleans were treated as unchecked, 2026-10-13.)"""
     seq_request = _seq_request_with_library(session, user)
 
     response = post_form(
@@ -242,10 +236,11 @@ def test_submit_with_sample_submission_time(
         token=insider_token,
     )
 
-    assert response.status_code == 202
+    assert response.status_code == 204, response.text
+    session.expire_all()
     assert session.first(
         Q.seq_request.select(id=seq_request.id)
-    ).status == C.SeqRequestStatus.DRAFT
+    ).status == C.SeqRequestStatus.SUBMITTED
 
 
 def test_submit_rejects_missing_delivery_and_time(

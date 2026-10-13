@@ -3,7 +3,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
 
-from ....core import dependencies, responses
+from ....core import dependencies, exceptions as exc, responses
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
@@ -12,7 +12,7 @@ from .QubitMeasureWorkflow import QubitMeasureWorkflowStep
 class SubForm(SubHTMXForm):
     id_ = inputs.numeric.IntInputField("ID", required=True, read_only=True)
     name = inputs.string.StringInputField("Name", required=True, read_only=True)
-    qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration", unit="ng/µL", required=False, ge=0.0)
+    qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration", unit="ng/µL", required=True, ge=0.0)
 
 class QubitMeasureForm(QubitMeasureWorkflowStep):
     template_path = "workflows/qubit-measure/complete.html"
@@ -64,6 +64,15 @@ class QubitMeasureForm(QubitMeasureWorkflowStep):
             form: "QubitMeasureForm" = Depends(QubitMeasureForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
+            # The rows are submitted by the client: only the objects selected in step 1 may be updated
+            for list_name, key in (
+                ("sample_forms", "selected_sample_ids"), ("library_forms", "selected_library_ids"),
+                ("pool_forms", "selected_pool_ids"), ("lane_forms", "selected_lane_ids"),
+            ):
+                selected = set(form.workflow.metadata.get(key) or [])
+                if any(entry.id_.data not in selected for entry in getattr(form, list_name).entries):
+                    raise exc.BadRequestException("The measurements do not match the selection. Please start again.")
+
             for entry in form.sample_forms.entries:
                 sample = session.get_one(Q.sample.select(id=entry.id_.data))
                 sample.qubit_concentration = entry.qubit_concentration.data

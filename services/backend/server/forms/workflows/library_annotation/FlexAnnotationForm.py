@@ -6,11 +6,10 @@ from fastapi import Depends, Response
 
 from opengsync_db import categories as C, models
 
-from ....core import responses, exceptions as exc
 from ....utils import parsing
 from ....components import inputs
 from ....components.tables import TextColumn, DuplicateCellValue, InvalidCellValue
-from ...HTMXForm import RouteFunc, FormFunc, htmx_route
+from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
@@ -41,8 +40,12 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
         def route(
             form: FlexAnnotationForm = Depends(FlexAnnotationForm.Init()),
         ) -> Response:
-            mux_table = form.workflow.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
-            mux_table["barcode_id"] = mux_table["mux_barcode"].str.replace("AB", "BC").values
+            sample_pooling_table = form.workflow.tables["sample_pooling_table"]
+            library_table = form.workflow.tables["library_table"]
+            abc_libraries = library_table.loc[library_table["library_type_id"] == C.LibraryType.TENX_SC_ABC_FLEX.id, "library_name"].values.tolist()
+            gex_rows = sample_pooling_table[~sample_pooling_table["library_name"].isin(abc_libraries)]
+            mux_table = gex_rows[["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
+            mux_table["barcode_id"] = mux_table["mux_barcode"].values
             form.spreadsheet.set_data(mux_table)
             return form.make_response()
         return route
@@ -54,7 +57,8 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
         ) -> Response:
             df = form.spreadsheet.data
 
-            # Normalise 'bc1' / '1' / 'BC01' to 'BC001' and check the barcode exists for the selected Flex kit
+            # Normalise BC-style 'bc1' / '1' / 'BC01' to 'BC001' and check the barcode exists for the selected Flex kit.
+            # Other barcodes (e.g. Flex v2 'A-F01') are taken as-is. Multiple barcodes per sample are separated by ';'.
             max_barcode = {
                 C.ServiceType.TENX_SC_4_PLEX_FLEX.id: 4,
                 C.ServiceType.TENX_SC_16_PLEX_FLEX.id: 16,
@@ -62,12 +66,20 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
             for idx, row in df.iterrows():
                 if pd.isna(barcode_id := row["barcode_id"]):
                     continue
-                if (match := re.fullmatch(r"(?:BC)?0*(\d{1,3})", str(barcode_id).strip().upper())) is None or int(match.group(1)) == 0:
-                    form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'{barcode_id}' is not a Flex probe barcode, expected e.g. 'BC001'."))
-                elif max_barcode is not None and int(match.group(1)) > max_barcode:
-                    form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"Barcode must be between BC001 and BC{max_barcode:03d} for this Flex kit."))
-                else:
-                    df.at[idx, "barcode_id"] = f"BC{int(match.group(1)):03d}"
+                if not (parts := [b.strip() for b in str(barcode_id).split(";") if b.strip()]):
+                    form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue("'Barcode ID' is empty."))
+                    continue
+                barcodes = []
+                for barcode in parts:
+                    if (match := re.fullmatch(r"(?:BC)?0*(\d{1,3})", barcode.upper())) is None:
+                        barcodes.append(barcode)
+                    elif int(match.group(1)) == 0:
+                        form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'{barcode}' is not a Flex probe barcode, expected e.g. 'BC001'."))
+                    elif max_barcode is not None and int(match.group(1)) > max_barcode:
+                        form.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"Barcode must be between BC001 and BC{max_barcode:03d} for this Flex kit."))
+                    else:
+                        barcodes.append(f"BC{int(match.group(1)):03d}")
+                df.at[idx, "barcode_id"] = ";".join(barcodes)
 
             duplicated = df.duplicated(subset=["sample_pool", "barcode_id"] if "sample_pool" in df.columns else ["barcode_id"], keep=False) & pd.notna(df["barcode_id"])        
             for idx, _ in df.iterrows():
@@ -86,7 +98,7 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
 
             library_table = form.workflow.tables["library_table"]
             abc_libraries = library_table.loc[library_table["library_type_id"] == C.LibraryType.TENX_SC_ABC_FLEX.id, "library_name"].values.tolist()
-            sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"] = sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"].str.replace("BC", "AB")
+            sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"] = sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"].str.replace(r"(?<![^;])BC(?=\d{3}(?:;|$))", "AB", regex=True)
             form.workflow.tables["sample_pooling_table"] = sample_pooling_table
 
             library_table_data = {

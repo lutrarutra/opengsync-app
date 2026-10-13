@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ....db.create_units import create_seq_request
+from ..._http import cookie_header
 from ._workflow import AnnotationWorkflow, BARCODE_COLUMNS, HUMAN, libraries_by_name, pool_mapping, spreadsheet
 
 L = C.LibraryType
@@ -74,7 +75,7 @@ def test_previous_of_a_step_never_reached_is_rejected(client, session: SyncSessi
 
     for step in ("pooled-library-annotation", "barcode-input", "feature-annotation"):
         _assert_rejected(wf.client.get(
-            f"{wf.prefix}/{step}", params=wf.params, cookies={"access_token": wf.token},
+            f"{wf.prefix}/{step}", params=wf.params, headers=cookie_header(wf.client, wf.token),
         ))
 
 

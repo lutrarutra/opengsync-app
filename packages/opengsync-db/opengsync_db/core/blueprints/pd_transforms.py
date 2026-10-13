@@ -402,6 +402,8 @@ def index_kit_barcodes_per_index(df: pd.DataFrame, index_kit_type) -> pd.DataFra
                     barcode_data["sequence_i5"].append(row["sequences"][i])
     elif index_kit_type == C.IndexType.COMBINATORIAL_DUAL_INDEX:
         for _, row in df.iterrows():
+            # combinatorial adapters have no well
+            barcode_data["well"].append(None)
             barcode_data["adapter_id"].append(row["adapter_id"])
             if row["types"][0] == C.BarcodeType.INDEX_I7:
                 barcode_data["name_i7"].append(row["names"][0])

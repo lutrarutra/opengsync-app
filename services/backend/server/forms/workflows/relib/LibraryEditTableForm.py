@@ -4,11 +4,19 @@ from pydantic import BaseModel
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import dependencies, responses
+from ....core.context import ctx
 from ....utils import parsing
 from ....components import inputs
 from ....components.tables import IntegerColumn, TextColumn, CategoricalDropDown, DropdownColumn
 from ...HTMXForm import RouteFunc, htmx_route
 from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow
+
+
+def _protocol_categories() -> dict[int, str]:
+    return {
+        protocol.id: protocol.name
+        for protocol in ctx.session.get_all(Q.protocol.select(), order_by=models.Protocol.name.asc(), limit=None)
+    }
 
 
 class LibraryEditTableForm(RelibWorkflowStep):
@@ -30,6 +38,7 @@ class LibraryEditTableForm(RelibWorkflowStep):
             CategoricalDropDown("genome_id", "Genome", 300, categories=dict(C.GenomeRef.as_selectable()), required=True),
             CategoricalDropDown("service_type_id", "Assay/Service Type", 300, categories=dict(C.ServiceType.as_selectable()), required=True),
             DropdownColumn("nuclei_isolation", "Nuclei", 100, choices=["Yes", "No"], required=True),
+            CategoricalDropDown("protocol_id", "Protocol", 300, categories=_protocol_categories, required=False),
         ],
         allow_new_rows=False,
     )
@@ -65,7 +74,10 @@ class LibraryEditTableForm(RelibWorkflowStep):
                 genome_id: int
                 service_type_id: int
                 nuclei_isolation: str
+                protocol_id: int | None = None
 
+            # Protocol is an optional column; leave protocols untouched if it was removed from the table.
+            update_protocol = "protocol_id" in form.spreadsheet.data.columns
             for _, row in parsing.safe_iter(form.spreadsheet.data, RowSchema):
                 library = session.get_one(Q.library.select(id=row.library_id))
                 new_library_type = C.LibraryType.get(row.library_type_id)
@@ -75,6 +87,8 @@ class LibraryEditTableForm(RelibWorkflowStep):
                 library.genome_ref = C.GenomeRef.get(row.genome_id)
                 library.nuclei_isolation = row.nuclei_isolation == "Yes"
                 library.service_type = C.ServiceType.get(row.service_type_id)
+                if update_protocol:
+                    library.protocol_id = row.protocol_id
 
             next_url = responses.url_for("dashboard")
             if form.workflow.seq_request_id is not None:

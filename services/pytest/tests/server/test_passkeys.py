@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, queries as Q, models
 
 from ..conftest import PASSWORD
-from ._http import CSRF, assert_cookie_set, assert_flash, delete, get, post_form, set_cookie_header
+from ._http import CSRF, assert_cookie_set, cookie_header, assert_flash, delete, get, post_form, set_cookie_header
 from ._passkey import GOOGLE_PASSWORD_MANAGER, SoftAuthenticator, b64url_decode
 
 REGISTER_OPTIONS = "/api/passkeys/register/options"
@@ -25,11 +25,9 @@ def _post_json(
     token: str | None = None,
     csrf: str | None = CSRF,
 ):
-    cookies = {"csrf_token": CSRF}
-    if token:
-        cookies["access_token"] = token
     headers = {"X-CSRF-Token": csrf} if csrf is not None else {}
-    return client.post(path, json=body or {}, headers=headers, cookies=cookies, follow_redirects=False)
+    headers |= cookie_header(client, token, csrf_token=CSRF)
+    return client.post(path, json=body or {}, headers=headers, follow_redirects=False)
 
 
 def _register(client: TestClient, token: str, authenticator: SoftAuthenticator, conditional: bool = False):

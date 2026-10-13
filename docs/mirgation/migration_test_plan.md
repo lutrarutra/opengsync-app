@@ -8,11 +8,13 @@
 
 ## Progress (2026-10-12)
 
-- `tests/server/forms` + `tests/server/workflows` + `test_action_access.py`: 1077 passed, 6 strict xfails (unported lane-step templates). Full suite not rerun for this snapshot.
-- §3 actions with suites: assignees (project, request), share email, process/submit request, add user to group, merge projects, sample attribute table, store samples, library prep, select pool libraries, check barcode clashes, select experiment pools, query barcode sequences, set cycles, sequencer loading checklist, billing, library features, sample pooling, add kits to protocol, barcode constraints. Partial: share directory, associate path, lane pools / read distribution / flow-cell loading (routing + access only).
-- §3 actions without suites: `EditLibraryPropertiesAction`, `UploadLibraryPrepSpreadsheetAction`, `EditKitFeaturesAction`, `ReseqAction` and `DilutePoolsAction` (templates not ported), the `EditKitBarcodes` variants.
+- `tests/server/forms` + `tests/server/workflows` + `test_action_access.py` + `tests/db`: 1440 passed; all of `tests/server`: 2118 passed, 6 strict xfails (unported lane-step templates). Full suite not rerun for this snapshot.
+- §3 actions with suites: assignees (project, request), share email, process/submit request, add user to group, merge projects, sample attribute table, store samples, library prep, select pool libraries, check barcode clashes, select experiment pools, query barcode sequences, set cycles, sequencer loading checklist, billing, library features, sample pooling, add kits to protocol, barcode constraints, upload prep table, edit kit features, edit kit barcodes (all four variants), edit library properties. Partial: share directory, associate path, lane pools / read distribution / flow-cell loading (routing + access only).
+- §3 actions without suites: `ReseqAction` and `DilutePoolsAction` (templates not ported).
 - Cross-cutting: `test_action_access.py` (every insider/admin-only action and workflow, dependency check + client GET), `test_route_shadowing.py`, `test_share_root_abuse.py`.
-- Next: spreadsheet uploads (`UploadLibraryPrepSpreadsheetAction`, `EditKitFeaturesAction`, `EditKitBarcodes` variants), `EditLibraryPropertiesAction`.
+- §4 order agreed 2026-10-13: `LibraryPoolingWorkflow` (done), `MuxPrepWorkflow` (done), `ReindexWorkflow` (done), `QubitMeasureWorkflow` (done), `BAReportWorkflow` (done).
+- Done 2026-10-13: `LibraryRemuxWorkflow`; `SelectExperimentPoolsWorkflow` and `MergeProjectsWorkflow` are re-exports of tested actions.
+- Next: `SelectLibraryProtocolsWorkflow`; then leftovers in relib, lane QC, split project, share project data; `MergePoolsWorkflow` once its template is ported.
 
 ## 0. Shared test infrastructure
 
@@ -383,11 +385,11 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `SampleAttributeTableAction`: valid attribute update; new attribute; type/value conflict; missing sample; unauthorized project; rollback. *(`forms/test_sample_attribute_table_action.py`: predefined/custom typing, clear cell, delete/rename column, unknown/foreign/mismatched/missing/duplicate rows, short and duplicate headers, max length, all-or-nothing save, insider-only, CSRF. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `StoreSamplesAction`: store samples/libraries/pools; pooled library keeps POOLED; request progression per submission type (raw → SAMPLES_RECEIVED, pooled → PREPARED, unpooled → SAMPLES_RECEIVED, QC-only → libraries QC_PENDING); empty selection rejected; unknown ID and CSRF change nothing; repeat is harmless; request context limits all tables and redirects back. *(Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
 - [x] `LibraryPrepAction`: add accepted libraries; empty selection rejected; insider-only; CSRF; 404.
-- [ ] `UploadLibraryPrepSpreadsheetAction`: valid spreadsheet; missing columns; malformed spreadsheet; duplicate libraries; invalid statuses; partial rollback.
+- [x] `UploadLibraryPrepSpreadsheetAction`: render; insider-only (incl. invalid upload), 404, CSRF; file stored as the prep's `LIBRARY_PREP_FILE` and readable as `prep_table`; re-upload replaces file record and plates (old plates deleted); libraries placed in wells (cleaned, zero-padded); one plate per `plate` value, numeric plates named as integers, unused template rows create no plate; pool `x` → FAILED; `lib_conc_ng_ul` → qubit concentration; missing file, empty sheet, missing (non-optional) column, missing `prep_table` sheet, non-`.xlsx` (csv/tsv), unsupported or corrupt file, library not in prep, name mismatch, missing name, duplicate well per plate, well outside A1–H12, non-numeric concentration rejected; invalid upload keeps plates and file. *(`forms/test_upload_library_prep_spreadsheet_action.py`. Fixed 2026-10-12, see findings. Placing libraries in wells is FastAPI-only: legacy computed the well index but the link was commented out.)*
 - [x] `SelectPoolLibrariesAction`: add libraries; empty selection; insider-only; CSRF; 404.
 - [x] `SamplePoolingAction`: render lists multiplexed samples only; insider-only, 404, CSRF; unchanged pools; move sample; new pool; emptied library deleted; pool `x` → FAILED `canceled_samples_*`; new libraries copy type/status/mux/genome/owner/request/features; every library type of a pool follows the sample; non-multiplexed libraries and other lab preps untouched; missing pool rejected. *(Legacy had no role check on this route; FastAPI is insider-only.)*
 - [ ] `DilutePoolsAction`: valid dilution; zero/negative values; concentration and volume bounds; multiple pools; persistence and rollback.
-- [ ] `EditLibraryPropertiesAction`: project context; sequence-request context; library context; dynamic columns; invalid/missing values; unauthorized context.
+- [x] `EditLibraryPropertiesAction`: render in request/project/library context (only the context's libraries, one column per property); no context 400, unknown context 404, other user's context 403, anonymous, CSRF; rows naming a library outside the context (incl. another library in library context) 404; edit values, empty cell → `None`, new column adds, deleted column removes the property; redirects per context; library without properties; too-long value rejected; editing needs WRITE on every library of the context via `Q.library.access_level` (insiders always; others while the library's request is DRAFT), otherwise read-only and POST 403; mixed project (draft + submitted request) is read-only for clients. *(`forms/test_edit_library_properties_action.py`. Decided 2026-10-13, see design note 5.)*
 - [x] `LibraryFeaturesAction`: render prefill and kit list; insider-only (design note 5), 404, CSRF; antibody library types only (400 otherwise); custom features replace existing; sequence whitespace removed and identifiers normalized to ASCII; kit rows link the existing kit feature (by identifier and/or name); validation (missing definition, kit + custom, duplicate identifier/name/sequence+pattern+read/kit feature, invalid read, unknown kit, feature or identifier not in kit, identifier and name of different kit features). *(Fixed 2026-10-12: type check, clean-up, kit-feature linking, unreachable "not both" check, `IndexError` on unknown identifier, insider check before validation. Legacy raised "Logic error" on every kit row.)*
 - [x] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks. *(`forms/test_check_barcode_clashes_action.py`: error/warning/no clash, single-index, per-pool and per-lane grouping, forged library IDs hidden, request/pool/experiment access. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `SelectExperimentPoolsAction`: link pools; skip already-linked; empty selection; insider-only; CSRF; 404.
@@ -397,9 +399,9 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 ### Kit, protocol, barcode, and sequencing actions
 
 - [x] `AddKitsToProtocolAction`: render lists kits and prefills current links; insider-only, 404, CSRF; submit replaces links; no combination numbers → all 1; same kit in different combinations; other protocols untouched; duplicate kit + combination, partially missing combination, unknown/missing kit, non-integer combination, empty spreadsheet rejected with links unchanged. *(`forms/test_add_kits_to_protocol_action.py`. Fixed 2026-10-12: missing `template_path` (every render 500'd); current links not prefilled (legacy used `Q.pd.protocol_kits`, so a resubmit dropped them); insider check after validation; an empty optional `Combination` cell 500'd in `SpreadsheetInputField` (`Int64` `<NA>` replaced with `""`). The action is also mounted twice, under `/htmx/protocols` and `/htmx/workflows`.)*
-- [ ] `EditKitFeaturesAction`: create/edit/delete feature rows; duplicate sequences; invalid feature type; admin permissions; spreadsheet errors.
+- [x] `EditKitFeaturesAction`: render prefill; insider-only (design note 5; legacy admin), 404, CSRF; submit replaces features (sorted, kit type, identifier/targets optional); resubmitting the prefill keeps them; other kits untouched; whitespace removed from sequence/read/target name/ID, identifier normalized to ASCII; duplicate sequence + pattern + read, duplicate identifier, duplicate name in CMO kits (allowed in antibody kits), missing name/sequence/pattern/read, short name, too-long sequence rejected. *(`forms/test_edit_kit_features_action.py`. Fixed 2026-10-12: legacy clean-up and validation of the columns (ASCII identifier + `check_string` + unique; whitespace removal) were missing; insider check ran after validation. Replaced features are unlinked from the kit, not deleted (`FeatureKit.features` has no delete-orphan), as in legacy.)*
 - [x] `QueryBarcodeSequencesAction`: render form; empty/no-match search; CSRF ignored (no Validate).
-- [x] `BarcodeConstraintsAction`: render; insider-only, CSRF; nothing provided; dual/i7-only/i5-only sets satisfying or failing the constraints (per-position check); i7/i5 length mismatch; invalid min samples; kit-only, failing dual, failing i7/i5 sets get kit suggestions; `min_samples` limits suggestion size; ATAC kit, kit with mixed i7 lengths, single-index kit with dual sequences rejected; unknown kit 404. *(`forms/test_barcode_constraints_action.py`. Fixed 2026-10-12: insider check after validation; single-index i7 kits 500'd on the missing i5 (also in legacy, although the kit search offers them). Still open: combinatorial dual-index kits are offered too, but `pd_transforms.index_kit_barcodes_per_index` builds no `well` column for them and the mixed i7/i5 rows trip the length check. Legacy's "number of i7 and i5 sequences must be the same" check is unreachable (the i5 length check catches it first).)*
+- [x] `BarcodeConstraintsAction`: render; insider-only, CSRF; nothing provided; dual/i7-only/i5-only sets satisfying or failing the constraints (per-position check); i7/i5 length mismatch; invalid min samples; kit-only, failing dual, failing i7/i5 sets get kit suggestions; `min_samples` limits suggestion size; ATAC kit, kit with mixed i7 lengths, single-index kit with dual sequences rejected; unknown kit 404. *(`forms/test_barcode_constraints_action.py`. Fixed 2026-10-12: insider check after validation; single-index i7 kits 500'd on the missing i5 (also in legacy, although the kit search offers them). Still open: combinatorial dual-index kits are offered too, but their rows hold either an i7 or an i5, so the kit-length check rejects them (missing `well` column fixed 2026-10-13). Legacy's "number of i7 and i5 sequences must be the same" check is unreachable (the i5 length check catches it first).)*
 - [x] `SetExperimentCyclesAction`: update cycles; empty cycles; insider-only; pre-fill; CSRF; 404.
 - [x] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks. *(`forms/test_generate_sequencer_loading_checklist_action.py`: per-lane inputs, file + DB record, volume scaling and lane merging, zero cells, missing/non-numeric values, no-template workflow, insider-only, CSRF. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output. *(`forms/test_billing_action.py`: workbook sheets, lane/flow-cell share, capacity and missing-reads warnings, request resolution for request-less pools, multiple experiments, unknown ID, CSRF. Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
@@ -426,11 +428,19 @@ Findings from §3 tests (fixed 2026-10-12):
 - `LibraryFeaturesAction` — no library-type check (legacy: 400 unless 10x Antibody Capture / SC ABC Flex); identifier/sequence clean-up missing; kit rows created a copy of the kit feature instead of linking it, and an identifier-only kit row 500'd; an identifier not in the kit raised `IndexError`; the "kit + custom, not both" check was unreachable (also in legacy); insider check ran after validation. Legacy itself raised "Logic error" for every kit row. New, not in legacy: identifier and name of two different kit features are rejected, and duplicate kit rows are detected by the resolved feature.
 - `AddKitsToProtocolAction` — no `template_path` (every render 500'd); current links were not prefilled (legacy used `Q.pd.protocol_kits`), so a resubmit dropped them; insider check ran after validation.
 - `BarcodeConstraintsAction` — insider check ran after validation; selecting a single-index i7 kit 500'd on the missing i5 (`len(None)`, same in legacy although the kit search offers these kits).
+- `UploadLibraryPrepSpreadsheetAction` / `SpreadsheetFileField` (`components/inputs/file.py`) — every upload was rejected ("File type '.xmlpk…' is not allowed"): the form-data middleware stores uploads as dicts, the field expected an `UploadFile`. Also: the file was optional (legacy: "File is required."); missing non-optional columns were silently filled with blanks (legacy: "Column '…' is missing in the spreadsheet."); re-upload by the same insider 500'd (the cached, detached `current_user` clashed with the prep file's uploader in the session — plates now get a session-bound owner); a row with an ID but no name 500'd (`NA` comparison); wells outside A1–H12 were saved at a wrong index (`A13` → `B1`) or 500'd (`foo`); template rows without a library created an empty `P-<prep>` plate; a plate column with blanks named plates `P-<prep>-1.0` (legacy: `int(plate)`); replacing an `.xlsx` prep file with a `.csv` kept the old extension, so the record pointed at a missing file; insider check ran after validation. Uploads are now `.xlsx` only (decided 2026-10-12): legacy also accepted csv/tsv but saved them as `.xlsx`, and every reader of the stored prep file (reindex, library pooling, protocol selection) reads its `prep_table` sheet.
 - `SpreadsheetInputField` (`components/inputs/spreadsheet.py`) — an empty cell in an optional `IntegerColumn`/`FloatColumn` 500'd after validation (`replace(np.nan, "")` on a nullable `Int64`/`Float64` column). Affected `AddKitsToProtocolAction` (`Combination`) and likely `UploadLibraryPrepSpreadsheetAction` (`lib_conc_ng_ul`).
+
+- `EditKitFeaturesAction` — the legacy column clean-up/validation was dropped: identifiers were not normalized to ASCII, checked or unique, and whitespace stayed in sequence, read and target name/ID; insider check ran after validation.
+
+- `EditKitBarcodesForm` variants — combinatorial kits 500'd on render and submit: `pd_transforms.index_kit_barcodes_per_index` built no `well` column for them (same in legacy); 10x ATAC prefill was empty: the shared transform yields one `name_i7`/`sequence_i7` row per sequence, the form expects `name` + `sequence_1`–`sequence_4` per well (same in legacy) — `EditKitTENXATACBarcodes.barcode_table` now pivots; admin check ran after validation.
+
+- Checkboxes (`HTMXForm`, `SubHTMXForm`, 2026-10-13) — a submission read a missing field as its default, but an unchecked checkbox sends nothing, so a `BooleanInputField(default=True)` could never be turned off (`ProcessSeqRequestAction` "Assign request to me", `OligoReMuxForm` "apply to all samples in pool"); and booleans are always `required`, so an empty value was rejected as missing (`SubmitSeqRequestAction`: a sample submission time alone was refused — its test had documented the bug). On submission a missing boolean is now False and booleans skip the required check.
+- Test warnings (2026-10-13) — the suite now runs warning-free (`-W default`). `actions.remove_all_barcodes_from_kit` issued each barcode's DELETE twice (a barcode is reached through both `Adapter.barcodes_i7` and `barcodes_i5` and deleted explicitly too; SAWarning "0 rows matched"), now two bulk deletes; the form middleware copied uploads into memory but never closed their temp files (ResourceWarning); test helpers passed `cookies=` per request (Starlette deprecation) — they now send a Cookie header via `_http.cookie_header`.
 
 Fixed while testing (trivial): removed two stray `</div>` from `forms/library-features-table.html`.
 
-Still open: combinatorial dual-index kits are offered by the `BarcodeConstraintsAction` kit search, but `pd_transforms.index_kit_barcodes_per_index` builds no `well` column for them, and their mixed i7/i5 rows would trip the length check (not tested yet).
+Still open: combinatorial dual-index kits are offered by the `BarcodeConstraintsAction` kit search; the missing `well` column is fixed (above), but their rows hold either an i7 or an i5, so the kit-length check rejects them (not tested yet).
 
 ### Specialized action variants
 
@@ -459,11 +469,11 @@ Still open: combinatorial dual-index kits are offered by the `BarcodeConstraints
 
 #### Index-kit barcode editing
 
-- [ ] `EditSingleIndexKitBarcodes`: valid single-index spreadsheet; missing columns; duplicate wells/sequences; reverse-complement behavior; rollback.
-- [ ] `EditDualIndexKitBarcodes`: valid i7/i5 spreadsheet; duplicate i7/i5 pairs; missing index; reverse-complement behavior; rollback.
-- [ ] `EditCombinatorialKitBarcodes`: valid combinatorial matrix; duplicate combinations; invalid matrix dimensions; sequence validation; rollback.
-- [ ] `EditKitTENXATACBarcodes`: valid four-sequence ATAC rows; missing `sequence_1`–`sequence_4`; duplicate rows; sequence validation; rollback.
-- [ ] `EditKitBarcodes` base dispatch: supported kit-type selection; unsupported type; base-class methods never reached accidentally; controlled error.
+- [x] `EditSingleIndexKitBarcodes`: prefill; replace barcodes (wells normalized, whitespace removed, one adapter per row); reverse complement; missing/duplicate well, name, sequence rejected with barcodes unchanged. *(`forms/test_edit_kit_barcodes_action.py`)*
+- [x] `EditDualIndexKitBarcodes`: prefill; replace barcodes (i7 + i5 per adapter); missing i5 name takes the i7 name; reverse complement per index; duplicate well, duplicate i7 + i5 pair, name↔sequence conflicts, missing well/sequences rejected. *(`forms/test_edit_kit_barcodes_action.py`; legacy's save raised `KeyError` on `row["name"]`, FastAPI is correct.)*
+- [x] `EditCombinatorialKitBarcodes`: prefill; replace barcodes (no wells, one adapter per barcode, i7-only rows); reverse complement; name without sequence (and vice versa), duplicate i7 + i5 pair, name with two sequences rejected. *(`forms/test_edit_kit_barcodes_action.py`. Fixed 2026-10-13: render and submit 500'd, see findings.)*
+- [x] `EditKitTENXATACBarcodes`: prefill (one row per well with four sequences); replace barcodes (four i7 barcodes per adapter); reverse complement; duplicate/missing well, missing name or sequence rejected. *(`forms/test_edit_kit_barcodes_action.py`. Fixed 2026-10-13: prefill was empty, see findings. Duplicate sequences are not checked — legacy had a TODO.)*
+- [x] `EditKitBarcodes` base dispatch: each kit type gets its own columns (no leak between requests); admin-only incl. invalid submissions (insider and client 403), anonymous, 404, CSRF; other kits untouched. *(`forms/test_edit_kit_barcodes_action.py`. Unsupported types raise 400; every `IndexType` with barcodes is mapped, so not reachable through the UI.)*
 
 
 
@@ -521,31 +531,39 @@ Not a finding: project selection posts without the UUID (as legacy `select_proje
 
 ### `BAReportWorkflow`
 
-- [ ] Select one sample.
-- [ ] Select multiple samples.
-- [ ] Empty selection.
-- [ ] Upload valid BA Excel file.
-- [ ] Missing/renamed columns.
-- [ ] Malformed or empty Excel file.
-- [ ] Parse multiple supported report formats.
-- [ ] Enter valid metrics.
-- [ ] Invalid numeric/range metrics.
-- [ ] Complete and persist report.
-- [ ] Back navigation and Redis cleanup.
-- [ ] Permission and insider-only variants.
+Tests: `workflows/test_ba_report.py`.
+
+- [x] Select one sample.
+- [x] Select multiple samples. *(samples, libraries, pools and lanes together.)*
+- [x] Empty selection. *(→ 202; duplicate names → 202.)*
+- [x] Upload valid BA Excel file. *(BioAnalyzer CSV export, one `Region Table` per well.)*
+- [x] Missing/renamed columns. *(a well without `Average Size [bp]` is kept with an empty size.)*
+- [x] Malformed or empty Excel file. *(missing file or nothing parsable → 202.)*
+- [x] Parse multiple supported report formats. *(Only the CSV export is supported, as legacy.)*
+- [x] Enter valid metrics. *(manual tab and the excel flow's well ↔ object assignment.)*
+- [x] Invalid numeric/range metrics. *(negative or non-numeric size → 202; malformed assignment → 202.)*
+- [x] Complete and persist report. *(PDF required and stored as `BIOANALYZER_REPORT` (on the lab prep in lab-prep context); each object's size saved and linked to the report, empty size clears both; ACCEPTED pool → STORED.)*
+- [x] Back navigation and Redis cleanup. *(completion clears the state; report step without a run → 400.)*
+- [x] Permission and insider-only variants. *(client 403 on every step; rows for objects that were not selected → 400.)*
+
+Fixed 2026-10-13: the report and confirmation templates rendered only `sample_forms`, so libraries, pools and lanes could not be measured; saving never linked the objects to the report, did not attach it to the lab prep, and did not move ACCEPTED pools to STORED (legacy did all three); the state was never cleared and the steps did not record themselves, so steps worked without a run (now 400) and trusted the submitted IDs; an empty selection was accepted; an unparsable export was a 400 instead of a form error; malformed well assignments 500'd; `FileInputField.save` did not create the media sub-directory. Average fragment sizes must be ≥ 1 everywhere (decided 2026-10-13: molarity divides by them): manual entry and confirmation reject 0, the export parser and the well assignment turn ≤ 0 into an empty size, and the lane QC forms (`QCLanesForm`, `UnifiedQCLanesForm`) now require ≥ 1 (were ≥ 0).
 
 
 
 ### `QubitMeasureWorkflow`
 
-- [ ] Select one sample.
-- [ ] Select multiple samples.
-- [ ] Empty/invalid selection.
-- [ ] Valid concentration measurements.
-- [ ] Missing, negative, zero, and malformed concentrations.
-- [ ] Optional volume/dilution fields.
-- [ ] Persist measurements.
-- [ ] Back navigation, completion, rollback, and cleanup.
+Tests: `workflows/test_qubit_measure.py`.
+
+- [x] Select one sample. *(listed with its current value.)*
+- [x] Select multiple samples. *(samples, libraries, pools and lanes together.)*
+- [x] Empty/invalid selection. *(nothing selected → 202; unknown ID → 404.)*
+- [x] Valid concentration measurements. *(zero is valid — legacy's `DataRequired` rejected it.)*
+- [x] Missing, negative, zero, and malformed concentrations. *(missing, negative, non-numeric → 202, value unchanged.)*
+- [x] Optional volume/dilution fields. *(None in this workflow.)*
+- [x] Persist measurements. *(sample/library/pool `qubit_concentration`, lane `original_qubit_concentration`; ACCEPTED pool → STORED; redirect to experiment / lab prep / dashboard.)*
+- [x] Back navigation, completion, rollback, and cleanup. *(back to selection; completion clears the state; measurement step without a run → 400; rows for objects that were not selected → 400, nothing saved.)*
+
+Fixed 2026-10-13: an empty selection was accepted (legacy: "Select at least one sample"); an empty concentration was accepted and cleared the stored value (legacy: required); the measurement step worked without a run and trusted the submitted IDs, so a direct POST could set the concentration of any object — it now needs a run that went through selection and only accepts the selected objects (legacy trusted the IDs too).
 
 
 
@@ -601,60 +619,80 @@ Relib business-logic findings:
 
 ### `ReindexWorkflow`
 
-- [ ] Select one eligible library.
-- [ ] Select multiple libraries.
-- [ ] Empty/ineligible selection.
-- [ ] Standard barcode input.
-- [ ] 10X ATAC barcode input with sequences 1–4.
-- [ ] Barcode-match flow with known kit.
-- [ ] Custom kit forward option.
-- [ ] Custom kit reverse-complement option.
-- [ ] Missing/duplicate/invalid barcode values.
-- [ ] Completion updates indices and library status.
-- [ ] Back navigation through every branch.
-- [ ] Rollback and cleanup.
+Tests: `workflows/test_reindex.py`, `workflows/test_reindex_barcode_match.py` (custom orientation options), `workflows/test_reindex_prep_table_prefill.py`.
+
+- [x] Select one eligible library. *(prefilled with its current index.)*
+- [x] Select multiple libraries.
+- [x] Empty/ineligible selection. *(empty → 202; library outside the context → 404; unselected or unparseable library in the barcode table → 202.)*
+- [x] Standard barcode input. *(kit by well (zero-padded) or by name — a dual kit's empty i5 name takes the i7 name, as legacy; several indices per library; `del` drops a library's indices; every selected library must be listed.)*
+- [x] 10X ATAC barcode input with sequences 1–4. *(ATAC-only and mixed selections; kit + well fills name and sequences and links the kit; unknown kit well and missing sequence rejected.)*
+- [x] Barcode-match flow with known kit. *(custom sequences of a kit offer it; choosing it fills names and kit, FORWARD.)*
+- [x] Custom kit forward option. *(`test_reindex_barcode_match.py`)*
+- [x] Custom kit reverse-complement option. *(`test_reindex_barcode_match.py`; primer stored as a request comment.)*
+- [x] Missing/duplicate/invalid barcode values. *(well/name not in kit, kit without well/name, no kit and no sequence, invalid base.)*
+- [x] Completion updates indices and library status. *(indices and index type replaced; library status is not changed — neither did legacy.)*
+- [x] Back navigation through every branch. *(barcode input keeps resolved barcodes; select step reachable again.)*
+- [x] Rollback and cleanup. *(completion clears the state; replay → 400; later step without state → 400; a run cannot be completed under another request → 400.)*
+
+Access: request context needs WRITE (owner of a draft request; insiders always); lab prep, pool and no context are insider-only; unknown context 404.
+
+Fixed 2026-10-13: later steps without state raised `KeyError`, and a run's state could be completed under a different context — the run is now bound to the context it was started for (400 "This reindexing has expired" / "belongs to another context"), like `LibraryAnnotationWorkflow`; the ATAC step had lost legacy's kit handling (kit + well/name did not fill the sequences, `kit_id` was never stored, sequences were not cleaned/validated) — ported from the library-annotation ATAC step; `SpreadsheetInputField` never validated `DBObjectColumn` cells (the column is expanded and dropped before per-column validation), so any `"name [id]"` was accepted and an unparseable cell raised — now checked against the column's categories (affects reindex and index check).
 
 
 
 ### `MuxPrepWorkflow`
 
-- [ ] Oligo mux flow.
-- [ ] Flex mux flow.
-- [ ] Flex + ABC flow.
-- [ ] On-chip mux flow.
-- [ ] Select valid libraries/samples.
-- [ ] Invalid or mixed mux types.
-- [ ] Valid index plate/layout data.
-- [ ] Duplicate wells and invalid assignments.
-- [ ] Empty selection.
-- [ ] Back navigation and conditional form selection.
-- [ ] Completion persists mux annotations.
-- [ ] Failure rolls back all changes.
+Tests: `workflows/test_mux_prep.py`.
+
+- [x] Oligo mux flow. *(custom sequence + pattern + read; kit + feature fills them from the CMO kit.)*
+- [x] Flex mux flow. *(barcodes saved per sample link; redirect to the mux tab.)*
+- [x] Flex + ABC flow. *(second step prefilled from GEX `BC###` → `AB###`; both saved at the end.)*
+- [x] On-chip mux flow. *(`1`/`OB2`/`2;1` normalized to `OB1`/`OB2`/`OB1;OB2`.)*
+- [x] Select valid libraries/samples. *(only the prep's libraries of the chosen mux type are listed.)*
+- [x] Invalid or mixed mux types. *(unknown `mux_type_id` and unsupported ABC hashing → 400.)*
+- [x] Valid index plate/layout data. *(ABC barcodes limited to `AB001`–`AB016`, OCM to `OB1`–`OB4`.)*
+- [x] Duplicate wells and invalid assignments. *(duplicate barcode per pool in every flow; oligo: missing definition, kit + custom, unknown kit feature, duplicate definition.)*
+- [x] Empty selection. *(missing OCM barcode rejected.)*
+- [x] Back navigation and conditional form selection. *(ABC step only when the prep has ABC Flex libraries; Previous keeps GEX barcodes; ABC step without the GEX state → 400.)*
+- [x] Completion persists mux annotations. *(completion clears the Redis state.)*
+- [x] Failure rolls back all changes. *(invalid submissions and CSRF leave `link.mux` unchanged.)*
+
+Pool membership is read-only here; legacy OCM could re-pool samples, FastAPI moved that to `SamplePoolingAction`.
+
+Fixed 2026-10-13: unknown `mux_type_id` 500'd (`MUXType.get` raises instead of returning `None`); ABC prefill lost legacy's `BC` → `AB`; ABC barcodes were not limited to `AB001`–`AB016`; Flex/ABC completion no longer opened the mux tab; the ABC step without the GEX step's state raised `KeyError` (now 400, like the other workflows).
 
 
 
 ### `LibraryPoolingWorkflow`
 
-- [ ] Select valid libraries.
-- [ ] Empty/ineligible selection.
-- [ ] Valid pool assignments and ratios.
-- [ ] Barcode-clash preview with no clash.
-- [ ] Barcode-clash rejection.
-- [ ] Invalid pool names/contact information.
-- [ ] Completion persists pools and library state.
-- [ ] Back navigation, rollback, and cleanup.
+Tests: `workflows/test_library_pooling.py`, `workflows/test_library_pooling_prep_table.py` (prefill from the prep table).
+
+- [x] Select valid libraries. *(Begin lists only the prep's libraries.)*
+- [x] Empty/ineligible selection. *(library outside the prep, name mismatch, `t` on a library, missing pool → 202.)*
+- [x] Valid pool assignments and ratios. *(several pools → `<prep>_<value>`, one → `<prep>`, prefix not doubled; `x` → FAILED, `skip` untouched, all `x` → no pool.)*
+- [x] Barcode-clash preview with no clash. *(also: same index in different pools is no clash.)*
+- [x] Barcode-clash rejection. *(Clashes are only previewed (red tab), completion still pools — as legacy.)*
+- [x] Invalid pool names/contact information. *(pool contact/owner = the insider; no free-text contact in this workflow.)*
+- [x] Completion persists pools and library state. *(POOLED; rerun deletes old pools and keeps an unchanged pool's experiment; ACCEPTED request → PREPARED once all its libraries are pooled — FastAPI-only, legacy's request set was never filled.)*
+- [x] Back navigation, rollback, and cleanup. *(Previous keeps the assignment; completion clears the Redis state; replayed or out-of-order completion → 400.)*
+
+Fixed 2026-10-13: every invalid step-1 submission 500'd (the prep-file warning sat in `_context["flash"]`, and the re-render passed `flash=` again); with a single pool value all rows were pooled as `1`, so an all-`x` prep was pooled instead of failed (also in legacy); completing without state (replay after completion, or skipping step 1) raised `KeyError` — later steps now need a run that reached them (400 "This pooling has expired"), like `LibraryAnnotationWorkflow`.
 
 
 
 ### `LibraryRemuxWorkflow`
 
-- [ ] Oligo remux flow.
-- [ ] Flex remux flow.
-- [ ] Unsupported mux type.
-- [ ] Valid remux assignments.
-- [ ] Duplicate/invalid barcodes.
-- [ ] Permission and library-status failures.
-- [ ] Completion persistence and rollback.
+Tests: `workflows/test_library_remux.py`.
+
+- [x] Oligo remux flow. *(custom sequence + pattern + read; kit + feature fills them; only this library, or all libraries of the samples with "apply to all samples in pool".)*
+- [x] Flex remux flow. *(barcodes per sample saved; redirect to the library.)*
+- [x] Unsupported mux type. *(on-chip → 400; Flex mux on a non-Flex library → 400.)*
+- [x] Valid remux assignments.
+- [x] Duplicate/invalid barcodes. *(duplicate Flex barcode; missing or duplicate oligo definition.)*
+- [x] Permission and library-status failures. *(WRITE on the library; non-insiders only while the library is DRAFT — as legacy; other user 403, unknown 404, anonymous, CSRF.)*
+- [x] Completion persistence and rollback. *(invalid submissions leave `link.mux` unchanged.)*
+
+Fixed 2026-10-13: unchecking "apply to all samples in pool" had no effect — see the checkbox fix under Findings.
 
 
 
@@ -708,29 +746,33 @@ Covered by `forms/test_share_project_data_action.py`.
 
 ### `SelectExperimentPoolsWorkflow`
 
-- [ ] Select valid stored pools.
-- [ ] Exclude pools already associated with an experiment.
-- [ ] Empty selection.
-- [ ] Invalid/ineligible pool.
-- [ ] Combined-lane experiment.
-- [ ] Separate-lane experiment.
-- [ ] Experiment permission and insider checks.
-- [ ] Completion updates experiment checklist and associations.
-- [ ] Back navigation and cleanup.
+Not a separate workflow: `wf.select_experiment_pools` re-exports `SelectExperimentPoolsAction` (single step, not mounted under `/workflows`), covered by `forms/test_select_experiment_pools_action.py` (§3).
+
+- [x] Select valid stored pools.
+- [x] Exclude pools already associated with an experiment. *(already-linked pools are skipped.)*
+- [x] Empty selection.
+- [x] Invalid/ineligible pool. *(unknown pool 404.)*
+- [x] Combined-lane experiment. *(Pools are only linked to the experiment here; lane assignment is the lane-pools action — see "Lane pooling", template not ported.)*
+- [x] Separate-lane experiment. *(as above.)*
+- [x] Experiment permission and insider checks. *(insider-only GET/POST, unknown experiment 404, CSRF.)*
+- [x] Completion updates experiment checklist and associations. *(pool ↔ experiment links; the checklist is derived from them.)*
+- [x] Back navigation and cleanup. *(single step, no state.)*
 
 
 
 ### `MergeProjectsWorkflow`
 
-- [ ] Merge two compatible projects.
-- [ ] Merge multiple projects, if supported.
-- [ ] Same project selected twice.
-- [ ] No source/target project.
-- [ ] Incompatible same-name sample attributes.
-- [ ] Conflicting projects/owners/groups.
-- [ ] Unauthorized project access.
-- [ ] Completion moves expected samples/libraries/requests.
-- [ ] Failure rolls back all changes.
+Not a separate workflow: `wf.merge_projects` re-exports `MergeProjectsAction` (single step, not mounted under `/workflows`), covered by `forms/test_merge_projects_action.py` (§3).
+
+- [x] Merge two compatible projects. *(unique samples move; source left empty, not deleted.)*
+- [x] Merge multiple projects, if supported. *(Not supported: one source into one destination.)*
+- [x] Same project selected twice.
+- [x] No source/target project. *(missing, unknown, non-numeric.)*
+- [x] Incompatible same-name sample attributes.
+- [x] Conflicting projects/owners/groups. *(same-name samples merged — measurements, status, attributes; assignees merged without duplicates.)*
+- [x] Unauthorized project access. *(insider-only — `test_action_access.py`.)*
+- [x] Completion moves expected samples/libraries/requests. *(samples with their library links.)*
+- [x] Failure rolls back all changes.
 
 ### `SplitProjectWorkflow`
 
@@ -775,6 +817,6 @@ Not present in the legacy Flask app — FastAPI-only workflow. Moves samples fro
 | 2 | `forms/actions/{lane_pools,load_flowcell,dist_reads}/` | Each lane step has a Separate and a Combined action. Legacy used one URL per step and chose the form from `experiment.workflow.combined_lanes`; the FastAPI templates choose the action by name, so each variant has its own path (`/{experiment_id}/lane-pools/separate` vs `/combined`, same for `load-flow-cell` and `distribute-reads`). Previously both variants shared a path and the Separate one, registered first, made every Combined action unreachable. Access matches legacy: insider-only for GET and POST (`DistributeReadsSeparateAction` had no auth, lane-pools `Begin` had none); read distribution on non-draft experiments is admin-only. |
 | 3 | `routes/htmx/files.py` | `ShareDirectoryAction` and `AssociatePathAction` routers are registered before the `/{subpath:path}` catch-all, otherwise their GET forms render the file browser. |
 | 4 | templates | 15 templates are still in legacy WTForms style (`form.csrf_token()`, legacy `*_form` context names) and raise when rendered: `workflows/experiment/lane_pools-1.{1,2}.html`, `workflows/experiment/load_flow_cell-1.{1,2}.html`, `workflows/dist_reads/{combined,separate}.html`, `workflows/merge_pools.html`, `workflows/reseq/reseq.html`, `actions/dilute-pools.html`, `forms/edit-index.html`, `forms/library-properties-table.html`, `forms/seq_request/seq_auth.html`, `components/popups/file-input-form.html`, `components/search_select.jinja2`, `components/table_input.jinja2`. |
-| 5 | access | The `/htmx` routers only require a login, so each action must enforce its role. Missing checks restored to legacy: `StoreSamplesAction` (both routes), `DilutePoolsAction` and `SetExperimentCyclesAction` (`Begin`), every step of `BAReportWorkflow` and `QubitMeasureWorkflow` (router-level `require_insider`; `Begin` previously only checked in lab-prep/experiment context). Differs from legacy, not changed: `SampleAttributeTableAction` and `LibraryFeaturesAction` are insider-only (legacy: WRITE on project/library, so clients could edit); kit, index-kit and feature-kit create/edit plus `EditKitFeaturesAction` allow insiders (legacy: admin-only). Insider check moved before validation (into `Init`) for `LibraryFeaturesAction`, `AddKitsToProtocolAction` and `BarcodeConstraintsAction`; with `Validate()` first, a client's invalid POST got the form back (202) instead of 403. `SamplePoolingAction` is insider-only (legacy: login only). |
+| 5 | access | The `/htmx` routers only require a login, so each action must enforce its role. Missing checks restored to legacy: `StoreSamplesAction` (both routes), `DilutePoolsAction` and `SetExperimentCyclesAction` (`Begin`), every step of `BAReportWorkflow` and `QubitMeasureWorkflow` (router-level `require_insider`; `Begin` previously only checked in lab-prep/experiment context). Differs from legacy, not changed: `SampleAttributeTableAction` and `LibraryFeaturesAction` are insider-only (legacy: WRITE on project/library, so clients could edit); kit, index-kit and feature-kit create/edit plus `EditKitFeaturesAction` allow insiders (legacy: admin-only). Insider check moved before validation (into `Init`) for `LibraryFeaturesAction`, `AddKitsToProtocolAction` and `BarcodeConstraintsAction`; with `Validate()` first, a client's invalid POST got the form back (202) instead of 403. `SamplePoolingAction` is insider-only (legacy: login only). `EditLibraryPropertiesAction` (decided 2026-10-13): editing needs WRITE on every library of the context, from `Q.library.access_level` (insiders always; others only while the library's request is DRAFT), otherwise the table is read-only and POST is 403 (legacy: DRAFT-only for non-insiders in library context, insider-only in project/request context, UI-only). |
 | 6 | `StoreSamplesAction` | Restored legacy behaviour: empty selection is rejected; pools can be selected (template had no pools tab, so pooled requests could not reach PREPARED); started from a request, all three tables are limited to it and submitting returns to the request page. The QC-only branch is FastAPI-only. |
 | 7 | `routes/htmx/{protocols,workflows}.py` | `AddKitsToProtocolAction.Router()` is included twice, under `/htmx/protocols/{id}/add-kits` and `/htmx/workflows/{id}/add-kits`, with the same route names. The workflows router is registered first, so `url_for` (and the button in `protocol_page.html`) resolves to `/htmx/workflows/...`; the tests use `/htmx/protocols/...`. Both behave the same; one mount can be removed. |

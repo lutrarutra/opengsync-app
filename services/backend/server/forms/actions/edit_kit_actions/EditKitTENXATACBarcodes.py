@@ -3,7 +3,7 @@ from collections.abc import Iterator
 import pandas as pd
 from pydantic import BaseModel
 
-from opengsync_db import categories as C, models, queries as Q
+from opengsync_db import categories as C, models, queries as Q, SyncSession
 
 from ....components import inputs
 from ....components.tables import DuplicateCellValue, MissingCellValue, TextColumn
@@ -30,6 +30,17 @@ class EditKitTENXATACBarcodes(EditKitBarcodesForm):
         self.spreadsheet.add_column(TextColumn("name", "Name", 150, max_length=models.LibraryIndex.name_i7.type.length, clean_up_fnc=lambda value: clean(value, keep=".-_", spaces="")))
         for index in (1, 2, 3, 4):
             self.spreadsheet.add_column(TextColumn(f"sequence_{index}", f"Sequence {index}", 200, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=lambda value: clean(value, spaces="")))
+
+    def barcode_table(self, session: SyncSession) -> pd.DataFrame:
+        # One row per sequence (name_i7/sequence_i7) → one row per adapter with sequence_1..4
+        df = super().barcode_table(session)
+        rows = []
+        for (adapter_id, well), group in df.groupby(["adapter_id", "well"], sort=False):
+            row = {"well": well, "name": group["name_i7"].iloc[0]}
+            for i, sequence in enumerate(group["sequence_i7"].tolist()[:4]):
+                row[f"sequence_{i + 1}"] = sequence
+            rows.append(row)
+        return pd.DataFrame(rows, columns=["well", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"])
 
     def validate_barcodes(self, df: pd.DataFrame) -> None:
         self._normalize_wells(df)

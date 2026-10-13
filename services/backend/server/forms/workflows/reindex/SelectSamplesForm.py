@@ -143,8 +143,8 @@ class SelectSamplesForm(ReindexWorkflowStep):
         def route(
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Init()),
         ) -> Response:
-            barcode_table = form.workflow.tables["library_table"]
-            form.selected_library_ids.data = barcode_table["library_id"].unique().tolist()
+            if (library_table := form.workflow.tables.get("library_table")) is not None:
+                form.selected_library_ids.data = library_table["library_id"].unique().tolist()
             return form.make_response()
         return route
 
@@ -199,6 +199,7 @@ class SelectSamplesForm(ReindexWorkflowStep):
                     options=[orm.selectinload(models.LabPrep.prep_file)],
                 )
                 df = _fill_from_prep_table(df, lab_prep)
+            form.workflow.bind_context()
             form.workflow.tables["library_table"] = pd.DataFrame(library_table_data)
             form.workflow.tables["barcode_table"] = df[df["library_type"] != C.LibraryType.TENX_SC_ATAC].copy()
             form.workflow.tables["tenx_atac_barcode_table"] = df[df["library_type"] == C.LibraryType.TENX_SC_ATAC].copy()

@@ -222,13 +222,21 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
         url_kwargs = {k: v for k, v in path_params.items() if k in route_param_names}
         query_kwargs = {k: v for k, v in path_params.items() if k not in route_param_names}
 
+        # Version static assets by modification time so browsers fetch them again after they change
+        if name == "static" and "v" not in query_kwargs:
+            if (version := _static_version(request, str(path_params.get("filename", "")))) is not None:
+                query_kwargs["v"] = version
+
         try:
             url = absolute_url_for(request, name, external=external, **url_kwargs)
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
                 root_path = request.scope.get("root_path", "").rstrip("/")
-                return f"{root_path}/static/{filename.lstrip('/')}"
+                url = f"{root_path}/static/{filename.lstrip('/')}"
+                if "v" in query_kwargs:
+                    url = f"{url}?v={query_kwargs['v']}"
+                return url
             raise
 
         if query_kwargs:
@@ -237,6 +245,16 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
 
         return url
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")
+
+def _static_version(request, filename: str) -> int | None:
+    """Modification time of a file served by the `static` mount, or None if it cannot be found."""
+    for route in request.app.routes:
+        if getattr(route, "name", None) == "static" and (directory := getattr(getattr(route, "app", None), "directory", None)):
+            try:
+                return int((Path(directory) / filename.lstrip("/")).stat().st_mtime)
+            except OSError:
+                return None
+    return None
 
 def absolute_url_for(request, name: str, *, external: bool = False, **path_params) -> URL:
     """Absolute URL of a route.

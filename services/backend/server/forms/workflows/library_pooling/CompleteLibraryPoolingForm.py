@@ -75,7 +75,11 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                 pooling_table.loc[pooling_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
                 session.delete(pool)
 
-            if len(pooling_table["pool"].unique()) == 1:
+            # x (failed), t (control) and skip are not pools, even when they are the only value
+            special_pools = ("x", "t", "skip")
+            unique_pools = pooling_table["pool"].unique()
+            single_pool = len(unique_pools) == 1 and str(unique_pools[0]).strip().lower() not in special_pools
+            if single_pool:
                 pooling_table["pool"] = "1"
 
             experiment_mappings: dict[str, int] = {}
@@ -87,8 +91,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
             def _experiment_id(pool_suffix: str) -> int | None:
                 return experiment_mappings.get(pool_suffix)
 
-            unique_pools = pooling_table["pool"].unique()
-            if len(unique_pools) > 1:
+            if not single_pool:
                 for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
                     pool_suffix = key.pool.strip().lower()
                     if pool_suffix in ("t", "skip"):
@@ -117,7 +120,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                         library.status = C.LibraryStatus.POOLED
                         session.save(library)
 
-            elif len(unique_pools) > 0:
+            else:
                 pool = session.save(Q.pool.create(
                     name=lab_prep.name,
                     pool_type=C.PoolType.INTERNAL,

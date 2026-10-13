@@ -7,7 +7,7 @@ from redis import Redis
 
 from opengsync_db import SyncSession, categories as C, queries as Q
 
-from ...db.create_units import create_library, create_seq_request
+from ...db.create_units import create_library, create_protocol, create_seq_request
 from .._http import (
     OpenGSyncTestClient,
     assert_form_invalid,
@@ -362,3 +362,120 @@ def test_relib_rejects_library_outside_requested_sequence_request(
     )
 
     assert response.status_code == 202
+
+
+def _row_with_protocol(library, protocol_name: str | None) -> list[object]:
+    return [
+        library.id,
+        library.sample_name,
+        library.name,
+        C.LibraryType.BULK_RNA_SEQ.display_name,
+        C.GenomeRef.HUMAN.display_name,
+        C.ServiceType.BULK_RNA_SEQ.display_name,
+        "No",
+        protocol_name,
+    ]
+
+
+def test_relib_bulk_sets_and_clears_protocols(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, library_b = _create_relib_libraries(session, user)
+    old_protocol = create_protocol(session)
+    new_protocol = create_protocol(session)
+    library_b.protocol_id = old_protocol.id
+    session.commit()
+
+    params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id, library_b.id])
+
+    response = post_form(
+        client,
+        f"{RELIB_PREFIX}/library-edit-table",
+        spreadsheet_payload(
+            TABLE_COLUMNS + ["Protocol"],
+            [_row_with_protocol(library_a, new_protocol.name), _row_with_protocol(library_b, None)],
+        ),
+        token=insider_token,
+        params=params,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library_a.id)).protocol_id == new_protocol.id
+    assert session.get_one(Q.library.select(id=library_b.id)).protocol_id is None
+
+
+def test_relib_table_prefills_current_protocol(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, _ = _create_relib_libraries(session, user)
+    protocol = create_protocol(session)
+    library_a.protocol_id = protocol.id
+    session.commit()
+
+    params = {"uuid": str(uuid.uuid4()), "seq_request_id": seq_request.id}
+    assert get(client, f"{RELIB_PREFIX}/begin", insider_token, params=params).status_code == 200
+    selected = post_form(
+        client,
+        f"{RELIB_PREFIX}/select-samples",
+        {"selected_library_ids": json.dumps([library_a.id])},
+        token=insider_token,
+        params=params,
+    )
+
+    assert selected.status_code == 200
+    assert protocol.name in selected.text
+
+
+def test_relib_rejects_unknown_protocol(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, _ = _create_relib_libraries(session, user)
+    params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id])
+
+    response = post_form(
+        client,
+        f"{RELIB_PREFIX}/library-edit-table",
+        spreadsheet_payload(TABLE_COLUMNS + ["Protocol"], [_row_with_protocol(library_a, "Not a protocol")]),
+        token=insider_token,
+        params=params,
+    )
+
+    assert_form_invalid(response, "Invalid category")
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library_a.id)).protocol_id is None
+
+
+def test_relib_without_protocol_column_keeps_protocol(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, _ = _create_relib_libraries(session, user)
+    protocol = create_protocol(session)
+    library_a.protocol_id = protocol.id
+    session.commit()
+
+    params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id])
+
+    response = post_form(
+        client,
+        f"{RELIB_PREFIX}/library-edit-table",
+        _table_payload(_row_with_protocol(library_a, None)[:-1]),
+        token=insider_token,
+        params=params,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library_a.id)).protocol_id == protocol.id

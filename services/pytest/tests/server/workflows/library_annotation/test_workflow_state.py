@@ -17,6 +17,7 @@ from redis import Redis
 from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ....db.create_units import create_seq_request
+from ..._http import cookie_header
 from ._workflow import AnnotationWorkflow, HUMAN, get, libraries_by_name
 
 L = C.LibraryType
@@ -56,7 +57,7 @@ def _on(wf: AnnotationWorkflow, seq_request_id: int, token: str | None = None) -
 
 
 def _get(wf: AnnotationWorkflow, step: str):
-    return wf.client.get(f"{wf.prefix}/{step}", params=wf.params, cookies={"access_token": wf.token})
+    return wf.client.get(f"{wf.prefix}/{step}", params=wf.params, headers=cookie_header(wf.client, wf.token))
 
 
 def _assert_rejected(response, message: str) -> None:

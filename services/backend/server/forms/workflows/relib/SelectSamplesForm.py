@@ -46,6 +46,7 @@ class SelectSamplesForm(RelibWorkflowStep):
                 "service_type_id": [],
                 "genome_id": [],
                 "nuclei_isolation": [],
+                "protocol_id": [],
             }
 
             libraries = form.selected_library_ids.get_selected_libraries(session)
@@ -66,7 +67,10 @@ class SelectSamplesForm(RelibWorkflowStep):
                 library_table_data["service_type_id"].append(library.service_type.id)
                 library_table_data["genome_id"].append(library.genome_ref.id)
                 library_table_data["nuclei_isolation"].append("Yes" if library.nuclei_isolation else "No")
+                library_table_data["protocol_id"].append(library.protocol_id)
 
-            form.workflow.tables["library_table"] = pd.DataFrame(library_table_data)
+            library_table = pd.DataFrame(library_table_data)
+            library_table["protocol_id"] = library_table["protocol_id"].astype(pd.Int64Dtype())
+            form.workflow.tables["library_table"] = library_table
             return form.workflow.get_next_step(form).make_response()
         return route

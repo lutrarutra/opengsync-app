@@ -155,8 +155,11 @@ class SubHTMXForm:
             field.errors = []
 
         for field in self.input_fields:
-            value = raw_data.get(field.name, field.default)
+            # An unchecked checkbox sends nothing: a missing boolean is False, not its default
+            value = raw_data.get(field.name, None if isinstance(field, inputs.boolean.BooleanInputField) else field.default)
             field.raw_data = value
+            if isinstance(field, inputs.boolean.BooleanInputField):
+                continue  # unchecked (missing) is a valid value
             if field.required and (
                 value is None or (isinstance(value, str) and value.strip() == "")
             ):
@@ -179,7 +182,7 @@ class SubHTMXForm:
             mapped_data = {}
             for field in pydantic_fields:
                 pydantic_key = field.name.replace("-", "_")
-                raw_value = raw_data.get(field.name, field.default)
+                raw_value = raw_data.get(field.name, None if isinstance(field, inputs.boolean.BooleanInputField) else field.default)
 
                 if isinstance(field, inputs.boolean.BooleanInputField):
                     raw_value = field.validate_value(raw_value)

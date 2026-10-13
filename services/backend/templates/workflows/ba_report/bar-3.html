@@ -18,13 +18,15 @@
                 </tr>
             </thead>
             <tbody>
-                {% for sub_form in form.sample_forms %}
+                {% for sub_forms in [form.sample_forms, form.library_forms, form.pool_forms, form.lane_forms] %}
+                {% for sub_form in sub_forms %}
                 <tr>
                     <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
                     <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
                     <td>{{ sub_form.type.render(hide_label=True, hide_errors=True) }}</td>
                     <td>{{ sub_form.avg_fragment_size.render(unit="bp", hide_label=True, hide_errors=True) }}</td>
                 </tr>
+                {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

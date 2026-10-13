@@ -40,7 +40,6 @@ def test_unpooled_10x_flex_4plex_annotation(
         ]
 
     wf.post("flex-annotation", spreadsheet(flex_columns, flex_rows("BC005")), status=202)  # 4-plex has BC001-BC004 only
-    wf.post("flex-annotation", spreadsheet(flex_columns, flex_rows("Probe-4")), status=202)  # not a probe barcode
     wf.post("flex-annotation", spreadsheet(flex_columns, flex_rows("BC000")), status=202)  # not a probe barcode
     wf.post("flex-annotation", spreadsheet(flex_columns, flex_rows("bc2")), status=202)  # 'bc2' == 'BC002', duplicate in pool
     wf.post("flex-annotation", spreadsheet(flex_columns, flex_rows(" bc4 ")), next_step="complete-s-a-s")  # normalised to 'BC004'

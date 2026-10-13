@@ -91,6 +91,10 @@ class SelectSamplesForm(BAReportWorkflowStep):
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
+            if not (form.selected_sample_ids.data or form.selected_library_ids.data or form.selected_pool_ids.data or form.selected_lane_ids.data):
+                form.add_general_error("Select at least one sample, library, pool or lane.")
+                raise exc.FormValidationException(form)
+
             sample_data = {
                 "id": [],
                 "name": [],
@@ -133,5 +137,6 @@ class SelectSamplesForm(BAReportWorkflowStep):
             form.workflow.tables["sample_table"] = sample_table
             form.workflow.add_step(form.__class__.__name__)
             next_form = BAReportForm(workflow=form.workflow)
+            form.workflow.add_step(next_form.__class__.__name__)
             return next_form.make_response()
         return route

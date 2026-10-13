@@ -1,5 +1,6 @@
 import os
 
+import sqlalchemy as sa
 from pydantic import BaseModel
 from fastapi import Depends
 
@@ -11,6 +12,47 @@ from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
 from .BAReportWorkflow import BAReportWorkflowStep, BAReportWorkflow
+
+def save_report(form: "BAReportWorkflowStep", session: SyncSession, uploader_id: int, sub_form_lists, pdf) -> responses.Response:
+    """Save the report PDF and the sizes of the selected objects, as legacy ``CompleteBAForm.save_changes``:
+    each object with a size is linked to the report, an empty size clears size and report link, an
+    ACCEPTED pool with a size becomes STORED. Completes the workflow and returns the redirect."""
+    # The rows are submitted by the client: only objects selected in step 1 may be updated
+    sample_table = form.workflow.tables["sample_table"]
+    selected = set(zip(sample_table["type"], sample_table["id"].astype(int)))
+    entries = [entry for sub_forms in sub_form_lists for entry in sub_forms.entries]
+    if any((entry.type.data, entry.id_.data) not in selected for entry in entries):
+        raise exc.BadRequestException("The report does not match the selection. Please start again.")
+
+    filename, extension = os.path.splitext(pdf.data.filename)
+    media_file = session.save(Q.media_file.create(
+        name=filename,
+        extension=extension,
+        size_bytes=pdf.data.size,
+        type=C.MediaFileType.BIOANALYZER_REPORT,
+        uploader_id=uploader_id,
+        lab_prep_id=form.workflow.lab_prep_id,
+    ), flush=True)
+    pdf.save(media_file)
+
+    models_by_type = {"sample": models.Sample, "library": models.Library, "pool": models.Pool, "lane": models.Lane}
+    for entry in entries:
+        obj = session.get_one(sa.select(models_by_type[entry.type.data]).where(models_by_type[entry.type.data].id == entry.id_.data))
+        obj.avg_fragment_size = entry.avg_fragment_size.data
+        obj.ba_report_id = media_file.id if entry.avg_fragment_size.data is not None else None
+        if isinstance(obj, models.Pool) and entry.avg_fragment_size.data is not None and obj.status == C.PoolStatus.ACCEPTED:
+            obj.status = C.PoolStatus.STORED
+        session.save(obj)
+
+    redirect = responses.url_for("dashboard")
+    if form.workflow.lab_prep_id is not None:
+        redirect = responses.url_for("lab_prep_page", lab_prep_id=form.workflow.lab_prep_id)
+    elif form.workflow.experiment_id is not None:
+        redirect = responses.url_for("experiment_page", experiment_id=form.workflow.experiment_id)
+
+    form.workflow.complete()
+    return responses.htmx_response(redirect=redirect, flash=responses.flash("Changes Saved!", "success"))
+
 
 class SubForm(SubHTMXForm):
     id_ = inputs.numeric.IntInputField("ID", required=True, read_only=True)
@@ -64,37 +106,8 @@ class CompleteBAReport(BAReportWorkflowStep):
             session: SyncSession = Depends(dependencies.db_session),
             current_user_id: int = Depends(dependencies.require_user_id),
         ):
-            for entry in form.sample_forms:
-                sample = session.get_one(Q.sample.select(id=entry.id_.data))
-                sample.avg_fragment_size = entry.avg_fragment_size.data
-
-            for entry in form.library_forms.entries:
-                library = session.get_one(Q.library.select(id=entry.id_.data))
-                library.avg_fragment_size = entry.avg_fragment_size.data
-
-            for entry in form.pool_forms.entries:
-                pool = session.get_one(Q.pool.select(id=entry.id_.data))
-                pool.avg_fragment_size = entry.avg_fragment_size.data
-
-            for entry in form.lane_forms.entries:
-                lane = session.get_one(Q.lane.select(id=entry.id_.data))
-                lane.avg_fragment_size = entry.avg_fragment_size.data
-
-            filename, extension = os.path.splitext(form.pdf.data.filename)
-            media_file = session.save(Q.media_file.create(
-                name=filename,
-                extension=extension,
-                size_bytes=form.pdf.data.size,
-                type=C.MediaFileType.BIOANALYZER_REPORT,
-                uploader_id=current_user_id,
-            ))
-            form.pdf.save(media_file)
-            
-            redirect = responses.url_for("dashboard")
-            if form.workflow.lab_prep_id is not None:
-                redirect = responses.url_for("lab_prep_page", lab_prep_id=form.workflow.lab_prep_id)
-            elif form.workflow.experiment_id is not None:
-                redirect = responses.url_for("experiment_page", experiment_id=form.workflow.experiment_id)
-
-            return responses.htmx_response(redirect=redirect, flash=responses.flash("Changes Saved!", "success"))
+            return save_report(
+                form, session, current_user_id,
+                (form.sample_forms, form.library_forms, form.pool_forms, form.lane_forms), form.pdf,
+            )
         return route

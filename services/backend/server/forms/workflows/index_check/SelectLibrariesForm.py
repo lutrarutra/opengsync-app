@@ -28,8 +28,6 @@ def _append_barcode_row(
         data["name_i5"].append(None)
         data["sequence_i7"].append(None)
         data["sequence_i5"].append(None)
-        data["orientation_i7"].append(None)
-        data["orientation_i5"].append(None)
         data["orientation_id"].append(None)
         return
     data["kit_i7"].append(index.index_kit_i7.identifier if index.index_kit_i7 else None)
@@ -38,8 +36,6 @@ def _append_barcode_row(
     data["name_i5"].append(index.name_i5)
     data["sequence_i7"].append(index.sequence_i7)
     data["sequence_i5"].append(index.sequence_i5)
-    data["orientation_i7"].append(index.orientation)
-    data["orientation_i5"].append(index.orientation)
     data["orientation_id"].append(index.orientation.id if index.orientation else None)
 
 
@@ -96,8 +92,6 @@ class SelectLibrariesForm(IndexCheckWorkflowStep):
                 "name_i5": [],
                 "sequence_i7": [],
                 "sequence_i5": [],
-                "orientation_i7": [],
-                "orientation_i5": [],
                 "orientation_id": [],
                 "library_type": [],
             }

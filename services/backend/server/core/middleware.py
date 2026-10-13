@@ -122,16 +122,20 @@ async def parse_form_data(request: runtime.Request, call_next: Callable[[runtime
     if request.method in ("POST", "PUT", "PATCH"):
         form = await request.form()
         raw = {}
-        for key, value in form.items():
-            if isinstance(value, UploadFile):
-                raw[key] = {
-                    "filename": value.filename,
-                    "content": await value.read(),
-                    "content_type": value.content_type,
-                    "size": value.size,
-                }
-            else:
-                raw[key] = value
+        try:
+            for key, value in form.items():
+                if isinstance(value, UploadFile):
+                    raw[key] = {
+                        "filename": value.filename,
+                        "content": await value.read(),
+                        "content_type": value.content_type,
+                        "size": value.size,
+                    }
+                else:
+                    raw[key] = value
+        finally:
+            # Uploads are copied into memory above; close their temp files (this Request is not the route's, so nothing else does)
+            await form.close()
         request.state.form_data = raw
     else:
         request.state.form_data = None
@@ -234,6 +238,11 @@ def _finish_transaction(request: runtime.Request, status_code: int | None, close
         if not getattr(request.state, "rollback", False) and status_code is not None and 200 <= status_code < 300:
             session.commit()
             return audit.pop_changes(session)
+        # Unhandled-exception error pages render after this runs and read current_user;
+        # detach it first so rollback doesn't expire it.
+        current_user = getattr(request.state, "current_user", None)
+        if isinstance(current_user, models.User) and current_user in session:
+            session.expunge(current_user)
         session.rollback()
         return []
     finally:

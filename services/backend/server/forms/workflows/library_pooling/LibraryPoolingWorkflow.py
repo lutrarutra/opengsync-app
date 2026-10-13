@@ -62,7 +62,11 @@ class LibraryPoolingWorkflow(HTMXWorkflow):
                 raise exc.NotFoundException("Lab prep not found.")
             if not current_user.is_insider:
                 raise exc.NoPermissionsException()
-            return cls(step=step, lab_prep_id=lab_prep_id, r=r, uuid=uuid)
+            workflow = cls(step=step, lab_prep_id=lab_prep_id, r=r, uuid=uuid)
+            # Later steps need a run that reached them (state expires or is cleared on completion)
+            if step != wf.LibraryPoolingForm.__name__ and step not in workflow.step_tracker.steps:
+                raise exc.BadRequestException("This pooling has expired. Please start again.")
+            return workflow
         return dependency
 
     @classmethod
@@ -70,7 +74,7 @@ class LibraryPoolingWorkflow(HTMXWorkflow):
         def route(
             form: wf.LibraryPoolingForm = Depends(wf.LibraryPoolingForm.Init()),
         ):
-            return form.make_response(flash=form._context.pop("flash", None))
+            return form.make_response(flash=form.prefill_flash)
         return route
 
     def get_next_step(self, form: "LibraryPoolingWorkflowStep") -> "LibraryPoolingWorkflowStep":

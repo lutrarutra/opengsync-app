@@ -244,6 +244,40 @@ def test_submit_with_comment(
     assert any("Looks good!" in c.text for c in updated.comments)
 
 
+def test_submit_with_cached_user_who_already_commented(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider,
+    insider_token: str,
+):
+    """Regression: the cached current_user must not clash with the same user loaded as a comment author."""
+    seq_request = _seq_request_with_library(session, user)
+    seq_request.comments.append(Q.comment.create(text="Earlier comment", author=insider))
+    session.commit()
+
+    # Warm the user cache so the POST resolves current_user from Redis, not the DB.
+    assert get(client, _render_path(seq_request.id), insider_token).status_code == 200
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(
+            response_type=str(C.RequestResponse.ACCEPTED.id),
+            assign_seq_request_to_me="on",
+        ),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+
+    session.expire_all()
+    updated = session.get_one(Q.seq_request.select(id=seq_request.id))
+    assert len(updated.comments) == 2
+    assert all(c.author_id == insider.id for c in updated.comments)
+    assert insider in updated.assignees
+
+
 def test_submit_assigns_to_current_user(
     client: TestClient,
     session: SyncSession,
@@ -269,6 +303,26 @@ def test_submit_assigns_to_current_user(
     session.expire_all()
     updated = session.get_one(Q.seq_request.select(id=seq_request.id))
     assert insider in updated.assignees
+
+
+def test_submit_unchecked_assign_does_not_assign(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider,
+    insider_token: str,
+):
+    """An unchecked checkbox sends nothing; the field's default (on) must not apply to the submission."""
+    seq_request = _seq_request_with_library(session, user)
+    payload = _payload(response_type=str(C.RequestResponse.ACCEPTED.id))
+    del payload["assign_seq_request_to_me"]
+
+    response = post_form(client, _submit_path(seq_request.id), payload, token=insider_token)
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    session.expire_all()
+    updated = session.get_one(Q.seq_request.select(id=seq_request.id))
+    assert insider not in updated.assignees
 
 
 def test_submit_csrf_mismatch_rerenders(

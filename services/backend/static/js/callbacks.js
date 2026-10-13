@@ -117,7 +117,35 @@ document.addEventListener("flash", (event) => {
     showFlashToast(event.detail);
 });
 
+// Pristine modal contents (the loading spinner), captured once per page load so
+// modals can be reset after the page is restored from the back/forward cache.
+const initialModalContents = new Map();
+
+// A page restored from the back/forward cache comes back exactly as it was left,
+// e.g. with a form modal still open after its submit redirected to another page.
+// Close and reset any open modal so going back never resurrects a stale form.
+window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+
+    window.onbeforeunload = null;
+    document.body.classList.remove("waiting");
+    document.querySelectorAll(".htmx-request").forEach((el) => el.classList.remove("htmx-request"));
+
+    document.querySelectorAll(".modal.show").forEach((modal) => {
+        modal.addEventListener("hidden.bs.modal", () => {
+            const content = modal.querySelector(".modal-dialog");
+            if (content && initialModalContents.has(content.id)) {
+                content.innerHTML = initialModalContents.get(content.id);
+            }
+        }, { once: true });
+        bootstrap.Modal.getOrCreateInstance(modal).hide();
+    });
+});
+
 $(document).ready(function () {
     init_htmx_callbacks();
     checkFlashCookie();
+    document.querySelectorAll(".modal > .modal-dialog[id]").forEach((content) => {
+        initialModalContents.set(content.id, content.innerHTML);
+    });
 });

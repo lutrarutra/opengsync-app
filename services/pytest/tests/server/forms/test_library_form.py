@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
-from ...db.create_units import create_group, create_library, create_seq_request
+from ...db.create_units import create_group, create_library, create_protocol, create_seq_request
 from .._http import (
     assert_flash,
     assert_form_invalid,
@@ -525,3 +525,93 @@ def test_edit_status_is_read_only_for_client(
 
     assert re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, _edit_path(library.id), user_token).text)
     assert not re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, _edit_path(library.id), insider_token).text)
+
+
+def test_edit_form_get_renders_protocol_options(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    library = _library_for(session, user)
+    protocol = create_protocol(session)
+    library.protocol_id = protocol.id
+    session.commit()
+
+    text = get(client, _edit_path(library.id), insider_token).text
+
+    assert 'name="protocol"' in text
+    assert re.search(rf'<option value="{protocol.id}"\s+selected', text)
+
+
+def test_edit_insider_sets_and_clears_protocol(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    library = _library_for(session, user)
+    protocol = create_protocol(session)
+    session.commit()
+
+    response = post_form(client, _edit_path(library.id), _payload("Protocol_Library", protocol=protocol.id), token=insider_token)
+    assert_htmx_redirect(response, f"/libraries/{library.id}")
+    assert _reload(session, library).protocol_id == protocol.id
+
+    for empty_value in ("", "-1"):
+        library.protocol_id = protocol.id
+        session.commit()
+        response = post_form(client, _edit_path(library.id), _payload("Protocol_Library", protocol=empty_value), token=insider_token)
+        assert_htmx_redirect(response, f"/libraries/{library.id}")
+        assert _reload(session, library).protocol_id is None
+
+
+def test_edit_unknown_protocol_rerenders(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    library = _library_for(session, user)
+
+    response = post_form(client, _edit_path(library.id), _payload("Protocol_Library", protocol=999999), token=insider_token)
+
+    assert_form_invalid(response, "Selected protocol does not exist.")
+    assert _reload(session, library).protocol_id is None
+
+
+def test_edit_client_cannot_change_protocol(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    library = _library_for(session, user)
+    protocol = create_protocol(session)
+    session.commit()
+
+    response = post_form(client, _edit_path(library.id), _payload("Protocol_Library", protocol=protocol.id), token=user_token)
+
+    assert_form_invalid(response, "Only insiders can change library protocol.")
+    assert _reload(session, library).protocol_id is None
+
+
+def test_edit_client_keeps_existing_protocol(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    library = _library_for(session, user)
+    protocol = create_protocol(session)
+    library.protocol_id = protocol.id
+    session.commit()
+
+    text = get(client, _edit_path(library.id), user_token).text
+    assert re.search(r'<select[^>]*\bdisabled\b[^>]*name="protocol"', text)
+    assert f'<input type="hidden" name="protocol" value="{protocol.id}">' in text
+
+    response = post_form(client, _edit_path(library.id), _payload("Protocol_Library", protocol=protocol.id), token=user_token)
+
+    assert_htmx_redirect(response, f"/libraries/{library.id}")
+    assert _reload(session, library).protocol_id == protocol.id

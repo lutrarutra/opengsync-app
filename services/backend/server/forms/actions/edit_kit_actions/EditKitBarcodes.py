@@ -48,6 +48,7 @@ class EditKitBarcodesForm(HTMXForm):
     def Init(cls) -> FormFunc:
         def dependency(
             index_kit_id: int,
+            _=Depends(dependencies.require_admin),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "EditKitBarcodesForm":
             from . import EDIT_KIT_BARCODES_ACTIONS
@@ -69,7 +70,6 @@ class EditKitBarcodesForm(HTMXForm):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "EditKitBarcodesForm" = Depends(EditKitBarcodesForm.Init()),
-            _=Depends(dependencies.require_admin),
         ):
             return form.make_response()
         return route
@@ -79,7 +79,6 @@ class EditKitBarcodesForm(HTMXForm):
         def route(
             form: "EditKitBarcodesForm" = Depends(EditKitBarcodesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_admin),
         ):
             df = form.spreadsheet.data.copy()
             form.validate_barcodes(df)

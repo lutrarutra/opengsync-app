@@ -17,6 +17,7 @@ from ...HTMXForm import RouteFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
 from .BAReportWorkflow import BAReportWorkflowStep, BAReportWorkflow
 from .ParseBAExcelFileForm import ParseBAExcelFileForm
+from .CompleteBAReport import save_report
 
 
 class SubForm(SubHTMXForm):
@@ -80,42 +81,9 @@ class BAReportForm(BAReportWorkflowStep):
                     form.pdf.errors.append("Please upload a PDF file.")
                     raise exc.FormValidationException(form)
                 
-                for entry in form.sample_forms:
-                    sample = session.get_one(Q.sample.select(id=entry.id_.data))
-                    sample.avg_fragment_size = entry.avg_fragment_size.data
-
-                for entry in form.library_forms.entries:
-                    library = session.get_one(Q.library.select(id=entry.id_.data))
-                    library.avg_fragment_size = entry.avg_fragment_size.data
-
-                for entry in form.pool_forms.entries:
-                    pool = session.get_one(Q.pool.select(id=entry.id_.data))
-                    pool.avg_fragment_size = entry.avg_fragment_size.data
-
-                for entry in form.lane_forms.entries:
-                    lane = session.get_one(Q.lane.select(id=entry.id_.data))
-                    lane.avg_fragment_size = entry.avg_fragment_size.data
-
-                filename, extension = os.path.splitext(form.pdf.data.filename)
-                media_file = session.save(Q.media_file.create(
-                    name=filename,
-                    extension=extension,
-                    size_bytes=form.pdf.data.size,
-                    type=C.MediaFileType.BIOANALYZER_REPORT,
-                    uploader_id=current_user_id,
-                ))
-                form.pdf.save(media_file)
-
-                redirect = responses.url_for("dashboard")
-
-                if form.workflow.lab_prep_id is not None:
-                    redirect = responses.url_for("lab_prep_page", lab_prep_id=form.workflow.lab_prep_id)
-                elif form.workflow.experiment_id is not None:
-                    redirect = responses.url_for("experiment_page", experiment_id=form.workflow.experiment_id)
-
-                return responses.htmx_response(
-                    redirect=redirect,
-                    flash=responses.flash("Changes Saved!", "success"),
+                return save_report(
+                    form, session, current_user_id,
+                    (form.sample_forms, form.library_forms, form.pool_forms, form.lane_forms), form.pdf,
                 )
             elif method == "excel":
                 if not form.ba_excel.data:
@@ -154,11 +122,12 @@ class BAReportForm(BAReportWorkflowStep):
                 df = pd.DataFrame(data)
                 if df.empty:
                     form.ba_excel.errors.append("No valid data was parsed in the Excel file.")
-                    raise exc.BadRequestException("No valid data was parsed in the Excel file.")
+                    raise exc.FormValidationException(form)
 
                 form.workflow.tables["excel_table"] = df
                 form.workflow.add_step(form.__class__.__name__)
                 next_form = ParseBAExcelFileForm(workflow=form.workflow)
+                form.workflow.add_step(next_form.__class__.__name__)
                 return next_form.make_response()
             else:
                 raise exc.BadRequestException(f"Invalid method: {method}")

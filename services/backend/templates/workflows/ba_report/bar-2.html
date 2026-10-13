@@ -8,6 +8,7 @@
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body" id="ba_report-form">
+        {{ form.render_general_errors() }}
         <div class="row gap-3">
             <div id="left-list" class="list-group col">
                 {% for idx, row in form.sample_table.iterrows() %}

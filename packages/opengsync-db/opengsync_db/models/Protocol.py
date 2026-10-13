@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..categories import ServiceType, ServiceType
+from ..categories import ServiceType
 from ..core.EnumColumn import EnumColumn
 
 

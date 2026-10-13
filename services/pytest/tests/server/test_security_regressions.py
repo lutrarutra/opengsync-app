@@ -35,7 +35,7 @@ from ..db.create_units import (
     create_experiment, create_feature, create_group, create_lab_prep, create_library, create_pool,
     create_seq_request,
 )
-from ._http import CSRF, assert_form_invalid, assert_htmx_redirect, get, post_form, spreadsheet_payload
+from ._http import CSRF, assert_form_invalid, cookie_header, assert_htmx_redirect, get, post_form, spreadsheet_payload
 
 
 # ── 1. Template injection ────────────────────────────────────────────────────
@@ -423,7 +423,7 @@ def _upload(client: TestClient, token: str, seq_request_id: int, filename: str, 
         params={"seq_request_id": seq_request_id},
         data={"file_type": str(C.MediaFileType.CUSTOM.id), "comment": "", "csrf_token": CSRF},
         files={"file": (filename, content, "application/octet-stream")},
-        cookies={"access_token": token},
+        headers=cookie_header(client, token),
         follow_redirects=False,
     )
 

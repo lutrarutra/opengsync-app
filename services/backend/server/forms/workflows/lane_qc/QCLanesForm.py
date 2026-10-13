@@ -18,7 +18,7 @@ from .UnifiedQCLanesForm import LaneQCRow
 class QCLanesSubForm(SubHTMXForm):
     lane_id = inputs.numeric.IntInputField("Lane ID", required=True, hidden=True, read_only=True)
     phi_x = inputs.numeric.FloatInputField("Phi X %", required=True, ge=0.0, unit="%")
-    avg_fragment_size = inputs.numeric.IntInputField("Average Library Size", required=True, ge=0, unit="bp")
+    avg_fragment_size = inputs.numeric.IntInputField("Average Library Size", required=True, ge=1, unit="bp")
     qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration", required=True, ge=0.0, unit="ng/μL")
 
 

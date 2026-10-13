@@ -1,4 +1,5 @@
 import os
+import re
 from uuid6 import uuid7
 from datetime import datetime, timezone
 
@@ -43,7 +44,9 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
             TextColumn("name_i5", "name_i5", 100),
             TextColumn("sequence_i5", "sequence_i5", 100),
             FloatColumn("lib_conc_ng_ul", "lib_conc_ng_ul", 100),
-        ], sheet_name="prep_table"
+        ],
+        # Readers of the stored prep file (reindex, pooling, protocol selection) read its prep_table sheet
+        allowed_file_types=["xlsx"], sheet_name="prep_table", required=True,
     )
 
     def __init__(self, lab_prep: models.LabPrep) -> None:
@@ -82,6 +85,7 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
     def Init(cls) -> FormFunc:
         def form(
             lab_prep_id: int,
+            _=Depends(dependencies.require_insider),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> UploadLibraryPrepSpreadsheetAction:
             lab_prep = session.get_one(
@@ -100,7 +104,6 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
     def Begin(cls) -> RouteFunc:
         def route(
             form: UploadLibraryPrepSpreadsheetAction = Depends(UploadLibraryPrepSpreadsheetAction.Init()),
-            _ = Depends(dependencies.require_insider),
         ):
             return form.make_response()
         return route
@@ -122,9 +125,21 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
             prep_table = df.dropna(subset=["library_id", "library_name"], how="all")
             libraries = {library.id: library.name for library in form.lab_prep.libraries}
 
-            duplicate_plate_well = prep_table.duplicated(subset=["plate_well", "plate"], keep=False)
+            # pandas treats blank wells as equal, so they would all be reported as duplicates of 'nan'
+            duplicate_plate_well = prep_table.duplicated(subset=["plate_well", "plate"], keep=False) & prep_table["plate_well"].notna()
+
+            # Wells of the 8x12 plates created below (A1-H12, optionally zero-padded)
+            well_pattern = re.compile(r"^[A-H](0?[1-9]|1[0-2])$")
 
             for idx, row in prep_table.iterrows():
+                plate_well = row.get("plate_well")
+                if pd.notna(row.get("library_id")):
+                    # Every library is placed on a plate (legacy crashed on a blank well)
+                    if pd.isna(plate_well):
+                        form.spreadsheet.add_error(idx, "plate_well", MissingCellValue("Plate Well is required."))
+                    elif not well_pattern.match(str(plate_well).strip()):
+                        form.spreadsheet.add_error(idx, "plate_well", InvalidCellValue(f"Invalid plate well '{plate_well}', must be A1-H12."))
+
                 pool_val = row.get("pool")
                 pool_val = str(pool_val).strip().lower() if pd.notna(pool_val) else ""
                 if pool_val == "t":
@@ -132,11 +147,12 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
 
                 if pd.notna(row.get("library_id")) and pd.isna(row.get("library_name")):
                     form.spreadsheet.add_error(idx, "library_name", MissingCellValue("Library Name is required when Library ID is provided"))
+                    continue
 
                 if duplicate_plate_well.at[idx]:
                     form.spreadsheet.add_error(
                         idx, ["plate_well", "plate"],
-                        DuplicateCellValue(f"Plate Well '{row['plate_well']}' is duplicated.")
+                        DuplicateCellValue(f"Plate Well+plate '{row['plate_well']}' is duplicated.")
                     )
 
                 if pd.isna(row.get("library_id")):
@@ -174,22 +190,28 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
 
             form.lab_prep.plates.clear()
 
-            for plate_name, _df in df.groupby("plate", dropna=False):
+            # The user from the dependency is detached; the session may already hold it (e.g. as prep file uploader)
+            owner = session.get_one(Q.user.select(id=current_user.id))
+
+            # Only rows with a library are placed, so unused template rows create no plate
+            for plate_name, _df in prep_table[prep_table["library_id"].notna()].groupby("plate", dropna=False):
                 if pd.isna(plate_name) or not str(plate_name).strip():
                     plate = session.save(
                         Q.plate.create(
                             name=f"P-{form.lab_prep.name}",
                             num_cols=12, num_rows=8,
-                            owner=current_user,
+                            owner=owner,
                         ),
                         flush=True,
                     )
                 else:
+                    # Excel numbers read as floats when the column has blanks; legacy used int(plate)
+                    plate_name = re.sub(r"^(\d+)\.0$", r"\1", str(plate_name).strip())
                     plate = session.save(
                         Q.plate.create(
                             name=f"P-{form.lab_prep.name}-{plate_name}",
                             num_cols=12, num_rows=8,
-                            owner=current_user,
+                            owner=owner,
                         ),
                         flush=True,
                     )
@@ -230,6 +252,7 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
 
             if (prep_file := form.lab_prep.prep_file) is not None:
                 prep_file.uuid = hash
+                prep_file.extension = f".{ext}"
                 prep_file.size_bytes = size_bytes
                 prep_file.timestamp_utc = datetime.now(timezone.utc)
                 session.save(prep_file)

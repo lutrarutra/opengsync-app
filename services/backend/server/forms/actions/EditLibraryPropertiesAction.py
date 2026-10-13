@@ -1,5 +1,6 @@
 from typing import Sequence
 import pandas as pd
+import sqlalchemy as sa
 
 from pydantic import BaseModel
 from fastapi import Depends, Query
@@ -122,6 +123,14 @@ class EditLibraryPropertiesAction(HTMXForm):
             
             if access_level < C.AccessLevel.READ:
                 raise exc.NoPermissionsException("You do not have permission to view library properties.")
+
+            # Editing needs WRITE on every library of the context (Q.library.access_level:
+            # insiders always, others only while the library's request is a draft)
+            library_levels = session.execute(
+                sa.select(Q.library.access_level(current_user_id)).where(models.Library.id.in_([library.id for library in libraries]))
+            ).scalars().all()
+            if any(level < C.AccessLevel.WRITE for level in library_levels):
+                access_level = min(access_level, C.AccessLevel.READ)
             form = EditLibraryPropertiesAction(access_level=access_level, seq_request_id=seq_request_id, project_id=project_id, library_id=library_id, libraries=libraries)
             return form
         return form

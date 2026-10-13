@@ -98,3 +98,22 @@ def test_lane_qc_client_cannot_submit(
         params={"experiment_id": experiment.id, "uuid": str(uuid.uuid4())},
     )
     assert response.status_code == 403
+
+
+def test_lane_qc_zero_fragment_size_is_rejected(
+    client: TestClient, session: SyncSession, insider, insider_token,
+):
+    """Lane molarity divides by the average fragment size, so it must be ≥ 1."""
+    experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
+    _commit(session)
+    lanes = session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
+    wf_uuid = str(uuid.uuid4())
+    get(client, "/htmx/workflows/lane-qc/begin", insider_token, params={"experiment_id": experiment.id, "uuid": wf_uuid})
+
+    payload = _qc_payload(lanes)
+    payload["fields-0-avg_fragment_size"] = "0"
+    response = post_form(client, QC_LANES_PATH, payload, token=insider_token, params={"experiment_id": experiment.id, "uuid": wf_uuid})
+
+    assert response.status_code == 202
+    session.expire_all()
+    assert all(lane.avg_fragment_size is None for lane in session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None))

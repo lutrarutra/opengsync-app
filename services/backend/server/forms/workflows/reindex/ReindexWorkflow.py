@@ -76,6 +76,13 @@ class ReindexWorkflow(HTMXWorkflow):
             workflow.seq_request_id = seq_request_id
             workflow.lab_prep_id = lab_prep_id
             workflow.pool_id = pool_id
+            # The state is keyed by UUID only: later steps need a run that reached them and
+            # that was started for the same context (access was checked for this context only)
+            if step != wf.SelectSamplesForm.__name__:
+                if step not in workflow.step_tracker.steps:
+                    raise exc.BadRequestException("This reindexing has expired. Please start again.")
+                if workflow.bound_context() != workflow.context():
+                    raise exc.BadRequestException("This reindexing belongs to another context.")
             workflow._query_params = {}
             if seq_request_id is not None:
                 workflow._query_params["seq_request_id"] = seq_request_id
@@ -85,6 +92,16 @@ class ReindexWorkflow(HTMXWorkflow):
                 workflow._query_params["pool_id"] = pool_id
             return workflow
         return dependency
+
+    def context(self) -> dict[str, int | None]:
+        return {"seq_request_id": self.seq_request_id, "lab_prep_id": self.lab_prep_id, "pool_id": self.pool_id}
+
+    def bound_context(self) -> dict[str, int | None]:
+        return {key: self.header.get(key) for key in ("seq_request_id", "lab_prep_id", "pool_id")}
+
+    def bind_context(self) -> None:
+        for key, value in self.context().items():
+            self.header[key] = value
 
     @classmethod
     def Begin(cls) -> RouteFunc:

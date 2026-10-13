@@ -66,17 +66,23 @@ class MuxPrepWorkflow(HTMXWorkflow):
         ) -> "MuxPrepWorkflow":
             if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
                 raise exc.NotFoundException("Lab prep not found.")
-            if C.MUXType.get(mux_type_id) is None:
+            try:
+                C.MUXType.get(mux_type_id)
+            except ValueError:
                 raise exc.BadRequestException("Invalid multiplexing type.")
             if not current_user.is_insider:
                 raise exc.NoPermissionsException()
-            return cls(
+            workflow = cls(
                 step=step,
                 lab_prep_id=lab_prep_id,
                 mux_type_id=mux_type_id,
                 r=r,
                 uuid=uuid,
             )
+            # The ABC step reads the GEX step's state: it needs a run that reached it
+            if step == wf.FlexABCForm.__name__ and step not in workflow.step_tracker.steps:
+                raise exc.BadRequestException("This multiplexing annotation has expired. Please start again.")
+            return workflow
         return dependency
 
     @classmethod
@@ -114,8 +120,10 @@ class MuxPrepWorkflow(HTMXWorkflow):
         self.add_step(next_form.__class__.__name__)
         return next_form
 
-    def complete_to_lab_prep(self, message: str = "Changes saved!"):
+    def complete_to_lab_prep(self, message: str = "Changes saved!", tab: str | None = None):
         next_url = responses.url_for("lab_prep_page", lab_prep_id=self.lab_prep_id)
+        if tab is not None:
+            next_url = next_url.include_query_params(tab=tab)
         self.complete()
         return responses.htmx_response(
             redirect=next_url,

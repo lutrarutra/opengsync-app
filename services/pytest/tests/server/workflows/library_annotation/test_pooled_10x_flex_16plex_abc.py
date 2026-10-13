@@ -50,8 +50,11 @@ def test_pooled_10x_flex_16plex_abc_annotation(
         ["Flex_S1", "FlexPool", "BC001"], ["Flex_S2", "FlexPool", "BC002"], ["Flex_S3", "FlexPool", "BC017"],
     ]), status=202)  # 16-plex has BC001-BC016 only
     wf.post("flex-annotation", spreadsheet(flex_columns, [
-        ["Flex_S1", "FlexPool", "1"], ["Flex_S2", "FlexPool", "BC02"], ["Flex_S3", "FlexPool", "bc003"],
-    ]), next_step="pooled-library-annotation")  # normalised to BC001, BC002, BC003
+        ["Flex_S1", "FlexPool", "BC001;BC017"], ["Flex_S2", "FlexPool", "BC002"], ["Flex_S3", "FlexPool", "BC003"],
+    ]), status=202)  # every barcode of a multi-barcode sample is range-checked
+    wf.post("flex-annotation", spreadsheet(flex_columns, [
+        ["Flex_S1", "FlexPool", "1; bc4"], ["Flex_S2", "FlexPool", "BC02"], ["Flex_S3", "FlexPool", "A-F01"],
+    ]), next_step="pooled-library-annotation")  # normalised to BC001;BC004, BC002; Flex v2 'A-F01' kept as-is
 
     gex = f"FlexPool_{L.TENX_SC_GEX_FLEX.identifier}"
     abc = f"FlexPool_{L.TENX_SC_ABC_FLEX.identifier}"
@@ -89,9 +92,9 @@ def test_pooled_10x_flex_16plex_abc_annotation(
     assert libraries[gex].indices[0].name_i7 == "SI-TT-A1"
     assert libraries[abc].indices[0].name_i7 == "SI-TT-A2"
 
-    # GEX probes use BCxxx, the matching antibody barcodes ABxxx.
-    assert linked_samples(libraries[gex]) == {"Flex_S1": {"barcode": "BC001"}, "Flex_S2": {"barcode": "BC002"}, "Flex_S3": {"barcode": "BC003"}}
-    assert linked_samples(libraries[abc]) == {"Flex_S1": {"barcode": "AB001"}, "Flex_S2": {"barcode": "AB002"}, "Flex_S3": {"barcode": "AB003"}}
+    # v1 GEX probes use BCxxx, the matching antibody barcodes ABxxx; v2 barcodes are shared by GEX and ABC.
+    assert linked_samples(libraries[gex]) == {"Flex_S1": {"barcode": "BC001;BC004"}, "Flex_S2": {"barcode": "BC002"}, "Flex_S3": {"barcode": "A-F01"}}
+    assert linked_samples(libraries[abc]) == {"Flex_S1": {"barcode": "AB001;AB004"}, "Flex_S2": {"barcode": "AB002"}, "Flex_S3": {"barcode": "A-F01"}}
 
     assert [f.name for f in libraries[abc].features] == ["CD19"]
     assert_features_only_on_abc_libraries(libraries)

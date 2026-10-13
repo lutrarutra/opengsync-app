@@ -23,7 +23,7 @@ from .._http import (
 def _add_index(
     session: SyncSession,
     library: models.Library,
-    sequence_i7: str = "ACGTACGT",
+    sequence_i7: str = "ACGTAGGT",
     sequence_i5: str | None = None,
     orientation: C.BarcodeOrientation | None = C.BarcodeOrientation.FORWARD_NOT_VALIDATED,
     index_kit_i7: models.IndexKit | None = None,
@@ -50,8 +50,9 @@ def _add_index(
 PREFIX = "/htmx/workflows/index-check"
 CSRF = "test-csrf"
 
-VERIFY_COLUMNS = ["Library [Index ID]", "Orientation", "i7 Name", "i7 Sequence", "i5 Name", "i5 Sequence"]
-ORIENTATION_LABELS = {"forward": "Forward", "reverse_complement": "Reverse Complement"}
+VERIFY_COLUMNS = ["Library [Index ID]", "i7 Name", "i7 Sequence", "i7 Orientation", "i5 Name", "i5 Sequence", "i5 Orientation"]
+SEQ_I7, ORIENTATION_I7, SEQ_I5, ORIENTATION_I5 = 2, 3, 5, 6
+ORIENTATION_LABELS = {"forward": "Forward", "reverse_complement": "Reverse Complement", None: ""}
 
 
 def _verify_rows(verify_page) -> list[list]:
@@ -61,12 +62,21 @@ def _verify_rows(verify_page) -> list[list]:
     return ast.literal_eval(match.group(1))
 
 
-def _verify_payload(verify_page, orientations: list[str]) -> dict[str, str]:
-    """Set the orientation of each rendered row and submit the spreadsheet like the browser does."""
+def _verify_payload(verify_page, orientations: list[str | tuple[str | None, str | None]]) -> dict[str, str]:
+    """Set the orientations of each rendered row and submit the spreadsheet like the browser does.
+
+    A plain string sets the i7 orientation, and the i5 orientation too if the row has an i5 barcode;
+    an (i7, i5) tuple sets both explicitly.
+    """
     rows = _verify_rows(verify_page)
     assert len(rows) == len(orientations)
     for row, orientation in zip(rows, orientations):
-        row[1] = ORIENTATION_LABELS[orientation]
+        if isinstance(orientation, tuple):
+            orientation_i7, orientation_i5 = orientation
+        else:
+            orientation_i7, orientation_i5 = orientation, orientation if row[SEQ_I5] else None
+        row[ORIENTATION_I7] = ORIENTATION_LABELS[orientation_i7]
+        row[ORIENTATION_I5] = ORIENTATION_LABELS[orientation_i5]
     return spreadsheet_payload(VERIFY_COLUMNS, rows)
 
 
@@ -217,7 +227,7 @@ class TestIndexCheckCompleteSubmit:
         """POST complete updates DB and redirects."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        idx = _add_index(session, lib, sequence_i7="ACGTACGT")
+        idx = _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())
@@ -396,7 +406,7 @@ class TestVerifyOrientations:
         kit = create_index_kit(session)
         _add_index(
             session, lib,
-            sequence_i7="ACGTACGT",
+            sequence_i7="ACGTAGGT",
             index_kit_i7=kit,
             name_i7="i7_index",
             orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED,
@@ -423,7 +433,7 @@ class TestVerifyOrientations:
         """Custom index with Forward selection keeps sequence, sets FORWARD."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())
@@ -446,7 +456,7 @@ class TestVerifyOrientations:
         """Custom index with RC selection reverse-complements sequence and sets FORWARD."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        original_seq = "ACGTACGT"
+        original_seq = "ACGTAGGT"
         idx = _add_index(session, lib, sequence_i7=original_seq)
         session.commit()
 
@@ -473,12 +483,12 @@ class TestVerifyOrientations:
         insider: models.User,
         insider_token: str,
     ):
-        """Dual-index library with both i7 and i5 unvalidated gets corrected."""
+        """Reverse complementing both barcodes of a custom dual index changes both sequences."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
         idx = _add_index(
             session, lib,
-            sequence_i7="ACGTACGT",
+            sequence_i7="ACGTAGGT",
             sequence_i5="TGCAACGT",
             orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED,
         )
@@ -489,12 +499,14 @@ class TestVerifyOrientations:
 
         verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
         response = self._complete_workflow(
-            client, insider_token, params, verify_page, ["forward"]
+            client, insider_token, params, verify_page, [("reverse_complement", "reverse_complement")]
         )
         assert response.status_code in (200, 204)
 
         session.expire_all()
         updated_idx = session.get_one(Q.library_index.select(id=idx.id))
+        assert updated_idx.sequence_i7 == models.Barcode.reverse_complement("ACGTAGGT")
+        assert updated_idx.sequence_i5 == models.Barcode.reverse_complement("TGCAACGT")
         assert updated_idx.orientation == C.BarcodeOrientation.FORWARD
 
     def test_verify_null_orientation_custom_index(
@@ -507,7 +519,7 @@ class TestVerifyOrientations:
         """A custom index without orientation is picked up and can be reverse-complemented."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        original_seq = "ACGTACGT"
+        original_seq = "ACGTAGGT"
         idx = _add_index(session, lib, sequence_i7=original_seq, orientation=None)
         session.commit()
 
@@ -516,7 +528,7 @@ class TestVerifyOrientations:
 
         verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
         assert verify_page.status_code == 200
-        assert _verify_rows(verify_page) == [[f"{lib.name} [{idx.id}]", "Forward", "i7_index", original_seq, "", ""]]
+        assert _verify_rows(verify_page) == [[f"{lib.name} [{idx.id}]", "i7_index", original_seq, "Forward", "", "", ""]]
 
         response = self._complete_workflow(
             client, insider_token, params, verify_page, ["reverse_complement"]
@@ -537,11 +549,11 @@ class TestVerifyOrientations:
         insider: models.User,
         insider_token: str,
     ):
-        """Kit i7 with a custom i5 needs manual verification; RC only changes the custom i5."""
+        """Kit i7 with a custom i5 needs manual verification; the custom i5 is reverse complemented on its own."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
         kit = create_index_kit(session)
-        seq_i7, seq_i5 = "ACGTACGT", "TTGGCCAA"
+        seq_i7, seq_i5 = "ACGTAGGT", "TTGGCCAC"
         idx = _add_index(
             session, lib,
             sequence_i7=seq_i7, sequence_i5=seq_i5,
@@ -557,7 +569,7 @@ class TestVerifyOrientations:
         assert verify_page.status_code == 200
 
         response = self._complete_workflow(
-            client, insider_token, params, verify_page, ["reverse_complement"]
+            client, insider_token, params, verify_page, [("forward", "reverse_complement")]
         )
         assert response.status_code in (200, 204)
 
@@ -593,6 +605,130 @@ class TestVerifyOrientations:
         session.expire_all()
         assert session.get_one(Q.library_index.select(id=idx.id)).orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
 
+    def test_verify_i7_i5_orientations_independent(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """i7 and i5 orientations are chosen separately; only the reverse complemented barcode changes."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        idx_a = _add_index(session, lib, sequence_i7="AAAACCCC", sequence_i5="GGGGAAAA")
+        idx_b = _add_index(session, lib, sequence_i7="CCCCTTTT", sequence_i5="TTTTGGGG")
+        session.commit()
+
+        params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
+        verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
+        response = self._complete_workflow(
+            client, insider_token, params, verify_page,
+            [("forward", "reverse_complement"), ("reverse_complement", "forward")],
+        )
+        assert_htmx_redirect(response, f"/seq_requests/{sr.id}")
+
+        session.expire_all()
+        updated_a = session.get_one(Q.library_index.select(id=idx_a.id))
+        assert updated_a.sequence_i7 == "AAAACCCC"
+        assert updated_a.sequence_i5 == models.Barcode.reverse_complement("GGGGAAAA")
+        assert updated_a.orientation == C.BarcodeOrientation.FORWARD
+        updated_b = session.get_one(Q.library_index.select(id=idx_b.id))
+        assert updated_b.sequence_i7 == models.Barcode.reverse_complement("CCCCTTTT")
+        assert updated_b.sequence_i5 == "TTTTGGGG"
+        assert updated_b.orientation == C.BarcodeOrientation.FORWARD
+
+    def test_verify_kit_i7_reverse_complement_rejected_with_custom_i5(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """A kit i7 cannot be reverse complemented even when its i5 is custom."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        kit = create_index_kit(session)
+        idx = _add_index(session, lib, sequence_i5="TTGGCCAC", index_kit_i7=kit, name_i7="i7_index")
+        session.commit()
+
+        params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
+        verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
+        response = post_form(
+            client, f"{PREFIX}/verify-orientations",
+            _verify_payload(verify_page, [("reverse_complement", "forward")]),
+            token=insider_token, params=params,
+        )
+        assert_form_invalid(response, "Barcodes from a kit are always in forward orientation.")
+
+        session.expire_all()
+        assert session.get_one(Q.library_index.select(id=idx.id)).orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
+
+    def test_verify_i5_orientation_without_i5_rejected(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """A single-index row cannot have an i5 orientation."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
+        session.commit()
+
+        params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
+        verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
+        response = post_form(
+            client, f"{PREFIX}/verify-orientations",
+            _verify_payload(verify_page, [("forward", "reverse_complement")]),
+            token=insider_token, params=params,
+        )
+        assert_form_invalid(response, "Index has no i5 barcode.")
+
+    def test_verify_missing_i5_orientation_rejected(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """A dual-index row needs an i5 orientation."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        _add_index(session, lib, sequence_i7="ACGTAGGT", sequence_i5="TTGGCCAC")
+        session.commit()
+
+        params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
+        verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
+        response = post_form(
+            client, f"{PREFIX}/verify-orientations",
+            _verify_payload(verify_page, [("forward", None)]),
+            token=insider_token, params=params,
+        )
+        assert_form_invalid(response, "Select the orientation of the i5 barcode.")
+
+    def test_verify_prefills_kit_barcode_forward(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """With REVERSE_COMPLEMENT_NOT_VALIDATED, only the custom barcode is pre-filled as Reverse Complement."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        kit = create_index_kit(session)
+        _add_index(
+            session, lib, sequence_i5="TTGGCCAC", index_kit_i7=kit, name_i7="i7_index",
+            orientation=C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED,
+        )
+        session.commit()
+
+        params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
+        verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
+        [row] = _verify_rows(verify_page)
+        assert (row[ORIENTATION_I7], row[ORIENTATION_I5]) == ("Forward", "Reverse Complement")
+
     def test_verify_sorted_rows_match_their_index(
         self,
         client: OpenGSyncTestClient,
@@ -610,11 +746,11 @@ class TestVerifyOrientations:
         params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
         verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
         rows = _verify_rows(verify_page)
-        assert [row[3] for row in rows] == ["AAAACCCC", "GGGGTTTT"]
+        assert [row[SEQ_I7] for row in rows] == ["AAAACCCC", "GGGGTTTT"]
 
         # Submit in reverse order: reverse complement only idx_b
         rows = rows[::-1]
-        rows[0][1], rows[1][1] = "Reverse Complement", "Forward"
+        rows[0][ORIENTATION_I7], rows[1][ORIENTATION_I7] = "Reverse Complement", "Forward"
         post_form(
             client, f"{PREFIX}/verify-orientations",
             spreadsheet_payload(VERIFY_COLUMNS, rows),
@@ -636,13 +772,13 @@ class TestVerifyOrientations:
         """Only the index id and orientation are read: a changed sequence is not saved."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        idx = _add_index(session, lib, sequence_i7="ACGTACGT")
+        idx = _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
         verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
         rows = _verify_rows(verify_page)
-        rows[0][3] = "TTTTTTTT"
+        rows[0][SEQ_I7] = "TTTTTTTT"
         response = post_form(
             client, f"{PREFIX}/verify-orientations",
             spreadsheet_payload(VERIFY_COLUMNS, rows),
@@ -653,7 +789,7 @@ class TestVerifyOrientations:
 
         session.expire_all()
         updated_idx = session.get_one(Q.library_index.select(id=idx.id))
-        assert updated_idx.sequence_i7 == "ACGTACGT"
+        assert updated_idx.sequence_i7 == "ACGTAGGT"
         assert updated_idx.orientation == C.BarcodeOrientation.FORWARD
 
     def test_verify_unknown_index_id_rejected(
@@ -666,7 +802,7 @@ class TestVerifyOrientations:
         """A row whose index id is not part of the workflow is rejected and nothing is saved."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        idx = _add_index(session, lib, sequence_i7="ACGTACGT")
+        idx = _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
@@ -678,7 +814,8 @@ class TestVerifyOrientations:
             spreadsheet_payload(VERIFY_COLUMNS, rows),
             token=insider_token, params=params,
         )
-        assert_form_invalid(response, "Row does not match an index of the selected libraries.")
+        # Caught by the spreadsheet: the Library [Index ID] value is not one of the column's categories
+        assert_form_invalid(response, f"Invalid value '{lib.name} [{idx.id + 100000}]'")
 
         session.expire_all()
         assert session.get_one(Q.library_index.select(id=idx.id)).orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
@@ -715,6 +852,34 @@ class TestVerifyOrientations:
         assert unchanged.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
         assert len(session.get_one(Q.library.select(id=lib.id)).indices) == 1
 
+    def test_complete_summary_shows_reverse_complement_per_barcode(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """The confirmation step shows separately whether i7 and i5 were reverse complemented."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        _add_index(session, lib, sequence_i7="AAAACCCC", sequence_i5="GGGGAAAA")
+        session.commit()
+
+        params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
+        verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
+        response = post_form(
+            client, f"{PREFIX}/verify-orientations",
+            _verify_payload(verify_page, [("forward", "reverse_complement")]),
+            token=insider_token, params=params,
+        )
+        assert response.status_code == 200
+        assert "i7 Reverse Complemented" in response.text
+        assert "i5 Reverse Complemented" in response.text
+        badges = re.findall(r'<span class="badge bg-(?:warning text-dark|success)">(Yes|No)</span>', response.text)
+        assert badges == ["No", "Yes"]
+        assert "AAAACCCC" in response.text
+        assert models.Barcode.reverse_complement("GGGGAAAA") in response.text
+
     def test_verify_prefills_and_restores_orientation(
         self,
         client: OpenGSyncTestClient,
@@ -722,25 +887,28 @@ class TestVerifyOrientations:
         insider: models.User,
         insider_token: str,
     ):
-        """REVERSE_COMPLEMENT_NOT_VALIDATED is pre-filled as Reverse Complement, and choices survive going back."""
+        """REVERSE_COMPLEMENT_NOT_VALIDATED is pre-filled as Reverse Complement, and i7 and i5 choices survive going back."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="AAAACCCC", orientation=C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED)
-        _add_index(session, lib, sequence_i7="GGGGTTTT", orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
+        _add_index(session, lib, sequence_i7="AAAACCCC", sequence_i5="CCCCAAAA", orientation=C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED)
+        _add_index(session, lib, sequence_i7="GGGGTTTT", sequence_i5="TTTTGGGG", orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
         session.commit()
+
+        def orientations(page):
+            return [(row[ORIENTATION_I7], row[ORIENTATION_I5]) for row in _verify_rows(page)]
 
         params = {"seq_request_id": sr.id, "uuid": str(uuid_mod.uuid4())}
         verify_page = self._navigate_to_verify(client, insider_token, params, [lib.id], session)
-        assert [row[1] for row in _verify_rows(verify_page)] == ["Reverse Complement", "Forward"]
+        assert orientations(verify_page) == [("Reverse Complement", "Reverse Complement"), ("Forward", "Forward")]
 
         post_form(
             client, f"{PREFIX}/verify-orientations",
-            _verify_payload(verify_page, ["forward", "reverse_complement"]),
+            _verify_payload(verify_page, [("forward", "reverse_complement"), ("reverse_complement", "forward")]),
             token=insider_token, params=params,
         )
         verify_page = get(client, f"{PREFIX}/verify-orientations", insider_token, params=params, htmx=True)
         assert verify_page.status_code == 200
-        assert [row[1] for row in _verify_rows(verify_page)] == ["Forward", "Reverse Complement"]
+        assert orientations(verify_page) == [("Forward", "Reverse Complement"), ("Reverse Complement", "Forward")]
 
 
 # ── Phase D: Completion ──────────────────────────────────────────────────────
@@ -804,7 +972,7 @@ class TestComplete:
         """After completion, Redis keys for the workflow UUID are deleted."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())
@@ -830,7 +998,7 @@ class TestComplete:
         """After completion, redirect goes back to the seq_request page."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())
@@ -849,10 +1017,10 @@ class TestComplete:
         insider: models.User,
         insider_token: str,
     ):
-        """Completing the workflow from a seq_request marks the index_check review step."""
+        """Completing the workflow from a seq_request completes the derived index_check review step."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())
@@ -868,6 +1036,7 @@ class TestComplete:
         checklist = sr.get_review_checklist()
         assert checklist["index_check"] is True
         assert checklist["check_barcodes"] is True
+        assert "index_check" not in (sr.review_checklist or {})
 
     def test_complete_partial_does_not_mark_review_checklist(
         self,
@@ -880,7 +1049,7 @@ class TestComplete:
         sr = create_seq_request(session, insider)
         lib1 = create_library(session, insider, sr)
         lib2 = create_library(session, insider, sr)
-        _add_index(session, lib1, sequence_i7="ACGTACGT")
+        _add_index(session, lib1, sequence_i7="ACGTAGGT")
         _add_index(session, lib2, sequence_i7="TTTTAAAA")
         session.commit()
 
@@ -900,27 +1069,48 @@ class TestComplete:
 # ── Phase E: Review checklist integration ────────────────────────────────────
 
 class TestReviewChecklist:
-    def test_index_check_checklist_default_pooled(
+    @pytest.mark.parametrize("submission_type", [C.SubmissionType.POOLED_LIBRARIES, C.SubmissionType.UNPOOLED_LIBRARIES])
+    def test_index_check_unvalidated_custom_index(
         self,
         session: SyncSession,
         insider: models.User,
+        submission_type: C.SubmissionType,
     ):
-        """For POOLED_LIBRARIES submission, index_check defaults to False."""
-        sr = create_seq_request(session, insider, submission_type=C.SubmissionType.POOLED_LIBRARIES)
+        """A custom index that is not validated leaves index_check incomplete."""
+        sr = create_seq_request(session, insider, submission_type=submission_type)
+        lib = create_library(session, insider, sr)
+        _add_index(session, lib, orientation=C.BarcodeOrientation.FORWARD)
+        _add_index(session, lib, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
         session.commit()
-        checklist = sr.get_review_checklist()
-        assert checklist["index_check"] is False
+        assert sr.get_review_checklist()["index_check"] is False
 
-    def test_index_check_checklist_default_unpooled(
+    def test_index_check_validated_or_kit_indices(
         self,
         session: SyncSession,
         insider: models.User,
     ):
-        """For UNPOOLED_LIBRARIES submission, index_check defaults to False."""
-        sr = create_seq_request(session, insider, submission_type=C.SubmissionType.UNPOOLED_LIBRARIES)
+        """index_check is complete once every index is validated or from a kit."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        kit = create_index_kit(session)
+        _add_index(session, lib, orientation=C.BarcodeOrientation.FORWARD)
+        _add_index(session, lib, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED, index_kit_i7=kit)
         session.commit()
-        checklist = sr.get_review_checklist()
-        assert checklist["index_check"] is False
+        assert sr.get_review_checklist()["index_check"] is True
+
+    def test_index_check_ignores_stored_flag(
+        self,
+        session: SyncSession,
+        insider: models.User,
+    ):
+        """A stored index_check flag does not override the index state."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        _add_index(session, lib, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
+        sr.review_checklist = {"index_check": True}
+        session.save(sr)
+        session.commit()
+        assert sr.get_review_checklist()["index_check"] is False
 
     def test_index_check_checklist_default_raw_samples(
         self,
@@ -953,6 +1143,7 @@ class TestReviewChecklist:
     ):
         """index_check cannot be checked via the generic review-check endpoint."""
         sr = create_seq_request(session, insider)
+        _add_index(session, create_library(session, insider, sr))
         session.commit()
 
         response = post_form(
@@ -964,6 +1155,41 @@ class TestReviewChecklist:
         session.expire_all()
         sr = session.get_one(Q.seq_request.select(id=sr.id))
         assert sr.get_review_checklist()["index_check"] is False
+        assert "index_check" not in (sr.review_checklist or {})
+
+    def test_index_check_uncheck_resets_orientations(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """Unchecking index_check marks every index of the request as FORWARD_NOT_VALIDATED, and only of that request."""
+        sr = create_seq_request(session, insider)
+        lib = create_library(session, insider, sr)
+        kit = create_index_kit(session)
+        idx_custom = _add_index(session, lib, orientation=C.BarcodeOrientation.FORWARD)
+        idx_kit = _add_index(session, lib, index_kit_i7=kit, orientation=C.BarcodeOrientation.FORWARD)
+        other_sr = create_seq_request(session, insider)
+        idx_other = _add_index(session, create_library(session, insider, other_sr), orientation=C.BarcodeOrientation.FORWARD)
+        session.commit()
+        assert sr.get_review_checklist()["index_check"] is True
+
+        response = post_form(
+            client, f"/htmx/seq_requests/{sr.id}/review-uncheck/index_check",
+            {}, token=insider_token, htmx=True,
+        )
+        assert_htmx_redirect(response, f"/seq_requests/{sr.id}")
+
+        session.expire_all()
+        for idx in (idx_custom, idx_kit):
+            assert session.get_one(Q.library_index.select(id=idx.id)).orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
+        assert session.get_one(Q.library_index.select(id=idx_other.id)).orientation == C.BarcodeOrientation.FORWARD
+        sr = session.get_one(Q.seq_request.select(id=sr.id))
+        checklist = sr.get_review_checklist()
+        assert checklist["index_check"] is False
+        assert checklist["check_barcodes"] is False
+        assert "index_check" not in (sr.review_checklist or {})
 
     def test_check_barcodes_unvalidated_custom_index(
         self,
@@ -1108,7 +1334,7 @@ class TestEdgeCases:
         """Library with REVERSE_COMPLEMENT_NOT_VALIDATED orientation is included and RC'd."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        original_seq = "ACGTACGT"
+        original_seq = "ACGTAGGT"
         idx = _add_index(
             session, lib,
             sequence_i7=original_seq,
@@ -1171,7 +1397,7 @@ class TestEdgeCases:
         """Workflow started with lab_prep_id works."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         # Create a lab prep (simplified — use any valid lab_prep_id approach)
@@ -1203,7 +1429,7 @@ class TestEdgeCases:
         """Workflow started with pool_id works."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         pool = session.save(Q.pool.create(
             name="Test Pool",
             owner_id=insider.id,
@@ -1234,7 +1460,7 @@ class TestEdgeCases:
         """Back button returns to previous step with preserved state."""
         sr = create_seq_request(session, insider)
         lib = create_library(session, insider, sr)
-        _add_index(session, lib, sequence_i7="ACGTACGT")
+        _add_index(session, lib, sequence_i7="ACGTAGGT")
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())

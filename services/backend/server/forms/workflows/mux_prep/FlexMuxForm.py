@@ -144,5 +144,5 @@ class FlexMuxForm(MuxPrepWorkflowStep):
                 return form.workflow.get_next_step(form).make_response()
 
             FlexMuxForm.update_barcodes(session, form.flex_table)
-            return form.workflow.complete_to_lab_prep()
+            return form.workflow.complete_to_lab_prep(tab="mux-tab")
         return route

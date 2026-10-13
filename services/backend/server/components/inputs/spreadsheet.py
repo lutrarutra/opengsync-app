@@ -17,6 +17,8 @@ from ..tables.spreadsheet import (
     DBObjectColumn,
     SpreadSheetColumn,
     SpreadSheetException,
+    InvalidCellValue,
+    MissingCellValue,
 )
 from ...core import responses
 
@@ -266,7 +268,8 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             for c in col_names
         ]
 
-        df = df.dropna(how="all")
+        # Positions index the rows below (enumerate, df.at, table_data), so blank rows must not leave gaps
+        df = df.dropna(how="all").reset_index(drop=True)
 
         if df.empty:
             if not self.can_be_empty:
@@ -279,8 +282,21 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         for column in self.columns.values():
             if not isinstance(column, DBObjectColumn) or column.label not in df.columns:
                 continue
+            # The column is replaced by its backend columns here, so it is validated here too
+            # (the per-column validation below never sees it)
+            column._ensure_categories()
             for idx, value in df[column.label].items():
-                for target_column, target_value in column.expand(value).items():
+                try:
+                    if pd.isna(value):
+                        if column.required:
+                            raise MissingCellValue(f"Missing value for '{column.label}'")
+                    elif column.categories and value not in column.rev_categories:
+                        raise InvalidCellValue(f"Invalid value '{value}' for '{column.label}'.")
+                    expanded = column.expand(value)
+                except SpreadSheetException as e:
+                    self.add_error(idx, column.label, e)
+                    expanded = column.expand(None)
+                for target_column, target_value in expanded.items():
                     df.loc[idx, target_column] = target_value
             df = df.drop(columns=[column.label])
             df = column.cast_backend_columns(df)

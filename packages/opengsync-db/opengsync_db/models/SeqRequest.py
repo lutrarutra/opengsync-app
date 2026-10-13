@@ -135,8 +135,7 @@ class SeqRequest(Base):
         checklist["samples_checked"] = checklist.get("samples_checked", False)
         checklist["check_submission_date"] = checklist.get("check_submission_date", False)
         checklist["check_barcodes"] = self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] or self.all_indices_validated()
-        checklist["index_check"] = checklist.get("index_check",
-            None if self.submission_type in [SubmissionType.RAW_SAMPLES, SubmissionType.QC_ONLY] else False)
+        checklist["index_check"] = None if self.submission_type in [SubmissionType.RAW_SAMPLES, SubmissionType.QC_ONLY] else self.all_indices_validated()
         checklist["auth_form_checked"] = checklist.get("auth_form_checked", None if self.seq_auth_form_file is None else False)
         checklist["submission_processed"] = self.status > SeqRequestStatus.SUBMITTED
 

@@ -277,8 +277,10 @@ class HTMXForm(ABC):
                 all_sub_forms_valid = False
 
         for field in self.input_fields:
-            field.raw_data = self.raw_data.get(field.name, field.default)
+            field.raw_data = self.raw_data.get(field.name, self._submitted_default(field))
             field.errors = []
+            if isinstance(field, inputs.boolean.BooleanInputField):
+                continue  # unchecked (missing) is a valid value
             if field.required:
                 if field.raw_data is None or (isinstance(field.raw_data, str) and field.raw_data.strip() == ""):
                     field.errors.append(f"{field.label} is required")
@@ -301,7 +303,7 @@ class HTMXForm(ABC):
         try:
             mapped_data = {}
             for field in pydantic_fields:
-                raw_value = self.raw_data.get(field.name, field.default)
+                raw_value = self.raw_data.get(field.name, self._submitted_default(field))
                 if isinstance(field, inputs.boolean.BooleanInputField):
                     raw_value = field.validate_value(raw_value)
                 mapped_data[field.name] = raw_value
@@ -424,6 +426,12 @@ class HTMXForm(ABC):
     def is_valid(self) -> bool:
         """Check if form and all sub-forms have no errors"""
         return len(self.errors) == 0
+
+    @staticmethod
+    def _submitted_default(field: BaseInputField) -> Any:
+        """Value of a field missing from a submission: an unchecked checkbox sends nothing, so a
+        missing boolean is False (not its default, which only applies to the initial render)."""
+        return None if isinstance(field, inputs.boolean.BooleanInputField) else field.default
 
     def assert_valid(self) -> None:
         """Raise FormValidationException if the form is not valid"""

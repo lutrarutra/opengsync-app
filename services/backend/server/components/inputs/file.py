@@ -136,11 +136,21 @@ class FileInputField(BaseInputField, Generic[_DataT]):
         
         if os.path.exists(path):
             raise FileExistsError(f"File already exists at {path}.")
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         
         with open(path, "wb") as f:
             f.write(self.data.content)
 
 _SpreadsheetDataT = TypeVar("_SpreadsheetDataT", pd.DataFrame, pd.DataFrame | None, covariant=True)
+
+
+class _UploadedSpreadsheet:
+    """Upload-like view (``filename``, ``file``, ``content_type``) of a middleware upload dict."""
+    def __init__(self, filename: str, file: io.BytesIO, content_type: str):
+        self.filename = filename
+        self.file = file
+        self.content_type = content_type
 
 
 class SpreadsheetFileField(FileInputField, Generic[_SpreadsheetDataT]):
@@ -335,6 +345,14 @@ class SpreadsheetFileField(FileInputField, Generic[_SpreadsheetDataT]):
 
         upload_file = raw_data.get(self.name)
 
+        # The form-data middleware stores uploads as dicts (see FileInputField.validate)
+        if isinstance(upload_file, dict):
+            upload_file = _UploadedSpreadsheet(
+                filename=upload_file.get("filename") or "",
+                file=io.BytesIO(upload_file.get("content") or b""),
+                content_type=upload_file.get("content_type") or "",
+            )
+
         # Handle missing or empty file upload
         if upload_file is None or (hasattr(upload_file, "filename") and not upload_file.filename):
             if self.required:
@@ -408,8 +426,16 @@ class SpreadsheetFileField(FileInputField, Generic[_SpreadsheetDataT]):
             self.errors = list(self._errors)
             return False
 
-        # Delegate to the same column validation SpreadsheetInputField uses
+        # As legacy SpreadsheetFile: every column not marked optional must be in the file
         col_names = [str(c) for c in df.columns]
+        missing = [label for label, column in self.columns.items() if label not in col_names and not column.optional_col]
+        if missing:
+            for label in missing:
+                self._errors.append(f"Column '{label}' is missing in the spreadsheet.")
+            self.errors = list(self._errors)
+            return False
+
+        # Delegate to the same column validation SpreadsheetInputField uses
         result = self._spreadsheet._validate_dataframe(df, col_names)
         self.errors = list(self._errors)
         return result

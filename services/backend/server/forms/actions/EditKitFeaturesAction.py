@@ -12,17 +12,24 @@ from ...components.tables.spreadsheet import TextColumn, DuplicateCellValue
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
+def _remove_white_spaces(value: str | None) -> str | None:
+    return parsing.make_alpha_numeric(value, keep=[], replace_white_spaces_with="")
+
+
 class EditKitFeaturesAction(HTMXForm):
     template_path = "forms/edit-kit-features.html"
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=3, required=True),
-        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False),
-        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True),
+        TextColumn(
+            "identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False, unique=True,
+            clean_up_fnc=parsing.normalize_to_ascii, validation_fnc=parsing.check_string,
+        ),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=_remove_white_spaces),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, required=True),
-        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True),
-        TextColumn("target_name", "Target Name", 200, max_length=models.Feature.target_name.type.length, min_length=3, required=False),
-        TextColumn("target_id", "Target ID", 200, max_length=models.Feature.target_id.type.length, min_length=3, required=False),
+        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=_remove_white_spaces),
+        TextColumn("target_name", "Target Name", 200, max_length=models.Feature.target_name.type.length, min_length=3, required=False, clean_up_fnc=_remove_white_spaces),
+        TextColumn("target_id", "Target ID", 200, max_length=models.Feature.target_id.type.length, min_length=3, required=False, clean_up_fnc=_remove_white_spaces),
     ])
 
     def __init__(self, feature_kit: models.FeatureKit) -> None:
@@ -35,6 +42,7 @@ class EditKitFeaturesAction(HTMXForm):
     def Init(cls) -> FormFunc:
         def dependency(
             feature_kit_id: int,
+            _=Depends(dependencies.require_insider),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "EditKitFeaturesAction":
             feature_kit = session.get_one(
@@ -58,7 +66,6 @@ class EditKitFeaturesAction(HTMXForm):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "EditKitFeaturesAction" = Depends(EditKitFeaturesAction.Init()),
-            _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
         return route
@@ -68,7 +75,6 @@ class EditKitFeaturesAction(HTMXForm):
         def route(
             form: "EditKitFeaturesAction" = Depends(EditKitFeaturesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ):
             df = form.spreadsheet.data
 

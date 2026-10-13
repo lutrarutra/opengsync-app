@@ -43,11 +43,27 @@ def flush_redis(client: OpenGSyncTestClient) -> None:
     Redis(connection_pool=client.app.state.redis_pool).flushdb()
 
 
+def cookie_header(client: TestClient, token: str | None = None, **cookies: str) -> dict[str, str]:
+    """Cookie header of the client's cookies plus ``cookies`` and ``access_token=token``.
+
+    What ``client.post(..., cookies={"access_token": token})`` sent, without Starlette's
+    per-request-cookies deprecation; nothing is stored on the client.
+    """
+    if token:
+        cookies["access_token"] = token
+    if not cookies:
+        return {}
+    merged = {cookie.name: cookie.value for cookie in client.cookies.jar} | cookies
+    return {"Cookie": "; ".join(f"{name}={value}" for name, value in merged.items())}
+
+
 def _request_headers(
+    client: TestClient,
+    token: str | None = None,
     htmx: bool = False,
     headers: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    req_headers: dict[str, str] = {}
+    req_headers: dict[str, str] = cookie_header(client, token)
     if htmx:
         req_headers.update(htmx_headers())
     if headers:
@@ -70,8 +86,7 @@ def post_form(
     return client.post(
         path,
         data=payload,
-        headers=_request_headers(htmx=htmx, headers=headers),
-        cookies={"access_token": token} if token else None,
+        headers=_request_headers(client, token, htmx=htmx, headers=headers),
         params=params,
         follow_redirects=False,
     )
@@ -94,8 +109,7 @@ def post_form_csrf_mismatch(
     return client.post(
         path,
         data=payload,
-        headers=_request_headers(htmx=htmx, headers=headers),
-        cookies={"access_token": token} if token else None,
+        headers=_request_headers(client, token, htmx=htmx, headers=headers),
         params=params,
         follow_redirects=False,
     )
@@ -116,8 +130,7 @@ def put_form(
     return client.put(
         path,
         data=payload,
-        headers=_request_headers(htmx=htmx, headers=headers),
-        cookies={"access_token": token} if token else None,
+        headers=_request_headers(client, token, htmx=htmx, headers=headers),
         params=params,
         follow_redirects=False,
     )
@@ -131,11 +144,10 @@ def get(
     **kwargs,
 ):
     extra_headers = kwargs.pop("headers", {})
-    headers = _request_headers(htmx=htmx, headers=extra_headers)
+    headers = _request_headers(client, token, htmx=htmx, headers=extra_headers)
     return client.get(
         path,
         headers=headers,
-        cookies={"access_token": token} if token else None,
         follow_redirects=False,
         **kwargs,
     )
@@ -143,11 +155,10 @@ def get(
 
 def delete(client: TestClient, path: str, token: str | None = None, htmx: bool = False, **kwargs):
     extra_headers = kwargs.pop("headers", {})
-    headers = _request_headers(htmx=htmx, headers=extra_headers)
+    headers = _request_headers(client, token, htmx=htmx, headers=extra_headers)
     return client.delete(
         path,
         headers=headers,
-        cookies={"access_token": token} if token else None,
         follow_redirects=False,
         **kwargs,
     )

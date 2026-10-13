@@ -4,6 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
+import sqlalchemy as sa
 from sqlalchemy import orm
 import pandas as pd
 
@@ -682,7 +683,7 @@ def check_seq_request_review_step(
         raise exc.NoPermissionsException()
 
     if step == "index_check":
-        raise exc.BadRequestException("Index orientations can only be checked by completing the Index Check workflow.")
+        raise exc.BadRequestException("Index orientations are checked automatically once all indices are validated or from a kit.")
     if step == "check_barcodes":
         raise exc.BadRequestException("Barcodes are checked automatically once all indices are in forward orientation or from a kit.")
 
@@ -714,10 +715,17 @@ def uncheck_seq_request_review_step(
 
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.review_checklist is None:
-        seq_request.review_checklist = {}
-    seq_request.review_checklist[step] = False
-    session.save(seq_request)
+    if step == "index_check":
+        # The step is derived from the indices: orientations have to be validated again through the Index Check workflow
+        for index in session.execute(
+            sa.select(models.LibraryIndex).join(models.LibraryIndex.library).where(models.Library.seq_request_id == seq_request.id)
+        ).scalars():
+            index.orientation = C.BarcodeOrientation.FORWARD_NOT_VALIDATED
+    else:
+        if seq_request.review_checklist is None:
+            seq_request.review_checklist = {}
+        seq_request.review_checklist[step] = False
+        session.save(seq_request)
 
     return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-review-tab"),

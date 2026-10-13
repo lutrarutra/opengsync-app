@@ -89,6 +89,9 @@ class SelectSamplesForm(QubitMeasureWorkflowStep):
         def route(
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Validate()),
         ) -> Response:
+            if not (form.selected_sample_ids.data or form.selected_library_ids.data or form.selected_pool_ids.data or form.selected_lane_ids.data):
+                form.add_general_error("Select at least one sample, library, pool or lane.")
+                form.assert_valid()
             form.workflow.metadata["selected_sample_ids"] = form.selected_sample_ids.data
             form.workflow.metadata["selected_library_ids"] = form.selected_library_ids.data
             form.workflow.metadata["selected_pool_ids"] = form.selected_pool_ids.data

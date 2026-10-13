@@ -9,7 +9,6 @@ from opengsync_db import models, queries as Q, SyncSession, categories as C
 from ....core import context, dependencies, responses
 from ...HTMXForm import RouteFunc, htmx_route
 from .IndexCheckWorkflow import IndexCheckWorkflowStep, IndexCheckWorkflow
-from .SelectLibrariesForm import _is_unvalidated_orientation
 
 
 class CompleteIndexCheckForm(IndexCheckWorkflowStep):
@@ -47,7 +46,8 @@ class CompleteIndexCheckForm(IndexCheckWorkflowStep):
                 "library_name": result["library_name"],
                 "library": SimpleNamespace(index_type=index.library.index_type, indices=[preview]),
                 "orientation": preview.orientation,
-                "was_reverse_complemented": result.get("was_reverse_complemented", False),
+                "was_reverse_complemented_i7": result.get("was_reverse_complemented_i7", False),
+                "was_reverse_complemented_i5": result.get("was_reverse_complemented_i5", False),
             })
         self._context["summary"] = summary
 
@@ -79,35 +79,21 @@ class CompleteIndexCheckForm(IndexCheckWorkflowStep):
                 # Set orientation to FORWARD
                 index.orientation = C.BarcodeOrientation.FORWARD
 
-                # If reverse-complemented, update the sequence
-                if result.get("was_reverse_complemented"):
-                    new_seq_i7 = result.get("sequence_i7")
-                    new_seq_i5 = result.get("sequence_i5")
-                    if new_seq_i7 is not None:
-                        index.sequence_i7 = new_seq_i7
-                    if new_seq_i5 is not None:
-                        index.sequence_i5 = new_seq_i5
+                # Update the sequence of each reverse-complemented barcode
+                if result.get("was_reverse_complemented_i7") and (new_seq_i7 := result.get("sequence_i7")) is not None:
+                    index.sequence_i7 = new_seq_i7
+                if result.get("was_reverse_complemented_i5") and (new_seq_i5 := result.get("sequence_i5")) is not None:
+                    index.sequence_i5 = new_seq_i5
 
             session.flush()
 
             flash = responses.flash("Index orientations validated!", "success")
 
-            # Mark the review checklist step, but only if no unvalidated indices remain in the request
+            # The review checklist step is derived from the indices, so only warn if some are still unvalidated
             if form.workflow.seq_request_id is not None:
                 seq_request = session.get_one(Q.seq_request.select(id=form.workflow.seq_request_id))
-                libraries = session.execute(
-                    Q.library.select(seq_request_id=seq_request.id).options(
-                        orm.selectinload(models.Library.indices),
-                    )
-                ).scalars().all()
-
-                if any(_is_unvalidated_orientation(index.orientation) for library in libraries for index in library.indices):
+                if not seq_request.all_indices_validated():
                     flash = responses.flash("Some libraries in this request still have unvalidated index orientations.", "warning")
-                else:
-                    if seq_request.review_checklist is None:
-                        seq_request.review_checklist = {}
-                    seq_request.review_checklist["index_check"] = True
-                    session.save(seq_request)
 
             form.workflow.complete()
 

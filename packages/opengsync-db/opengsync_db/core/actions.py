@@ -1,6 +1,7 @@
 import string
 from datetime import datetime
 from typing import Optional, Literal, Sequence
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from .. import models, exceptions, categories as C, queries as Q, to_utc
@@ -391,14 +392,11 @@ def set_library_seq_quality(
 def remove_all_barcodes_from_kit(
     session: Session, index_kit: models.IndexKit, flush: bool = True
 ) -> models.IndexKit:
-    for adapter in index_kit.adapters:
-        for barcode in adapter.barcodes_i7:
-            session.delete(barcode)
-            
-        for barcode in adapter.barcodes_i5:
-            session.delete(barcode)
-
-        session.delete(adapter)
+    # Bulk delete: a barcode is reachable through both Adapter.barcodes_i7 and Adapter.barcodes_i5,
+    # so deleting through the ORM issued its DELETE twice (SAWarning: 0 rows matched).
+    session.execute(sa.delete(models.Barcode).where(models.Barcode.index_kit_id == index_kit.id))
+    session.execute(sa.delete(models.Adapter).where(models.Adapter.index_kit_id == index_kit.id))
+    session.expire(index_kit, ["adapters", "barcodes"])
 
     if flush:
         session.flush()

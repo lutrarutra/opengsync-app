@@ -438,6 +438,7 @@
                     <li>Check that index orientations are correct (Forward vs Reverse Complement).</li>
                     <li>Kit-matched indexes will be automatically set to Forward orientation.</li>
                     <li>Custom indexes require manual verification of orientation.</li>
+                    <li>Unchecking marks all indices of this request as Forward (Not Validated).</li>
                 </ul>
                 <hr>
                 <p>
@@ -478,7 +479,7 @@
                     Uncheck
                 </button>
                 {% elif index_check is not none %}
-                <i>This step is checked automatically once the workflow is completed.</i>
+                <i>This step is checked automatically once all indices are validated or from a kit.</i>
                 {% endif %}
             </div>
         </div>
@@ -487,9 +488,9 @@
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_barcodes" aria-expanded="false" aria-controls="request-review-accordion-check_barcodes">
                 {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
-                <b>🚫 Check Barcodes</b>
+                <b>🚫 Check Barcode Clashes</b>
                 {% else %}
-                <b>{% if check_barcodes %}✅{% else %}⚠️{% endif %} Check Barcodes</b>
+                <b>{% if check_barcodes %}✅{% else %}⚠️{% endif %} Check Barcodes Clashes</b>
                 {% endif %}
             </button>
         </h2>

@@ -241,7 +241,10 @@ def _resolve_user(
 ) -> models.User | None:
     """Shared helper to fetch user from cache or DB and schedule cache updates."""
     if (user := __get_cached_user(f"user:{user_id}", r)) is not None:
-        return user
+        # Attach the cached copy to the request session (no DB query); if the session already
+        # holds this user (e.g. as a comment author), merge returns that instance instead,
+        # avoiding "another instance with key ... is already present" on cascade.
+        return session.merge(user, load=False)
 
     if (user := session.first(Q.user.select(id=user_id))) is None:
         return None
