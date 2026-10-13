@@ -1,0 +1,7 @@
+{% from "components/assignee_list.jinja2" import feed_assignees %}
+{{ feed_assignees(
+    seq_request.assignees, current_user,
+    refresh_url=url_for('render_seq_request_feed_assignees', seq_request_id=seq_request.id),
+    assign_url=url_for('self_assign_seq_request', seq_request_id=seq_request.id),
+    unassign_url=url_for('remove_seq_request_assignee', seq_request_id=seq_request.id, assignee_id=current_user.id),
+) }}

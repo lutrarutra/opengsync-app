@@ -94,8 +94,9 @@ class QCLanesForm(LaneQCWorkflowStep):
         ) -> Response:
             for entry in form.fields:
                 lane = session.first(Q.lane.select(id=entry.lane_id.data))
-                if lane is None:
-                    raise exc.NotFoundException(f"Lane with id {entry.lane_id.data} not found.")
+                # Only this experiment's lanes (the access check covered this experiment only)
+                if lane is None or lane.experiment_id != form.workflow.experiment_id:
+                    raise exc.NotFoundException(f"Lane with id {entry.lane_id.data} not found in this experiment.")
                 lane.original_qubit_concentration = entry.qubit_concentration.data
                 lane.avg_fragment_size = entry.avg_fragment_size.data
                 lane.phi_x = entry.phi_x.data

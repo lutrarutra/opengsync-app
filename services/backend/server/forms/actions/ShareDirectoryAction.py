@@ -83,6 +83,11 @@ class ShareDirectoryAction(HTMXForm):
             if not current_user.is_insider:
                 raise exc.NoPermissionsException()
 
+            # As legacy's SelectField: only the offered validity periods
+            if form.time_valid_min.data not in dict(TIME_VALID_CHOICES):
+                form.time_valid_min.errors.append("Not a valid choice.")
+                raise exc.FormValidationException(form)
+
             # Each address is validated by its EmailInputField, and min_elements requires at least one.
             recipients = [entry.email.data for entry in form.recipients]
 

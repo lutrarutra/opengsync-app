@@ -19,7 +19,7 @@
 | 1 | **Library Annotation** | `workflows/library_annotation/` | `workflows/library_annotation/` | Full multi-step: ProjectSelect → SampleAnnotation → SampleAttributeAnnotation → SelectService → (Feature/OpenST/Visium/CRISPR/PooledLibrary) → BarcodeInput → BarcodeMatch → CompleteSAS. All sub-forms migrated. |
 | 2 | **BA Report** | `workflows/ba_report/` | `workflows/ba_report/` | Multi-step: SelectSamples → UploadBA/ParseBAExcel → CompleteBA. All forms migrated. |
 | 3 | **Qubit Measure** | `workflows/qubit_measure/` | `workflows/qubit_measure/` | Multi-step: SelectSamples → QubitMeasure → CompleteQubitMeasure. All forms migrated. |
-| 4 | **Add Kits to Protocol** | `workflows/add_protocol_kits/` | `workflows/add_kits_to_protocol/` | Delegates to `AddKitsToProtocolAction`. Fully migrated. |
+| 4 | **Add Kits to Protocol** | `workflows/add_protocol_kits/` | `actions/AddKitsToProtocolAction.py` | Ported as an action, mounted at `/htmx/protocols/{id}/add-kits`. Fully migrated. |
 | 5 | **Relib** | `workflows/relib/` | `workflows/relib/` | Two-step: SelectSamples → LibraryEditTable. Library field spreadsheet edit with Previous navigation. |
 | 6 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | Two-step: SelectSamples → MergePoolsForm. Combines selected pools into a new pool with pipet ratios, barcode clash preview, and Previous navigation. |
 | 7 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | SelectSamples → BarcodeInput → (TENXATAC and/or BarcodeMatch) → CompleteReindex. Library validation, TENX ATAC `sequence_1`–`4` completion, barcode-match kit apply, Previous on every step, and lab-prep unindexed pre-selection. |

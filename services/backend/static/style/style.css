@@ -1,3 +1,5 @@
+@import "./vendor/jspreadsheet/jspreadsheet.css";
+@import "./vendor/jspreadsheet/jspreadsheet.themes.css";
 @import "./colors.css";
 @import "./scrollbar.css";
 @import "./theme.css";
@@ -20,6 +22,7 @@
 @import "./search-select.css";
 @import "./global-search.css";
 @import "./chat.css";
+@import "./spreadsheet.css";
 
 .assignee-badge {
     height: 24px;
@@ -99,32 +102,6 @@ pre.code {
     font-family: Consolas, Courier, monospace; 
     font-size: 14px; 
     color: #333;
-}
-
-.spreadsheet-grid {
-    .jss_content {
-        border: none !important;
-        box-shadow: none !important;
-    }
-    tbody tr {
-        td {
-            font-family: monospace !important;
-            text-align: right !important;
-        }
-        td:first-child {
-            text-align: right !important;
-        }
-        td.jss_dropdown {
-            text-align: left !important;
-        }
-    }
-    thead td {
-        font-weight: 600;
-    }
-
-    td.readonly {
-        color: var(--color-cemm-blue-darker) !important;
-    }
 }
 
 .htmx-indicator {
@@ -445,18 +422,6 @@ body {
             text-wrap: nowrap;
             color: var(--color-danger);
             font-size: 14px;
-        }
-    }
-
-    .spreadsheet-grid {
-        width: 100%;
-        height: 100%;
-
-        .jexcel_content {
-            box-shadow: none !important;
-            border: none !important;
-            display: flex;
-            justify-content: center;
         }
     }
 }

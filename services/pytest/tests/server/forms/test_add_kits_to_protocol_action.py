@@ -101,6 +101,15 @@ def test_render_does_not_change_links(
     assert _links(session, protocol) == [(kits[0].id, 1)]
 
 
+def test_protocol_page_button_opens_the_protocols_route(client: TestClient, protocol: models.Protocol, insider_token: str):
+    """Mounted only under /htmx/protocols (it used to be mounted under /htmx/workflows too)."""
+    response = get(client, f"/protocols/{protocol.id}", insider_token)
+
+    assert response.status_code == 200, response.text
+    assert f'{_path(protocol.id)}"' in response.text
+    assert get(client, f"/htmx/workflows/{protocol.id}/add-kits", insider_token).status_code == 404
+
+
 # ── Access ──────────────────────────────────────────────────────────────────
 
 

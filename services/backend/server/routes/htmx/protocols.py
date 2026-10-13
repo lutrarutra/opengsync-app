@@ -4,6 +4,7 @@ from sqlalchemy import orm
 import sqlalchemy as sa
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db.core import utils as db_utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ... import forms
@@ -47,6 +48,35 @@ def render_protocol_table(
     stmt = Q.protocol.search(name=name, statement=stmt)
     protocols = table.paginate(session, stmt, page=page)
     return table.make_response(protocols=protocols)
+
+
+QUERY_PAGE_SIZE = 20
+
+
+@router.get("/query")
+def query_protocols(
+    word: str | None = Query(None, description="Search word for protocol name"),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    service_type_in: list[C.ServiceType] | None = Depends(dependencies.parse_enum_ids(C.ServiceType, "service_type_in")),
+    session: SyncSession = Depends(dependencies.db_session),
+) -> Response:
+    """Options for a spreadsheet QueryColumn. Protocols are visible to every user."""
+    stmt = Q.protocol.select(service_type_in=service_type_in)
+    if word:
+        # Names containing the word first, then similar names (typos)
+        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        contains = models.Protocol.name.ilike(f"%{escaped}%", escape="\\")
+        similarity = sa.func.similarity(models.Protocol.name, word)
+        stmt = stmt.where(sa.or_(contains, db_utils.safe_trgm_search(models.Protocol.name, word))).order_by(
+            sa.case((contains, 0), else_=1), similarity.desc(), models.Protocol.name.asc(),
+        )
+    else:
+        stmt = stmt.order_by(models.Protocol.name.asc())
+    protocols, count = session.page(stmt, page=page, limit=QUERY_PAGE_SIZE)
+    return responses.query_options_response(
+        ((protocol.id, protocol.name) for protocol in protocols),
+        has_more=(page + 1) * QUERY_PAGE_SIZE < count,
+    )
 
 
 @router.delete("/{protocol_id}/delete", dependencies=[Depends(dependencies.require_admin)])

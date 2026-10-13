@@ -1,7 +1,7 @@
 import json
 import io
 from pathlib import Path
-from typing import Literal
+from typing import Iterable, Literal
 from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
@@ -18,6 +18,13 @@ class FlashMessage(BaseModel):
 
 def flash(message: str, category: Literal["info", "success", "warning", "error"] = "info") -> FlashMessage:
     return FlashMessage(message=message, category=category)
+
+def query_options_response(options: Iterable[tuple[int, str]], *, has_more: bool) -> JSONResponse:
+    """A page of options for a spreadsheet QueryColumn: ``{"options": [{"id", "name"}], "has_more"}``."""
+    return JSONResponse({
+        "options": [{"id": option_id, "name": name} for option_id, name in options],
+        "has_more": has_more,
+    })
 
 def raw_json_response(*, data: str | bytes, encapsulate: str | None = None) -> Response:
     if encapsulate:

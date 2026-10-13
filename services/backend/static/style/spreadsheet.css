@@ -1,0 +1,312 @@
+@import "./colors.css";
+
+/* Layout: a spreadsheet fills the height left in its pane (below anything rendered above it) and only the
+   rows scroll, under the sticky header. An explicit height on the container opts out (flex: none) */
+.modal-body:has(> .spreadsheet-container),
+.tab-pane.active:has(> .spreadsheet-container) {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body.tab-body > .tab-pane:has(> .spreadsheet-container) {
+    flex: 1;
+    min-height: 0;
+}
+
+.spreadsheet-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 300px;
+    margin-bottom: 0.75rem;
+
+    > .spreadsheet-grid {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+    }
+
+    /* Worksheet wrappers; jSuites hides the unselected worksheets */
+    .jtabs-content,
+    .jtabs-content > .jss_container.jtabs-selected {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        padding-right: 0;
+    }
+
+    .jss_content {
+        flex: 1;
+        min-height: 0;
+    }
+}
+
+/* jspreadsheet theme. The fork's theme variables (vendor/jspreadsheet/jspreadsheet.themes.css) are mapped
+   to the platform colours, the rules below cover what has no variable (frame, spacing, editor, menus) */
+.jss_spreadsheet {
+    --border_color: var(--color-gray-300);
+    --border_color_highlighted: var(--color-cemm-blue);
+    --header_background: var(--color-gray-100);
+    --header_color: var(--color-gray-700);
+    --header_background_highlighted: color-mix(in srgb, var(--color-cemm-blue) 15%, var(--color-white));
+    --header_color_highlighted: var(--color-cemm-blue-dark);
+    --content_background: var(--color-white);
+    --content_color: var(--color-gray-900);
+    --selection: color-mix(in srgb, var(--color-cemm-blue) 8%, transparent);
+    --cursor: transparent;
+    --menu_background: var(--color-white);
+    --menu_color: var(--color-gray-900);
+    --menu_background_highlighted: var(--color-gray-100);
+    --menu_color_highlighted: var(--color-gray-900);
+    --menu_box_shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+
+    --jss-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+
+    /* Rounded frame around the grid; the outer cell borders are dropped so they don't double up with it */
+    .jss_content {
+        padding: 0;
+        border: 1px solid var(--color-gray-300);
+        border-radius: var(--bs-border-radius);
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-gray-400) transparent;
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+            background-color: var(--color-gray-400);
+            border-radius: 10px;
+        }
+    }
+
+    .jss_worksheet {
+        border: 0;
+
+        > thead > tr > td {
+            border-top-color: transparent;
+            padding: 6px 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        > tbody > tr > td {
+            padding: 6px 8px;
+            font-family: monospace;
+            font-size: 0.9375rem;
+            /* jspreadsheet aligns columns with an inline style */
+            text-align: right !important;
+        }
+
+        > thead > tr > td:first-child,
+        > tbody > tr > td:first-child {
+            border-left-color: transparent;
+        }
+
+        /* Row numbers */
+        > tbody > tr > td:first-child {
+            font-family: inherit;
+            font-size: 0.75rem;
+            text-align: center !important;
+            color: var(--color-gray-600);
+        }
+
+        > tbody > tr > td.jss_dropdown {
+            text-align: left !important;
+            padding-right: 26px;
+            background-image: var(--jss-chevron);
+            background-size: 12px;
+            background-position: right 8px center;
+        }
+
+        /* Query column (static/js/jss-query-column.js), looks like a dropdown */
+        > tbody > tr > td.jss_query {
+            text-align: left !important;
+            padding-right: 26px;
+            background-image: var(--jss-chevron);
+            background-repeat: no-repeat;
+            background-size: 12px;
+            background-position: right 8px center;
+        }
+
+        /* Text that is not one of the options */
+        > tbody > tr > td.jss_query_unresolved {
+            color: var(--bs-danger);
+        }
+
+        > tbody > tr > td.jss_query_editor {
+            position: relative;
+            overflow: visible;
+        }
+
+        .jss_query_input {
+            width: 100%;
+            height: 100%;
+            padding: 0 8px;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            font: inherit;
+            color: inherit;
+        }
+
+        .jss_query_list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 10;
+            margin-top: 4px;
+            padding: 0.25rem;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            background-color: var(--color-white);
+            border: 1px solid rgba(0, 0, 0, 0.175);
+            border-radius: var(--bs-border-radius);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            font-family: var(--bs-body-font-family);
+            font-size: 0.875rem;
+            text-align: left;
+            white-space: normal;
+            cursor: default;
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-gray-400) transparent;
+
+            &.jss_query_up {
+                top: auto;
+                bottom: 100%;
+                margin-top: 0;
+                margin-bottom: 4px;
+            }
+        }
+
+        .jss_query_item {
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--bs-border-radius-sm);
+            color: var(--color-gray-900);
+            line-height: 1.3;
+            cursor: pointer;
+
+            &:hover,
+            &.jss_query_cursor {
+                background-color: var(--color-gray-100);
+            }
+
+            &.jss_query_selected {
+                background-color: var(--color-cemm-blue);
+                color: var(--color-white);
+            }
+
+            &.jss_query_selected.jss_query_cursor {
+                background-color: var(--color-cemm-blue-dark);
+            }
+        }
+
+        .jss_query_status {
+            padding: 0.375rem 0.75rem;
+            color: var(--color-gray-500);
+        }
+
+        > tbody > tr > td.readonly {
+            color: var(--color-cemm-blue-darker);
+        }
+
+        /* Active cell: thicker outline in the accent colour */
+        .highlight-selected {
+            box-shadow: inset 0 0 0 1px var(--color-cemm-blue);
+        }
+
+        /* Copied range and fill-handle drag */
+        .copying-top { border-top-color: var(--color-cemm-blue); }
+        .copying-left { border-left-color: var(--color-cemm-blue); }
+        .copying-right { border-right-color: var(--color-cemm-blue); }
+        .copying-bottom { border-bottom-color: var(--color-cemm-blue); }
+        .selection-top { border-top-color: var(--color-cemm-blue); }
+        .selection-left { border-left-color: var(--color-cemm-blue); }
+        .selection-right { border-right-color: var(--color-cemm-blue); }
+        .selection-bottom { border-bottom-color: var(--color-cemm-blue); }
+
+        > tbody > tr > td.editor {
+            padding: 0;
+            background-color: var(--color-white);
+            box-shadow: inset 0 0 0 2px var(--color-cemm-blue);
+        }
+
+        .editor > input {
+            padding: 0 8px;
+            font: inherit;
+        }
+
+        .jdropdown-header {
+            font: inherit;
+            background: transparent var(--jss-chevron) no-repeat right 8px center / 12px;
+        }
+
+        .jdropdown-container {
+            margin-top: 4px;
+        }
+    }
+
+    /* Fill handle */
+    .jss_corner {
+        background-color: var(--color-cemm-blue);
+    }
+
+    /* Dropdown editor, styled like a Bootstrap dropdown menu */
+    .jdropdown-default .jdropdown-content {
+        padding: 0.25rem;
+        border: 1px solid rgba(0, 0, 0, 0.175);
+        border-radius: var(--bs-border-radius);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        max-height: 300px;
+        font-family: var(--bs-body-font-family);
+        font-size: 0.875rem;
+    }
+
+    .jdropdown-default .jdropdown-item {
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--bs-border-radius-sm);
+        color: var(--color-gray-900);
+        line-height: 1.3;
+    }
+
+    .jdropdown-default .jdropdown-item:hover,
+    .jdropdown-default .jdropdown-cursor {
+        background-color: var(--color-gray-100);
+        color: var(--color-gray-900);
+    }
+
+    .jdropdown-default .jdropdown-selected,
+    .jdropdown-default .jdropdown-selected:hover {
+        background-color: var(--color-cemm-blue);
+        color: var(--color-white);
+    }
+
+    /* Right-click menu */
+    .jss_contextmenu {
+        padding: 0.25rem;
+        border: 1px solid rgba(0, 0, 0, 0.175);
+        border-radius: var(--bs-border-radius);
+        box-shadow: var(--menu_box_shadow);
+        font-family: var(--bs-body-font-family);
+
+        > div {
+            width: 220px;
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--bs-border-radius-sm);
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+
+        > div span {
+            color: var(--color-gray-500);
+        }
+
+        hr {
+            margin: 0.25rem 0;
+            border-color: var(--color-gray-200);
+        }
+    }
+}

@@ -22,19 +22,20 @@ class LaneRowSchema(BaseModel):
 
 
 class LoadFlowCellCombinedAction(HTMXForm):
-    template_path = "workflows/experiment/load_flow_cell-1.2.html"
+    template_path = "actions/load-flow-cell-combined.html"
 
-    phi_x = inputs.numeric.FloatInputField("Phi X %", required=True, ge=0.0)
-    measured_qubit = inputs.numeric.FloatInputField("Qubit Concentration After Dilution", required=False, ge=0.0)
-    target_molarity = inputs.numeric.FloatInputField("Target Molarity (nM)", required=False, ge=0.0)
-    total_volume_ul = inputs.numeric.FloatInputField("Total Volume (µL)", required=False, ge=0.0)
+    phi_x = inputs.numeric.FloatInputField("Phi X %", required=True, ge=0.0, unit="%")
+    measured_qubit = inputs.numeric.FloatInputField("Qubit Concentration After Dilution", required=False, ge=0.0, unit="ng/μL")
+    target_molarity = inputs.numeric.FloatInputField("Target Molarity (nM)", required=False, ge=0.0, unit="nM")
+    total_volume_ul = inputs.numeric.FloatInputField("Total Volume (µL)", required=False, ge=0.0, unit="μL")
 
-    avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", read_only=True)
-    qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration", read_only=True)
-    lane_molarity = inputs.numeric.FloatInputField("Lane Molarity", read_only=True)
-    sequencing_molarity = inputs.numeric.FloatInputField("Sequencing Molarity", read_only=True)
-    library_volume = inputs.numeric.FloatInputField("Library Volume", read_only=True)
-    eb_volume = inputs.numeric.FloatInputField("EB Volume", read_only=True)
+    # Display only (as legacy: no validators); the template posts them back with the form
+    avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", required=False, read_only=True, unit="bp")
+    qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration", required=False, read_only=True, unit="ng/μL")
+    lane_molarity = inputs.numeric.FloatInputField("Lane Molarity", required=False, read_only=True, unit="nM")
+    sequencing_molarity = inputs.numeric.FloatInputField("Sequencing Molarity", required=False, read_only=True, unit="nM")
+    library_volume = inputs.numeric.FloatInputField("Library Volume", required=False, read_only=True, unit="μL")
+    eb_volume = inputs.numeric.FloatInputField("EB Volume", required=False, read_only=True, unit="μL")
 
     def __init__(self, experiment: models.Experiment) -> None:
         super().__init__()
@@ -58,7 +59,7 @@ class LoadFlowCellCombinedAction(HTMXForm):
                 orm.selectinload(models.Experiment.lanes)
             ))
             if not experiment.workflow.combined_lanes:
-                raise exc.OpeNGSyncServerException(
+                raise exc.BadRequestException(
                     "This experiment uses a separate lane workflow, not a combined lane workflow."
                 )
             return cls(experiment=experiment)
@@ -95,12 +96,12 @@ class LoadFlowCellCombinedAction(HTMXForm):
             if row.phi_x is not None:
                 form.phi_x.data = row.phi_x
 
-            form.avg_fragment_size._data = row.avg_fragment_size
-            form.qubit_concentration._data = row.original_qubit_concentration
-            form.lane_molarity._data = row.lane_molarity
-            form.sequencing_molarity._data = row.sequencing_molarity
-            form.library_volume._data = library_volume
-            form.eb_volume._data = eb_volume
+            form.avg_fragment_size.data = row.avg_fragment_size
+            form.qubit_concentration.data = row.original_qubit_concentration
+            form.lane_molarity.data = row.lane_molarity
+            form.sequencing_molarity.data = row.sequencing_molarity
+            form.library_volume.data = library_volume
+            form.eb_volume.data = eb_volume
 
             form._context["df"] = df
             return form.make_response()

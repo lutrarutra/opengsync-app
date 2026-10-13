@@ -155,3 +155,127 @@ def test_split_project_creates_destination_with_source_owner_and_group(
     assert destination.status == C.ProjectStatus.DELIVERED
     assert destination.assignees == []
     assert session.first(Q.sample.select(id=source_sample.id)).project_id == destination.id
+
+
+PREFIX = "/htmx/workflows/split-project"
+
+
+def _to_confirm(client, token, params, sample_ids, destination: dict[str, str]):
+    get(client, f"{PREFIX}/begin", token, params=params)
+    assert post_form(
+        client, f"{PREFIX}/select-samples", {"selected_sample_ids": json.dumps(sample_ids)}, token=token, params=params,
+    ).status_code == 200
+    response = post_form(client, f"{PREFIX}/project-select", destination, token=token, params=params)
+    assert response.status_code == 200, response.text
+    return response
+
+
+def test_split_project_back_navigation_keeps_choices_and_can_change_destination(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token,
+):
+    source = create_project(session, user)
+    destination = create_project(session, user)
+    sample = create_sample(session, user, source)
+    session.commit()
+    params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
+
+    confirm = _to_confirm(client, insider_token, params, [sample.id], {
+        "new_project": "Split Back Project", "project_description": "Chosen first, then replaced.",
+    })
+    assert "project-select" in confirm.text  # back link to the destination step
+
+    back = get(client, f"{PREFIX}/project-select", insider_token, params=params)
+    assert back.status_code == 200
+    assert "Split Back Project" in back.text and "Chosen first, then replaced." in back.text
+
+    back = get(client, f"{PREFIX}/select-samples", insider_token, params=params)
+    assert back.status_code == 200
+    assert str(sample.id) in back.text
+
+    # Choose an existing project instead and finish
+    assert post_form(
+        client, f"{PREFIX}/project-select", {"existing_project": str(destination.id)}, token=insider_token, params=params,
+    ).status_code == 200
+    response = post_form(
+        client, f"{PREFIX}/confirm-split", {"destination_status": str(C.ProjectStatus.DRAFT.id)}, token=insider_token, params=params,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{destination.id}")
+    session.expire_all()
+    assert session.first(Q.sample.select(id=sample.id)).project_id == destination.id
+    assert session.first(Q.project.select(title="Split Back Project", owner_id=user.id)) is None
+
+
+def test_split_project_owner_without_insider_role_is_denied_on_every_step(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    user_token,
+):
+    """Insider-only even for the source project's owner."""
+    source = create_project(session, user)
+    destination = create_project(session, user)
+    sample = create_sample(session, user, source)
+    session.commit()
+    params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
+
+    assert post_form(client, f"{PREFIX}/select-samples", {"selected_sample_ids": json.dumps([sample.id])}, token=user_token, params=params).status_code == 403
+    assert post_form(client, f"{PREFIX}/project-select", {"existing_project": str(destination.id)}, token=user_token, params=params).status_code == 403
+    assert post_form(client, f"{PREFIX}/confirm-split", {"destination_status": str(C.ProjectStatus.DRAFT.id)}, token=user_token, params=params).status_code == 403
+    for path in ("select-samples", "project-select"):
+        assert get(client, f"{PREFIX}/{path}", user_token, params=params).status_code == 403
+
+    session.expire_all()
+    assert session.first(Q.sample.select(id=sample.id)).project_id == source.id
+
+
+def test_split_project_unknown_source_is_404(client: OpenGSyncTestClient, insider_token):
+    assert get(client, f"{PREFIX}/begin", insider_token, params={"project_id": 999999}).status_code == 404
+
+
+def test_split_project_failure_after_creating_destination_rolls_back(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token,
+):
+    """The split fails after the new destination was flushed; the project must not be kept."""
+    source = create_project(session, user)
+    sample = create_sample(session, user, source)
+    session.commit()
+    params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
+    _to_confirm(client, insider_token, params, [sample.id, sample.id], {
+        "new_project": "Split Rollback Project", "project_description": "Must not survive the failed split.",
+    })
+
+    response = post_form(
+        client, f"{PREFIX}/confirm-split", {"destination_status": str(C.ProjectStatus.DRAFT.id)}, token=insider_token, params=params,
+    )
+
+    assert_form_invalid(response, "A sample may only be selected once.")
+    session.expire_all()
+    assert session.first(Q.project.select(title="Split Rollback Project", owner_id=user.id)) is None
+    assert session.first(Q.sample.select(id=sample.id)).project_id == source.id
+
+
+def test_split_project_confirm_without_workflow_state_is_rejected(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token,
+):
+    source = create_project(session, user)
+    sample = create_sample(session, user, source)
+    session.commit()
+    params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
+
+    response = post_form(
+        client, f"{PREFIX}/confirm-split", {"destination_status": str(C.ProjectStatus.DRAFT.id)}, token=insider_token, params=params,
+    )
+
+    assert_form_invalid(response, "incomplete")
+    session.expire_all()
+    assert session.first(Q.sample.select(id=sample.id)).project_id == source.id

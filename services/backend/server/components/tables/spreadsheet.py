@@ -1,8 +1,10 @@
-from typing import Optional, Literal, Any, Type, Callable, Sequence, cast
+import numbers
+from typing import Optional, Literal, Any, Type, Callable, Iterable, Sequence, cast
 from dataclasses import dataclass
 
 import pandas as pd
 from loguru import logger
+from starlette.datastructures import URL
 
 
 
@@ -37,7 +39,7 @@ class NotUniqueCellValue(SpreadSheetException):
 class SpreadSheetColumn:
     label: str
     name: str
-    type: Literal["text", "numeric", "dropdown"]
+    type: Literal["text", "numeric", "dropdown", "query"]
     width: float
     var_type: Type
     source: Optional[Any] = None
@@ -262,7 +264,7 @@ class CategoricalDropDown(SpreadSheetColumn):
 
 
 class DBObjectColumn(CategoricalDropDown):
-    """Render several DataFrame fields as one selectable object column."""
+    """Render an object's id and name DataFrame columns as one selectable "name [id]" column."""
 
     def __init__(
         self,
@@ -270,47 +272,36 @@ class DBObjectColumn(CategoricalDropDown):
         label: str,
         width: float,
         categories: dict[Any, str] | Callable[[], dict[Any, str]],
-        types: tuple[type, ...] | None = None,
         required: bool = False,
+        unique: bool = False,
+        all_options_required: bool = False,
         read_only: bool = False,
     ):
-        if len(columns) < 2:
-            raise ValueError("DBObjectColumn requires at least two DataFrame columns.")
-        if types is not None and len(types) != len(columns):
-            raise ValueError("DBObjectColumn types must match the number of columns.")
-        super().__init__(label, label, width, categories, required, read_only=read_only)
+        if len(columns) != 2:
+            raise ValueError("DBObjectColumn requires an id and a name DataFrame column.")
+        super().__init__(label, label, width, categories, required, unique=unique, read_only=read_only)
         self.backend_columns = columns
-        self.backend_types = types
-
-    @property
-    def pandas_dtypes(self) -> tuple[pd.api.extensions.ExtensionDtype | None, ...] | None:
-        if self.backend_types is None:
-            return None
-
-        dtype_map: dict[type, pd.api.extensions.ExtensionDtype] = {
-            int: pd.Int64Dtype(),
-            float: pd.Float64Dtype(),
-            str: pd.StringDtype(),
-            bool: pd.BooleanDtype(),
-        }
-        try:
-            return tuple(dtype_map[type_] for type_ in self.backend_types)
-        except KeyError as error:
-            raise TypeError(
-                f"Unsupported DBObjectColumn type: {error.args[0]!r}. "
-                "Supported types are int, float, str, and bool."
-            ) from error
+        self.all_options_required = all_options_required
 
     def cast_backend_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Cast configured backend columns using nullable pandas dtypes."""
-        dtypes = self.pandas_dtypes
-        if dtypes is None:
-            return df
-
-        for column, dtype in zip(self.backend_columns, dtypes):
-            if column in df.columns and dtype is not None:
-                df[column] = df[column].astype(dtype)
+        """Cast the id column to Int64 and the name column to string."""
+        id_column, name_column = self.backend_columns
+        if id_column in df.columns:
+            df[id_column] = df[id_column].astype(pd.Int64Dtype())
+        if name_column in df.columns:
+            df[name_column] = df[name_column].astype(pd.StringDtype())
         return df
+
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        self._ensure_categories()
+        if pd.isna(value):
+            if self.required:
+                raise MissingCellValue(f"Missing value for '{self.label}'")
+            return
+        if self.categories and value not in self.rev_categories:
+            raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
+        if self.unique and list(column_values).count(value) > 1:
+            raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
 
     def to_display_row(self, row: pd.Series) -> Any:
         self._ensure_categories()
@@ -337,7 +328,64 @@ class DBObjectColumn(CategoricalDropDown):
             object_id = int(identifier[:-1])
         except ValueError as error:
             raise InvalidCellValue(f"Invalid ID in '{value}' for '{self.label}'.") from error
-        values = {self.backend_columns[0]: object_id, self.backend_columns[1]: name.strip()}
-        for column in self.backend_columns[2:]:
-            values[column] = None
-        return values
+        return {self.backend_columns[0]: object_id, self.backend_columns[1]: name.strip()}
+
+
+class QueryColumn(SpreadSheetColumn):
+    """Column whose options are searched on the backend instead of being sent with the page.
+
+    The cell shows the option name and submits its id. The editor requests ``url`` with ``word`` and ``page``
+    and expects ``responses.query_options_response``. ``lookup`` returns the names of the given ids that the user
+    may select: it names the ids shown in the table and rejects submitted ids that are unknown or not allowed.
+    """
+
+    def __init__(
+        self, label: str, name: str, width: float,
+        url: URL | Callable[[], URL],
+        lookup: Callable[[Sequence[int]], dict[int, str]],
+        required: bool = False, letter: str | None = None, optional_col: bool = False, unique: bool = False,
+        read_only: bool = False,
+    ):
+        super().__init__(
+            label=label, name=name, type="query", width=width, var_type=int,
+            letter=letter, required=required, optional_col=optional_col, unique=unique, read_only=read_only,
+        )
+        self._url = url
+        self.lookup = lookup
+        self.labels: dict[int, str] = {}
+
+    @property
+    def url(self) -> URL:
+        return self._url() if callable(self._url) else self._url
+
+    def set_url(self, url: URL | Callable[[], URL]) -> None:
+        """Change the queried route, e.g. to add query parameters from the request context."""
+        self._url = url
+
+    @staticmethod
+    def to_id(value: Any) -> int | None:
+        """The id in a cell, None for empty cells and text that was not resolved to an option."""
+        if isinstance(value, bool) or pd.isna(value):
+            return None
+        if isinstance(value, numbers.Integral):
+            return int(value)
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        return None
+
+    def set_labels(self, values: Iterable[Any]) -> None:
+        """Look up the names of the ids in the table."""
+        ids = sorted({object_id for value in values if (object_id := self.to_id(value)) is not None})
+        self.labels = self.lookup(ids) if ids else {}
+
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        super().validate(value, column_values)
+        if pd.isna(value):
+            return
+        if (object_id := self.to_id(value)) is None or object_id not in self.labels:
+            raise InvalidCellValue(f"Unknown {self.name.lower()} '{value}'.")
+
+    def clean_up(self, value: Any, ignore_missing: bool = False) -> int | None:
+        if pd.isna(value):
+            return super().clean_up(value, ignore_missing=ignore_missing)
+        return self.to_id(value)

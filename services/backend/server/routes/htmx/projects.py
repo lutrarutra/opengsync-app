@@ -83,7 +83,8 @@ def render_project_table(
         table.filter_values["library_types"] = library_types_in
 
     stmt = Q.project.select(
-        user_id=user_id,
+        # user tab lists only owned projects (matches User.num_projects tab count)
+        owner_id=user_id,
         experiment_id=experiment_id,
         seq_request_id=seq_request_id,
         group_id=group_id,
@@ -610,7 +611,21 @@ def add_project_assignee(
         raise exc.BadRequestException("User is already an assignee.")
 
     project.assignees.append(current_user)
+    session.save(project)
     return responses.htmx_response(flash=responses.flash("Assignee Added!", "success"))
+
+
+@router.get("/{project_id}/feed-assignees", dependencies=[Depends(dependencies.require_insider)])
+def render_project_feed_assignees(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    """Re-render the dashboard feed assign/unassign controls after a (un)assign."""
+    project = session.get_one(
+        Q.project.select(id=project_id),
+        options=[orm.selectinload(models.Project.assignees)],
+    )
+    return responses.htmx_response(template="components/dashboard/project-assignees.html", project=project)
 
 
 @router.delete("/{project_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])

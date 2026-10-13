@@ -70,6 +70,11 @@ class ShareProjectDataAction(HTMXForm):
         return form
 
     def _collect_recipients(self, current_user: models.User) -> None:
+        # As legacy's SelectField: only the offered validity periods
+        if self.time_valid_min.data not in dict(TIME_VALID_CHOICES):
+            self.time_valid_min.errors.append("Not a valid choice.")
+            return
+
         if not current_user.is_insider and self.time_valid_min.data > DEFAULT_TIME_VALID_MIN:
             self.add_general_error(
                 f"You don't have permissions to create a link that lasts more than {DEFAULT_TIME_VALID_MIN} minutes."

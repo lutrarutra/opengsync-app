@@ -6,11 +6,9 @@ from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, exceptions as exc, responses
+from ...core import dependencies, responses
 from ...components import inputs
-from ...components.tables.spreadsheet import (
-    TextColumn, IntegerColumn, DropdownColumn, InvalidCellValue,
-)
+from ...components.tables.spreadsheet import TextColumn, DBObjectColumn
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
@@ -21,6 +19,7 @@ class SampleAttributeTableAction(HTMXForm):
         columns=[],
         allow_new_cols=True,
         allow_col_rename=True,
+        allow_new_rows=False
     )
 
     def __init__(self, project: models.Project) -> None:
@@ -41,12 +40,13 @@ class SampleAttributeTableAction(HTMXForm):
             )
             form = SampleAttributeTableAction(project=project)
 
-            # Build columns: sample_id + sample_name + attribute types + any extra columns from DB
-            for col in [
-                IntegerColumn("sample_id", "ID", 50, required=True, read_only=True),
-                DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[s.name for s in project.samples], all_options_required=True, unique=True, read_only=True),
-            ]:
-                form.spreadsheet.add_column(col)
+            # Build columns: sample + attribute types + any extra columns from DB
+            # Every sample of the project once, so a submitted sample is always one of the project's samples
+            form.spreadsheet.add_column(DBObjectColumn(
+                ("sample_id", "sample_name"), "Sample", 250,
+                categories={sample.id: f"{sample.name} [{sample.id}]" for sample in project.samples},
+                required=True, unique=True, all_options_required=True, read_only=True,
+            ))
 
             for attribute_type in C.AttributeType.as_list()[1:]:
                 form.spreadsheet.add_column(
@@ -64,7 +64,7 @@ class SampleAttributeTableAction(HTMXForm):
 
             # Add any extra columns from the data that aren't predefined
             for col in df.columns:
-                if col not in form.spreadsheet.columns:
+                if col not in form.spreadsheet.columns and col not in ("sample_id", "sample_name"):
                     form.spreadsheet.add_column(TextColumn(col, col.replace("_", " ").title(), 100, can_be_deleted=True))
 
             form.spreadsheet.configure(
@@ -94,14 +94,6 @@ class SampleAttributeTableAction(HTMXForm):
         ) -> responses.Response:
             df = form.spreadsheet.data
 
-            if "sample_id" not in df.columns:
-                form.spreadsheet.add_general_error("Missing 'sample_id' column")
-                form.assert_valid()
-
-            if "sample_name" not in df.columns:
-                form.spreadsheet.add_general_error("Missing 'sample_name' column")
-                form.assert_valid()
-
             # Validate column name lengths
             _df = df.drop(columns=["sample_id", "sample_name"])
             if not _df.empty and _df.columns.str.len().min() < 3:
@@ -112,21 +104,6 @@ class SampleAttributeTableAction(HTMXForm):
             if df.columns.duplicated().any():
                 form.spreadsheet.add_general_error("Duplicate column names")
                 form.assert_valid()
-
-            # Validate each row
-            for idx, row in df.iterrows():
-                sample = session.first(Q.sample.select(id=row["sample_id"]))
-                if sample is None:
-                    form.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['sample_id']} does not exist"))
-                    continue
-                if sample.project_id != form.project.id:
-                    form.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['sample_id']} does not belong to this project"))
-                    continue
-                if sample.name != row["sample_name"]:
-                    form.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"Sample name does not match sample with ID {row['sample_id']}"))
-                    continue
-
-            form.assert_valid()
 
             # Save attributes
             for _, row in df.iterrows():

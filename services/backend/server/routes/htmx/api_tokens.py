@@ -24,18 +24,19 @@ def render_api_token_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.APIToken, default=models.APIToken.id.desc())),
-    owner_id: int | None = Query(None, description="Optional owner user ID to filter tokens"),
+    user_id: int | None = Query(None, description="Optional owner user ID to filter tokens"),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = APITokenTable(route="render_api_token_table", page=page, order_by=order_by)
-    stmt = Q.api_token.select(owner_id=owner_id)
+    stmt = Q.api_token.select(owner_id=user_id)
 
-    if owner_id is not None:
-        if session.get_access_level(Q.user.permissions(user_id=owner_id, viewer_id=current_user.id)) < C.AccessLevel.READ:
+    if user_id is not None:
+        if session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.url_params["owner_id"] = owner_id
+        # scoped as user_id (not owner_id) so it doesn't collide with the searchable owner_id column state
+        table.url_params["user_id"] = user_id
         table.template = "components/tables/user-api_token.html"
-        table.context["user"] = session.get_one(Q.user.select(id=owner_id))
+        table.context["user"] = session.get_one(Q.user.select(id=user_id))
     else:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")

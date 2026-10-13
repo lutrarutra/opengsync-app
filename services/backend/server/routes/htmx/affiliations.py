@@ -38,6 +38,7 @@ def render_affiliation_table(
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         table.template = "components/tables/user-affiliation.html"
         table.url_params["user_id"] = user_id
+        table.context["user"] = session.get_one(Q.user.select(id=user_id))
     elif group_id is not None:
         if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")

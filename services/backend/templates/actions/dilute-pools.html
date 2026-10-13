@@ -1,4 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, form_cell %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 
 <div id="pool-dilution-form-container" class="modal-content" style="height: 100%;">
@@ -8,7 +7,7 @@
     </div>
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
         <div id="pool-dilution-form">
-            {{ dilute_pools_form.csrf_token() }}
+            {{ form.csrf_token.render() }}
             <table class="table">
                 <thead>
                     <tr>
@@ -25,11 +24,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for _, row in df.iterrows() %}
-                    {% set sub_form = dilute_pools_form.input_fields[loop.index0] %}
-                    {{ sub_form.csrf_token() }}
+                    {% for row, sub_form in rows %}
+                    {% if sub_form %}
                     <tr>
-                        <th scope="row">{{ row["name"] }} {{ sub_form.pool_id(value=row["id"], hidden=True) }}</th>
+                        <th scope="row">{{ row["name"] }} {{ sub_form.pool_id.render(hide_label=True, hide_errors=True) }}</th>
                         <td class="avg_fragment_size-col">
                             <div class="quantity-container">
                                 <div class="value">{{ row["avg_fragment_size"] }}</div>
@@ -48,8 +46,8 @@
                                 <div class="unit">nM</div>
                             </div>
                         </td>
-                        <td>{{ form_cell(dilute_pools_form.target_molarity, class="col-6 col-xl-3", input_class="target_molarity-col", unit="nM") }}</td>
-                        <td>{{ form_cell(dilute_pools_form.target_total_volume, class="col-6 col-xl-3", input_class="target_vol-col", unit="μL") }}</td>
+                        <td>{{ form.target_molarity.render("target_molarity-col", hide_label=True) }}</td>
+                        <td>{{ form.target_total_volume.render("target_vol-col", hide_label=True) }}</td>
                         <td class="sample_volume-col">
                             <div class="quantity-container">
                                 <div class="value"></div>
@@ -62,7 +60,7 @@
                                 <div class="unit">μL</div>
                             </div>
                         </td>
-                        <td>{{ form_cell(sub_form.qubit_after_dilution, input_class="qubit_after-col", unit="ng/μL") }}</td>
+                        <td>{{ sub_form.qubit_after_dilution.render("qubit_after-col", hide_label=True) }}</td>
                         <td class="molarity-after-col bg-light">
                             <div class="quantity-container">
                                 <div class="value fw-bold"></div>
@@ -70,6 +68,7 @@
                             </div>
                         </td>
                     </tr>
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -82,7 +81,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-            hx-post="{{ url_for('DilutePoolsAction.Submit', experiment_id=experiment.id) }}"
+            hx-post="{{ form.post_url }}"
             hx-target="#pool-dilution-form-container" hx-swap="outerHTML" hx-include="#pool-dilution-form">
                 Submit
             </button>
@@ -91,7 +90,7 @@
     <script>
         function update_molarity(row) {
             const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col").first().find(".value").first().text());
-            const qubit_after = parseFloat(row.find(".qubit_after-col").first().closest("input").val());
+            const qubit_after = parseFloat(row.find(".qubit_after-col input").first().val());
 
             if (avg_fragment_size && qubit_after) {
                 const molarity = qubit_after / (avg_fragment_size * 660) * 1000000;
@@ -111,8 +110,8 @@
         }
 
         function update_estimates(row) {
-            const target_vol = parseFloat(row.find("input.target_vol-col").val());
-            const target_molarity = parseFloat(row.find("input.target_molarity-col").val());
+            const target_vol = parseFloat(row.find(".target_vol-col input").val());
+            const target_molarity = parseFloat(row.find(".target_molarity-col input").val());
             const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col").first().find(".value").first().text());
             const current_molarity = parseFloat(row.find(".molarity-col").first().find(".value").first().text());
 
@@ -125,19 +124,19 @@
         }
 
         $(document).ready(function() {
-            $("input.qubit_after-col").on("input", function() {
+            $(".qubit_after-col input").on("input", function() {
                 update_molarity($(this).closest("tr"));
             });
 
-            $("input.target_vol-col").on("input", function(){
+            $(".target_vol-col input").on("input", function(){
                 update_estimates($(this).closest("tr"));
             });
 
-            $("input.target_molarity-col").on("input", function(){
+            $(".target_molarity-col input").on("input", function(){
                 update_estimates($(this).closest("tr"));
             });
 
-            $("input.target_vol-col").each(function() {
+            $(".target_vol-col input").each(function() {
                 update_estimates($(this).closest("tr"));
             });
         });

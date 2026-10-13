@@ -9,23 +9,22 @@ from ....components import inputs
 from ...HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
 
-class LaneSubForm(SubHTMXForm):
-    lane_id = inputs.numeric.IntInputField("Lane ID", required=True, read_only=True)
-    lane_num = inputs.numeric.IntInputField("Lane Number", required=True, read_only=True)
-    num_m_reads = inputs.numeric.FloatInputField("Number of M Reads", required=False, ge=0.0)
 
-class PoolSubForm(SubHTMXForm):
-    pool_id = inputs.numeric.IntInputField("Pool ID", required=True, read_only=True)
-    pool_name = inputs.string.StringInputField("Pool Name", required=True, read_only=True)
-    lane_forms = inputs.dynamic.SubFormList[LaneSubForm](min_elements=1)
+class LaneReadsSubForm(SubHTMXForm):
+    """Reads of one pool on one lane (one flat list; sub-form lists cannot be nested)."""
+    pool_id = inputs.numeric.IntInputField("Pool ID", required=True, read_only=True, hidden=True)
+    lane_id = inputs.numeric.IntInputField("Lane ID", required=True, read_only=True, hidden=True)
+    num_m_reads = inputs.numeric.FloatInputField("Number of M Reads", required=False, ge=0.0, unit="M")
+
 
 class DistributeReadsSeparateAction(HTMXForm):
-    template_path = "workflows/dist_reads/separate.html"
-    pool_forms = inputs.dynamic.SubFormList[PoolSubForm](min_elements=1)
+    template_path = "actions/distribute-reads-separate.html"
+    read_forms = inputs.dynamic.SubFormList[LaneReadsSubForm](min_elements=1)
 
     def __init__(self, experiment: models.Experiment) -> None:
         super().__init__()
         self.experiment = experiment
+        self._context["experiment"] = experiment
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit", experiment_id=experiment.id)
 
     @classmethod
@@ -42,9 +41,21 @@ class DistributeReadsSeparateAction(HTMXForm):
                 raise exc.NoPermissionsException("Only admin can edit non-draft experiments")
 
             if experiment.workflow.combined_lanes:
-                raise exc.OpeNGSyncServerException("This experiment uses a combined lane workflow, not a separate lane workflow.")
+                raise exc.BadRequestException("This experiment uses a combined lane workflow, not a separate lane workflow.")
             return cls(experiment=experiment)
         return dependency
+
+    def get_context(self) -> dict:
+        context = super().get_context()
+        # One row per pool, one cell per lane: the pool's entry for that lane, if it is on it
+        entries = {(str(entry.pool_id.data), str(entry.lane_id.data)): entry for entry in self.read_forms}
+        lanes = sorted(self.experiment.lanes, key=lambda lane: lane.number)
+        context["lanes"] = lanes
+        context["pool_rows"] = [
+            (pool, [entries.get((str(pool.id), str(lane.id))) for lane in lanes])
+            for pool in self.experiment.pools
+        ]
+        return context
 
     @htmx_route("GET", "/{experiment_id}/distribute-reads/separate")
     def Begin(cls) -> RouteFunc:
@@ -52,14 +63,11 @@ class DistributeReadsSeparateAction(HTMXForm):
             form: "DistributeReadsSeparateAction" = Depends(DistributeReadsSeparateAction.Init()),
         ):
             for pool in form.experiment.pools:
-                sub_form = form.pool_forms.append_entry()
-                sub_form.pool_id.data = pool.id
-                sub_form.pool_name.data = pool.name
                 for link in pool.lane_links:
-                    lane_form = sub_form.lane_forms.append_entry()
-                    lane_form.lane_id.data = link.lane.id
-                    lane_form.lane_num.data = link.lane.number
-                    lane_form.num_m_reads.data = link.num_m_reads
+                    entry = form.read_forms.append_entry()
+                    entry.pool_id.data = pool.id
+                    entry.lane_id.data = link.lane.id
+                    entry.num_m_reads.data = link.num_m_reads
             return form.make_response()
         return route
 
@@ -69,19 +77,17 @@ class DistributeReadsSeparateAction(HTMXForm):
             form: "DistributeReadsSeparateAction" = Depends(DistributeReadsSeparateAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            for pool_form in form.pool_forms.entries:
-                pool = session.get_one(Q.pool.select(id=pool_form.pool_id.data))
-                if pool.experiment_id != form.experiment.id:
-                    raise exc.OpeNGSyncServerException(f"Pool {pool.id} does not belong to experiment {form.experiment.id}.")
-                
-                for lane_form in pool_form.lane_forms.entries:
-                    link: models.links.LanePoolLink = session.get_one(sa.Select(models.links.LanePoolLink).where(
-                        models.links.LanePoolLink.pool_id == pool.id,
-                        models.links.LanePoolLink.lane_id == lane_form.lane_id.data
-                    ))
-                    link.num_m_reads = lane_form.num_m_reads.data
-            
-            
+            for entry in form.read_forms:
+                link = session.first(sa.Select(models.links.LanePoolLink).where(
+                    models.links.LanePoolLink.experiment_id == form.experiment.id,
+                    models.links.LanePoolLink.pool_id == entry.pool_id.data,
+                    models.links.LanePoolLink.lane_id == entry.lane_id.data,
+                ))
+                if link is None:
+                    raise exc.NotFoundException(f"Pool {entry.pool_id.data} is not on lane {entry.lane_id.data} of this experiment.")
+                # As legacy: an empty cell clears the lane's reads
+                link.num_m_reads = entry.num_m_reads.data
+
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=form.experiment.id),
                 flash=responses.flash("Reads distributed successfully.", "success")

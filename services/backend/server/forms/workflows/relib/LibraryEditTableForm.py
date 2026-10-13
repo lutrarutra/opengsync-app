@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from fastapi import Depends, Response
 from pydantic import BaseModel
 
@@ -7,15 +9,15 @@ from ....core import dependencies, responses
 from ....core.context import ctx
 from ....utils import parsing
 from ....components import inputs
-from ....components.tables import IntegerColumn, TextColumn, CategoricalDropDown, DropdownColumn
+from ....components.tables import IntegerColumn, TextColumn, CategoricalDropDown, DropdownColumn, QueryColumn
 from ...HTMXForm import RouteFunc, htmx_route
 from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow
 
 
-def _protocol_categories() -> dict[int, str]:
+def _protocol_names(ids: Sequence[int]) -> dict[int, str]:
     return {
         protocol.id: protocol.name
-        for protocol in ctx.session.get_all(Q.protocol.select(), order_by=models.Protocol.name.asc(), limit=None)
+        for protocol in ctx.session.get_all(Q.protocol.select().where(models.Protocol.id.in_(ids)), limit=None)
     }
 
 
@@ -38,7 +40,10 @@ class LibraryEditTableForm(RelibWorkflowStep):
             CategoricalDropDown("genome_id", "Genome", 300, categories=dict(C.GenomeRef.as_selectable()), required=True),
             CategoricalDropDown("service_type_id", "Assay/Service Type", 300, categories=dict(C.ServiceType.as_selectable()), required=True),
             DropdownColumn("nuclei_isolation", "Nuclei", 100, choices=["Yes", "No"], required=True),
-            CategoricalDropDown("protocol_id", "Protocol", 300, categories=_protocol_categories, required=False),
+            QueryColumn(
+                "protocol_id", "Protocol", 300, required=False,
+                url=lambda: responses.url_for("query_protocols"), lookup=_protocol_names,
+            ),
         ],
         allow_new_rows=False,
     )
@@ -78,6 +83,13 @@ class LibraryEditTableForm(RelibWorkflowStep):
 
             # Protocol is an optional column; leave protocols untouched if it was removed from the table.
             update_protocol = "protocol_id" in form.spreadsheet.data.columns
+            # Only the libraries chosen in the selection step may be edited
+            selected_ids = set(form.workflow.tables["library_table"]["library_id"].tolist())
+            unselected = sorted(set(form.spreadsheet.data["library_id"].tolist()) - selected_ids)
+            if unselected:
+                form.spreadsheet.add_general_error(f"Libraries {', '.join(map(str, unselected))} were not selected.")
+                form.assert_valid()
+
             for _, row in parsing.safe_iter(form.spreadsheet.data, RowSchema):
                 library = session.get_one(Q.library.select(id=row.library_id))
                 new_library_type = C.LibraryType.get(row.library_type_id)

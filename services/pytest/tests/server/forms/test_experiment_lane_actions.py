@@ -9,6 +9,8 @@ Access matches legacy: insider-only for GET and POST; read distribution on a
 non-draft experiment is admin-only.
 """
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -42,10 +44,6 @@ def _experiment(session: SyncSession, user: models.User, workflow) -> models.Exp
     return experiment
 
 
-@pytest.mark.xfail(
-    reason="Templates not yet ported from WTForms (form.csrf_token(), legacy lane_pooling_form/load_flow_cell_form names); Begin returns 500",
-    strict=True,
-)
 @pytest.mark.parametrize("step,variant,workflow", ACTIONS)
 def test_begin_renders_the_matching_variant(
     client: TestClient, session: SyncSession, insider, insider_token: str, step: str, variant: str, workflow,
@@ -57,7 +55,7 @@ def test_begin_renders_the_matching_variant(
     response = get(client, path, insider_token)
 
     assert response.status_code == 200, response.text
-    assert f'hx-post="{path}"' in response.text
+    assert re.search(rf'hx-post="[^"]*{re.escape(path)}"', response.text)
 
 
 @pytest.mark.parametrize("step,variant,workflow", ACTIONS)
@@ -96,10 +94,7 @@ def test_distribute_reads_on_non_draft_experiment_is_admin_only(
     assert get(client, path, insider_token).status_code == 403
     assert post_form(client, path, {}, token=insider_token).status_code == 403
 
-    # Admin passes the access check. Rendering itself still fails (see xfail above), so use a
-    # client that returns the 500 instead of raising it, and only assert on access.
-    lenient = TestClient(client.app, raise_server_exceptions=False)
-    assert get(lenient, path, admin_token).status_code not in (303, 401, 403)
+    assert get(client, path, admin_token).status_code == 200
 
 
 # ── File browser forms (previously shadowed by the /{subpath:path} catch-all) ──

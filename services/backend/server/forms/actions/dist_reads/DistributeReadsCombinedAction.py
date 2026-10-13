@@ -10,17 +10,18 @@ from ...SubHTMXForm import SubHTMXForm
 
 
 class PoolSubForm(SubHTMXForm):
-    pool_id = inputs.numeric.IntInputField("Pool ID", required=True, read_only=True)
-    pool_name = inputs.string.StringInputField("Pool Name", required=True, read_only=True)
-    num_reads = inputs.numeric.FloatInputField("Number of Reads", required=False, ge=0.0)
+    pool_id = inputs.numeric.IntInputField("Pool ID", required=True, read_only=True, hidden=True)
+    pool_name = inputs.string.StringInputField("Pool Name", required=False, read_only=True, hidden=True)  # display only
+    num_reads = inputs.numeric.FloatInputField("Number of Reads", required=False, ge=0.0, unit="M")
 
 class DistributeReadsCombinedAction(HTMXForm):
-    template_path = "workflows/dist_reads/combined.html"
+    template_path = "actions/distribute-reads-combined.html"
     pool_forms = inputs.dynamic.SubFormList[PoolSubForm](min_elements=1)
 
     def __init__(self, experiment: models.Experiment) -> None:
         super().__init__()
         self.experiment = experiment
+        self._context["experiment"] = experiment
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit", experiment_id=experiment.id)
 
     @classmethod
@@ -37,7 +38,7 @@ class DistributeReadsCombinedAction(HTMXForm):
                 raise exc.NoPermissionsException("Only admin can edit non-draft experiments")
             
             if not experiment.workflow.combined_lanes:
-                raise exc.OpeNGSyncServerException("This experiment uses a separate lane workflow, not a combined lane workflow.")
+                raise exc.BadRequestException("This experiment uses a separate lane workflow, not a combined lane workflow.")
             return cls(experiment=experiment)
         return dependency
 
@@ -50,7 +51,8 @@ class DistributeReadsCombinedAction(HTMXForm):
                 sub_form = form.pool_forms.append_entry()
                 sub_form.pool_id.data = pool.id
                 sub_form.pool_name.data = pool.name
-                sub_form.num_reads.data = pool.lane_links[0].num_m_reads * form.experiment.num_lanes if pool.lane_links[0].num_m_reads is not None else None
+                m_reads = pool.lane_links[0].num_m_reads if pool.lane_links else None
+                sub_form.num_reads.data = m_reads * form.experiment.num_lanes if m_reads is not None else None
                 
             return form.make_response()
         return route
@@ -69,7 +71,9 @@ class DistributeReadsCombinedAction(HTMXForm):
                 if pool_field.num_reads.data is None:
                     continue
                 
-                pool = session.get_one(Q.pool.select(id=pool_field.pool_id.data).options(orm.selectinload(models.Pool.lane_links)))
+                pool = session.first(Q.pool.select(id=pool_field.pool_id.data).options(orm.selectinload(models.Pool.lane_links)))
+                if pool is None or pool.experiment_id != form.experiment.id:
+                    raise exc.NotFoundException(f"Pool {pool_field.pool_id.data} not found in this experiment.")
                 
                 for link in pool.lane_links:
                     link.num_m_reads = pool_field.num_reads.data / form.experiment.num_lanes

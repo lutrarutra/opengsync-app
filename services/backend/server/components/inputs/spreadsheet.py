@@ -15,10 +15,9 @@ from ..tables.spreadsheet import (
     DropdownColumn,
     CategoricalDropDown,
     DBObjectColumn,
+    QueryColumn,
     SpreadSheetColumn,
     SpreadSheetException,
-    InvalidCellValue,
-    MissingCellValue,
 )
 from ...core import responses
 
@@ -33,7 +32,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         *,
         label: str = "Spreadsheet",
         required: Literal[True] = True,
-        height: str | None = "600px",
+        height: str | None = None,
         style: dict[str, str] | None = None,
         columns: list[SpreadSheetColumn] | None = None,
         allow_new_cols: bool = False,
@@ -48,7 +47,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         *,
         label: str = "Spreadsheet",
         required: Literal[False] = False,
-        height: str | None = "600px",
+        height: str | None = None,
         style: dict[str, str] | None = None,
         columns: list[SpreadSheetColumn] | None = None,
         allow_new_cols: bool = False,
@@ -61,7 +60,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self,
         label: str = "Spreadsheet",
         required: bool = False,
-        height: str | None = "600px",
+        height: str | None = None,
         style: dict[str, str] | None = None,
         columns: list[SpreadSheetColumn] | None = None,
         allow_new_cols: bool = False,
@@ -148,6 +147,12 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             elif isinstance(col, CategoricalDropDown) and col.label in display_df.columns:
                 display_df[col.label] = display_df[col.label].apply(
                     lambda v, c=col: c.to_display(v)
+                )
+            elif isinstance(col, QueryColumn) and col.label in display_df.columns:
+                # The cells keep the ids, the editor shows their names
+                col.set_labels(display_df[col.label].tolist())
+                display_df[col.label] = display_df[col.label].astype(object).map(
+                    lambda v, c=col: "" if (object_id := c.to_id(v)) is None else object_id
                 )
             elif col.label not in display_df.columns:
                 display_df[col.label] = None
@@ -285,13 +290,17 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             # The column is replaced by its backend columns here, so it is validated here too
             # (the per-column validation below never sees it)
             column._ensure_categories()
+            values = df[column.label].tolist()
+            if column.all_options_required:
+                for option in column.categories.values():
+                    if option not in values:
+                        self.add_general_error(
+                            f"Column '{column.label}' has missing option '{option}'. "
+                            "You must use all options at least once."
+                        )
             for idx, value in df[column.label].items():
                 try:
-                    if pd.isna(value):
-                        if column.required:
-                            raise MissingCellValue(f"Missing value for '{column.label}'")
-                    elif column.categories and value not in column.rev_categories:
-                        raise InvalidCellValue(f"Invalid value '{value}' for '{column.label}'.")
+                    column.validate(value, values)
                     expanded = column.expand(value)
                 except SpreadSheetException as e:
                     self.add_error(idx, column.label, e)
@@ -332,6 +341,10 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
             if isinstance(column, CategoricalDropDown):
                 df[label] = df[label].astype(object)
+            elif isinstance(column, QueryColumn):
+                # Names the submitted ids and drops the ones the user cannot select
+                df[label] = df[label].astype(object)
+                column.set_labels(df[label].tolist())
             elif isinstance(column, TextColumn):
                 df[label] = df[label].astype(pd.StringDtype())
             elif isinstance(column, DropdownColumn):
@@ -385,7 +398,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 continue
             if isinstance(column, TextColumn):
                 df[label] = df[label].astype(pd.StringDtype())
-            elif isinstance(column, IntegerColumn):
+            elif isinstance(column, (IntegerColumn, QueryColumn)):
                 df[label] = df[label].astype(pd.Int64Dtype())
             elif isinstance(column, FloatColumn):
                 df[label] = df[label].astype(pd.Float64Dtype())

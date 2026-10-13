@@ -29,6 +29,12 @@ RUN apk add --no-cache \
     && chown -R postgres:postgres /var/log/pgbackrest /var/lib/pgbackrest /var/spool/pgbackrest \
     && pgbackrest version
 
+# Production configs are baked in rather than bind-mounted, so they are versioned
+# with the image tag and work under Swarm (see below). compose.dev.yaml mounts
+# postgresql.conf over /etc/postgresql.conf; compose.test.yaml uses neither.
+COPY services/db/postgresql.prod.conf /etc/postgresql.conf
+COPY services/db/pgbackrest.conf /etc/pgbackrest/pgbackrest.conf
+
 # Wrapper that exports Swarm secret files as environment variables before
 # delegating to the official entrypoint. Baked into the image rather than
 # mounted, because Swarm cannot bind-mount a single host file.

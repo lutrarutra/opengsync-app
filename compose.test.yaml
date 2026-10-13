@@ -47,6 +47,8 @@ services:
             -c wal_level=minimal
             -c max_wal_senders=0
             -c logging_collector=off
+            -c log_min_messages=warning
+            -c log_checkpoints=off
         # Keep PGDATA in RAM. Every test creates its own database, so the fixture must
         # drop it on teardown or this fills up (see tests/conftest.py).
         tmpfs:

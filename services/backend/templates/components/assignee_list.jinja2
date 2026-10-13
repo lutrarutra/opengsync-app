@@ -5,8 +5,18 @@
 {% if not delete_url or assignee.id != current_user.id %}
 <span class="badge assignee-badge {% if assignee == current_user %}badge-success{% endif %}" {{ tooltip(assignee.name, category="success" if assignee == current_user else "primary") }}>{{ assignee.initials }}</span>
 {% else %}
-<button type="button" class="btn badge assignee-badge badge-success" {{ tooltip(assignee.name, category="success" if assignee == current_user else "primary") }}
+<button type="button" class="btn badge assignee-badge badge-success" {{ tooltip("Unassign yourself", category="success", position="left") }}
 hx-delete="{{ delete_url }}">{{ assignee.initials }}</button>
 {% endif %}
 {% endfor %}
+{% endmacro %}
+
+{# Dashboard feed assign/unassign controls. Mutations return an empty response; the container re-fetches itself after any successful non-GET request from inside it. #}
+{% macro feed_assignees(assignees, current_user, refresh_url, assign_url, unassign_url) %}
+<div class="feed-actions" hx-get="{{ refresh_url }}" hx-trigger="htmx:afterRequest[detail.successful && detail.requestConfig.verb != 'get']" hx-swap="outerHTML">
+    {% if current_user.is_insider and current_user not in assignees %}
+    <button type="button" class="btn feed-assign" {{ tooltip("Assign yourself", category="success", position="left") }} hx-post="{{ assign_url }}"><i class="bi bi-person-fill-add"></i></button>
+    {% endif %}
+    {{ assignee_list(assignees, current_user=current_user, delete_url=unassign_url if current_user.is_insider else none) }}
+</div>
 {% endmacro %}

@@ -262,7 +262,7 @@ def test_user_can_view_own_token_table(
 ):
     token = _create_token(session, user)
 
-    response = get(client, TABLE_PATH, user_token, params={"owner_id": user.id})
+    response = get(client, TABLE_PATH, user_token, params={"user_id": user.id})
 
     assert response.status_code == 200
     assert f"/api-tokens/{token.id}/deactivate" in response.text
@@ -276,7 +276,7 @@ def test_user_cannot_view_another_users_token_table(
 ):
     _create_token(session, user_2)
 
-    response = get(client, TABLE_PATH, user_token, params={"owner_id": user_2.id})
+    response = get(client, TABLE_PATH, user_token, params={"user_id": user_2.id})
 
     assert response.status_code == 403
 
@@ -289,7 +289,7 @@ def test_insider_can_view_another_users_token_table(
 ):
     token = _create_token(session, user)
 
-    response = get(client, TABLE_PATH, insider_token, params={"owner_id": user.id})
+    response = get(client, TABLE_PATH, insider_token, params={"user_id": user.id})
 
     assert response.status_code == 200
     assert f"/api-tokens/{token.id}/deactivate" in response.text

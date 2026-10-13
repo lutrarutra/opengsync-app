@@ -1,5 +1,4 @@
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
-{% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div class="modal-content assay-type-todo-container">
@@ -17,12 +16,7 @@
                         <a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a>
                         <span class="feed-subtitle"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></span>
                     </div>
-                    <div class="feed-actions">
-                        {% if current_user not in seq_request.assignees %}
-                        <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn feed-assign" hx-post="{{ url_for('self_assign_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
-                        {% endif %}
-                        {% if seq_request.assignees %}{{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}
-                    </div>
+                    {% include "components/dashboard/seq_request-assignees.html" %}
                 </div>
                 <div class="feed-meta">
                     <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>

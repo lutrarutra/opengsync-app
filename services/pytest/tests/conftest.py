@@ -179,16 +179,15 @@ def client(_db_handler: SyncDBHandler):
     _inject_test_app_config()
 
     from fastapi.testclient import TestClient
-    from redis import ConnectionPool
 
     from server.main import app
-    from server.core import config, secrets, templates
+    from server.core import config, redis, secrets, templates
 
     @asynccontextmanager
     async def test_lifespan(app_):
         app_.state.db_handler = _db_handler
         app_.state.mailer = FakeMailer()
-        app_.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
+        app_.state.redis_pool = redis.create_pool(config.settings.REDIS_URL)
         app_.state.bcrypt = secrets.BcryptCompat(rounds=BCRYPT_ROUNDS)
         templates.j2.env.globals["contact_email"] = config.settings.app_config.personalization.email
         templates.j2.env.globals["organization_name"] = config.settings.app_config.personalization.organization

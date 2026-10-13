@@ -176,6 +176,9 @@ services:
         platform: linux/amd64
         container_name: postgres
         restart: unless-stopped
+        # Parallel query workers share memory through /dev/shm (dynamic_shared_memory_type
+        # = posix); Docker's 64MB default is too small for work_mem-sized hash joins.
+        shm_size: 1g
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -193,8 +196,6 @@ services:
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         volumes:
-            - ./services/db/postgresql.prod.conf:/etc/postgresql.conf:ro
-            - ./services/db/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
             - postgres_data:/var/lib/postgresql/data
             - ${PGBACKREST_SSH_KEY}:/etc/pgbackrest/id_ed25519:ro
             - ${PGBACKREST_KNOWN_HOSTS}:/etc/ssh/ssh_known_hosts:ro

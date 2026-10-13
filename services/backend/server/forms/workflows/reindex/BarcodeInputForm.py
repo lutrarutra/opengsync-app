@@ -57,7 +57,6 @@ class BarcodeInputForm(BarcodeInputMixin, ReindexWorkflowStep):
     spreadsheet = BarcodeInputMixin.make_spreadsheet(
         DBObjectColumn(
             columns=("library_id", "library_name"),
-            types=(int, str),
             label="Library",
             width=300,
             categories={},

@@ -95,7 +95,7 @@ class MediaFileForm(HTMXForm):
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
             )
-            form.file_type._data = type.id if type is not None else None
+            form.file_type.data = type.id if type is not None else None
             return form
 
         return dependency

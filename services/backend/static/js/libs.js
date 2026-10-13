@@ -145,9 +145,9 @@ async function load_jspreadsheet(jssExtendedUrl = '/static/js/jss-extended.js') 
             });
         }
 
+        // jspreadsheet's own stylesheets are compiled into style.css (style/vendor/jspreadsheet)
         const styles = [
-            'https://cdn.jsdelivr.net/npm/jsuites@6.5.0/dist/jsuites.min.css',
-            'https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5.0.4/dist/jspreadsheet.min.css'
+            'https://cdn.jsdelivr.net/npm/jsuites@6.5.0/dist/jsuites.min.css'
         ];
         const cssPromises = styles.map(href => {
             if (document.querySelector(`link[href="${href}"]`)) return Promise.resolve();

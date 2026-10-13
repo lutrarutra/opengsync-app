@@ -6,15 +6,15 @@
 >
 > Existing coverage (see Progress for the current list) lives in `services/pytest/tests/server/forms/auth/` (login, register, complete registration, change password, reset password, API token), `server/forms/test_htmx_form.py`, `server/forms/test_sub_htmx_form.py`, `server/forms/test_seq_request_form.py`, `server/forms/test_project_form.py`, `server/forms/test_sample_form.py`, `server/forms/test_library_form.py`, `server/forms/test_experiment_form.py`, `server/test_forms.py`, `server/test_access.py`, `server/workflows/test_htmx_workflow.py`, and `server/workflows/` (library annotation, relib, split project, lane QC).
 
-## Progress (2026-10-12)
+## Progress (2026-10-13)
 
-- `tests/server/forms` + `tests/server/workflows` + `test_action_access.py` + `tests/db`: 1440 passed; all of `tests/server`: 2118 passed, 6 strict xfails (unported lane-step templates). Full suite not rerun for this snapshot.
-- §3 actions with suites: assignees (project, request), share email, process/submit request, add user to group, merge projects, sample attribute table, store samples, library prep, select pool libraries, check barcode clashes, select experiment pools, query barcode sequences, set cycles, sequencer loading checklist, billing, library features, sample pooling, add kits to protocol, barcode constraints, upload prep table, edit kit features, edit kit barcodes (all four variants), edit library properties. Partial: share directory, associate path, lane pools / read distribution / flow-cell loading (routing + access only).
-- §3 actions without suites: `ReseqAction` and `DilutePoolsAction` (templates not ported).
+- Full suite (`tests`): 2393 passed, no xfails, no warnings with `-W default` (2026-10-13).
+- §3 actions with suites: assignees (project, request), share email, process/submit request, add user to group, merge projects, sample attribute table, store samples, library prep, select pool libraries, check barcode clashes, select experiment pools, query barcode sequences, set cycles, sequencer loading checklist, billing, library features, sample pooling, add kits to protocol, barcode constraints, upload prep table, edit kit features, edit kit barcodes (all four variants), edit library properties. lane pools, read distribution, flow-cell loading (both variants each), dilute pools, share directory. Partial: associate path.
+- §3 actions without suites: `ReseqAction` (its template works; the "not ported" note was stale).
 - Cross-cutting: `test_action_access.py` (every insider/admin-only action and workflow, dependency check + client GET), `test_route_shadowing.py`, `test_share_root_abuse.py`.
 - §4 order agreed 2026-10-13: `LibraryPoolingWorkflow` (done), `MuxPrepWorkflow` (done), `ReindexWorkflow` (done), `QubitMeasureWorkflow` (done), `BAReportWorkflow` (done).
-- Done 2026-10-13: `LibraryRemuxWorkflow`; `SelectExperimentPoolsWorkflow` and `MergeProjectsWorkflow` are re-exports of tested actions.
-- Next: `SelectLibraryProtocolsWorkflow`; then leftovers in relib, lane QC, split project, share project data; `MergePoolsWorkflow` once its template is ported.
+- Done 2026-10-13: `LibraryRemuxWorkflow`, `SelectLibraryProtocolsWorkflow`; `SelectExperimentPoolsWorkflow` and `MergeProjectsWorkflow` are re-exports of tested actions.
+- Next: §3 partial `AssociatePathAction`; `ReseqAction`; `MergePoolsWorkflow` (both render fine — the "template not ported" notes were stale).
 
 ## 0. Shared test infrastructure
 
@@ -374,7 +374,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `ProcessSeqRequestAction`: accept; reject; pending revision; comment; assign to self; insider permissions; CSRF; 404.
 - [x] `SubmitSeqRequestAction`: valid submission; missing required fields; invalid state; owner versus insider behavior; CSRF; 404.
 - [x] `AddUserToGroupAction`: add member; nonexistent user; owner affiliation rejected; duplicate user; WRITE permission; CSRF; 404.
-- [ ] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants. *(Partial: valid share and traversal/absolute/symlink/sibling-prefix rejection in `test_share_root_abuse.py`; GET form render in `forms/test_experiment_lane_actions.py`. Duplicate share, expiry and recipient variants still open.)*
+- [x] `ShareDirectoryAction`: share valid directory; invalid/traversal path; duplicate share; expiry and recipient variants. *(`forms/test_share_directory_action.py` + `test_share_root_abuse.py`: render prefill, insider-only, every validity period stored, sharing a directory twice gives two valid tokens (as legacy), duplicate recipients get one email, anonymous send drops the author, browse link carries the new token, file/missing/empty path rejected; escapes in `test_share_root_abuse.py`. Fixed 2026-10-13: a validity period outside the choices (e.g. 999, -1) was accepted — legacy's `SelectField` rejected it; same fix for `ShareProjectDataAction` (insiders could pick any period).)*
 - [ ] `AssociatePathAction`: associate path with project; library; experiment; sequencing request; invalid entity; duplicate association; unauthorized path. *(Partial: project association and insider-only in `forms/test_associate_path_action.py`; share-root escapes in `test_share_root_abuse.py`. GET form render covered in `forms/test_experiment_lane_actions.py` (it used to be shadowed by the `/htmx/files/{subpath:path}` catch-all — see §6).)*
 - [x] `MergeProjectsAction`: merge valid projects; same project; unauthorized projects; incompatible same-name samples; empty projects; rollback on failure. *(`forms/test_merge_projects_action.py`: unique samples move, same-name samples merge (links, attributes, measurements, status), assignees, conflicts, same/missing/unknown/non-numeric project, CSRF, rollback via a failure injected after the merge; insider-only check in `test_action_access.py`. Three failures found here were fixed in `e31216ed` — see findings.)*
 
@@ -388,7 +388,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `UploadLibraryPrepSpreadsheetAction`: render; insider-only (incl. invalid upload), 404, CSRF; file stored as the prep's `LIBRARY_PREP_FILE` and readable as `prep_table`; re-upload replaces file record and plates (old plates deleted); libraries placed in wells (cleaned, zero-padded); one plate per `plate` value, numeric plates named as integers, unused template rows create no plate; pool `x` → FAILED; `lib_conc_ng_ul` → qubit concentration; missing file, empty sheet, missing (non-optional) column, missing `prep_table` sheet, non-`.xlsx` (csv/tsv), unsupported or corrupt file, library not in prep, name mismatch, missing name, duplicate well per plate, well outside A1–H12, non-numeric concentration rejected; invalid upload keeps plates and file. *(`forms/test_upload_library_prep_spreadsheet_action.py`. Fixed 2026-10-12, see findings. Placing libraries in wells is FastAPI-only: legacy computed the well index but the link was commented out.)*
 - [x] `SelectPoolLibrariesAction`: add libraries; empty selection; insider-only; CSRF; 404.
 - [x] `SamplePoolingAction`: render lists multiplexed samples only; insider-only, 404, CSRF; unchanged pools; move sample; new pool; emptied library deleted; pool `x` → FAILED `canceled_samples_*`; new libraries copy type/status/mux/genome/owner/request/features; every library type of a pool follows the sample; non-multiplexed libraries and other lab preps untouched; missing pool rejected. *(Legacy had no role check on this route; FastAPI is insider-only.)*
-- [ ] `DilutePoolsAction`: valid dilution; zero/negative values; concentration and volume bounds; multiple pools; persistence and rollback.
+- [x] `DilutePoolsAction`: valid dilution; zero/negative values; concentration and volume bounds; multiple pools; persistence and rollback. *(`forms/test_experiment_lane_steps.py`: a row per pool with its molarity; dilutions only for filled pools, identifiers A, B, …; negative/non-numeric qubit re-renders and saves nothing; pool of another experiment 404; insider-only. Target molarity/volume only drive the client-side estimate.)*
 - [x] `EditLibraryPropertiesAction`: render in request/project/library context (only the context's libraries, one column per property); no context 400, unknown context 404, other user's context 403, anonymous, CSRF; rows naming a library outside the context (incl. another library in library context) 404; edit values, empty cell → `None`, new column adds, deleted column removes the property; redirects per context; library without properties; too-long value rejected; editing needs WRITE on every library of the context via `Q.library.access_level` (insiders always; others while the library's request is DRAFT), otherwise read-only and POST 403; mixed project (draft + submitted request) is read-only for clients. *(`forms/test_edit_library_properties_action.py`. Decided 2026-10-13, see design note 5.)*
 - [x] `LibraryFeaturesAction`: render prefill and kit list; insider-only (design note 5), 404, CSRF; antibody library types only (400 otherwise); custom features replace existing; sequence whitespace removed and identifiers normalized to ASCII; kit rows link the existing kit feature (by identifier and/or name); validation (missing definition, kit + custom, duplicate identifier/name/sequence+pattern+read/kit feature, invalid read, unknown kit, feature or identifier not in kit, identifier and name of different kit features). *(Fixed 2026-10-12: type check, clean-up, kit-feature linking, unreachable "not both" check, `IndexError` on unknown identifier, insider check before validation. Legacy raised "Logic error" on every kit row.)*
 - [x] `CheckBarcodeClashesAction`: no clash; clash; mixed kits; empty selection; invalid libraries; permission checks. *(`forms/test_check_barcode_clashes_action.py`: error/warning/no clash, single-index, per-pool and per-lane grouping, forged library IDs hidden, request/pool/experiment access. Failures found here were fixed 2026-10-07 — see findings.)*
@@ -398,10 +398,10 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 ### Kit, protocol, barcode, and sequencing actions
 
-- [x] `AddKitsToProtocolAction`: render lists kits and prefills current links; insider-only, 404, CSRF; submit replaces links; no combination numbers → all 1; same kit in different combinations; other protocols untouched; duplicate kit + combination, partially missing combination, unknown/missing kit, non-integer combination, empty spreadsheet rejected with links unchanged. *(`forms/test_add_kits_to_protocol_action.py`. Fixed 2026-10-12: missing `template_path` (every render 500'd); current links not prefilled (legacy used `Q.pd.protocol_kits`, so a resubmit dropped them); insider check after validation; an empty optional `Combination` cell 500'd in `SpreadsheetInputField` (`Int64` `<NA>` replaced with `""`). The action is also mounted twice, under `/htmx/protocols` and `/htmx/workflows`.)*
+- [x] `AddKitsToProtocolAction`: render lists kits and prefills current links; insider-only, 404, CSRF; submit replaces links; no combination numbers → all 1; same kit in different combinations; other protocols untouched; duplicate kit + combination, partially missing combination, unknown/missing kit, non-integer combination, empty spreadsheet rejected with links unchanged. *(`forms/test_add_kits_to_protocol_action.py`. Fixed 2026-10-12: missing `template_path` (every render 500'd); current links not prefilled (legacy used `Q.pd.protocol_kits`, so a resubmit dropped them); insider check after validation; an empty optional `Combination` cell 500'd in `SpreadsheetInputField` (`Int64` `<NA>` replaced with `""`). Fixed 2026-10-13: it was also mounted under `/htmx/workflows`; now only under `/htmx/protocols` (design note 7).)*
 - [x] `EditKitFeaturesAction`: render prefill; insider-only (design note 5; legacy admin), 404, CSRF; submit replaces features (sorted, kit type, identifier/targets optional); resubmitting the prefill keeps them; other kits untouched; whitespace removed from sequence/read/target name/ID, identifier normalized to ASCII; duplicate sequence + pattern + read, duplicate identifier, duplicate name in CMO kits (allowed in antibody kits), missing name/sequence/pattern/read, short name, too-long sequence rejected. *(`forms/test_edit_kit_features_action.py`. Fixed 2026-10-12: legacy clean-up and validation of the columns (ASCII identifier + `check_string` + unique; whitespace removal) were missing; insider check ran after validation. Replaced features are unlinked from the kit, not deleted (`FeatureKit.features` has no delete-orphan), as in legacy.)*
 - [x] `QueryBarcodeSequencesAction`: render form; empty/no-match search; CSRF ignored (no Validate).
-- [x] `BarcodeConstraintsAction`: render; insider-only, CSRF; nothing provided; dual/i7-only/i5-only sets satisfying or failing the constraints (per-position check); i7/i5 length mismatch; invalid min samples; kit-only, failing dual, failing i7/i5 sets get kit suggestions; `min_samples` limits suggestion size; ATAC kit, kit with mixed i7 lengths, single-index kit with dual sequences rejected; unknown kit 404. *(`forms/test_barcode_constraints_action.py`. Fixed 2026-10-12: insider check after validation; single-index i7 kits 500'd on the missing i5 (also in legacy, although the kit search offers them). Still open: combinatorial dual-index kits are offered too, but their rows hold either an i7 or an i5, so the kit-length check rejects them (missing `well` column fixed 2026-10-13). Legacy's "number of i7 and i5 sequences must be the same" check is unreachable (the i5 length check catches it first).)*
+- [x] `BarcodeConstraintsAction`: render; insider-only, CSRF; nothing provided; dual/i7-only/i5-only sets satisfying or failing the constraints (per-position check); i7/i5 length mismatch; invalid min samples; kit-only, failing dual, failing i7/i5 sets get kit suggestions; `min_samples` limits suggestion size; ATAC kit, kit with mixed i7 lengths, single-index kit with dual sequences rejected; unknown kit 404. *(`forms/test_barcode_constraints_action.py`. Fixed 2026-10-12: insider check after validation; single-index i7 kits 500'd on the missing i5 (also in legacy, although the kit search offers them). Decided 2026-10-13: combinatorial dual-index kits are not supported (their rows hold either an i7 or an i5, the checks expect fixed pairs); the kit search no longer offers them and a submitted one is rejected with "Combinatorial dual index kits are not supported" (legacy offered them and failed the length check). Legacy's "number of i7 and i5 sequences must be the same" check is unreachable (the i5 length check catches it first).)*
 - [x] `SetExperimentCyclesAction`: update cycles; empty cycles; insider-only; pre-fill; CSRF; 404.
 - [x] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks. *(`forms/test_generate_sequencer_loading_checklist_action.py`: per-lane inputs, file + DB record, volume scaling and lane merging, zero cells, missing/non-numeric values, no-template workflow, insider-only, CSRF. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output. *(`forms/test_billing_action.py`: workbook sheets, lane/flow-cell share, capacity and missing-reads warnings, request resolution for request-less pools, multiple experiments, unknown ID, CSRF. Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
@@ -436,11 +436,12 @@ Findings from §3 tests (fixed 2026-10-12):
 - `EditKitBarcodesForm` variants — combinatorial kits 500'd on render and submit: `pd_transforms.index_kit_barcodes_per_index` built no `well` column for them (same in legacy); 10x ATAC prefill was empty: the shared transform yields one `name_i7`/`sequence_i7` row per sequence, the form expects `name` + `sequence_1`–`sequence_4` per well (same in legacy) — `EditKitTENXATACBarcodes.barcode_table` now pivots; admin check ran after validation.
 
 - Checkboxes (`HTMXForm`, `SubHTMXForm`, 2026-10-13) — a submission read a missing field as its default, but an unchecked checkbox sends nothing, so a `BooleanInputField(default=True)` could never be turned off (`ProcessSeqRequestAction` "Assign request to me", `OligoReMuxForm` "apply to all samples in pool"); and booleans are always `required`, so an empty value was rejected as missing (`SubmitSeqRequestAction`: a sample submission time alone was refused — its test had documented the bug). On submission a missing boolean is now False and booleans skip the required check.
+- Lane steps and dilute pools ported (2026-10-13) — the six lane-step templates and `actions/dilute-pools.html` were still WTForms. The FastAPI actions now render their own copies (`actions/{lane-pools,load-flow-cell,distribute-reads}-{combined,separate}.html`, using `field.render()`); the originals under `workflows/experiment/` and `workflows/dist_reads/` stay unchanged for the legacy app, which loads the same template folder. Each action now builds its table in `Init` (GET and POST), so a failed submit re-renders instead of 500 (legacy built it in `__init__`). Also fixed: combined lane pooling crashed whenever the experiment had pools (row schema required the dropped `lane` column); prefilled reads and the combined flow-cell display values never showed (`field._data =` bypasses the `data` setter; same in `MediaFileForm`'s file type); flow-cell display fields were required, so an empty one blocked the submit (legacy: no validators); dilute pools required a qubit for every pool and lacked the molarity thresholds its script uses; combined read distribution required `pool_name`, which the template never posts; separate read distribution used a nested sub-form list, which `SubHTMXForm` does not support (flattened to one (pool, lane) list); separate flow-cell loading marked the experiment LOADED when only the posted lanes were loaded (legacy iterated all lanes); posted pool/lane/dilution IDs outside the experiment raised `NoResultFound` (500) or were accepted (combined read distribution) — now 404; the wrong variant is 400 instead of 500. Numeric inputs rendered 0 as empty (`numeric.html`).
 - Test warnings (2026-10-13) — the suite now runs warning-free (`-W default`). `actions.remove_all_barcodes_from_kit` issued each barcode's DELETE twice (a barcode is reached through both `Adapter.barcodes_i7` and `barcodes_i5` and deleted explicitly too; SAWarning "0 rows matched"), now two bulk deletes; the form middleware copied uploads into memory but never closed their temp files (ResourceWarning); test helpers passed `cookies=` per request (Starlette deprecation) — they now send a Cookie header via `_http.cookie_header`.
 
 Fixed while testing (trivial): removed two stray `</div>` from `forms/library-features-table.html`.
 
-Still open: combinatorial dual-index kits are offered by the `BarcodeConstraintsAction` kit search; the missing `well` column is fixed (above), but their rows hold either an i7 or an i5, so the kit-length check rejects them (not tested yet).
+Decided 2026-10-13: `BarcodeConstraintsAction` does not support combinatorial dual-index kits; the kit search offers only dual and single-index i7 kits, and a submitted combinatorial kit is rejected with a clear message (tested).
 
 ### Specialized action variants
 
@@ -448,22 +449,22 @@ Still open: combinatorial dual-index kits are offered by the `BarcodeConstraints
 
 #### Lane pooling
 
-- [ ] `LanePoolsCombinedAction`: one combined lane; valid pool ratios; invalid/zero ratios; molarity warnings; qubit lookup; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
-- [ ] `LanePoolsSeparateAction`: multiple lanes; per-lane pool assignments; missing lane; invalid ratios; molarity warnings; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
+- [x] `LanePoolsCombinedAction`: one combined lane; valid pool ratios; invalid/zero ratios; molarity warnings; qubit lookup; persistence. *(`forms/test_experiment_lane_steps.py`: total reads per pool shown and stored per lane (÷ lanes); latest dilution preselected with its qubit; targets on every lane; dilution per pool; TSV pooling table with shares and pipet volumes plus experiment comment; negative/missing values re-render the table and save nothing; pool of another experiment and unknown dilution 404. Molarity warning colours are client-side only.)*
+- [x] `LanePoolsSeparateAction`: multiple lanes; per-lane pool assignments; missing lane; invalid ratios; molarity warnings; persistence. *(`forms/test_experiment_lane_steps.py`: one tab per lane; per-lane reads (not divided) and targets; per-lane shares/pipet in the TSV; unknown lane and pool not on the lane 404; negative reads re-render.)*
 
 
 
 #### Read distribution
 
-- [ ] `DistributeReadsCombinedAction`: combined lanes; valid read allocation; totals mismatch; zero/negative reads; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
-- [ ] `DistributeReadsSeparateAction`: separate lanes; per-lane allocation; missing lane; totals mismatch; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
+- [x] `DistributeReadsCombinedAction`: combined lanes; valid read allocation; totals mismatch; zero/negative reads; persistence. *(`forms/test_experiment_lane_steps.py`: total shown, split over lanes on save; empty cells skipped (as legacy); negative/non-numeric rejected; pool of another experiment 404. No totals check exists (legacy neither).)*
+- [x] `DistributeReadsSeparateAction`: separate lanes; per-lane allocation; missing lane; totals mismatch; persistence. *(`forms/test_experiment_lane_steps.py`: a cell per pool and lane; per-lane values; empty cells clear (as legacy); pool not on the lane 404; negative rejected.)*
 
 
 
 #### Flow-cell loading
 
-- [ ] `LoadFlowCellCombinedAction`: combined-lane load; valid flow cell; missing/duplicate flow cell; status validation; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
-- [ ] `LoadFlowCellSeparateAction`: separate-lane load; per-lane flow cells; duplicate flow cell; missing lane; persistence. *(Routing and access covered in `forms/test_experiment_lane_actions.py`. Template not yet ported from WTForms, so Begin returns 500 — xfail.)*
+- [x] `LoadFlowCellCombinedAction`: combined-lane load; valid flow cell; missing/duplicate flow cell; status validation; persistence. *(`forms/test_experiment_lane_steps.py`: prefill (workflow default volume, lane values); every lane loaded, library volume from the lane molarity, experiment LOADED; without target molarity saved but not LOADED; empty display fields accepted; missing/negative phi-X and negative volume rejected.)*
+- [x] `LoadFlowCellSeparateAction`: separate-lane load; per-lane flow cells; duplicate flow cell; missing lane; persistence. *(`forms/test_experiment_lane_steps.py`: a row per lane; per-lane library volumes, LOADED once all lanes are; a lane left out keeps the experiment DRAFT; lane of another experiment 404; invalid value re-renders the table.)*
 
 
 
@@ -569,7 +570,7 @@ Fixed 2026-10-13: an empty selection was accepted (legacy: "Select at least one 
 
 ### `AddKitsToProtocolWorkflow`
 
-Not a separate workflow: `wf.add_kits_to_protocol` re-exports `AddKitsToProtocolAction` (single step, no Redis state), covered by `forms/test_add_kits_to_protocol_action.py` (see §3 and design note 7).
+Not a separate workflow: `AddKitsToProtocolAction` (single step, no Redis state) at `/htmx/protocols/{id}/add-kits`, covered by `forms/test_add_kits_to_protocol_action.py` (see §3 and design note 7). The `wf.add_kits_to_protocol` re-export and its `/htmx/workflows` mount were removed 2026-10-13.
 
 - [x] Begin action-backed flow. *(render, kit list, prefill of current links)*
 - [x] Add valid kit combinations.
@@ -585,15 +586,16 @@ Not a separate workflow: `wf.add_kits_to_protocol` re-exports `AddKitsToProtocol
 - [x] Select one eligible sample/library.
 - [x] Select multiple libraries.
 - [x] Empty selection.
-- [x] Ineligible/forged selection regression test added (currently `xfail`; server-side context validation is missing).
+- [x] Ineligible/forged selection rejected (libraries outside the request/prep, `SelectSamplesForm.Submit`).
 - [x] Edit library table with valid values.
 - [x] Invalid dynamic library fields.
 - [x] Back navigation preserves selection/table state.
 - [x] Completion updates library state and clears workflow Redis state.
 - [x] Unauthorized begin and invalid context behavior.
-- [ ] Expired/missing workflow-state rejection.
+- [x] Expired/missing workflow-state rejection: the table step (GET and POST) and the selection's Previous need a run that went through selection, otherwise 400 "This library edit has expired. Please start again."; re-posting the table after completion is rejected the same way.
+- [x] Table rows must be libraries chosen in the selection step.
 
-Relib business-logic findings:
+Relib business-logic findings (all fixed 2026-10-13):
 
 - `SelectSamplesForm.Submit` accepts library IDs outside the requested sequence request or lab prep because the query parameters only filter the browse table.
 - `LibraryEditTableForm.Submit` trusts submitted `library_id` values instead of restricting rows to the libraries selected in the workflow; an insider can edit an unselected library.
@@ -698,32 +700,38 @@ Fixed 2026-10-13: unchecking "apply to all samples in pool" had no effect — se
 
 ### `SelectLibraryProtocolsWorkflow`
 
-- [ ] Prep file with `library_kits` requiring protocol mapping.
-- [ ] Prep file without `library_kits` skipping mapping.
-- [ ] Valid protocol mapping.
-- [ ] Missing/incompatible mapping.
-- [ ] Protocol selection for every library type.
-- [ ] Empty/partial selection.
-- [ ] Completion persistence.
-- [ ] Back navigation and conditional-step behavior.
+Covered by `workflows/test_select_library_protocols.py`.
+
+- [x] Prep file with `library_kits` requiring protocol mapping (one row per combination; identifiers sorted, `#` and spaces stripped).
+- [x] Prep file without `library_kits` (no column, all empty, file missing on disk with a warning, no prep file) skipping mapping.
+- [x] Valid protocol mapping: a unique match is preselected; several matches are offered with the "multiple" warning; the library's current protocol is added and preselected.
+- [x] Missing/incompatible mapping: no match offers every protocol with "Unknown" (or the current protocol) preselected; "Unknown" keeps the current protocol.
+- [x] Protocol selection for every library type. *(N/A: nothing depends on the library type.)*
+- [x] Empty/partial selection: an empty cell clears the protocol, rows left out keep theirs; unknown protocol and libraries outside the lab prep rejected.
+- [x] Completion persistence: protocols saved, redirect to the lab prep checklist, flash, Redis state cleared.
+- [x] Back navigation and conditional-step behavior: Previous returns to the mapping with the chosen protocols. Access: insider-only (Begin and both submits), unknown lab prep 404, anonymous redirect, CSRF.
+
+Fixed 2026-10-13: with no matching protocol the default was the alphabetically last protocol and the "multiple" warning always showed (legacy: "Unknown" or the current protocol, no warning); Previous (new, legacy has no back step) lost a chosen protocol unless it was the last option. As legacy, a prep table with one row per index lists each library once per row (not changed).
 
 
 
 ### `LaneQCWorkflow`
 
-Test the two execution flavors separately:
+Test the two execution flavors separately. Covered by `workflows/test_lane_qc.py` (plus the basic separate-lane tests in `test_workflows.py`).
 
-- [x] Separate-lane QC flow. *(Combined-lane flavor still untested.)*
-- [ ] Combined-lane QC flow.
-- [x] Valid phi-X values.
+- [x] Separate-lane QC flow: each lane gets its own values; prefill per lane (sequencing qubit preferred over the original one).
+- [x] Combined-lane QC flow: one set of values, prefilled from the first lane, applied to every lane.
+- [x] Valid phi-X values. *(0 % accepted; legacy's `DataRequired` rejected 0 by accident.)*
 - [x] Valid fragment-size values.
 - [x] Valid original qubit concentration.
-- [ ] Missing/negative/out-of-range values.
-- [ ] Missing lane and duplicate lane submissions.
-- [x] Insider-only authorization.
+- [x] Missing/negative/out-of-range values: missing, negative, non-numeric, fragment size < 1 or not an integer rejected (both flavours), nothing saved. No upper bounds (as legacy).
+- [x] Missing lane and duplicate lane submissions: a lane left out is unchanged; a lane given twice keeps the last row (as legacy); unknown lane 404.
+- [x] Insider-only authorization (both flavours), unknown experiment 404, anonymous redirect, CSRF.
 - [x] Completion persists all lane metrics.
 - [x] Completion clears Redis state.
-- [ ] Failure rolls back lane updates.
+- [x] Failure rolls back lane updates (unknown lane after a valid one → nothing saved).
+
+Fixed 2026-10-13: `QCLanesForm` accepted lane IDs of other experiments (legacy too); now 404 unless the lane belongs to the experiment.
 
 
 
@@ -732,10 +740,10 @@ Test the two execution flavors separately:
 Covered by `forms/test_share_project_data_action.py`.
 
 - [x] Share one project.
-- [ ] Valid internal/external access options. *(Tests always submit `internal_share=false`.)*
+- [x] Valid internal/external access options: passed to the mailer; with `internal_share` the configured internal template is rendered with the data paths mapped through `share_path_mapping` into the custom email header, otherwise not rendered.
 - [x] Expiration/time-validity variants.
 - [x] Recipient email variants.
-- [ ] Anonymous-send option. *(Tests always submit `anonymous_send=false`.)*
+- [x] Anonymous-send option: passed to the mailer, which then passes no author (only insiders are ever named). As legacy, the default email template does not show the author, so it only matters for custom templates.
 - [x] Mark-project-delivered option.
 - [x] Missing/invalid data paths.
 - [x] Unauthorized project.
@@ -782,9 +790,9 @@ Not present in the legacy Flask app — FastAPI-only workflow. Moves samples fro
 - [x] Move samples to an existing destination project.
 - [x] Empty/missing sample selection and forged (foreign-project) sample IDs rejected.
 - [x] New destination project inherits source owner and group, with chosen status.
-- [ ] Back navigation between steps.
-- [ ] Unauthorized source-project access.
-- [ ] Rollback on failure.
+- [x] Back navigation between steps: destination and sample selection are kept; the destination can be changed after going back.
+- [x] Unauthorized source-project access: insider-only on every step, even for the source owner; unknown source 404.
+- [x] Rollback on failure: a split failing after the new destination was flushed keeps neither project nor moves; confirm without workflow state is rejected ("incomplete").
 
 
 
@@ -816,7 +824,7 @@ Not present in the legacy Flask app — FastAPI-only workflow. Moves samples fro
 | 1 | `routes/htmx/seq_requests.py:810` | Assigning a seq request has two separate routes. `POST /{seq_request_id}/self-assign` (`self_assign_seq_request`) is the dashboard "Assign yourself" button and only assigns the current user. `POST /{seq_request_id}/add-assignee` (`AddSeqRequestAssigneeAction.Submit`) is the form on the request page for assigning any insider via `user_id`. Previously both used `/add-assignee`, the raw route was registered first and shadowed the form, so picking another user in the modal assigned the submitter instead. |
 | 2 | `forms/actions/{lane_pools,load_flowcell,dist_reads}/` | Each lane step has a Separate and a Combined action. Legacy used one URL per step and chose the form from `experiment.workflow.combined_lanes`; the FastAPI templates choose the action by name, so each variant has its own path (`/{experiment_id}/lane-pools/separate` vs `/combined`, same for `load-flow-cell` and `distribute-reads`). Previously both variants shared a path and the Separate one, registered first, made every Combined action unreachable. Access matches legacy: insider-only for GET and POST (`DistributeReadsSeparateAction` had no auth, lane-pools `Begin` had none); read distribution on non-draft experiments is admin-only. |
 | 3 | `routes/htmx/files.py` | `ShareDirectoryAction` and `AssociatePathAction` routers are registered before the `/{subpath:path}` catch-all, otherwise their GET forms render the file browser. |
-| 4 | templates | 15 templates are still in legacy WTForms style (`form.csrf_token()`, legacy `*_form` context names) and raise when rendered: `workflows/experiment/lane_pools-1.{1,2}.html`, `workflows/experiment/load_flow_cell-1.{1,2}.html`, `workflows/dist_reads/{combined,separate}.html`, `workflows/merge_pools.html`, `workflows/reseq/reseq.html`, `actions/dilute-pools.html`, `forms/edit-index.html`, `forms/library-properties-table.html`, `forms/seq_request/seq_auth.html`, `components/popups/file-input-form.html`, `components/search_select.jinja2`, `components/table_input.jinja2`. |
+| 4 | templates | Ported 2026-10-13: the lane steps (FastAPI copies under `actions/`, legacy originals kept) and `actions/dilute-pools.html` (FastAPI-only; legacy uses `workflows/dilute_pools/dilute-1.html`). `MergePoolsWorkflow` and `ReseqAction` use new templates (`workflows/merge_pools/*.html`, `actions/reseq.html`). Still in WTForms style and not used by FastAPI, but the legacy app loads the same template folder, so keep them until legacy is retired: `workflows/merge_pools.html` (legacy `MergePoolsForm`), `workflows/reseq/reseq.html` (`ReseqLibrariesForm`), `forms/library-properties-table.html` (`LibraryPropertiesForm`), `forms/seq_request/seq_auth.html` (`SeqAuthForm`), `components/popups/file-input-form.html` (`FileInputForm`: experiment/request attachments). FastAPI has a replacement for each (`MergePoolsWorkflow`, `ReseqAction`, `EditLibraryPropertiesAction`, `MediaFileForm` incl. the seq-auth file type); parity not verified for seq auth and attachments. Unused by both apps: `forms/edit-index.html`, `components/search_select.jinja2`, `components/table_input.jinja2`. |
 | 5 | access | The `/htmx` routers only require a login, so each action must enforce its role. Missing checks restored to legacy: `StoreSamplesAction` (both routes), `DilutePoolsAction` and `SetExperimentCyclesAction` (`Begin`), every step of `BAReportWorkflow` and `QubitMeasureWorkflow` (router-level `require_insider`; `Begin` previously only checked in lab-prep/experiment context). Differs from legacy, not changed: `SampleAttributeTableAction` and `LibraryFeaturesAction` are insider-only (legacy: WRITE on project/library, so clients could edit); kit, index-kit and feature-kit create/edit plus `EditKitFeaturesAction` allow insiders (legacy: admin-only). Insider check moved before validation (into `Init`) for `LibraryFeaturesAction`, `AddKitsToProtocolAction` and `BarcodeConstraintsAction`; with `Validate()` first, a client's invalid POST got the form back (202) instead of 403. `SamplePoolingAction` is insider-only (legacy: login only). `EditLibraryPropertiesAction` (decided 2026-10-13): editing needs WRITE on every library of the context, from `Q.library.access_level` (insiders always; others only while the library's request is DRAFT), otherwise the table is read-only and POST is 403 (legacy: DRAFT-only for non-insiders in library context, insider-only in project/request context, UI-only). |
 | 6 | `StoreSamplesAction` | Restored legacy behaviour: empty selection is rejected; pools can be selected (template had no pools tab, so pooled requests could not reach PREPARED); started from a request, all three tables are limited to it and submitting returns to the request page. The QC-only branch is FastAPI-only. |
-| 7 | `routes/htmx/{protocols,workflows}.py` | `AddKitsToProtocolAction.Router()` is included twice, under `/htmx/protocols/{id}/add-kits` and `/htmx/workflows/{id}/add-kits`, with the same route names. The workflows router is registered first, so `url_for` (and the button in `protocol_page.html`) resolves to `/htmx/workflows/...`; the tests use `/htmx/protocols/...`. Both behave the same; one mount can be removed. |
+| 7 | `routes/htmx/{protocols,workflows}.py` | `AddKitsToProtocolAction.Router()` is included twice, under `/htmx/protocols/{id}/add-kits` and `/htmx/workflows/{id}/add-kits`, with the same route names. The workflows router was registered first, so `url_for` (and the button in `protocol_page.html`) resolved to `/htmx/workflows/...`. Fixed 2026-10-13: the workflows mount and the `wf.add_kits_to_protocol` re-export are removed; the button now opens `/htmx/protocols/{id}/add-kits` (tested). |

@@ -10,6 +10,40 @@
 {% extends "base.html" %}
 {% set active_page = "seq_requests-page" %}
 {% block content %}
+{% set in_review = current_user.is_insider and seq_request.status == C.SeqRequestStatus.SUBMITTED %}
+{% set reviewed = current_user.is_insider and seq_request.status not in [C.SeqRequestStatus.DRAFT, C.SeqRequestStatus.SUBMITTED] %}
+
+{% macro review_tab_button(active) %}
+<li class="nav-item" role="presentation">
+    <button class="nav-link {% if active %}active{% endif %}" data-bs-toggle="tab"
+    data-bs-target="#request-review-tab" type="button" role="tab"
+    aria-controls="request-review-tab" aria-selected="{{ 'true' if active else 'false' }}">Review {{ tab_count(review_checklist_steps_completed, review_checklist_steps_total) }}</button>
+</li>
+{% endmacro %}
+
+{% macro review_tab_pane(active, tabindex) %}
+<div class="tab-pane fade {% if active %}show active{% endif %}" id="request-review-tab" role="tabpanel" tabindex="{{ tabindex }}">
+    <div class="d-flex justify-content-between align-items-center px-2">
+        <div>
+            <h3>Review Checklist</h3>
+            <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+        </div>
+        {% if active %}
+        <div style="height: 100%; display: flex; align-items: center;">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
+            hx-get="{{ url_for('ProcessSeqRequestAction.Begin', seq_request_id=seq_request.id) }}"
+            hx-target="#xl-modal-content" hx-swap="innerHTML">
+                Process Request
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div hx-get="{{ url_for('get_seq_request_review_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+{% endmacro %}
+
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
@@ -145,15 +179,9 @@
     </div>
 
     <ul class="nav nav-tabs page-tabs" role="tablist">
-        {% if current_user.is_insider and seq_request.status == C.SeqRequestStatus.SUBMITTED %}
+        {% if in_review %}{{ review_tab_button(active=true) }}{% endif %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab"
-            data-bs-target="#request-review-tab" type="button" role="tab"
-            aria-controls="request-review-tab" aria-selected="true">Review {{ tab_count(review_checklist_steps_completed, review_checklist_steps_total) }}</button>
-        </li>
-        {% endif %}
-        <li class="nav-item" role="presentation">
-            <button class="nav-link {% if not current_user.is_insider or seq_request.status != C.SeqRequestStatus.SUBMITTED %}active{% endif %}" data-bs-toggle="tab"
+            <button class="nav-link {% if not in_review %}active{% endif %}" data-bs-toggle="tab"
             data-bs-target="#request-checklist-tab" type="button" role="tab"
             aria-controls="request-checklist-tab" aria-selected="true">Checklist {{ tab_count(submit_checklist_steps_completed, submit_checklist_steps_total) }}</button>
         </li>
@@ -226,32 +254,14 @@
             aria-controls="request-data_paths-tab" aria-selected="true">
             Data {{ tab_count(seq_request.num_data_paths) }}</button>
         </li>
+        {% if reviewed %}{{ review_tab_button(active=false) }}{% endif %}
     </ul>
 </div>
 
 <div class="page-content">
     <div class="tab-content pt-1">
-        {% if current_user.is_insider and seq_request.status == C.SeqRequestStatus.SUBMITTED %}
-        <div class="tab-pane fade show active" id="request-review-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between align-items-center px-2">
-                <div>
-                    <h3>Review Checklist</h3>
-                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
-                </div>
-                <div style="height: 100%; display: flex; align-items: center;">
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('ProcessSeqRequestAction.Begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#xl-modal-content" hx-swap="innerHTML">
-                        Process Request
-                    </button>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('get_seq_request_review_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
-            </div>
-        </div>
-        {% endif %}
-        <div class="tab-pane fade {% if not (current_user.is_insider and seq_request.status == C.SeqRequestStatus.SUBMITTED) %}show active{% endif %}" id="request-checklist-tab" role="tabpanel" tabindex="1">
+        {% if in_review %}{{ review_tab_pane(active=true, tabindex=0) }}{% endif %}
+        <div class="tab-pane fade {% if not in_review %}show active{% endif %}" id="request-checklist-tab" role="tabpanel" tabindex="1">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3>Checklist</h3>
@@ -531,6 +541,7 @@
                 {{ spinner() }}
             </div>
         </div>
+        {% if reviewed %}{{ review_tab_pane(active=false, tabindex=14) }}{% endif %}
     </div>
 </div>
 

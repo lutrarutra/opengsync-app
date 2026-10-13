@@ -819,7 +819,20 @@ def self_assign_seq_request(
     seq_request.assignees.append(current_user)
     session.save(seq_request)
 
-    return responses.htmx_response(redirect=responses.url_for("dashboard"), flash=responses.flash("Assignee Added!", "success"))
+    return responses.htmx_response(flash=responses.flash("Assignee Added!", "success"))
+
+
+@router.get("/{seq_request_id}/feed-assignees", dependencies=[Depends(dependencies.require_insider)])
+def render_seq_request_feed_assignees(
+    seq_request_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    """Re-render the dashboard feed assign/unassign controls after a (un)assign."""
+    seq_request = session.get_one(
+        Q.seq_request.select(id=seq_request_id),
+        options=[orm.selectinload(models.SeqRequest.assignees)],
+    )
+    return responses.htmx_response(template="components/dashboard/seq_request-assignees.html", seq_request=seq_request)
 
 
 @router.delete("/{seq_request_id}/delete-file/{file_id}")

@@ -6,11 +6,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 
-from redis import ConnectionPool
-
 from opengsync_db import SyncDBHandler
 
-from . import config, mailer, secrets, templates
+from . import config, mailer, redis, secrets, templates
 
 
 def _audit_format(record) -> str:
@@ -104,7 +102,7 @@ async def lifespan(app: FastAPI):
         raise Exception("DB connection could not be established")
     
     app.state.mailer = mailer.Mailer()
-    app.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
+    app.state.redis_pool = redis.create_pool(config.settings.REDIS_URL)
     app.state.bcrypt = secrets.BcryptCompat()
 
     from .. import chat

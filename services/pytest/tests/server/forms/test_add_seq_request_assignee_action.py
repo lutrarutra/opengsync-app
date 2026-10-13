@@ -292,7 +292,9 @@ def test_self_assign_adds_current_user(
 
     response = post_form(client, _self_assign_path(seq_request.id), {}, token=insider_token)
 
-    assert_htmx_redirect(response, "/")
+    # dashboard updates in place: empty 204 + flash, no redirect
+    assert response.status_code == 204
+    assert "HX-Redirect" not in response.headers
     assert_flash(response, "Assignee Added!", category="success")
 
     session.expire_all()

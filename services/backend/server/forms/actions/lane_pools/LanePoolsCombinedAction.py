@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import dependencies, exceptions as exc, responses, config
+from ....core.context import ctx
 from ....components import inputs
 from ....utils import parsing
 from ...HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
@@ -20,7 +21,6 @@ DEFAULT_TOTAL_VOLUME_TARGET = 50.0
 
 
 class LanedPoolRowSchema(BaseModel):
-    lane: int
     pool_id: int
     lane_id: int
     num_m_reads: float | None
@@ -29,20 +29,20 @@ class LanedPoolRowSchema(BaseModel):
 
 
 class SampleSubForm(SubHTMXForm):
-    pool_id = inputs.numeric.IntInputField("Pool ID", required=True, read_only=True)
-    m_reads = inputs.numeric.FloatInputField("M Reads", required=True, ge=0.0)
-    dilution = inputs.string.StringInputField("Dilution", required=False)
+    pool_id = inputs.numeric.IntInputField("Pool ID", required=True, read_only=True, hidden=True)
+    m_reads = inputs.numeric.FloatInputField("M Reads", required=True, ge=0.0, unit="M")
+    dilution = inputs.string.StringInputField("Dilution", required=False, hidden=True)
 
 
 class LanePoolsCombinedAction(HTMXForm):
-    template_path = "workflows/experiment/lane_pools-1.2.html"
+    template_path = "actions/lane-pools-combined.html"
 
     sample_sub_forms = inputs.dynamic.SubFormList[SampleSubForm](min_elements=1)
     target_total_volume = inputs.numeric.FloatInputField(
-        "Target Total Volume (µL)", required=True, default=DEFAULT_TOTAL_VOLUME_TARGET, ge=0.0
+        "Target Total Volume (µL)", required=True, default=DEFAULT_TOTAL_VOLUME_TARGET, ge=0.0, unit="μL"
     )
     target_molarity = inputs.numeric.FloatInputField(
-        "Target Molarity (nM)", required=True, default=DEFAULT_TARGET_NM, ge=0.0
+        "Target Molarity (nM)", required=True, default=DEFAULT_TARGET_NM, ge=0.0, unit="nM"
     )
 
     def __init__(self, experiment: models.Experiment) -> None:
@@ -66,52 +66,57 @@ class LanePoolsCombinedAction(HTMXForm):
                 orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links).selectinload(models.links.LanePoolLink.lane)
             ))
             if not experiment.workflow.combined_lanes:
-                raise exc.OpeNGSyncServerException("This experiment uses a separate lane workflow, not a combined lane workflow.")
-            return cls(experiment=experiment)
+                raise exc.BadRequestException("This experiment uses a separate lane workflow, not a combined lane workflow.")
+            form = cls(experiment=experiment)
+            # The table is also needed to re-render the form after a failed submit
+            form._prepare(session, prefill=ctx.request.method == "GET")
+            return form
         return dependency
+
+    def _prepare(self, session: SyncSession, prefill: bool) -> None:
+        df = session.get_pandas(
+            Q.pd.experiment_laned_pools(self.experiment.id),
+            limit=None,
+        )
+        df["dilutions"] = None
+        df = df.drop(columns=["lane"]).drop_duplicates(subset=["pool_id"]).reset_index(drop=True)
+        for column in ("num_m_reads", "qubit_concentration", "molarity"):
+            df[column] = pd.to_numeric(df[column], errors="coerce").astype(float)
+
+        for idx, row in parsing.safe_iter(df, LanedPoolRowSchema):
+            if prefill:
+                sample_sub = self.sample_sub_forms.append_entry()
+                sample_sub.pool_id.data = row.pool_id
+                sample_sub.m_reads.data = row.num_m_reads * self.experiment.num_lanes if row.num_m_reads is not None else None
+                sample_sub.dilution.data = "Orig."
+
+            pool = session.get_one(Q.pool.select(id=row.pool_id))
+            df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]  # type: ignore
+
+            for dilution in pool.dilutions:
+                if prefill:
+                    sample_sub.dilution.data = dilution.identifier
+                df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))  # type: ignore
+                df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+                df.at[idx, "molarity"] = dilution.molarity(pool)
+
+        df["share"] = df["num_m_reads"] / df["num_m_reads"].sum()
+
+        df["pipet"] = DEFAULT_TARGET_NM / df["molarity"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
+        self._context["df"] = df
+
+    def get_context(self) -> dict:
+        context = super().get_context()
+        # Pair each pool row with its sub-form (posted entries after a failed submit)
+        entries = {str(entry.pool_id.data): entry for entry in self.sample_sub_forms}
+        context["rows"] = [(row, entries.get(str(row["pool_id"]))) for _, row in context["df"].iterrows()]
+        return context
 
     @htmx_route("GET", "/{experiment_id}/lane-pools/combined")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LanePoolsCombinedAction" = Depends(LanePoolsCombinedAction.Init()),
-            session: SyncSession = Depends(dependencies.db_session),
         ):
-            df = session.get_pandas(
-                Q.pd.experiment_laned_pools(form.experiment.id),
-                limit=None,
-            )
-            df["original_qubit_concentration"] = df["qubit_concentration"]
-            df["dilutions"] = None
-            df = df.drop(columns=["lane"]).drop_duplicates(subset=["pool_id"]).reset_index(drop=True)
-
-            for idx, row in parsing.safe_iter(df, LanedPoolRowSchema):
-                sample_sub = form.sample_sub_forms.append_entry()
-
-                sample_sub.pool_id.data = row.pool_id
-                sample_sub.m_reads._data = row.num_m_reads * form.experiment.num_lanes if row.num_m_reads is not None else None
-
-                pool = session.get_one(Q.pool.select(id=row.pool_id))
-                df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]  # type: ignore
-
-                for dilution in pool.dilutions:
-                    sample_sub.dilution.data = dilution.identifier
-                    df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))  # type: ignore
-                    df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
-                    df.at[idx, "molarity"] = dilution.molarity(pool)
-
-            df["share"] = df["num_m_reads"] / df["num_m_reads"].sum()
-
-            df["molarity_color"] = "cemm-green"
-            df.loc[df["molarity"] < models.Pool.warning_min_molarity, "molarity_color"] = "cemm-yellow"
-            df.loc[df["molarity"] > models.Pool.warning_max_molarity, "molarity_color"] = "cemm-yellow"
-            df.loc[df["molarity"] < models.Pool.error_min_molarity, "molarity_color"] = "cemm-red"
-            df.loc[df["molarity"] > models.Pool.error_max_molarity, "molarity_color"] = "cemm-red"
-
-            df["pipet"] = DEFAULT_TARGET_NM / df["molarity"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
-
-            form._context["df"] = df
-            form._context["enumerate"] = enumerate
-
             return form.make_response()
         return route
 
@@ -142,20 +147,24 @@ class LanePoolsCombinedAction(HTMXForm):
                 session.save(lane)
 
                 for sample_sub_form in form.sample_sub_forms:
-                    link = session.get_one(sa.Select(models.links.LanePoolLink).where(
+                    link = session.first(sa.Select(models.links.LanePoolLink).where(
                         models.links.LanePoolLink.experiment_id == form.experiment.id,
                         models.links.LanePoolLink.lane_num == lane.number,
                         models.links.LanePoolLink.pool_id == sample_sub_form.pool_id.data,
                     ))
+                    if link is None:
+                        raise exc.NotFoundException(f"Pool {sample_sub_form.pool_id.data} is not on lane {lane.number} of this experiment.")
 
                     link.num_m_reads = sample_sub_form.m_reads.data / form.experiment.num_lanes
                     if not sample_sub_form.dilution.data or sample_sub_form.dilution.data == "Orig.":
                         sample_sub_form.dilution.data = "Orig."
                         link.dilution_id = None
                     else:
-                        dilution = session.get_one(
+                        dilution = session.first(
                             Q.pool_dilution.select(pool_id=link.pool.id, identifier=sample_sub_form.dilution.data)
                         )
+                        if dilution is None:
+                            raise exc.NotFoundException(f"Dilution '{sample_sub_form.dilution.data}' of pool {link.pool.id} not found.")
                         link.dilution_id = dilution.id
 
                     session.save(link)

@@ -47,7 +47,6 @@ class VerifyOrientationsForm(IndexCheckWorkflowStep):
             # One row per index: the id in brackets is the library index id, not the library id
             DBObjectColumn(
                 columns=("library_index_id", "library_name"),
-                types=(int, str),
                 label=INDEX_COLUMN,
                 width=300,
                 categories={},

@@ -1,5 +1,4 @@
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
-{% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
@@ -9,20 +8,14 @@
 {% for project in projects %}
 <div class="element-banner"
 {% if loop.last and limit == loop.index %}
-hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-feed-indicator" hx-swap="outerHTML" hx-indicator="#projects-feed-indicator"
+hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-feed-indicator" hx-swap="outerHTML" hx-indicator="#projects-feed-indicator" hx-disinherit="*"
 {% endif %}>
     <div class="feed-head">
         <div class="feed-title">
             <a href="{{ url_for('project_page', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a>
             <span class="feed-subtitle"><b>{{ project.owner.name }}</b>: <i>{{ project.title }}</i></span>
         </div>
-        <div class="feed-actions">
-            {% if current_user.is_insider and current_user not in project.assignees %}
-            <button type="button" class="btn feed-assign" {{ tooltip("Assign Me", category="success", position="left") }}
-            hx-post="{{ url_for('add_project_assignee', project_id=project.id) }}"><i class="bi bi-person-fill-add"></i></button>
-            {% endif %}
-            {% if project.assignees %}{{ assignee_list(project.assignees, current_user=current_user, delete_url=url_for('remove_project_assignee', project_id=project.id, assignee_id=current_user.id)) }}{% endif %}
-        </div>
+        {% include "components/dashboard/project-assignees.html" %}
     </div>
     <div class="feed-meta">
         <span><i class="bi bi-calendar3"></i>{{ project.timestamp_created_str("%-d. %b. %Y") }}</span>

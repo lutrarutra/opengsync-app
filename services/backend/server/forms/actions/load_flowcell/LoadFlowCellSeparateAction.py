@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import dependencies, exceptions as exc, responses
+from ....core.context import ctx
 from ....utils import parsing
 from ....components import inputs
 from ...HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
@@ -21,15 +22,15 @@ class LaneRowSchema(BaseModel):
     id: int
 
 class LaneSubForm(SubHTMXForm):
-    lane_id = inputs.numeric.IntInputField("Lane ID", required=True, read_only=True)
-    phi_x = inputs.numeric.FloatInputField("Phi X %", required=True, ge=0.0)
-    measured_qubit = inputs.numeric.FloatInputField("Qubit Concentration After Dilution", required=False, ge=0.0)
-    target_molarity = inputs.numeric.FloatInputField("Target Molarity (nM)", required=False, ge=0.0)
-    total_volume_ul = inputs.numeric.FloatInputField("Total Volume (µL)", required=False, ge=0.0)
+    lane_id = inputs.numeric.IntInputField("Lane ID", required=True, read_only=True, hidden=True)
+    phi_x = inputs.numeric.FloatInputField("Phi X %", required=True, ge=0.0, unit="%")
+    measured_qubit = inputs.numeric.FloatInputField("Qubit Concentration After Dilution", required=False, ge=0.0, unit="ng/μL")
+    target_molarity = inputs.numeric.FloatInputField("Target Molarity (nM)", required=False, ge=0.0, unit="nM")
+    total_volume_ul = inputs.numeric.FloatInputField("Total Volume (µL)", required=False, ge=0.0, unit="μL")
 
 
 class LoadFlowCellSeparateAction(HTMXForm):
-    template_path = "workflows/experiment/load_flow_cell-1.1.html"
+    template_path = "actions/load-flow-cell-separate.html"
 
     fields = inputs.dynamic.SubFormList[LaneSubForm](min_elements=1)
 
@@ -55,56 +56,54 @@ class LoadFlowCellSeparateAction(HTMXForm):
                 orm.selectinload(models.Experiment.lanes)
             ))
             if experiment.workflow.combined_lanes:
-                raise exc.OpeNGSyncServerException("This experiment uses a combined lane workflow, not a separate lane workflow.")
-            return cls(experiment=experiment)
+                raise exc.BadRequestException("This experiment uses a combined lane workflow, not a separate lane workflow.")
+            form = cls(experiment=experiment)
+            # The table is also needed to re-render the form after a failed submit
+            form._prepare(session, prefill=ctx.request.method == "GET")
+            return form
         return dependency
+
+    def _prepare(self, session: SyncSession, prefill: bool) -> None:
+        lane_table = session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id),
+            limit=None,
+        )
+        lane_table["library_volume"] = None
+        lane_table["eb_volume"] = None
+
+        for idx, row in parsing.safe_iter(lane_table, LaneRowSchema):
+            total_volume_ul = row.total_volume_ul if row.total_volume_ul is not None else self.experiment.workflow.volume_target_ul
+            if row.target_molarity is not None and row.lane_molarity is not None:
+                library_volume = total_volume_ul * row.target_molarity / row.lane_molarity
+                lane_table.at[idx, "library_volume"] = library_volume
+                lane_table.at[idx, "eb_volume"] = total_volume_ul - library_volume
+
+            if not prefill:
+                continue
+            entry = self.fields.append_entry()
+            entry.lane_id.data = int(row.id)
+            entry.total_volume_ul.data = total_volume_ul
+            if row.sequencing_qubit_concentration is not None:
+                entry.measured_qubit.data = row.sequencing_qubit_concentration
+            if row.target_molarity is not None:
+                entry.target_molarity.data = row.target_molarity
+            if row.phi_x is not None:
+                entry.phi_x.data = row.phi_x
+
+        self._context["df"] = lane_table
+
+    def get_context(self) -> dict:
+        context = super().get_context()
+        # Pair lane rows with their sub-forms (posted entries after a failed submit)
+        entries = {str(entry.lane_id.data): entry for entry in self.fields}
+        context["rows"] = [(row, entries.get(str(row["id"]))) for _, row in context["df"].iterrows()]
+        return context
 
     @htmx_route("GET", "/{experiment_id}/load-flow-cell/separate")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LoadFlowCellSeparateAction" = Depends(LoadFlowCellSeparateAction.Init()),
-            session: SyncSession = Depends(dependencies.db_session),
         ):
-            lane_table = session.get_pandas(
-                Q.pd.experiment_lanes(form.experiment.id),
-                limit=None,
-            )
-            lane_table["library_volume"] = None
-            lane_table["eb_volume"] = None
-
-            for idx, row in parsing.safe_iter(lane_table, LaneRowSchema):
-                if pd.notna(row.total_volume_ul):
-                    total_volume_ul = row.total_volume_ul
-                else:
-                    total_volume_ul = form.experiment.workflow.volume_target_ul
-
-                if row.target_molarity is not None and row.lane_molarity is not None:
-                    library_volume = total_volume_ul * row.target_molarity / row.lane_molarity
-                    lane_table.at[idx, "library_volume"] = library_volume
-                    lane_table.at[idx, "eb_volume"] = total_volume_ul - library_volume
-
-            for idx, row in parsing.safe_iter(lane_table, LaneRowSchema):
-                entry = form.fields.append_entry()
-                entry.lane_id.data = int(row.id)
-
-                if pd.notna(row.total_volume_ul):
-                    entry.total_volume_ul.data = row.total_volume_ul
-                else:
-                    entry.total_volume_ul.data = form.experiment.workflow.volume_target_ul
-
-                if pd.notna(row.sequencing_qubit_concentration):
-                    entry.measured_qubit.data = row.sequencing_qubit_concentration
-
-                if row.target_molarity is not None and row.lane_molarity is not None:
-                    entry.target_molarity.data = row.target_molarity
-                    library_volume = entry.total_volume_ul.data * row.target_molarity / row.lane_molarity
-                    lane_table.at[idx, "library_volume"] = library_volume
-                    lane_table.at[idx, "eb_volume"] = entry.total_volume_ul.data - library_volume
-
-                if pd.notna(row.phi_x):
-                    entry.phi_x.data = row.phi_x
-
-            form._context["df"] = lane_table
             return form.make_response()
         return route
 
@@ -114,9 +113,11 @@ class LoadFlowCellSeparateAction(HTMXForm):
             form: "LoadFlowCellSeparateAction" = Depends(LoadFlowCellSeparateAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
-            all_lanes_loaded = True
             for entry in form.fields:
-                lane = session.get_one(Q.lane.select(id=entry.lane_id.data))
+                lane = session.first(Q.lane.select(id=entry.lane_id.data))
+                # Only this experiment's lanes (the access check covered this experiment only)
+                if lane is None or lane.experiment_id != form.experiment.id:
+                    raise exc.NotFoundException(f"Lane with id {entry.lane_id.data} not found in this experiment.")
                 lane.target_molarity = entry.target_molarity.data
                 lane.total_volume_ul = entry.total_volume_ul.data
                 lane.sequencing_qubit_concentration = entry.measured_qubit.data
@@ -124,8 +125,9 @@ class LoadFlowCellSeparateAction(HTMXForm):
                 if lane.total_volume_ul is not None and lane.target_molarity is not None and lane.original_molarity is not None:
                     lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
                 session.save(lane)
-                all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
 
+            # As legacy: LOADED once every lane of the experiment is loaded (not only the posted ones)
+            all_lanes_loaded = all(lane.is_loaded() for lane in form.experiment.lanes)
             if all_lanes_loaded:
                 form.experiment.status = C.ExperimentStatus.LOADED
                 session.save(form.experiment)

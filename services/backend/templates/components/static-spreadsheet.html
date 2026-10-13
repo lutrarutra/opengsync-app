@@ -1,5 +1,7 @@
-<div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }};"{% endif %}>
-    <div id="{{ spreadsheet._id }}" class="spreadsheet-grid">
+{# Unique per render: htmx settles elements whose id is in the old and the new content by resetting their class after the scripts ran, which would drop the classes jspreadsheet adds #}
+{% set grid_id = spreadsheet._id ~ "-" ~ uuid4().hex %}
+<div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }}; flex: none;"{% endif %}>
+    <div id="{{ grid_id }}" class="spreadsheet-grid">
     </div>
 </div>
 <script>
@@ -7,7 +9,7 @@
         // TODO: This is a temporary fix to allow the spreadsheet to load on staging (v2)
         load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
         // load_jspreadsheet("https://biomedical-sequencing.at/opengsync/v2/static/js/jss-extended.js").then(() => {
-            window.jspreadsheet(document.getElementById("{{ spreadsheet._id }}"), {
+            window.jspreadsheet(document.getElementById("{{ grid_id }}"), {
                 worksheets: [{
                     data: {{ spreadsheet._data | tojson }},
                     columns: [
@@ -28,6 +30,8 @@
                     editable: false,
                     tableOverflow: true,
                     tableWidth: "100%",
+                    stretchColumns: true,
+                    stickyIndex: true,
                     tableHeight: "100%",
                     style: {{ spreadsheet.style | tojson }},
                 }],

@@ -113,20 +113,25 @@ class ProtocolMappingForm(SelectLibraryProtocolsWorkflowStep):
                 protocol = session.get_one(Q.protocol.select(id=int(row["protocol_id"])))
                 choices.append((int(row["protocol_id"]), protocol.name))
 
-            if len(choices) == 1:
-                choices = [(-1, "Unknown")] + protocol_choices
+            # As legacy: without a matching protocol all are offered, but the default (and the
+            # 'multiple' warning) only consider the matches and the libraries' current protocol.
+            options = choices if len(choices) > 1 else [(-1, "Unknown")] + protocol_choices
 
             combination_protocol_ids = library_table.loc[
                 library_table["combination"] == combination, "protocol_id"
             ].unique().tolist()
+            combination_protocol_id = None
             if len(combination_protocol_ids) == 1 and pd.notna(combination_protocol_ids[0]):
-                protocol_id = int(combination_protocol_ids[0])
+                combination_protocol_id = protocol_id = int(combination_protocol_ids[0])
                 if protocol_id not in dict(choices):
                     choices.append((protocol_id, protocol_mapping[protocol_id]))
 
-            entry.protocol.set_options(choices)
+            entry.protocol.set_options(options)
             if ctx.request.method == "GET":
                 entry.protocol.data = choices[-1][0]
+                # Back navigation: keep the protocol chosen before
+                if stored is not None and combination_protocol_id in dict(options):
+                    entry.protocol.data = combination_protocol_id
                 if len(choices) > 2:
                     entry.protocol.errors.append(
                         "Multiple protocols found for this kit combination. Please select the correct one."

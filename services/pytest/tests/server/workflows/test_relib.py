@@ -3,6 +3,7 @@
 import json
 import uuid
 
+import pytest
 from redis import Redis
 
 from opengsync_db import SyncSession, categories as C, queries as Q
@@ -364,7 +365,8 @@ def test_relib_rejects_library_outside_requested_sequence_request(
     assert response.status_code == 202
 
 
-def _row_with_protocol(library, protocol_name: str | None) -> list[object]:
+def _row_with_protocol(library, protocol: int | str | None) -> list[object]:
+    """Row of the table with a Protocol cell: the query column submits the protocol id, unresolved text stays text."""
     return [
         library.id,
         library.sample_name,
@@ -373,7 +375,7 @@ def _row_with_protocol(library, protocol_name: str | None) -> list[object]:
         C.GenomeRef.HUMAN.display_name,
         C.ServiceType.BULK_RNA_SEQ.display_name,
         "No",
-        protocol_name,
+        protocol,
     ]
 
 
@@ -396,7 +398,7 @@ def test_relib_bulk_sets_and_clears_protocols(
         f"{RELIB_PREFIX}/library-edit-table",
         spreadsheet_payload(
             TABLE_COLUMNS + ["Protocol"],
-            [_row_with_protocol(library_a, new_protocol.name), _row_with_protocol(library_b, None)],
+            [_row_with_protocol(library_a, new_protocol.id), _row_with_protocol(library_b, None)],
         ),
         token=insider_token,
         params=params,
@@ -430,14 +432,40 @@ def test_relib_table_prefills_current_protocol(
     )
 
     assert selected.status_code == 200
-    assert protocol.name in selected.text
+    # The cell holds the id, the column's labels name it
+    assert f'"{protocol.id}": "{protocol.name}"' in selected.text
 
 
+def test_relib_protocol_column_queries_protocols(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, _ = _create_relib_libraries(session, user)
+
+    params = {"uuid": str(uuid.uuid4()), "seq_request_id": seq_request.id}
+    assert get(client, f"{RELIB_PREFIX}/begin", insider_token, params=params).status_code == 200
+    selected = post_form(
+        client,
+        f"{RELIB_PREFIX}/select-samples",
+        {"selected_library_ids": json.dumps([library_a.id])},
+        token=insider_token,
+        params=params,
+    )
+
+    assert selected.status_code == 200
+    assert "type: jssQueryColumn" in selected.text
+    assert "/htmx/protocols/query" in selected.text
+
+
+@pytest.mark.parametrize("protocol", ["Not a protocol", 2_000_000_000])
 def test_relib_rejects_unknown_protocol(
     client: OpenGSyncTestClient,
     session: SyncSession,
     user,
     insider_token: str,
+    protocol: str | int,
 ):
     seq_request, library_a, _ = _create_relib_libraries(session, user)
     params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id])
@@ -445,14 +473,41 @@ def test_relib_rejects_unknown_protocol(
     response = post_form(
         client,
         f"{RELIB_PREFIX}/library-edit-table",
-        spreadsheet_payload(TABLE_COLUMNS + ["Protocol"], [_row_with_protocol(library_a, "Not a protocol")]),
+        spreadsheet_payload(TABLE_COLUMNS + ["Protocol"], [_row_with_protocol(library_a, protocol)]),
         token=insider_token,
         params=params,
     )
 
-    assert_form_invalid(response, "Invalid category")
+    assert_form_invalid(response, "Unknown protocol")
     session.expire_all()
     assert session.get_one(Q.library.select(id=library_a.id)).protocol_id is None
+
+
+def test_relib_invalid_table_keeps_protocol_names(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, library_b = _create_relib_libraries(session, user)
+    protocol = create_protocol(session)
+    session.commit()
+    params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id, library_b.id])
+
+    response = post_form(
+        client,
+        f"{RELIB_PREFIX}/library-edit-table",
+        spreadsheet_payload(
+            TABLE_COLUMNS + ["Protocol"],
+            [_row_with_protocol(library_a, protocol.id), _row_with_protocol(library_b, "Not a protocol")],
+        ),
+        token=insider_token,
+        params=params,
+    )
+
+    assert_form_invalid(response, "Unknown protocol")
+    # The table is shown again with the submitted protocol named
+    assert f'"{protocol.id}": "{protocol.name}"' in response.text
 
 
 def test_relib_without_protocol_column_keeps_protocol(
@@ -479,3 +534,82 @@ def test_relib_without_protocol_column_keeps_protocol(
     assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
     session.expire_all()
     assert session.get_one(Q.library.select(id=library_a.id)).protocol_id == protocol.id
+
+
+# ── Expired / missing workflow state ────────────────────────────────────────
+
+EXPIRED = "This library edit has expired. Please start again."
+
+
+def _row(library, sample_name: str) -> list[object]:
+    return _row_with_protocol(library, None)[:-1][:1] + [sample_name] + _row_with_protocol(library, None)[2:-1]
+
+
+def test_relib_table_without_workflow_state_is_rejected(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """A fresh or expired UUID cannot open or submit the table (the state holds the selection)."""
+    seq_request, library_a, _ = _create_relib_libraries(session, user)
+    params = {"uuid": str(uuid.uuid4()), "seq_request_id": seq_request.id}
+
+    for path in ("library-edit-table", "select-samples"):
+        response = get(client, f"{RELIB_PREFIX}/{path}", insider_token, params=params)
+        assert response.status_code == 400, (path, response.status_code)
+        assert EXPIRED in response.text
+
+    response = post_form(
+        client,
+        f"{RELIB_PREFIX}/library-edit-table",
+        _table_payload(_row(library_a, "Forged_Sample")),
+        token=insider_token,
+        params=params,
+    )
+
+    assert response.status_code == 400
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library_a.id)).sample_name == "Sample_A"
+
+
+def test_relib_table_cannot_be_submitted_twice(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """Completion clears the state, so re-posting the table is rejected."""
+    seq_request, library_a, _ = _create_relib_libraries(session, user)
+    params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id])
+    url = f"{RELIB_PREFIX}/library-edit-table"
+
+    assert_htmx_redirect(post_form(client, url, _table_payload(_row(library_a, "Sample_A_1")), token=insider_token, params=params), "/seq_requests/")
+    response = post_form(client, url, _table_payload(_row(library_a, "Sample_A_2")), token=insider_token, params=params)
+
+    assert response.status_code == 400
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library_a.id)).sample_name == "Sample_A_1"
+
+
+def test_relib_table_rejects_libraries_that_were_not_selected(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    seq_request, library_a, library_b = _create_relib_libraries(session, user)
+    params = _begin_and_select(client, insider_token, seq_request.id, [library_a.id])
+
+    response = post_form(
+        client,
+        f"{RELIB_PREFIX}/library-edit-table",
+        _table_payload(_row(library_a, "Sample_A_New"), _row(library_b, "Sample_B_New")),
+        token=insider_token,
+        params=params,
+    )
+
+    assert_form_invalid(response, "not selected")
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library_a.id)).sample_name == "Sample_A"
+    assert session.get_one(Q.library.select(id=library_b.id)).sample_name == "Sample_B"

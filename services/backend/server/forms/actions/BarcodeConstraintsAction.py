@@ -31,7 +31,6 @@ class BarcodeConstraintsAction(HTMXForm):
             "type_in": [
                 C.IndexType.DUAL_INDEX.id,
                 C.IndexType.SINGLE_INDEX_I7.id,
-                C.IndexType.COMBINATORIAL_DUAL_INDEX.id,
             ]
         },
         required=False,
@@ -84,6 +83,10 @@ class BarcodeConstraintsAction(HTMXForm):
                     form.spreadsheet.add_general_error(
                         "10x ATAC index kits are not supported. 10X ATAC kits should be safe!"
                     )
+                    form.assert_valid()
+                # Rows hold either an i7 or an i5 (any pair is valid), but the checks below expect fixed i7 + i5 pairs
+                if kit.type == C.IndexType.COMBINATORIAL_DUAL_INDEX:
+                    form.spreadsheet.add_general_error("Combinatorial dual index kits are not supported.")
                     form.assert_valid()
 
                 barcodes_df = T.index_kit_barcodes(

@@ -393,7 +393,7 @@ session.delete(existing_project, flush=True)
 ## Backup and Restore
 
 ### WAL Archiving
-- Enabled by default in `templates/postgresql.conf`: `archive_command = 'cp %p /var/lib/postgresql/wal/%f'` (mounted on `${DB_DIR}/archive/wal`)
+- Enabled by default in `services/db/postgresql.conf`: `archive_command = 'cp %p /var/lib/postgresql/wal/%f'` (mounted on `${DB_DIR}/archive/wal`)
 
 ### Restore from pgBackRest
 - pgBackRest handles nightly backups and WAL archiving via SCP to a remote backup server.

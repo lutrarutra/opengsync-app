@@ -11,6 +11,17 @@ from redis import Redis, ConnectionPool
 _DEFAULT_TTL_HOURS = 24 * 7
 
 
+def create_pool(url: str) -> ConnectionPool:
+    # Timeouts so a hung Redis raises RedisError (which callers already handle) instead of
+    # blocking requests indefinitely; health checks drop connections that went stale while idle.
+    return ConnectionPool.from_url(
+        url,
+        socket_connect_timeout=2,
+        socket_timeout=5,
+        health_check_interval=30,
+    )
+
+
 class RedisClient(Redis):
     def __init__(self, pool: ConnectionPool, ttl_hours: int = _DEFAULT_TTL_HOURS):
         super().__init__(connection_pool=pool)

@@ -10,6 +10,8 @@ from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, FormFunc
 from .. import relib as wf
 
+EXPIRED = "This library edit has expired. Please start again."
+
 
 class RelibWorkflowStep(HTMXWorkflowStep):
     workflow: "RelibWorkflow"
@@ -68,13 +70,17 @@ class RelibWorkflow(HTMXWorkflow):
                 raise exc.NotFoundException("Seq request not found.")
             if lab_prep_id is not None and session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
                 raise exc.NotFoundException("Lab prep not found.")
-            return cls(
+            workflow = cls(
                 step=step,
                 seq_request_id=seq_request_id,
                 lab_prep_id=lab_prep_id,
                 r=r,
                 uuid=uuid,
             )
+            # The table step needs a run that went through selection (state expires / is cleared on completion)
+            if step != wf.SelectSamplesForm.__name__ and step not in workflow.step_tracker.steps:
+                raise exc.BadRequestException(EXPIRED)
+            return workflow
         return dependency
 
     @classmethod

@@ -12,7 +12,7 @@
     class="form-control{% if field.errors %} is-invalid{% endif %}"
     placeholder="{% if field.placeholder %}{{ field.placeholder }}{% else %}{% if field.required %}Required{% else %}Optional{% endif %}{% endif %}"
     aria-label="{{ field.label }}" aria-describedby="{{ field.id }}"
-    id="{{ field.id }}" value="{{ field.data or '' }}" name="{{ field.name }}"
+    id="{{ field.id }}" value="{{ field.data if field.data is not none else '' }}" name="{{ field.name }}"
     {% if field.ge is not none %}min="{{ field.ge }}"{% endif %}
     {% if field.le is not none %}max="{{ field.le }}"{% endif %}
     {% if field.required %}required{% endif %}

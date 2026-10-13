@@ -6,7 +6,7 @@ from opengsync_db import SyncSession
 from ....core import dependencies, exceptions as exc
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
-from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow
+from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow, EXPIRED
 
 
 class SelectSamplesForm(RelibWorkflowStep):
@@ -27,7 +27,9 @@ class SelectSamplesForm(RelibWorkflowStep):
         def route(
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Init()),
         ) -> Response:
-            library_table = form.workflow.tables["library_table"]
+            library_table = form.workflow.tables.get("library_table")
+            if library_table is None:
+                raise exc.BadRequestException(EXPIRED)
             form.selected_library_ids.data = library_table["library_id"].unique().tolist()
             return form.make_response()
         return route

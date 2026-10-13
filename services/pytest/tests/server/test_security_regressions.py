@@ -552,7 +552,7 @@ def test_created_token_is_shown_once(
     assert len(secrets_shown) == 1
 
     # The user's own token table no longer has a way to show it again.
-    table = get(client, TOKEN_TABLE_PATH, user_token, params={"owner_id": user.id}, htmx=True)
+    table = get(client, TOKEN_TABLE_PATH, user_token, params={"user_id": user.id}, htmx=True)
     assert secrets_shown[0] not in table.text
 
 

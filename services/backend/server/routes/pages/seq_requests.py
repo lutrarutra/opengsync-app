@@ -1,11 +1,29 @@
 from fastapi import APIRouter, Depends
+import sqlalchemy as sa
 from sqlalchemy import orm
 
-from opengsync_db import models, queries as Q
+from opengsync_db import models, queries as Q, categories as C
 
 from ...core import dependencies, responses
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
+
+
+def _relevant_review_steps(session: dependencies.SyncSession, seq_request: models.SeqRequest) -> dict:
+    """Review checklist without the steps the checklist template marks as 🚫 Not Relevant."""
+    checklist = seq_request.get_review_checklist()
+
+    if seq_request.submission_type in [C.SubmissionType.RAW_SAMPLES, C.SubmissionType.QC_ONLY]:
+        checklist.pop("index_check")
+    if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
+        checklist.pop("check_barcodes")
+    if not checklist["check_multiplexing"] and not session.scalar(
+        sa.select(sa.exists().where(models.Library.seq_request_id == seq_request.id, models.Library.is_multiplexed))
+    ):
+        checklist.pop("check_multiplexing")
+
+    return checklist
+
 
 @router.get("/")
 def seq_requests_page():  
@@ -46,7 +64,7 @@ def seq_request_page(
         submit_checklist["request_submitted"],
     ]
 
-    review_checklist = seq_request.get_review_checklist()
+    review_checklist = _relevant_review_steps(session, seq_request)
 
     return responses.html_response(
         template="seq_request_page.html",

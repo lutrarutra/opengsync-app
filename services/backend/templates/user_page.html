@@ -185,7 +185,7 @@
                     }}
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_api_token_table', owner_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_api_token_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

@@ -447,3 +447,126 @@ def test_submit_unknown_is_404(
     response = post_form(client, _path(999999), _payload(), token=insider_token)
 
     assert response.status_code == 404
+
+
+# ── Internal share and anonymous send ───────────────────────────────────────
+
+
+@pytest.mark.parametrize("internal_share", [True, False])
+@pytest.mark.parametrize("anonymous_send", [True, False])
+def test_submit_passes_internal_share_and_anonymous_to_the_mailer(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+    fake_mailer,
+    monkeypatch: pytest.MonkeyPatch,
+    internal_share: bool,
+    anonymous_send: bool,
+):
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", "prod")
+    project = _shareable_project(session, user)
+
+    response = post_form(
+        client, _path(project.id),
+        _payload(internal_share=str(internal_share).lower(), anonymous_send=str(anonymous_send).lower()),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    [sent] = [mail for mail in fake_mailer.sent if mail["method"] == "send_share_project_data"]
+    assert sent["kwargs"]["internal_share"] is internal_share
+    assert sent["kwargs"]["anonymous"] is anonymous_send
+
+
+class _RenderedMail:
+    """Records the mailer's template renders and the sent email instead of rendering/sending."""
+
+    INTERNAL = "custom/share-internal-access.html"
+    HEADER = "custom/share-project-data-email-header.html"
+    BODY = "email/share-project-data.html"
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch, tmp_path):
+        from server.core import mailer as mailer_module
+
+        self.renders: dict[str, dict] = {}
+        self.sent: list[dict] = []
+        for name in (self.INTERNAL, self.HEADER):
+            (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / name).write_text("")
+        monkeypatch.setattr(config.settings.app_config, "template_folder", str(tmp_path))
+        monkeypatch.setattr(config.settings.app_config.personalization, "internal_share_template", self.INTERNAL)
+        monkeypatch.setattr(config.settings.app_config, "share_path_mapping", {"results": "/mnt/share/results"})
+        monkeypatch.setattr(mailer_module.templates, "render_template", self._render)
+        monkeypatch.setattr(mailer_module.responses, "external_url_for", lambda *args, **kwargs: "https://example.com/share")
+        monkeypatch.setattr(mailer_module.Mailer, "_get_email_style", lambda self: "")
+        monkeypatch.setattr(mailer_module.Mailer, "_Mailer__send_email", lambda _, **kwargs: self.sent.append(kwargs))
+        self.mailer = mailer_module.Mailer()
+
+    def _render(self, name: str, **context) -> str:
+        self.renders[name] = context
+        return f"<{name}>"
+
+    def send(self, session: SyncSession, project: models.Project, sender: models.User, internal_share: bool, anonymous: bool) -> None:
+        share_token = session.save(Q.share_token.create(owner=sender, time_valid_min=60, paths=["results"]), flush=True)
+        self.mailer.send_share_project_data(
+            recipients=[RECIPIENT], share_token=share_token, current_user=sender, project=project,
+            internal_share=internal_share, anonymous=anonymous,
+        )
+
+
+def test_internal_share_adds_mapped_internal_paths_to_the_email_header(
+    session: SyncSession, user, insider, monkeypatch: pytest.MonkeyPatch, tmp_path,
+):
+    mail = _RenderedMail(monkeypatch, tmp_path)
+    project = _shareable_project(session, user)
+
+    mail.send(session, project, insider, internal_share=True, anonymous=False)
+
+    assert mail.renders[mail.INTERNAL]["paths"] == ["/mnt/share/results"]
+    assert mail.renders[mail.HEADER]["internal_share_content"] == f"<{mail.INTERNAL}>"
+    assert [sent["recipients"] for sent in mail.sent] == [[RECIPIENT]]
+
+
+def test_without_internal_share_the_internal_template_is_not_rendered(
+    session: SyncSession, user, insider, monkeypatch: pytest.MonkeyPatch, tmp_path,
+):
+    mail = _RenderedMail(monkeypatch, tmp_path)
+    project = _shareable_project(session, user)
+
+    mail.send(session, project, insider, internal_share=False, anonymous=False)
+
+    assert mail.INTERNAL not in mail.renders
+    assert mail.renders[mail.HEADER]["internal_share_content"] == ""
+
+
+@pytest.mark.parametrize("sender_fixture, anonymous, author_is_sender", [
+    ("insider", False, True),
+    ("insider", True, False),
+    ("user", False, False),  # only insiders are named as the author
+])
+def test_anonymous_send_drops_the_author(
+    request: pytest.FixtureRequest, session: SyncSession, user, monkeypatch: pytest.MonkeyPatch, tmp_path,
+    sender_fixture: str, anonymous: bool, author_is_sender: bool,
+):
+    """As legacy: the author is passed to the email template (the default template does not show it)."""
+    mail = _RenderedMail(monkeypatch, tmp_path)
+    project = _shareable_project(session, user)
+    sender = request.getfixturevalue(sender_fixture)
+
+    mail.send(session, project, sender, internal_share=False, anonymous=anonymous)
+
+    assert mail.renders[mail.BODY]["author"] is (sender if author_is_sender else None)
+
+
+@pytest.mark.parametrize("minutes", ["999", "-1"])
+def test_submit_rejects_validity_outside_the_choices(
+    client: TestClient, session: SyncSession, user, insider_token: str, minutes: str,
+):
+    """As legacy's SelectField, also for insiders (who may pick longer periods)."""
+    project = _shareable_project(session, user)
+
+    response = post_form(client, _path(project.id), _payload(time_valid_min=minutes), token=insider_token)
+
+    assert_form_invalid(response, "Not a valid choice")
+    assert _reload_project(session, project.id).share_token is None

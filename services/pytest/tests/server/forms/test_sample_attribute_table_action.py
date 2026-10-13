@@ -30,8 +30,8 @@ from .._http import (
 PREFIX = "/htmx/projects"
 CSRF_FLASH = "Your form could not be submitted because the security token was invalid or missing"
 
-# Headers the UI always submits: ID, name, then one column per non-custom AttributeType.
-BASE_COLUMNS = ["ID", "Sample Name"]
+# Headers the UI always submits: the sample ("name [id]"), then one column per non-custom AttributeType.
+BASE_COLUMNS = ["Sample"]
 PREDEFINED_COLUMNS = [t.display_name.replace("_", " ").title() for t in C.AttributeType.as_list()[1:]]
 
 
@@ -49,8 +49,12 @@ def _payload(
     return spreadsheet_payload(columns, [[row.get(col, "") for col in columns] for row in rows])
 
 
+def _sample(name: str, sample_id: int) -> str:
+    return f"{name} [{sample_id}]"
+
+
 def _row(sample: models.Sample, **cells: Any) -> dict[str, Any]:
-    return {"ID": sample.id, "Sample Name": sample.name, **cells}
+    return {"Sample": _sample(sample.name, sample.id), **cells}
 
 
 def _reload(session: SyncSession, sample: models.Sample) -> models.Sample:
@@ -84,13 +88,13 @@ def project_samples(session: SyncSession, user) -> tuple[models.Project, models.
 def test_render_shows_samples_and_existing_attributes(
     client: TestClient, project_samples, insider_token: str,
 ):
-    project, _, _ = project_samples
+    project, sample_a, sample_b = project_samples
 
     response = get(client, _path(project.id), insider_token)
 
     assert response.status_code == 200
     assert 'name="csrf_token"' in response.text
-    for text in ("Sample_A", "Sample_B", "liver", "lung", "b1", "b2", "Batch", "Cell Type"):
+    for text in (_sample("Sample_A", sample_a.id), _sample("Sample_B", sample_b.id), "liver", "lung", "b1", "b2", "Batch", "Cell Type"):
         assert text in response.text
 
 
@@ -310,13 +314,13 @@ def test_submit_unknown_sample_id_is_rejected(
 
     response = post_form(client, _path(project.id), _payload(
         [
-            {"ID": 999999, "Sample Name": "Sample_A", "Tissue": "kidney", "Batch": "b1"},
+            {"Sample": _sample("Sample_A", 999999), "Tissue": "kidney", "Batch": "b1"},
             _row(sample_b, Tissue="lung", Batch="b2"),
         ],
         extra_columns=["Batch"],
     ), token=insider_token)
 
-    assert_form_invalid(response, "Sample with ID 999999 does not exist")
+    assert_form_invalid(response, "Invalid value 'Sample_A [999999]' for 'Sample'")
     _assert_unchanged(session, sample_a, sample_b)
 
 
@@ -330,13 +334,13 @@ def test_submit_sample_from_another_project_is_rejected(
 
     response = post_form(client, _path(project.id), _payload(
         [
-            {"ID": foreign.id, "Sample Name": "Sample_A", "Tissue": "kidney", "Batch": "b1"},
+            {"Sample": _sample("Sample_A", foreign.id), "Tissue": "kidney", "Batch": "b1"},
             _row(sample_b, Tissue="lung", Batch="b2"),
         ],
         extra_columns=["Batch"],
     ), token=insider_token)
 
-    assert_form_invalid(response, f"Sample with ID {foreign.id} does not belong to this project")
+    assert_form_invalid(response, f"Invalid value 'Sample_A [{foreign.id}]' for 'Sample'")
     _assert_unchanged(session, sample_a, sample_b)
     assert _reload(session, foreign).get_attribute("tissue") is None
 
@@ -348,13 +352,13 @@ def test_submit_mismatched_sample_name_is_rejected(
 
     response = post_form(client, _path(project.id), _payload(
         [
-            {"ID": sample_a.id, "Sample Name": "Sample_B", "Tissue": "kidney", "Batch": "b1"},
-            {"ID": sample_b.id, "Sample Name": "Sample_A", "Tissue": "lung", "Batch": "b2"},
+            {"Sample": _sample("Sample_B", sample_a.id), "Tissue": "kidney", "Batch": "b1"},
+            {"Sample": _sample("Sample_A", sample_b.id), "Tissue": "lung", "Batch": "b2"},
         ],
         extra_columns=["Batch"],
     ), token=insider_token)
 
-    assert_form_invalid(response, f"Sample name does not match sample with ID {sample_a.id}")
+    assert_form_invalid(response, f"Invalid value 'Sample_B [{sample_a.id}]' for 'Sample'")
     _assert_unchanged(session, sample_a, sample_b)
 
 
@@ -369,7 +373,7 @@ def test_submit_missing_sample_row_is_rejected(
         extra_columns=["Batch"],
     ), token=insider_token)
 
-    assert_form_invalid(response, "missing option 'Sample_B'")
+    assert_form_invalid(response, f"missing option 'Sample_B [{sample_b.id}]'")
     _assert_unchanged(session, sample_a, sample_b)
 
 
@@ -387,11 +391,11 @@ def test_submit_duplicate_sample_row_is_rejected(
         extra_columns=["Batch"],
     ), token=insider_token)
 
-    assert_form_invalid(response)
+    assert_form_invalid(response, "is not unique")
     _assert_unchanged(session, sample_a, sample_b)
 
 
-def test_submit_missing_id_column_is_rejected(
+def test_submit_missing_sample_column_is_rejected(
     client: TestClient, session: SyncSession, project_samples, insider_token: str,
 ):
     project, sample_a, sample_b = project_samples
@@ -401,7 +405,7 @@ def test_submit_missing_id_column_is_rejected(
         columns, [["Sample_A", "kidney"], ["Sample_B", "lung"]],
     ), token=insider_token)
 
-    assert_form_invalid(response, "sample_id")
+    assert_form_invalid(response, "Missing required columns for 'Sample'")
     _assert_unchanged(session, sample_a, sample_b)
 
 
@@ -428,7 +432,7 @@ def test_submit_duplicate_column_names_are_rejected(
     tissue = PREDEFINED_COLUMNS.index("Tissue")
 
     def row(sample: models.Sample, tissue_value: str, batch: str) -> list[Any]:
-        cells: list[Any] = [sample.id, sample.name] + [""] * len(PREDEFINED_COLUMNS) + [batch, "d1", "d2"]
+        cells: list[Any] = [_sample(sample.name, sample.id)] + [""] * len(PREDEFINED_COLUMNS) + [batch, "d1", "d2"]
         cells[len(BASE_COLUMNS) + tissue] = tissue_value
         return cells
 
@@ -464,7 +468,7 @@ def test_submit_one_invalid_row_saves_nothing(
     response = post_form(client, _path(project.id), _payload(
         [
             _row(sample_a, Tissue="kidney", Batch="b9"),
-            {"ID": sample_b.id, "Sample Name": "Sample_A", "Tissue": "lung", "Batch": "b2"},
+            {"Sample": _sample("Sample_A", sample_b.id), "Tissue": "lung", "Batch": "b2"},
         ],
         extra_columns=["Batch"],
     ), token=insider_token)

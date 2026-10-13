@@ -11,8 +11,10 @@ an optional minimum number of samples, and re-renders with the result:
 - failing sequences (or no sequences) with a kit → suggested kit barcode combinations.
 """
 
+import json
 import re
 from html import unescape
+from urllib.parse import unquote_plus
 
 import pytest
 from fastapi.testclient import TestClient
@@ -89,6 +91,16 @@ def test_render(client: TestClient, insider_token: str):
     assert "Check Sequencing Index Constraints" in response.text
     for name in ("kit", "min_samples", "csrf_token"):
         assert name in response.text
+
+
+def test_kit_search_offers_dual_and_single_index_kits_only(client: TestClient, insider_token: str):
+    """Combinatorial kits are not supported by the checks, so the search does not offer them (nor 10x ATAC)."""
+    response = get(client, PATH, insider_token)
+
+    match = re.search(r"type_in=([^\"&']+)", unescape(response.text))
+    assert match, "kit search URL with type_in not found"
+    type_ids = json.loads(unquote_plus(match.group(1)))
+    assert sorted(type_ids) == sorted([C.IndexType.DUAL_INDEX.id, C.IndexType.SINGLE_INDEX_I7.id])
 
 
 # ── Access ──────────────────────────────────────────────────────────────────
@@ -289,6 +301,15 @@ def test_atac_kit_is_rejected(client: TestClient, session: SyncSession, insider_
     response = post_form(client, PATH, _payload([(BAD_I7, BAD_I5)], kit=atac), token=insider_token)
 
     assert_form_invalid(response, "10x ATAC index kits are not supported")
+
+
+def test_combinatorial_kit_is_rejected(client: TestClient, session: SyncSession, insider_token: str):
+    """Combinatorial kits store i7 and i5 barcodes in separate rows (any pair is valid); the checks expect fixed pairs."""
+    combinatorial = _dual_kit(session, {"A1": (GOOD_I7, GOOD_I5)}, type=C.IndexType.COMBINATORIAL_DUAL_INDEX)
+
+    response = post_form(client, PATH, _payload([(BAD_I7, BAD_I5)], kit=combinatorial), token=insider_token)
+
+    assert_form_invalid(response, "Combinatorial dual index kits are not supported")
 
 
 def test_kit_with_mixed_i7_lengths_is_rejected(client: TestClient, session: SyncSession, insider_token: str):

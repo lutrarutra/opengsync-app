@@ -21,7 +21,6 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
         columns=[
             DBObjectColumn(
                 columns=("library_id", "library_name"),
-                types=(int, str),
                 label="Library",
                 width=300,
                 categories={},
