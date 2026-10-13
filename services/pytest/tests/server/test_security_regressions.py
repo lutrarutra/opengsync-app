@@ -258,8 +258,8 @@ def test_reseq_library_accepts_library_of_same_request(
 
     response = post_form(client, _reseq_path(own_request.id, library.id), {}, token=user_token)
 
-    # Whether the clone is persisted is ``actions.clone_library``'s business (it currently is not).
     assert response.status_code == 204
+    assert _library_names(session, own_request.id) == [library.name, library.name]  # original and clone
 
 
 EDIT_PROPERTIES_PATH = "/htmx/actions/edit-library-properties-action"
@@ -615,6 +615,25 @@ def test_share_snippets_use_external_base(external_base: str):
     assert FORGED_HOST not in url
     # In-app links keep following the request.
     assert internal.startswith(f"http://{FORGED_HOST}/")
+
+
+@pytest.mark.parametrize("configured_base", [EXTERNAL_BASE, EXTERNAL_BASE + "/opengsync/v2/"])
+def test_external_url_keeps_proxy_prefix(monkeypatch: pytest.MonkeyPatch, configured_base: str):
+    """Behind nginx (X-Forwarded-Prefix -> root_path) email links keep the prefix, also when the base already has it."""
+    from starlette.requests import Request
+
+    from server.core import templates
+    from server.main import app
+
+    monkeypatch.setattr(config.settings.app_config, "external_base_url", configured_base)
+    request = Request({
+        "type": "http", "app": app, "router": app.router, "method": "GET", "path": "/", "root_path": "/opengsync/v2",
+        "query_string": b"", "headers": [(b"host", FORGED_HOST.encode())], "scheme": "http", "server": (FORGED_HOST, 80),
+    })
+
+    url = str(templates.absolute_url_for(request, "file_share.browse", external=True, token="tok"))
+
+    assert url == f"{EXTERNAL_BASE}/opengsync/v2/api/shares/browse/tok"
 
 
 # ── 6. Missing permission checks ────────────────────────────────────────────

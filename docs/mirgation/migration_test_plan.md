@@ -8,13 +8,13 @@
 
 ## Progress (2026-10-13)
 
-- Full suite (`tests`): 2393 passed, no xfails, no warnings with `-W default` (2026-10-13).
+- Full suite (`tests`): 2449 passed, no xfails, no warnings with `-W default` (2026-10-13).
 - §3 actions with suites: assignees (project, request), share email, process/submit request, add user to group, merge projects, sample attribute table, store samples, library prep, select pool libraries, check barcode clashes, select experiment pools, query barcode sequences, set cycles, sequencer loading checklist, billing, library features, sample pooling, add kits to protocol, barcode constraints, upload prep table, edit kit features, edit kit barcodes (all four variants), edit library properties. lane pools, read distribution, flow-cell loading (both variants each), dilute pools, share directory. Partial: associate path.
-- §3 actions without suites: `ReseqAction` (its template works; the "not ported" note was stale).
 - Cross-cutting: `test_action_access.py` (every insider/admin-only action and workflow, dependency check + client GET), `test_route_shadowing.py`, `test_share_root_abuse.py`.
 - §4 order agreed 2026-10-13: `LibraryPoolingWorkflow` (done), `MuxPrepWorkflow` (done), `ReindexWorkflow` (done), `QubitMeasureWorkflow` (done), `BAReportWorkflow` (done).
 - Done 2026-10-13: `LibraryRemuxWorkflow`, `SelectLibraryProtocolsWorkflow`; `SelectExperimentPoolsWorkflow` and `MergeProjectsWorkflow` are re-exports of tested actions.
-- Next: §3 partial `AssociatePathAction`; `ReseqAction`; `MergePoolsWorkflow` (both render fine — the "template not ported" notes were stale).
+- Done 2026-10-13 (later): `ReseqAction`, `MergePoolsWorkflow`.
+- Next: §3 partial `AssociatePathAction`; then §0/§5 cross-cutting items.
 
 ## 0. Shared test infrastructure
 
@@ -405,7 +405,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 - [x] `SetExperimentCyclesAction`: update cycles; empty cycles; insider-only; pre-fill; CSRF; 404.
 - [x] `GenerateSequencerLoadingChecklistAction`: valid experiment; missing lanes/pools; invalid template parameters; output content; permission checks. *(`forms/test_generate_sequencer_loading_checklist_action.py`: per-lane inputs, file + DB record, volume scaling and lane merging, zero cells, missing/non-numeric values, no-template workflow, insider-only, CSRF. Failures found here were fixed 2026-10-07 — see findings.)*
 - [x] `BillingAction`: valid experiment selection; empty selection; invalid status; duplicate export; insider/admin permissions; generated output. *(`forms/test_billing_action.py`: workbook sheets, lane/flow-cell share, capacity and missing-reads warnings, request resolution for request-less pools, multiple experiments, unknown ID, CSRF. Invalid status is not re-checked server-side — the status filter only narrows the browse table, same as legacy.)*
-- [ ] `ReseqAction`: indexed libraries; raw libraries; mixed selection; invalid status; duplicate resequencing; permission checks.
+- [x] `ReseqAction`: indexed libraries; raw libraries; mixed selection; invalid status; duplicate resequencing; permission checks. *(`forms/test_reseq_action.py`: indexed clones copy samples + indices, raw only samples; clone number and original link (also when cloning a clone); several libraries; re-sequencing twice gives two clones (as legacy); lab prep context; empty selection; QC-only request 400; insider-only even with WRITE; no context 400. Also covers the request page's single-library re-sequence and request cloning (pooled/indexed/raw). Fixed 2026-10-13: `actions.clone_library`, `clone_seq_request` and `clone_pool` never added the clone before using its id, so every re-sequence/clone crashed (legacy too); the library browser was not filtered to the request/lab prep and libraries of other requests were accepted (cloned into this request) — now filtered and 404; no context was 500. Differs from legacy, not changed: indexed clones get status STORED (legacy: ACCEPTED).)*
 
 
 
@@ -605,17 +605,21 @@ Relib business-logic findings (all fixed 2026-10-13):
 
 ### `MergePoolsWorkflow`
 
-- [ ] Select two compatible pools.
-- [ ] Select more than two pools.
-- [ ] Empty/one-pool selection.
-- [ ] Set valid pipet ratios.
-- [ ] Invalid/zero/negative ratios.
-- [ ] Barcode clash preview with no clash.
-- [ ] Barcode clash rejection.
-- [ ] Name/contact validation.
-- [ ] Back navigation.
-- [ ] Completion creates merged pool and updates source state.
-- [ ] Failure rolls back all changes.
+Covered by `workflows/test_merge_pools.py`.
+
+- [x] Select two compatible pools (merge step prefilled: summed reads, common status/contact).
+- [x] Select more than two pools.
+- [x] Empty/one-pool selection; pool of another request 404.
+- [x] Set valid pipet ratios (stored as `merge_ratios`).
+- [ ] Invalid/zero/negative ratios. *(Missing values rejected; zero/negative pipet and reads are accepted — legacy's `DataRequired` rejected 0 by accident and accepted negatives.)*
+- [x] Barcode clash preview with no clash. *(Clashes are only displayed, as legacy.)*
+- [ ] Barcode clash rejection. *(N/A: legacy does not reject clashes either.)*
+- [x] Name/contact validation: short/missing name, another own pool's name rejected, a merged pool's name reusable, contact required.
+- [x] Back navigation keeps the selection.
+- [x] Completion creates merged pool and updates source state (libraries moved, sources REPOOLED with `merged_to_pool_id`, Redis cleared).
+- [x] Failure rolls back all changes; merge without workflow state / a second time 400.
+
+Fixed 2026-10-13: the merge step merged whatever pool ids were posted (any pool, incl. other users') — now only the selected pools; a missing/expired workflow state raised `KeyError` (500) — now 400.
 
 
 

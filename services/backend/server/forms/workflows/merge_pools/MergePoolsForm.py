@@ -129,6 +129,12 @@ class MergePoolsForm(MergePoolsWorkflowStep):
                     form.name.errors.append("Owner of the pool already has a pool with the same name.")
                     break
 
+            # Only the pools chosen in the selection step may be merged
+            selected_ids = {int(pool_id) for pool_id in pool_table["pool_id"].tolist()}
+            posted_ids = [entry.pool_id.data for entry in form.pool_forms.entries]
+            if sorted(posted_ids) != sorted(selected_ids):
+                form.add_general_error("The pools do not match the pools selected in the previous step.")
+
             if form.contact.data is None:
                 if not form.contact_name.data:
                     form.contact_name.errors.append("Contact is required")

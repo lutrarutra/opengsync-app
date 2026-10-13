@@ -261,11 +261,16 @@ def absolute_url_for(request, name: str, *, external: bool = False, **path_param
 
     With ``external`` (links that leave the app: emails, copy-paste commands) the configured
     ``external_base_url`` is used instead of the request's Host header, which the client
-    controls. Without that setting it falls back to the request.
+    controls. The reverse proxy prefix (``root_path``, from X-Forwarded-Prefix) is kept,
+    unless the configured base already ends with it. Without that setting it falls back to the request.
     """
     base = settings.app_config.external_base_url if external else None
     if base:
-        return URL(base.rstrip("/") + request.app.url_path_for(name, **path_params))
+        base = base.rstrip("/")
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        if root_path and not base.endswith(root_path):
+            base += root_path
+        return URL(base + request.app.url_path_for(name, **path_params))
     return request.url_for(name, **path_params)
 
 def _get_route_param_names(router, name: str, provided: set[str] | None = None) -> set:

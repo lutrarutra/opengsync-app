@@ -34,6 +34,11 @@ class ReseqAction(HTMXForm):
         super().__init__()
         self.seq_request_id = seq_request_id
         self.lab_prep_id = lab_prep_id
+        # As legacy: browse only the libraries of the request / lab prep
+        if seq_request_id is not None:
+            self.selected_library_ids.query_params["seq_request_id"] = seq_request_id
+        elif lab_prep_id is not None:
+            self.selected_library_ids.query_params["lab_prep_id"] = lab_prep_id
 
     @classmethod
     def Init(cls) -> "FormFunc":
@@ -58,7 +63,7 @@ class ReseqAction(HTMXForm):
                 if not lab_prep:
                     raise exc.NotFoundException()
             else:
-                raise exc.OpeNGSyncServerException("Either seq_request_id or lab_prep_id must be provided.")
+                raise exc.BadRequestException("Either seq_request_id or lab_prep_id must be provided.")
 
             return cls(seq_request_id=seq_request_id, lab_prep_id=lab_prep_id)
         return dependency
@@ -84,7 +89,13 @@ class ReseqAction(HTMXForm):
                 if seq_request.submission_type == C.SubmissionType.QC_ONLY:
                     raise exc.BadRequestException("QC-only requests cannot be re-sequenced.")
 
-            for library in form.selected_library_ids.get_selected_libraries(session=session):
+            # The ids come from the client: only libraries of the request / lab prep (404 otherwise)
+            libraries = form.selected_library_ids.get_selected_libraries(
+                session=session,
+                seq_request_id=form.seq_request_id,
+                lab_prep_id=form.lab_prep_id if form.seq_request_id is None else None,
+            )
+            for library in libraries:
                 seq_request_id = library.seq_request_id
                 if form.seq_request_id is not None:
                     seq_request_id = form.seq_request_id

@@ -10,6 +10,8 @@ from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, FormFunc
 from .. import merge_pools as wf
 
+EXPIRED = "This pool merge has expired. Please start again."
+
 
 class MergePoolsWorkflowStep(HTMXWorkflowStep):
     workflow: "MergePoolsWorkflow"
@@ -77,13 +79,17 @@ class MergePoolsWorkflow(HTMXWorkflow):
                     raise exc.NoPermissionsException()
             if seq_request_id is None and not current_user.is_insider:
                 raise exc.NoPermissionsException()
-            return cls(
+            workflow = cls(
                 step=step,
                 seq_request_id=seq_request_id,
                 lab_prep_id=lab_prep_id,
                 r=r,
                 uuid=uuid,
             )
+            # The merge step needs a run that went through selection (state expires / is cleared on completion)
+            if step != wf.SelectSamplesForm.__name__ and step not in workflow.step_tracker.steps:
+                raise exc.BadRequestException(EXPIRED)
+            return workflow
         return dependency
 
     @classmethod

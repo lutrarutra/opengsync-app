@@ -7,7 +7,7 @@ from opengsync_db import SyncSession, models, categories as C, queries as Q
 from ....core import dependencies, exceptions as exc
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
-from .MergePoolsWorkflow import MergePoolsWorkflowStep, MergePoolsWorkflow
+from .MergePoolsWorkflow import MergePoolsWorkflowStep, MergePoolsWorkflow, EXPIRED
 
 
 class SelectSamplesForm(MergePoolsWorkflowStep):
@@ -36,7 +36,9 @@ class SelectSamplesForm(MergePoolsWorkflowStep):
         def route(
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Init()),
         ) -> Response:
-            pool_table = form.workflow.tables["pool_table"]
+            pool_table = form.workflow.tables.get("pool_table")
+            if pool_table is None:
+                raise exc.BadRequestException(EXPIRED)
             form.selected_pool_ids.data = pool_table["pool_id"].unique().tolist()
             return form.make_response()
         return route

@@ -133,6 +133,9 @@ def clone_library(
         original_library_id=library.original_library_id if library.original_library_id is not None else library.id,
         status=status
     )
+    # The links below need the clone's id
+    session.add(cloned_library)
+    session.flush()
 
     for sample_link in library.sample_links:
         link_sample_library(
@@ -304,6 +307,9 @@ def clone_pool(session: Session, pool_id: int, status: C.PoolStatus, seq_request
     cloned_pool.num_m_reads_requested = pool.num_m_reads_requested
 
     cloned_pool.ba_report_id = pool.ba_report_id
+    # Callers link libraries to the clone by id
+    session.add(cloned_pool)
+    session.flush()
 
     return cloned_pool
 
@@ -688,6 +694,9 @@ def clone_seq_request(session: Session, seq_request: models.SeqRequest, method: 
         special_requirements=seq_request.special_requirements,
         billing_code=seq_request.billing_code,
     )
+    # The cloned libraries and pools need the request's id
+    session.add(cloned_request)
+    session.flush()
 
     if method == "pooled":
         pools: dict[int, models.Pool] = {}
