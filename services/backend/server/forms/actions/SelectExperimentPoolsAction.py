@@ -2,7 +2,7 @@ from fastapi import Depends, Response
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C, actions
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses
 from ...components import inputs
 from ..HTMXForm import RouteFunc, htmx_route, HTMXForm, FormFunc
 
@@ -29,8 +29,7 @@ class SelectExperimentPoolsAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
             _=Depends(dependencies.require_insider),
         ) -> "SelectExperimentPoolsAction":
-            if (experiment := session.first(Q.experiment.select(id=experiment_id))) is None:
-                raise exc.NotFoundException()
+            experiment = session.get_one(Q.experiment.select(id=experiment_id))
             return cls(experiment=experiment)
         return dependency
 

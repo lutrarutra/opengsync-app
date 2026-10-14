@@ -1,14 +1,23 @@
 """SamplePoolingAction: regroup a lab prep's multiplexed samples into libraries.
 
-The spreadsheet lists every sample of the lab prep's multiplexed libraries with its
-current pool (``Library.sample_name``). On submit, as legacy
-``mux_prep_workflow.sample_pooling``: each (pool, old library) group becomes a new
-library ``{pool}_{library type identifier}`` that copies the old library's properties
-and features, samples are re-linked keeping their mux barcode, and libraries left
-without samples are deleted. Non-multiplexed libraries are not touched.
+The spreadsheet lists one row per (sample, pool) of the lab prep's multiplexed libraries
+(pool = ``Library.sample_name``). On submit, each (pool, library type) becomes a library
+``{pool}_{library type identifier}`` and samples are linked keeping their mux barcode.
+Non-multiplexed libraries are not touched.
+
+Legacy deleted every library and re-created one per (pool, old library), copying the old
+library's properties and features. Here existing libraries are re-used: the library already
+in the pool keeps it, a library whose pool disappeared is renamed into a new pool of the same
+type (most shared samples first), and only the remaining pools get a new library copied from
+an old one. Libraries left without a pool are deleted.
+
+Unlike legacy, which keyed rows by sample and merged a sample's pools into one, a sample
+may be listed in several pools: rows can be added to pool a sample into more libraries
+(the barcode is copied from its other links of that library type, which must agree) and
+removed to take it out of one. Every sample needs at least one row.
 
 Samples are no longer failed here (pool ``x`` is refused): that is RejectSamplesAction.
-REJECTED samples are hidden from the spreadsheet and stay in their current pool.
+REJECTED samples are listed and pooled like any other sample.
 
 Access is insider-only. Legacy had no role check on this route (login only); lab preps
 are insider-only everywhere else, so the stricter FastAPI check is kept.
@@ -35,7 +44,7 @@ from .._http import (
 )
 
 PREFIX = "/htmx/actions/sample-pooling"
-COLUMNS = ["Sample ID", "Sample Name", "Pool"]
+COLUMNS = ["Sample", "Pool"]
 GEX = C.LibraryType.TENX_SC_GEX_FLEX
 ABC = C.LibraryType.TENX_SC_ABC_FLEX
 
@@ -45,7 +54,18 @@ def _path(lab_prep_id: int) -> str:
 
 
 def _payload(pools: dict[models.Sample, str]) -> dict[str, str]:
-    return spreadsheet_payload(COLUMNS, [[sample.id, sample.name, pool] for sample, pool in pools.items()])
+    return _rows([(sample, pool) for sample, pool in pools.items()])
+
+
+def _rows(rows: list[tuple[models.Sample, str]]) -> dict[str, str]:
+    return spreadsheet_payload(COLUMNS, [[_label(sample), pool] for sample, pool in rows])
+
+
+def _label(sample: models.Sample) -> str:
+    """The sample's option in the Sample column, rejected samples are marked."""
+    if sample.status == C.SampleStatus.REJECTED:
+        return f"{sample.name} ⛔ [{sample.id}]"
+    return f"{sample.name} [{sample.id}]"
 
 
 class Prep:
@@ -219,7 +239,7 @@ def test_pool_x_is_refused(client: TestClient, prep: Prep, insider_token: str):
     assert {lib.id for lib in prep.libraries().values()} == {prep.pool_a.id, prep.pool_b.id}
 
 
-def test_render_hides_rejected_samples(
+def test_render_lists_rejected_samples(
     client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
 ):
     prep.s2.status = C.SampleStatus.REJECTED
@@ -229,30 +249,42 @@ def test_render_hides_rejected_samples(
     response = get(client, _path(prep.lab_prep.id), insider_token)
 
     assert response.status_code == 200
-    assert "S1" in response.text
-    assert "S2" not in response.text
+    assert f"['{_label(prep.s2)}', 'PoolA']" in response.text
+    assert "S2 ⛔" in response.text
 
 
-def test_rejected_samples_stay_in_their_pool(
+def test_rejected_samples_are_pooled_like_any_other(
     client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
 ):
     prep.s2.status = C.SampleStatus.REJECTED
     session.save(prep.s2, flush=True)
     session.commit()
-    pools = prep.pools(S1="PoolB")
+
+    response = _submit(client, prep, insider_token, S2="PoolB")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert prep.layout() == {
+        "PoolA_10XFLEXGEX": {"S1": "BC_S1"},
+        "PoolB_10XFLEXGEX": {"S2": "BC_S2", "S3": "BC_S3", "S4": "BC_S4"},
+    }
+    assert prep.s2.status == C.SampleStatus.REJECTED
+
+
+def test_rejected_sample_needs_a_pool(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    prep.s2.status = C.SampleStatus.REJECTED
+    session.save(prep.s2, flush=True)
+    session.commit()
+    before = prep.layout()
+    pools = prep.pools()
     del pools[prep.s2]
 
     response = post_form(client, _path(prep.lab_prep.id), _payload(pools), token=insider_token)
 
-    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
-    assert prep.layout() == {
-        "PoolA_10XFLEXGEX": {"S2": "BC_S2"},
-        "PoolB_10XFLEXGEX": {"S1": "BC_S1", "S3": "BC_S3", "S4": "BC_S4"},
-    }
-    libraries = prep.libraries()
-    # Library status is not changed, even if only rejected samples are left
-    assert libraries["PoolA_10XFLEXGEX"].status == C.LibraryStatus.ACCEPTED
-    assert prep.s2.status == C.SampleStatus.REJECTED
+    assert_form_invalid(response)
+    assert "missing: S2" in response.text
+    assert prep.layout() == before
 
 
 def test_new_libraries_copy_the_old_library(
@@ -339,3 +371,210 @@ def test_missing_pool_is_rejected(client: TestClient, prep: Prep, insider_token:
     assert_form_invalid(response)
     assert prep.layout() == before
     assert {lib.id for lib in prep.libraries().values()} == {prep.pool_a.id, prep.pool_b.id}
+
+
+
+def test_sample_of_another_lab_prep_is_rejected(
+    client: TestClient, session: SyncSession, prep: Prep, user, insider, insider_token: str,
+):
+    other = Prep(session, user, insider)
+    session.commit()
+    before, other_before = prep.layout(), other.layout()
+    pools = prep.pools()
+    pools[other.s1] = "PoolA"
+
+    response = post_form(client, _path(prep.lab_prep.id), _payload(pools), token=insider_token)
+
+    assert_form_invalid(response)
+    assert prep.layout() == before
+    assert other.layout() == other_before
+
+
+def test_missing_sample_is_rejected(client: TestClient, prep: Prep, insider_token: str):
+    before = prep.layout()
+    pools = prep.pools()
+    del pools[prep.s2]
+
+    response = post_form(client, _path(prep.lab_prep.id), _payload(pools), token=insider_token)
+
+    assert_form_invalid(response)
+    assert "missing: S2" in response.text
+    assert prep.layout() == before
+
+
+def test_non_multiplexed_sample_is_rejected(
+    client: TestClient, session: SyncSession, prep: Prep, user, insider_token: str,
+):
+    sample = create_sample(session, user, create_project(session, user))
+    sample.name = "PlainSample"
+    prep.library("PlainPool", C.LibraryType.BULK_RNA_SEQ, [sample], mux_type=None)
+    session.commit()
+    before = prep.layout()
+    pools = prep.pools()
+    pools[sample] = "PoolA"
+
+    response = post_form(client, _path(prep.lab_prep.id), _payload(pools), token=insider_token)
+
+    assert_form_invalid(response)
+    assert prep.layout() == before
+
+
+# ── Submit: a sample in several pools ───────────────────────────────────────
+
+
+def test_sample_in_two_pools_keeps_both(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    """Legacy keyed rows by sample and merged S1's pools into one."""
+    actions.link_sample_library(session, prep.s1.id, prep.pool_b.id, mux={"barcode": "BC_S1_B"})
+    session.commit()
+    rows = [(prep.s1, "PoolA"), (prep.s1, "PoolB"), (prep.s2, "PoolA"), (prep.s3, "PoolB"), (prep.s4, "PoolB")]
+
+    response = post_form(client, _path(prep.lab_prep.id), _rows(rows), token=insider_token)
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert prep.layout() == {
+        "PoolA_10XFLEXGEX": {"S1": "BC_S1", "S2": "BC_S2"},
+        "PoolB_10XFLEXGEX": {"S1": "BC_S1_B", "S3": "BC_S3", "S4": "BC_S4"},
+    }
+
+
+def test_render_lists_a_sample_once_per_pool(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    actions.link_sample_library(session, prep.s1.id, prep.pool_b.id, mux={"barcode": "BC_S1"})
+    session.commit()
+
+    response = get(client, _path(prep.lab_prep.id), insider_token)
+
+    assert response.status_code == 200
+    for pool in ("PoolA", "PoolB"):
+        assert f"['{_label(prep.s1)}', '{pool}']" in response.text
+
+
+def test_adding_a_row_pools_a_sample_into_another_library(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    prep.library("PoolA", ABC, [prep.s1, prep.s2])
+    prep.library("PoolB", ABC, [prep.s3, prep.s4])
+    session.commit()
+    rows = list(prep.pools().items()) + [(prep.s1, "PoolC")]
+
+    response = post_form(client, _path(prep.lab_prep.id), _rows(rows), token=insider_token)
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert prep.layout() == {
+        "PoolA_10XFLEXGEX": {"S1": "BC_S1", "S2": "BC_S2"},
+        "PoolB_10XFLEXGEX": {"S3": "BC_S3", "S4": "BC_S4"},
+        "PoolC_10XFLEXGEX": {"S1": "BC_S1"},
+        "PoolA_10XFLEXABC": {"S1": "BC_S1", "S2": "BC_S2"},
+        "PoolB_10XFLEXABC": {"S3": "BC_S3", "S4": "BC_S4"},
+        "PoolC_10XFLEXABC": {"S1": "BC_S1"},
+    }
+    assert prep.libraries()["PoolC_10XFLEXGEX"].sample_name == "PoolC"
+
+
+def test_removing_a_row_takes_a_sample_out_of_one_pool(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    actions.link_sample_library(session, prep.s1.id, prep.pool_b.id, mux={"barcode": "BC_S1"})
+    session.commit()
+
+    response = _submit(client, prep, insider_token)
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert prep.layout() == {
+        "PoolA_10XFLEXGEX": {"S1": "BC_S1", "S2": "BC_S2"},
+        "PoolB_10XFLEXGEX": {"S3": "BC_S3", "S4": "BC_S4"},
+    }
+
+
+def test_new_pool_with_conflicting_barcodes_is_rejected(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    actions.link_sample_library(session, prep.s1.id, prep.pool_b.id, mux={"barcode": "BC_S1_B"})
+    session.commit()
+    before = prep.layout()
+    rows = [(prep.s1, "PoolA"), (prep.s1, "PoolC"), (prep.s2, "PoolA"), (prep.s3, "PoolB"), (prep.s4, "PoolB")]
+
+    response = post_form(client, _path(prep.lab_prep.id), _rows(rows), token=insider_token)
+
+    assert_form_invalid(response)
+    assert "different barcodes" in response.text
+    assert prep.layout() == before
+
+
+def test_duplicate_sample_pool_row_is_rejected(client: TestClient, prep: Prep, insider_token: str):
+    before = prep.layout()
+    rows = list(prep.pools().items()) + [(prep.s1, "PoolA")]
+
+    response = post_form(client, _path(prep.lab_prep.id), _rows(rows), token=insider_token)
+
+    assert_form_invalid(response)
+    assert prep.layout() == before
+
+
+# ── Submit: re-using libraries ──────────────────────────────────────────────
+
+
+def _library_ids(prep: Prep) -> dict[str, int]:
+    return {name: library.id for name, library in prep.libraries().items()}
+
+
+def test_moving_a_sample_keeps_the_libraries(client: TestClient, prep: Prep, insider_token: str):
+    response = _submit(client, prep, insider_token, S2="PoolB")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert _library_ids(prep) == {"PoolA_10XFLEXGEX": prep.pool_a.id, "PoolB_10XFLEXGEX": prep.pool_b.id}
+
+
+def test_renaming_a_pool_renames_its_library(client: TestClient, prep: Prep, insider_token: str):
+    response = _submit(client, prep, insider_token, S3="PoolC", S4="PoolC")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert _library_ids(prep) == {"PoolA_10XFLEXGEX": prep.pool_a.id, "PoolC_10XFLEXGEX": prep.pool_b.id}
+    assert prep.libraries()["PoolC_10XFLEXGEX"].sample_name == "PoolC"
+    assert prep.layout()["PoolC_10XFLEXGEX"] == {"S3": "BC_S3", "S4": "BC_S4"}
+
+
+def test_swapping_pools_keeps_the_libraries_with_the_most_samples(client: TestClient, prep: Prep, insider_token: str):
+    """PoolA and PoolB disappear: PoolC takes PoolB's library (S3, S4 move together), PoolD takes PoolA's."""
+    response = _submit(client, prep, insider_token, S1="PoolD", S2="PoolC", S3="PoolC", S4="PoolC")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert _library_ids(prep) == {"PoolC_10XFLEXGEX": prep.pool_b.id, "PoolD_10XFLEXGEX": prep.pool_a.id}
+    assert prep.layout() == {
+        "PoolC_10XFLEXGEX": {"S2": "BC_S2", "S3": "BC_S3", "S4": "BC_S4"},
+        "PoolD_10XFLEXGEX": {"S1": "BC_S1"},
+    }
+
+
+def test_merging_pools_keeps_the_library_of_the_remaining_pool(client: TestClient, prep: Prep, insider_token: str):
+    response = _submit(client, prep, insider_token, S3="PoolA", S4="PoolA")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert _library_ids(prep) == {"PoolA_10XFLEXGEX": prep.pool_a.id}
+
+
+def test_splitting_a_pool_keeps_its_library(client: TestClient, prep: Prep, insider_token: str):
+    response = _submit(client, prep, insider_token, S4="PoolC")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    ids = _library_ids(prep)
+    assert ids["PoolA_10XFLEXGEX"] == prep.pool_a.id
+    assert ids["PoolB_10XFLEXGEX"] == prep.pool_b.id
+    assert ids["PoolC_10XFLEXGEX"] not in (prep.pool_a.id, prep.pool_b.id)
+
+
+def test_library_is_only_re_used_for_its_own_type(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    abc_b = prep.library("PoolB", ABC, [prep.s3, prep.s4])
+    session.commit()
+
+    response = _submit(client, prep, insider_token, S3="PoolC", S4="PoolC")
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    ids = _library_ids(prep)
+    assert ids["PoolC_10XFLEXGEX"] == prep.pool_b.id
+    assert ids["PoolC_10XFLEXABC"] == abc_b.id

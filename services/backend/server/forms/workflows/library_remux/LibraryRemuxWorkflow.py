@@ -59,9 +59,7 @@ class LibraryRemuxWorkflow(HTMXWorkflow):
             session: SyncSession = Depends(dependencies.db_session),
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "LibraryRemuxWorkflow":
-            library = session.first(Q.library.select(id=library_id))
-            if library is None:
-                raise exc.NotFoundException("Library not found.")
+            library = session.get_one(Q.library.select(id=library_id))
 
             access_level = session.get_access_level(Q.library.permissions(library.id, user.id))
             if access_level < C.AccessLevel.WRITE:

@@ -60,9 +60,7 @@ class TODOCommentForm(HTMXForm):
         ) -> "TODOCommentForm":
             todo_comment = None
             if todo_comment_id is not None:
-                todo_comment = session.first(Q.todo_comment.select(id=todo_comment_id))
-                if todo_comment is None:
-                    raise exc.NotFoundException("TODO Comment not found")
+                todo_comment = session.get_one(Q.todo_comment.select(id=todo_comment_id))
             return cls(
                 todo_comment=todo_comment,
                 flow_cell_design_id=flow_cell_design_id,

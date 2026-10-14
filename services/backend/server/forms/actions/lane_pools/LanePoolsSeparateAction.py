@@ -151,9 +151,7 @@ class LanePoolsSeparateAction(HTMXForm):
             current_user: models.User = Depends(dependencies.require_insider),
         ):
             for lane_sub_form in form.lane_sub_forms:
-                lane = session.first(Q.lane.select(experiment_id=form.experiment.id, number=lane_sub_form.lane.data))
-                if lane is None:
-                    raise exc.NotFoundException(f"Lane {lane_sub_form.lane.data} not found in this experiment.")
+                lane = session.get_one(Q.lane.select(experiment_id=form.experiment.id, number=lane_sub_form.lane.data))
                 lane.target_molarity = lane_sub_form.target_concentration.data
                 lane.total_volume_ul = lane_sub_form.target_total_volume.data
                 session.save(lane)

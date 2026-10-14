@@ -120,9 +120,7 @@ class StoreSamplesAction(HTMXForm):
                 session.save(pool)
 
             for _srid in check_request_ids:
-                if (seq_request := session.first(Q.seq_request.select(id=_srid))) is None:
-                    logger.error(f"SeqRequest {_srid} not found")
-                    raise Exception(f"SeqRequest {_srid} not found")
+                seq_request = session.get_one(Q.seq_request.select(id=_srid))
 
                 if seq_request.submission_type == C.SubmissionType.QC_ONLY:
                     all_libraries_stored = all(

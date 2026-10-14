@@ -230,9 +230,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
             seq_request = session.get_one(Q.seq_request.select(id=form.workflow.seq_request_id))
 
             if (project_id := form.workflow.metadata.get("project_id")) is not None:
-                if (project := session.first(Q.project.select(id=project_id))) is None:
-                    logger.error(f"{form.workflow.uuid}: Project with id {project_id} not found.")
-                    raise exc.NotFoundException(f"Project with id {project_id} not found.")
+                project = session.get_one(Q.project.select(id=project_id))
             else:
                 project = session.save(Q.project.create(
                     title=form.workflow.metadata["project_title"],

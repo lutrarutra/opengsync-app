@@ -95,9 +95,7 @@ class ConfirmSplitForm(SplitProjectWorkflowStep):
             current_user: models.User = Depends(dependencies.require_insider),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            source_project = session.first(Q.project.select(id=form.workflow.project_id))
-            if source_project is None:
-                raise exc.NotFoundException("Source project not found.")
+            source_project = session.get_one(Q.project.select(id=form.workflow.project_id))
 
             try:
                 destination_status = C.ProjectStatus.get(form.destination_status.data)

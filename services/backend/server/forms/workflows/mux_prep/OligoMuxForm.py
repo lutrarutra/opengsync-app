@@ -2,14 +2,13 @@ from typing import Self
 
 import pandas as pd
 from fastapi import Depends, Response
-from loguru import logger
 from pydantic import BaseModel
 
 from opengsync_db import categories as C, models, SyncSession, queries as Q
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ....core import dependencies, exceptions as exc
+from ....core import dependencies
 from ....utils import parsing
 from ....components import inputs
 from ....components.tables import (
@@ -220,10 +219,7 @@ class OligoMuxForm(MuxPrepWorkflowStep):
             for _, row in pooling_table.iterrows():
                 sample_id = int(row["sample_id"])
                 library_id = int(row["library_id"])
-                link = session.first(Q.links.get_sample_library_link(sample_id=sample_id, library_id=library_id))
-                if link is None:
-                    logger.error(f"Could not find link for sample {sample_id} and library {library_id}")
-                    raise exc.NotFoundException("Sample-library link not found.")
+                link = session.get_one(Q.links.get_sample_library_link(sample_id=sample_id, library_id=library_id))
 
                 mux = dict(link.mux) if link.mux else {}
                 mux["barcode"] = row["mux_barcode"] if pd.notna(row["mux_barcode"]) else None
