@@ -11,7 +11,9 @@ from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
-from ...db.create_units import create_seq_request, create_library
+from opengsync_db import actions
+
+from ...db.create_units import create_seq_request, create_library, create_project, create_sample
 from .._http import (
     assert_flash,
     assert_form_invalid,
@@ -188,6 +190,33 @@ def test_submit_rejects_request(
     updated = session.get_one(Q.seq_request.select(id=seq_request.id))
     assert updated.status == C.SeqRequestStatus.REJECTED
 
+
+
+def test_submit_reject_keeps_samples_draft(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider,
+    insider_token: str,
+):
+    """REJECTED samples are failed in the lab and can't be re-submitted; a rejected request's samples stay DRAFT."""
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
+    sample = create_sample(session, user, create_project(session, user))
+    sample.status = C.SampleStatus.DRAFT
+    actions.link_sample_library(session, sample_id=sample.id, library_id=library.id)
+    session.commit()
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(response_type=str(C.RequestResponse.REJECTED.id)),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    session.expire_all()
+    assert session.get_one(Q.sample.select(id=sample.id)).status == C.SampleStatus.DRAFT
 
 def test_submit_marks_pending_revision(
     client: TestClient,

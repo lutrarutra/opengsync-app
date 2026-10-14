@@ -366,14 +366,10 @@ def export_seq_request(
         metadata_df.to_excel(writer, sheet_name="metadata", index=True)
         libraries_df.to_excel(writer, sheet_name="libraries", index=False)
         features_df.to_excel(writer, sheet_name="features", index=False)
-    bytes_io.seek(0)
 
-    return Response(
-        bytes_io,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename=request_{seq_request_id}.xlsx"
-        },
+    return responses.bytes_response(
+        data=bytes_io, filename=f"request_{seq_request_id}.xlsx",
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
 

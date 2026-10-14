@@ -22,6 +22,9 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # Without this, pushes to a non-default branch diff against the
+          # merge-base with main, so every filter matches on every push.
+          base: ${{ github.ref }}
           filters: |
             backend:
               - "services/backend/**"

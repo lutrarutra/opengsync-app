@@ -199,9 +199,8 @@ class LanePoolsCombinedAction(HTMXForm):
             file_dir = C.MediaFileType.LANE_POOLING_TABLE.dir
             filepath = os.path.join(media_folder, file_dir, f"{_uuid}{extension}")
 
-            os.makedirs(os.path.join(media_folder, file_dir), exist_ok=True)
-            df.to_csv(filepath, sep="\t", index=False)
-            size_bytes = os.stat(filepath).st_size
+            content = df.to_csv(sep="\t", index=False).encode("utf-8")
+            size_bytes = len(content)
 
             db_file = session.save(Q.media_file.create(
                 name=filename,
@@ -218,6 +217,12 @@ class LanePoolsCombinedAction(HTMXForm):
                 text="Added file for pooling ratios",
                 experiment_id=form.experiment.id,
             ))
+
+            # written last, so a failing database change leaves no file behind
+            session.flush()
+            os.makedirs(os.path.join(media_folder, file_dir), exist_ok=True)
+            with open(filepath, "wb") as f:
+                f.write(content)
 
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=form.experiment.id),

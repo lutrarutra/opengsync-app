@@ -44,10 +44,10 @@ class ExperimentForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session)
         ) -> "ExperimentForm":
             if form_type == "edit" and experiment_id is None:
-                raise exc.OpeNGSyncServerException("Experiment ID must be provided for edit form.")
+                raise exc.BadRequestException("Experiment ID must be provided for edit form.")
             
             experiment = None
-            if experiment_id is not None:
+            if form_type != "create" and experiment_id is not None:  # a create form ignores a stray id
                 experiment = session.get_one(Q.experiment.select(id=experiment_id))
             return ExperimentForm(form_type=form_type, experiment=experiment)
         
@@ -60,7 +60,7 @@ class ExperimentForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_insider),
         ):
             if form.experiment is None:
-                raise exc.OpeNGSyncServerException("Experiment ID must be provided for edit form.")
+                raise exc.BadRequestException("Experiment ID must be provided for edit form.")
             
             form.name.data = form.experiment.name
             form.workflow.data = form.experiment.workflow.id
@@ -92,7 +92,7 @@ class ExperimentForm(HTMXForm):
             _ = Depends(dependencies.require_insider),
         ) -> Response:
             if form.experiment is None:
-                raise exc.OpeNGSyncServerException("Experiment ID must be provided for edit form.")
+                raise exc.BadRequestException("Experiment ID must be provided for edit form.")
 
             sequencer = session.get_one(Q.sequencer.select(id=form.sequencer.data))
             operator = session.get_one(Q.user.select(id=form.operator.data))

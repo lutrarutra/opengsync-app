@@ -29,7 +29,7 @@
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
-                <b>{% if mux_required %}{% if samples_pooled is none %}❗{% else %}🔘{% endif %}{% else %}🚫{% endif %} Specify how Samples are Multiplexed</b>
+                <b>{% if mux_required %}{% if samples_pooled is none %}❗{% else %}🔘{% endif %}{% else %}🚫{% endif %} Specify how Samples are Pooled</b>
             </button>
         </h2>
         <div id="sops-accordiod-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
@@ -40,13 +40,42 @@
                         <button class="btn-primary btn"data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('SamplePoolingAction.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
-                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Sample Multiplexing' - Workflow
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Sample Pooling' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
                     <li>Required only when multiple samples are multiplexed into a library</li>
-                    <li>If you want to remove sample from a library (e.g. sample failed), specify <span class="code-highlight">x</span> as the Pool for the failed/canceled sample. New 'dummy'-library named 'canceled_samples_' will be created for these samples with status {{ C.LibraryStatus.FAILED.display_name }}.</li>
+                    <li>Samples with the same Pool are combined into a single library.</li>
+                    <li>To fail samples, use the 'Reject Samples'-step. Rejected samples are not listed and stay in their current pool.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2b" aria-expanded="false" aria-controls="sops-accordiod-collapse-2b">
+                <b>{% if mux_required %}{% if samples_pooled is none %}❗{% else %}🔘{% endif %}{% else %}🚫{% endif %} Reject Samples</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-2b" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('RejectSamplesAction.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Reject Samples' - Workflow
+                    </li>
+                    <li>Specify <span class="code-highlight">x</span> in the 'Reject'-column for failed samples.</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Optional; only for samples in multiplexed libraries.</li>
+                    <li>Rejected samples get status {{ C.SampleStatus.REJECTED.display_name }}, stay in their library and are ignored in the following steps.</li>
+                    <li>Rejection applies to the sample everywhere it is used. Clear the <span class="code-highlight">x</span> to un-reject a sample.</li>
+                    <li>If all samples of a library are rejected, fail the library with <span class="code-highlight">x</span> in the prep-table.</li>
                 </ul>
             </div>
         </div>

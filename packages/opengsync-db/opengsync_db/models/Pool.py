@@ -61,6 +61,8 @@ class Pool(Base):
     experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="pools")
     
+    original_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[original_pool_id])
+
     merged_to_pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id"), nullable=True, default=None)
     merged_to_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[merged_to_pool_id])
 

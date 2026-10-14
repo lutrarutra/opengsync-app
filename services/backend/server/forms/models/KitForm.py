@@ -53,7 +53,7 @@ class KitForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "KitForm":
             if form_type == "edit" and kit_id is None:
-                raise exc.OpeNGSyncServerException("Kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Kit ID must be provided for edit form.")
 
             kit = None
             if kit_id is not None:
@@ -68,7 +68,7 @@ class KitForm(HTMXForm):
             form: "KitForm" = Depends(KitForm.Init(form_type="edit")),
         ):
             if form.kit is None:
-                raise exc.OpeNGSyncServerException("Kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Kit ID must be provided for edit form.")
 
             form.name.data = form.kit.name
             form.identifier.data = form.kit.identifier
@@ -94,7 +94,7 @@ class KitForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.kit is None:
-                raise exc.OpeNGSyncServerException("Kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Kit ID must be provided for edit form.")
 
             # Validate identifier
             form.identifier.data = form.identifier.data.strip()

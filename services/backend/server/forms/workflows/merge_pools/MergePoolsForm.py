@@ -36,7 +36,7 @@ class MergePoolsForm(MergePoolsWorkflowStep):
         super().__init__(workflow=workflow)
         self.pools: list[models.Pool] = []
 
-    def prepare(self) -> None:
+    def prepare_context(self) -> None:
         session = ctx.session
         pool_table = self.workflow.tables["pool_table"]
         self.pools = [
@@ -61,9 +61,7 @@ class MergePoolsForm(MergePoolsWorkflowStep):
         self._context["barcode_table"] = barcode_table
         self._context["library_table"] = self.workflow.tables["library_table"]
 
-        if self.pool_forms.entries:
-            return
-
+    def prepare(self) -> None:
         current_user: models.User | None = getattr(ctx.request.state, "current_user", None)
         if current_user is not None:
             self.contact.data = current_user.id

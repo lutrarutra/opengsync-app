@@ -20,6 +20,29 @@ class ParseBAExcelFileForm(BAReportWorkflowStep):
         self.excel_table = workflow.tables["excel_table"]
         self.sample_table = workflow.tables["sample_table"]
 
+    def prepare(self) -> None:
+        # Back from the confirm step: list both sides in the order they were assigned
+        if (left_order := self.workflow.metadata.get("left_order")) is not None:
+            left = [i for i in left_order if i in self.sample_table.index]
+            self.sample_table = self.sample_table.loc[left + [i for i in self.sample_table.index if i not in left]]
+        if (right_order := self.workflow.metadata.get("right_order")) is not None:
+            unused = list(self.excel_table.index)
+            right = []
+            for name in right_order:
+                idx = next((i for i in unused if str(self.excel_table.at[i, "sample_name"]) == name), None)
+                if idx is not None:
+                    right.append(idx)
+                    unused.remove(idx)
+            self.excel_table = self.excel_table.loc[right + unused]
+
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            form: "ParseBAExcelFileForm" = Depends(ParseBAExcelFileForm.Init()),
+        ) -> Response:
+            return form.make_response()
+        return route
+
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
@@ -58,8 +81,7 @@ class ParseBAExcelFileForm(BAReportWorkflowStep):
 
             ba_table = pd.DataFrame(data)
             form.workflow.tables["ba_table"] = ba_table
-            form.workflow.add_step(form.__class__.__name__)
-            next_step = CompleteBAReport(workflow=form.workflow)
-            form.workflow.add_step(next_step.__class__.__name__)
-            return next_step.make_response()
+            form.workflow.metadata["left_order"] = samples_order
+            form.workflow.metadata["right_order"] = [name for name, _ in excel_order]
+            return form.workflow.get_next_step(form, CompleteBAReport).make_response()
         return route

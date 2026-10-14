@@ -4,7 +4,6 @@
 
 - Docker and Docker Compose installed on the production server
 - Git access to the repository
-- A backup server with SSH access for pgBackRest
 
 ## Initial Setup
 
@@ -29,85 +28,32 @@ Edit `.env` and fill in **at minimum**:
 | `SECRET_KEY` | Generate with `openssl rand -hex 32` |
 | `POSTGRES_PASSWORD` | Database password |
 | `MAIL_SERVER`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_SENDER` | SMTP settings |
-| `PGBACKREST_REPO1_HOST` | Backup server hostname/IP |
-| `PGBACKREST_SSH_KEY` | Path to SSH key on the host (e.g. `./secrets/pgbackrest_id_ed25519`) |
 
-### 3. Set up SSH key for pgBackRest
-
-Generate a key pair on the production server:
-
-```bash
-mkdir -p secrets
-ssh-keygen -t ed25519 -f ./secrets/pgbackrest_id_ed25519 -N ""
-```
-
-Install the public key on the backup server:
-
-```bash
-ssh-copy-id -i ./secrets/pgbackrest_id_ed25519.pub pgbackrest@<backup-server>
-```
-
-Create the known_hosts file:
-
-```bash
-ssh-keyscan <backup-server> > ./secrets/pgbackrest_known_hosts
-```
-
-### 4. Create the Docker volume
+### 3. Create the Docker volumes
 
 ```bash
 docker volume create opengsync-prod_postgres_data
+docker volume create opengsync-prod_postgres_archive
 ```
 
-### 5. Pull images & start services
+### 4. Pull images & start services
 
 ```bash
 make prod-pull
 make prod-run
 ```
 
-### 6. Run database migrations
+### 5. Run database migrations
 
 ```bash
 make prod-migrate
 ```
 
-### 7. Initialize pgBackRest stanza
-
-```bash
-docker exec -u postgres postgres pgbackrest --stanza=opengsync stanza-create
-docker exec -u postgres postgres pgbackrest --stanza=opengsync check
-```
-
-### 8. Set up the systemd backup timer
-
-Edit `services/db/systemd/paperplane-pgbackrest-backup.service` and replace `<changeme>` with your actual paths:
-
-```ini
-WorkingDirectory=/opt/opengsync
-ExecStart=/opt/opengsync/services/db/pgbackrest-backup.sh
-```
-
-Then install and start the timer:
-
-```bash
-sudo cp services/db/systemd/paperplane-pgbackrest-backup.service /etc/systemd/system/
-sudo cp services/db/systemd/paperplane-pgbackrest-backup.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now paperplane-pgbackrest-backup.timer
-```
-
-### 9. Verify everything
+### 6. Verify everything
 
 ```bash
 # Check services are running
 docker compose -f compose.yaml ps
-
-# Check pgBackRest
-docker exec -u postgres postgres pgbackrest --stanza=opengsync info
-
-# Check backup timer
-sudo systemctl status paperplane-pgbackrest-backup.timer
 ```
 
 ## Deploying Updates
@@ -124,27 +70,9 @@ This runs `docker compose pull` followed by `docker compose up -d`, which restar
 
 ## Backup & Restore
 
-### Backup schedule
+WAL archiving copies every completed WAL segment into the `opengsync-prod_postgres_archive` volume (`archive_command = 'cp %p /var/lib/postgresql/archive/%f'` in `services/db/postgresql.prod.conf`). Nothing prunes this volume, so watch its size.
 
-- **Daily at 03:30** — full backup on Sunday, differential on other days
-- **WAL archiving** — continuous, every WAL segment is pushed to the backup server in real-time
-- **Retention** — 2 weekly fulls kept, WAL retained 30 days beyond the oldest full (~44 days PITR)
-
-### Manual backup
-
-```bash
-docker exec -u postgres postgres pgbackrest --stanza=opengsync backup --type=full
-```
-
-### List available backups
-
-```bash
-docker exec -u postgres postgres pgbackrest --stanza=opengsync info
-```
-
-### Restore
-
-See [pgBackRest documentation](https://pgbackrest.org/) for restore procedures.
+pgBackRest is currently **disabled**: no backup repository is configured. The pgBackRest binary, `services/db/pgbackrest.conf`, `services/db/pgbackrest-backup.sh` and the systemd units are kept so it can be re-enabled once a repository (e.g. SFTP or S3) is available.
 
 ## Service Reference
 
@@ -154,7 +82,7 @@ See [pgBackRest documentation](https://pgbackrest.org/) for restore procedures.
 | `opengsync-app` | `ghcr.io/lutrarutra/opengsync-app/backend` | FastAPI application (gunicorn) |
 | `opengsync-celery-worker` | `ghcr.io/lutrarutra/opengsync-app/worker` | Celery task worker |
 | `opengsync-celery-beat` | `ghcr.io/lutrarutra/opengsync-app/worker` | Celery beat scheduler |
-| `postgres` | `ghcr.io/lutrarutra/opengsync-app/postgres` | PostgreSQL with pgBackRest |
+| `postgres` | `ghcr.io/lutrarutra/opengsync-app/postgres` | PostgreSQL (pgBackRest installed, currently disabled) |
 | `nginx` | `ghcr.io/lutrarutra/opengsync-app/nginx` | Reverse proxy |
 | `redis-cache` | `redis:8.0.3-alpine3.21` | Redis cache |
 | `tailwind-compiler` | (built locally) | One-shot CSS compilation |

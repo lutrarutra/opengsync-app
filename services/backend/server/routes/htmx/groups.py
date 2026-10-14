@@ -49,10 +49,8 @@ def render_group_table(
 
     if user_id is not None:
         if session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
-            return responses.htmx_response(template="components/tables/group-user.html", groups=[], user_id=user_id)
-        table.template = "components/tables/group-user.html"
+            raise exc.NoPermissionsException("You do not have permission to view this resource.")
         table.url_params["user_id"] = user_id
-        table.context["user_id"] = user_id
         stmt = Q.group.select(user_id=user_id, statement=stmt)
     if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
@@ -120,15 +118,17 @@ def make_owner_of_group(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     group = session.get_one(Q.group.select(id=group_id))
+    owner = group.owner  # None for a group whose owner affiliation is gone
     # Ownership can only be handed over by the owner (or staff), not taken by a manager.
     if (
-        group.owner.id != current_user_id
+        (owner is None or owner.id != current_user_id)
         and session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.INSIDER
     ):
         raise exc.NoPermissionsException("Only the group owner can transfer ownership.")
 
-    owner_affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=group.owner.id))
-    owner_affiliation.affiliation_type = C.AffiliationType.MANAGER
+    if owner is not None:
+        owner_affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=owner.id))
+        owner_affiliation.affiliation_type = C.AffiliationType.MANAGER
     
     affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=user_id))
     affiliation.affiliation_type = C.AffiliationType.OWNER

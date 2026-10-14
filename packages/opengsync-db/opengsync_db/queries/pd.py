@@ -5,7 +5,7 @@ from ..models import (
     SeqRequest, Contact, IndexKit, Barcode, Feature, FeatureKit,
     Protocol, Kit, Plate, SeqQuality, PoolDilution, links,
 )
-from ..categories import BarcodeType, IndexType, LibraryType
+from ..categories import BarcodeType, IndexType, LibraryType, SampleStatus
 
 
 # ---------------------------------------------------------------------------
@@ -936,16 +936,23 @@ def lab_prep_barcodes(lab_prep_id: int) -> sa.Select:
     return query
 
 
-def lab_prep_pooling_table(lab_prep_id: int) -> sa.Select:
+def lab_prep_pooling_table(lab_prep_id: int, include_rejected: bool = False) -> sa.Select:
     query = sa.select(
         Library.id.label("library_id"), Library.name.label("library_name"),
         Library.type.label("library_type"), Library.sample_name.label("sample_pool"),
         Library.mux_type.label("mux_type"),
         Sample.id.label("sample_id"), Sample.name.label("sample_name"),
+        Sample.status.label("sample_status"),
         links.SampleLibraryLink.mux.label("mux"),
     ).where(
         Library.lab_prep_id == lab_prep_id
-    ).join(
+    )
+
+    # Rejected samples stay linked to their library but are ignored by the checklist steps
+    if not include_rejected:
+        query = query.where(Sample.status.is_distinct_from(SampleStatus.REJECTED))
+
+    query = query.join(
         links.SampleLibraryLink,
         links.SampleLibraryLink.library_id == Library.id
     ).join(

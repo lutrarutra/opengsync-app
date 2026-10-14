@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
-from ....core import dependencies, exceptions as exc, responses
+from ....core import dependencies, exceptions as exc, responses, msf_helpers
 from ....utils import parsing, barcodes
 from ...HTMXForm import RouteFunc, htmx_route
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
@@ -121,7 +121,7 @@ class CompleteReindexForm(ReindexWorkflowStep):
 
                 if index_type == C.IndexType.TENX_ATAC_INDEX:
                     if tenx_atac_barcode_table is None:
-                        raise exc.OpeNGSyncServerException("TENX_ATAC_INDEX selected but no ATAC barcode table found.")
+                        raise exc.BadRequestException(msf_helpers.EXPIRED)
                     df = tenx_atac_barcode_table.loc[
                         tenx_atac_barcode_table["library_id"] == library_row.library_id,
                         :,

@@ -21,6 +21,13 @@ def test_help_is_public(client: TestClient):
     _public(client.get("/help", follow_redirects=False))
 
 
+def test_help_shows_insider_sops_only_to_insiders(client: TestClient, user_token: str, insider_token: str):
+    insider_sop = "I need to Re-Sequence whole pool"
+    assert insider_sop not in client.get("/help").text
+    assert insider_sop not in client.get("/help", headers=auth(user_token)).text
+    assert insider_sop in client.get("/help", headers=auth(insider_token)).text
+
+
 def test_dashboard_requires_authentication(client: TestClient):
     response = get(client, "/")
     assert response.status_code == 303

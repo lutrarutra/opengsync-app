@@ -32,9 +32,7 @@ class TODOCommentForm(HTMXForm):
         self.pool_design_id = pool_design_id
 
         if pool_design_id is not None and flow_cell_design_id is not None:
-            raise exc.OpeNGSyncServerException(
-                "Only one of pool_design_id or flow_cell_design_id can be set."
-            )
+            raise exc.BadRequestException("Only one of pool_design_id or flow_cell_design_id can be set.")
 
         if todo_comment is not None:
             self.post_url = responses.url_for(
@@ -108,7 +106,7 @@ class TODOCommentForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_insider),
         ) -> Response:
             if form.todo_comment is not None:
-                raise exc.OpeNGSyncServerException("Use the edit route to update an existing TODO comment.")
+                raise exc.BadRequestException("Use the edit route to update an existing TODO comment.")
 
             session.save(Q.todo_comment.create(
                 text=form.text.data,
@@ -131,7 +129,7 @@ class TODOCommentForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.todo_comment is None:
-                raise exc.OpeNGSyncServerException("TODO comment must be provided for edit.")
+                raise exc.BadRequestException("TODO comment must be provided for edit.")
             TODOCommentForm._set_comment_values(form)
             session.save(form.todo_comment, flush=True)
             return responses.htmx_response(

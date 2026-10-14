@@ -237,6 +237,55 @@ def test_edit_denied_on_non_draft_project(
     assert _reload(session, sample).name == original
 
 
+
+def test_edit_rejected_sample_denied_for_client(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    """Only insiders can edit a REJECTED sample (incl. un-rejecting it), even in a draft project."""
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    sample.status = C.SampleStatus.REJECTED
+    original = sample.name
+    session.commit()
+
+    assert get(client, _edit_path(sample.id), user_token).status_code == 403
+    response = post_form(
+        client,
+        _edit_path(sample.id),
+        _payload("Not_Editable", C.SampleStatus.REJECTED.id),
+        token=user_token,
+    )
+
+    assert response.status_code == 403
+    assert _reload(session, sample).name == original
+
+
+def test_edit_rejected_sample_allowed_for_insider(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    sample.status = C.SampleStatus.REJECTED
+    session.commit()
+
+    response = post_form(
+        client,
+        _edit_path(sample.id),
+        _payload("Unrejected_Sample", C.SampleStatus.STORED.id),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/samples/{sample.id}")
+    updated = _reload(session, sample)
+    assert updated.name == "Unrejected_Sample"
+    assert updated.status == C.SampleStatus.STORED
+
 def test_edit_duplicate_name_within_project_rerenders(
     client: TestClient,
     session: SyncSession,

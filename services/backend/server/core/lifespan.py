@@ -115,7 +115,7 @@ async def lifespan(app: FastAPI):
     j2.env.globals["chat_enabled"] = settings.app_config.chat.enabled
     j2.env.globals["chat_history_ttl_hours"] = settings.app_config.chat.history_ttl_hours
 
-    # FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix="fastapi-cache")
+    # FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix=cache.PREFIX)
     yield
 
     app.state.db_handler.close()

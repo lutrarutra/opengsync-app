@@ -178,6 +178,24 @@ def test_upload_stores_prep_file(
     assert (media_folder / prep_file.path).read_bytes() == content
 
 
+
+def test_failure_while_saving_leaves_no_file_or_records(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str, media_folder: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    """The file is written only after the database changes succeeded (§5: no partial records or files)."""
+    def fail(self, well: str) -> int:
+        raise RuntimeError("unexpected")
+    monkeypatch.setattr(models.Plate, "get_well_idx", fail)
+    lenient = TestClient(client.app, raise_server_exceptions=False)
+    lenient.cookies = client.cookies
+
+    response = _upload(lenient, prep.id, _xlsx([_row(prep.libraries[0], plate_well="A1")]), insider_token)
+
+    assert response.status_code == 500
+    assert [path for path in media_folder.rglob("*") if path.is_file()] == []
+    lab_prep = _reload(session, prep.lab_prep)
+    assert lab_prep.prep_file is None and lab_prep.plates == []
+
 def test_stored_file_is_readable_as_prep_table(
     client: TestClient, session: SyncSession, prep: Prep, insider_token: str, media_folder: Path,
 ):

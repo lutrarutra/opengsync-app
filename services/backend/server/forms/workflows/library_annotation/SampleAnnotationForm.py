@@ -7,7 +7,7 @@ from opengsync_db import models, categories as C, SyncSession, queries as Q
 from ....core import dependencies
 from .... import utils
 from ....components import inputs
-from ....components.tables import TextColumn, CategoricalDropDown
+from ....components.tables import TextColumn, CategoricalDropDown, InvalidCellValue
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
@@ -51,9 +51,14 @@ class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
             if (project_id := form.workflow.metadata.get("project_id")) is not None:
                 for idx, row in utils.parsing.safe_iter(df, RowSchema):
                     if (sample := session.first(Q.sample.select(name=row.sample_name, project_id=project_id))) is not None:
+                        if sample.status == C.SampleStatus.REJECTED:
+                            form.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"Sample '{row.sample_name}' is rejected, please specify another name."))
+                            continue
                         df.loc[idx, "sample_id"] = sample.id
                         for attr in sample.attributes:
                             df.loc[idx, f"_attr_{attr.name}"] = attr.value
+
+                form.assert_valid()
 
             form.workflow.tables["sample_table"] = df
             next_form = form.workflow.get_next_step(form)

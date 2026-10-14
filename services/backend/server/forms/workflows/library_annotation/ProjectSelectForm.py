@@ -16,6 +16,9 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
         "Set the Requestor as Project Owner",
         default=True,
     )
+    # Going back to project selection and submitting starts a new run (the post has no UUID);
+    # the run it was reached from is carried here so the new run replaces it.
+    replaces_uuid = inputs.string.StringInputField("replaces_uuid", hidden=True, required=False)
 
     def __init__(
         self,
@@ -50,6 +53,7 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
             form: ProjectSelectForm = Depends(ProjectSelectForm.Init()),
             _: models.User = Depends(dependencies.require_user),
         ) -> Response:
+            form.replaces_uuid.data = form.workflow.uuid
             project_id = form.workflow.metadata.get("project_id")
             if project_id is not None:
                 form.existing_project.data = project_id
@@ -64,6 +68,7 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             current_user: models.User = Depends(dependencies.require_user),
+            access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
             session: SyncSession = Depends(dependencies.db_session),
             form: ProjectSelectForm = Depends(ProjectSelectForm.Validate()),
         ) -> Response:
@@ -89,6 +94,24 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
                 "name": form.seq_request.requestor.name if form.set_requestor_as_owner.data and current_user.is_insider else current_user.name,
                 "email": form.seq_request.requestor.email if form.set_requestor_as_owner.data and current_user.is_insider else current_user.email,
             }
+
+            # The run is started (listed as unfinished) once its project is selected
+            workflow = form.workflow
+            replaced = None
+            if (replaces_uuid := form.replaces_uuid.data) and replaces_uuid != workflow.uuid:
+                replaced = LibraryAnnotationWorkflow.load_run(workflow.r, replaces_uuid)
+                if replaced is not None and (
+                    replaced.context != workflow.context
+                    or not LibraryAnnotationWorkflow.may_access_run(replaced, current_user.id, access_level)
+                ):
+                    replaced = None
+            workflow.register(
+                context=workflow.context, user_id=current_user.id, label=workflow.metadata.get("project_title"),
+                started_by_id=replaced.started_by_id if replaced else None,
+                started_at=replaced.started_at if replaced else None,
+            )
+            if replaced is not None:
+                LibraryAnnotationWorkflow(step=replaced.step, seq_request_id=form.seq_request.id, r=workflow.r, uuid=replaced.uuid).complete()
 
             next_form = form.workflow.get_next_step(form)
             return next_form.make_response()

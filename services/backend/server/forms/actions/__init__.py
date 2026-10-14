@@ -11,6 +11,7 @@ from .SelectPoolLibrariesAction import SelectPoolLibrariesAction
 from .LibraryPrepAction import LibraryPrepAction
 from .ReseqAction import ReseqAction
 from .SamplePoolingAction import SamplePoolingAction
+from .RejectSamplesAction import RejectSamplesAction
 from .AddKitsToProtocolAction import AddKitsToProtocolAction
 from .AddUserToGroupAction import AddUserToGroupAction
 from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
@@ -43,6 +44,7 @@ __all__ = [
     "LibraryPrepAction",
     "ReseqAction",
     "SamplePoolingAction",
+    "RejectSamplesAction",
     "AddKitsToProtocolAction",
     "AddUserToGroupAction",
     "ShareDirectoryAction",

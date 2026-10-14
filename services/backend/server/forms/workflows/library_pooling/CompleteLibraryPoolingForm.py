@@ -31,7 +31,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
         self.barcode_table = None
         self.lab_prep: models.LabPrep | None = None
 
-    def prepare(self) -> None:
+    def prepare_context(self) -> None:
         session = ctx.session
         self.lab_prep = session.get_one(Q.lab_prep.select(id=self.workflow.lab_prep_id))
         pooling_table = self.workflow.tables["pooling_table"]

@@ -35,7 +35,7 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit", experiment_id=experiment.id)
 
         if self.experiment.workflow.load_sequencer_workflow_checklist is None:
-            raise exc.OpeNGSyncServerException(
+            raise exc.BadRequestException(
                 "Experiment workflow does not have a sequencer loading checklist template associated with it."
             )
 

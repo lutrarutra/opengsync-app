@@ -92,7 +92,7 @@ class SeqRunForm(HTMXForm):
             form: "SeqRunForm" = Depends(SeqRunForm.Init()),
         ):
             if form.seq_run is None:
-                raise exc.OpeNGSyncServerException("Seq run ID must be provided for edit form.")
+                raise exc.BadRequestException("Seq run ID must be provided for edit form.")
 
             form.experiment_name.data = form.seq_run.experiment_name
             form.status.data = form.seq_run.status.id
@@ -128,7 +128,7 @@ class SeqRunForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.seq_run is None:
-                raise exc.OpeNGSyncServerException("Seq run ID must be provided for edit form.")
+                raise exc.BadRequestException("Seq run ID must be provided for edit form.")
 
             if session.exists(
                 Q.seq_run.select(experiment_name=form.experiment_name.data).where(

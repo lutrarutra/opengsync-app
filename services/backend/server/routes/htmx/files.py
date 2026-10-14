@@ -168,8 +168,7 @@ def render_media_file_table(
         table.url_params["lab_prep_id"] = lab_prep_id
         table.context["lab_prep_id"] = lab_prep_id
     else:
-        if not current_user.is_insider:
-            stmt = Q.media_file.select(viewer_id=current_user.id, statement=stmt)
+        raise exc.BadRequestException("Request, experiment or lab prep context is required to render the file table.")
 
     files = table.paginate(
         session,

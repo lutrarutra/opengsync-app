@@ -154,12 +154,38 @@
                     <li>⚠️ Applies to raw sample submissions only!</li>
                     <li>For each project, complete 'Add Samples to the Request' -step separately.</li>
                     <li>If projects are billed separately, create separate sequencing requests for each project.</li>
-                    <li>During library-prep, begin the 'Specify how Samples are Multiplexed'-step.</li>
+                    <li>During library-prep, begin the 'Specify how Samples are Pooled'-step.</li>
                     <li>Put samples from different projects into the same library by specifying same name in 'Pool'-column.</li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
                     <li>⚠️ Consider potential issues with data privacy; reads from different projects will be combined in the same library. To separate raw reads per project, custom demultiplexing needs to be performed.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-10" aria-expanded="false" aria-controls="sops-accordiod-collapse-10">
+                <b><i class="bi bi-question-circle"></i> A sample failed during library prep (I need to remove a sample from a multiplexed library)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-10" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>Open the lab prep page -> 'Checklist'-tab.</li>
+                    <li>Begin the 'Reject Samples'-step.</li>
+                    <li>Specify <span class="code-highlight">x</span> in the 'Reject'-column for the failed samples -> submit.</li>
+                    <li>Continue with the remaining checklist steps; rejected samples are ignored.</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Rejected samples get status {{ C.SampleStatus.REJECTED.display_name }} and stay in their library.</li>
+                    <li>To undo, clear the <span class="code-highlight">x</span> in the 'Reject Samples'-step; the sample status is set back to {{ C.SampleStatus.STORED.display_name }}.</li>
+                    <li>If all samples of a library are rejected, fail the library with <span class="code-highlight">x</span> as the Pool in the prep-table.</li>
+                    <li>Rejection applies to the sample everywhere it is used. The customer cannot re-use the name of a rejected sample and has to submit it with a different name.</li>
+                    <li>Only insiders can edit a rejected sample.</li>
                 </ul>
             </div>
         </div>

@@ -86,3 +86,11 @@ def test_edit_csrf_mismatch(client: TestClient, session: SyncSession, insider_to
     session.commit()
     response = post_form_csrf_mismatch(client, _url(EDIT_PATH, pool_design_id=d.id), _payload(), token=insider_token)
     assert_form_invalid(response)
+
+def test_create_route_with_existing_design_is_rejected(client: TestClient, session: SyncSession, insider_token: str):
+    """The create route does not edit: an id is a bad request (was a 500)."""
+    pd = create_pool_design(session)
+    session.commit()
+
+    assert get(client, _url(CREATE_PATH, pool_design_id=pd.id), insider_token).status_code == 400
+    assert post_form(client, _url(CREATE_PATH, pool_design_id=pd.id), _payload(), token=insider_token).status_code == 400

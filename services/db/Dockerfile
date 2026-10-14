@@ -29,6 +29,12 @@ RUN apk add --no-cache \
     && chown -R postgres:postgres /var/log/pgbackrest /var/lib/pgbackrest /var/spool/pgbackrest \
     && pgbackrest version
 
+# WAL archive target of archive_command (see postgresql.prod.conf). Created here
+# owned by postgres so an empty volume mounted over it inherits that ownership;
+# otherwise Docker creates the mount point as root and every archive cp fails.
+RUN mkdir -p /var/lib/postgresql/archive \
+    && chown postgres:postgres /var/lib/postgresql/archive
+
 # Production configs are baked in rather than bind-mounted, so they are versioned
 # with the image tag and work under Swarm (see below). compose.dev.yaml mounts
 # postgresql.conf over /etc/postgresql.conf; compose.test.yaml uses neither.

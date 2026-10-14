@@ -279,3 +279,24 @@ def test_split_project_confirm_without_workflow_state_is_rejected(
     assert_form_invalid(response, "incomplete")
     session.expire_all()
     assert session.first(Q.sample.select(id=sample.id)).project_id == source.id
+
+
+def test_split_project_confirm_twice_creates_one_project(
+    client: OpenGSyncTestClient,
+    session: SyncSession,
+    user,
+    insider_token,
+):
+    """A repeated confirm (double click, browser retry) finds the state cleared and creates nothing."""
+    source = create_project(session, user)
+    sample = create_sample(session, user, source)
+    session.commit()
+    params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
+    _to_confirm(client, insider_token, params, [sample.id], {"new_project": "Split Once", "project_description": "x"})
+    payload = {"destination_status": str(C.ProjectStatus.DRAFT.id)}
+
+    assert post_form(client, f"{PREFIX}/confirm-split", payload, token=insider_token, params=params).status_code == 204
+    assert_form_invalid(post_form(client, f"{PREFIX}/confirm-split", payload, token=insider_token, params=params), "incomplete")
+
+    session.expire_all()
+    assert len(session.get_all(Q.project.select(title="Split Once"), limit=None)) == 1

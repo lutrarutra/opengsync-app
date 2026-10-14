@@ -39,10 +39,10 @@ class GroupForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session)
         ) -> "GroupForm":
             if form_type == "edit" and group_id is None:
-                raise exc.OpeNGSyncServerException("Group ID must be provided for edit form.")
+                raise exc.BadRequestException("Group ID must be provided for edit form.")
 
             group = None
-            if group_id is not None:
+            if form_type != "create" and group_id is not None:  # a create form ignores a stray id
                 group = session.get_one(Q.group.select(id=group_id))
             return GroupForm(form_type=form_type, group=group)
 
@@ -54,7 +54,7 @@ class GroupForm(HTMXForm):
             form: "GroupForm" = Depends(GroupForm.Init(form_type="edit"))
         ):
             if form.group is None:
-                raise exc.OpeNGSyncServerException("Group ID must be provided for edit form.")
+                raise exc.BadRequestException("Group ID must be provided for edit form.")
 
             form.name.data = form.group.name
             form.group_type.data = form.group.type.id
@@ -77,7 +77,7 @@ class GroupForm(HTMXForm):
             form: "GroupForm" = Depends(GroupForm.Validate(form_type="edit")),
         ) -> Response:
             if form.group is None:
-                raise exc.OpeNGSyncServerException("Group ID must be provided for edit form.")
+                raise exc.BadRequestException("Group ID must be provided for edit form.")
 
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this group.")

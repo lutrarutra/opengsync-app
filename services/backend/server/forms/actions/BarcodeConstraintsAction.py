@@ -128,6 +128,18 @@ class BarcodeConstraintsAction(HTMXForm):
             sequences_i7 = [s for s in df["sequence_i7"] if pd.notna(s) and s]
             sequences_i5 = [s for s in df["sequence_i5"] if pd.notna(s) and s]
 
+            # Kit barcodes are combined with the sequences position by position, so their lengths must match
+            if kit is not None:
+                if sequences_i7 and len(sequences_i7[0]) != kit_i7_len:
+                    form.spreadsheet.add_general_error(
+                        f"The i7 sequences are {len(sequences_i7[0])} bp long, but the i7 barcodes of kit '{kit.name}' are {kit_i7_len} bp."
+                    )
+                if sequences_i5 and kit_i5_len and len(sequences_i5[0]) != kit_i5_len:
+                    form.spreadsheet.add_general_error(
+                        f"The i5 sequences are {len(sequences_i5[0])} bp long, but the i5 barcodes of kit '{kit.name}' are {kit_i5_len} bp."
+                    )
+                form.assert_valid()
+
             form.additional_sequences = []
             for i in range(max(len(sequences_i7), len(sequences_i5))):
                 seq_i7 = sequences_i7[i] if i < len(sequences_i7) else None

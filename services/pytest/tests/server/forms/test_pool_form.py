@@ -513,6 +513,40 @@ def test_clone_insider_can_clone_pool(
     assert cloned.contact.phone == "+1 555 7777"
 
 
+def test_cloned_pool_page_links_original_pool(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token,
+):
+    seq_request = create_seq_request(session, user)
+    pool = create_pool(session, user, seq_request)
+    pool.name = "Clone_Origin_Pool"
+    _commit(session)
+
+    response = post_form(
+        client,
+        _clone_path(pool.id),
+        _payload(name="Clone_Of_Origin", pool_type=pool.type.id),
+        token=insider_token,
+    )
+    assert_htmx_redirect(response, "/pools/")
+
+    cloned = _pool(session, "Clone_Of_Origin")
+    assert cloned is not None
+    assert cloned.original_pool_id == pool.id
+
+    cloned_page = get(client, f"/pools/{cloned.id}", insider_token)
+    assert cloned_page.status_code == 200
+    assert "Original Pool" in cloned_page.text
+    assert "Clone_Origin_Pool" in cloned_page.text
+    assert f"/pools/{pool.id}?from=pool%40{cloned.id}" in cloned_page.text
+
+    original_page = get(client, f"/pools/{pool.id}", insider_token)
+    assert original_page.status_code == 200
+    assert "Original Pool" not in original_page.text
+
+
 def test_clone_rejects_changed_pool_type(
     client: TestClient,
     session: SyncSession,

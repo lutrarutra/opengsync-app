@@ -144,18 +144,17 @@ def test_render_unknown_experiment_is_404(client: TestClient, insider_token: str
 def test_render_workflow_without_template_is_controlled(
     client: TestClient, session: SyncSession, insider, insider_token: str,
 ):
-    """NovaSeq 6000 workflows have no template: the error page names the reason.
+    """NovaSeq 6000 workflows have no template: a 400 whose error page names the reason.
 
     The checklist only offers the button when the workflow has a template; legacy raised
-    ``ValueError`` (500) here too.
+    ``ValueError`` (500) here.
     """
     experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_S4_STD)
     session.commit()
 
-    lenient = TestClient(client.app, raise_server_exceptions=False)
-    response = get(lenient, _path(experiment.id), insider_token)
+    response = get(client, _path(experiment.id), insider_token)
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert "does not have a sequencer loading checklist template" in response.text
 
 

@@ -42,7 +42,7 @@ class ProtocolForm(HTMXForm):
             _: models.User = Depends(dependencies.require_insider),
         ) -> "ProtocolForm":
             if form_type == "edit" and protocol_id is None:
-                raise exc.OpeNGSyncServerException("Protocol ID must be provided for edit form.")
+                raise exc.BadRequestException("Protocol ID must be provided for edit form.")
 
             protocol = None
             if protocol_id is not None:
@@ -57,7 +57,7 @@ class ProtocolForm(HTMXForm):
             form: "ProtocolForm" = Depends(ProtocolForm.Init(form_type="edit"))
         ):
             if form.protocol is None:
-                raise exc.OpeNGSyncServerException("Protocol ID must be provided for edit form.")
+                raise exc.BadRequestException("Protocol ID must be provided for edit form.")
 
             form.name.data = form.protocol.name
             form.service_type.data = form.protocol.service_type.id
@@ -80,7 +80,7 @@ class ProtocolForm(HTMXForm):
             form: "ProtocolForm" = Depends(ProtocolForm.Validate(form_type="edit")),
         ) -> Response:
             if form.protocol is None:
-                raise exc.OpeNGSyncServerException("Protocol ID must be provided for edit form.")
+                raise exc.BadRequestException("Protocol ID must be provided for edit form.")
 
             if session.exists(
                 Q.protocol.select(name=form.name.data).where(models.Protocol.id != form.protocol.id)

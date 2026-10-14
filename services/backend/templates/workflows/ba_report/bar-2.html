@@ -33,6 +33,12 @@
         <div class="footer-info">
         </div>
         <div class="footer-controls">
+            {% if form.previous_url %}
+            <button type="button" class="btn btn-warning" id="back-ba_report-form-btn"
+                hx-get="{{ form.previous_url }}" hx-target="#ba_report-form-container" hx-swap="outerHTML">
+                Back
+            </button>
+            {% endif %}
             <button class="btn btn-success" id="submit-ba_report-form-btn">
                 Submit
             </button>

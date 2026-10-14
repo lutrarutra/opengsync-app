@@ -22,6 +22,7 @@ import json
 import os
 import uuid as uuid_mod
 from pathlib import Path
+from urllib.parse import unquote
 
 import pytest
 import sqlalchemy as sa
@@ -472,6 +473,49 @@ def test_upload_accepts_allowed_extension_case_insensitively(
     assert len(files) == 1
 
 
+
+def test_upload_name_cannot_choose_the_storage_path(
+    client: TestClient, session: SyncSession, user_token: str, own_request, media_dir,
+):
+    """The stored path is ``<type dir>/<uuid><extension>``; the client filename is only the display name."""
+    response = _upload(client, user_token, own_request.id, "../../../evil.csv", b"a,b\n")
+
+    assert_htmx_redirect(response, f"/seq_requests/{own_request.id}")
+    [file] = _uploads(session, own_request.id)
+    assert file.path == f"{C.MediaFileType.CUSTOM.dir}/{file.uuid}.csv"
+    assert (Path(config.settings.app_config.media_folder) / file.path).read_bytes() == b"a,b\n"
+
+
+@pytest.mark.parametrize("filename, fallback", [
+    ("Bericht–2024.csv", "Bericht_2024.csv"),
+    ("数据.csv", "__.csv"),
+    ("plain report.csv", "plain report.csv"),
+])
+def test_download_of_any_filename(
+    client: TestClient, session: SyncSession, user_token: str, own_request, media_dir, filename: str, fallback: str,
+):
+    """Header values must be latin-1: names outside ASCII get an ASCII fallback plus ``filename*`` (RFC 5987)."""
+    _upload(client, user_token, own_request.id, filename, b"a,b\n")
+    [file] = _uploads(session, own_request.id)
+
+    response = get(client, f"/htmx/files/{file.id}/download", user_token)
+
+    assert response.status_code == 200
+    disposition = response.headers["content-disposition"]
+    assert disposition.startswith(f'attachment; filename="{fallback}"')
+    assert ("filename*=UTF-8''" in disposition) is (fallback != filename)
+    if fallback != filename:
+        assert unquote(disposition.split("filename*=UTF-8''")[1]) == filename
+
+
+def test_content_disposition_strips_quotes_and_line_breaks():
+    from server.core.responses import content_disposition
+
+    value = content_disposition("attachment", 'a"b\r\nSet-Cookie: x.csv')
+
+    assert "\r" not in value and "\n" not in value
+    assert value.startswith('attachment; filename="a_b__Set-Cookie: x.csv"; filename*=UTF-8\'\'')
+
 # ── 4. API tokens ────────────────────────────────────────────────────────────
 
 CREATE_TOKEN_PATH = "/htmx/users/{user_id}/create-api-token"
@@ -594,7 +638,8 @@ def test_email_link_falls_back_to_request_host_without_config(client: TestClient
     post_form(client, "/htmx/auth/register", {"email": "new@example.com"})
 
     [(_, link)] = fake_mailer.registration
-    assert link.startswith("http://testserver/auth/complete-registration/")
+    # The host follows the request, the scheme is still https.
+    assert link.startswith("https://testserver/auth/complete-registration/")
 
 
 def test_share_snippets_use_external_base(external_base: str):
@@ -617,7 +662,13 @@ def test_share_snippets_use_external_base(external_base: str):
     assert internal.startswith(f"http://{FORGED_HOST}/")
 
 
-@pytest.mark.parametrize("configured_base", [EXTERNAL_BASE, EXTERNAL_BASE + "/opengsync/v2/"])
+@pytest.mark.parametrize("configured_base", [
+    EXTERNAL_BASE,
+    EXTERNAL_BASE + "/opengsync/v2/",
+    # legacy config format: host only, scheme added by the app
+    EXTERNAL_BASE.removeprefix("https://"),
+    EXTERNAL_BASE.removeprefix("https://") + "/opengsync/v2",
+])
 def test_external_url_keeps_proxy_prefix(monkeypatch: pytest.MonkeyPatch, configured_base: str):
     """Behind nginx (X-Forwarded-Prefix -> root_path) email links keep the prefix, also when the base already has it."""
     from starlette.requests import Request
@@ -634,6 +685,60 @@ def test_external_url_keeps_proxy_prefix(monkeypatch: pytest.MonkeyPatch, config
     url = str(templates.absolute_url_for(request, "file_share.browse", external=True, token="tok"))
 
     assert url == f"{EXTERNAL_BASE}/opengsync/v2/api/shares/browse/tok"
+
+
+def _proxied_request(scheme: str = "http"):
+    from starlette.requests import Request
+
+    from server.main import app
+
+    return Request({
+        "type": "http", "app": app, "router": app.router, "method": "GET", "path": "/", "root_path": "/opengsync/v2",
+        "query_string": b"", "headers": [(b"host", b"opengsync.example.org")], "scheme": scheme,
+        "server": ("opengsync.example.org", 80),
+    })
+
+
+@pytest.mark.parametrize("environment", ["prod", "test"])
+def test_external_url_without_config_is_https(monkeypatch: pytest.MonkeyPatch, environment: str):
+    """Without ``external_base_url``, external links follow the request host and prefix but are always https outside dev."""
+    from server.core import templates
+
+    monkeypatch.setattr(config.settings.app_config, "external_base_url", None)
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", environment)
+    request = _proxied_request("http")
+
+    external = str(templates.absolute_url_for(request, "file_share.browse", external=True, token="tok"))
+    snippet = templates.j2.env.from_string('{{ url_for("file_share.rclone", token="tok", _external=True) }}').render(request=request)
+    internal = str(templates.absolute_url_for(request, "file_share.browse", token="tok"))
+
+    assert external == "https://opengsync.example.org/opengsync/v2/api/shares/browse/tok"
+    assert snippet.startswith("https://opengsync.example.org/opengsync/v2/")
+    # In-app links keep the request's scheme.
+    assert internal.startswith("http://")
+
+
+def test_external_url_without_config_keeps_http_in_dev(monkeypatch: pytest.MonkeyPatch):
+    """Local dev serves plain http, so its links must not be forced to https."""
+    from server.core import templates
+
+    monkeypatch.setattr(config.settings.app_config, "external_base_url", None)
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", "dev")
+
+    url = str(templates.absolute_url_for(_proxied_request("http"), "file_share.browse", external=True, token="tok"))
+
+    assert url == "http://opengsync.example.org/opengsync/v2/api/shares/browse/tok"
+
+
+def test_external_url_keeps_configured_scheme(monkeypatch: pytest.MonkeyPatch):
+    """An explicit scheme in ``external_base_url`` is used as configured."""
+    from server.core import templates
+
+    monkeypatch.setattr(config.settings.app_config, "external_base_url", "http://intranet.example.org")
+
+    url = str(templates.absolute_url_for(_proxied_request(), "file_share.browse", external=True, token="tok"))
+
+    assert url == "http://intranet.example.org/opengsync/v2/api/shares/browse/tok"
 
 
 # ── 6. Missing permission checks ────────────────────────────────────────────

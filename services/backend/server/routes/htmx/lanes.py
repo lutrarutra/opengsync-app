@@ -3,7 +3,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, utils
 
-from ...core import dependencies
+from ...core import dependencies, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/lanes", tags=["lanes"])
@@ -44,6 +44,9 @@ def render_lane_table(
         table.template = "components/tables/browse-lane.html"
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
+
+    if not table.template:
+        raise exc.BadRequestException("Experiment or browse context is required to render the lane table.")
 
     lanes = table.paginate(
         session, stmt, page=page, order_by=order_by,

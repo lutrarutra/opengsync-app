@@ -236,6 +236,15 @@
                 {% else %}
                 {{ metadata_group("Experiment", "", class="col-2") }}
                 {% endif %}
+                {% if pool.original_pool_id is not none %}
+                {{
+                    metadata_group_link(
+                        "Original Pool", pool.original_pool.name,
+                        url_for("pool_page", pool_id=pool.original_pool_id, from='pool@' + pool.id | string),
+                        class="col-3"
+                    )
+                }}
+                {% endif %}
             </div>
             <div class="row">
                 {{

@@ -10,6 +10,7 @@ Legacy's ``DataRequired`` also rejected 0; zero is a valid measurement here.
 """
 
 import json
+import re
 import uuid
 
 import pytest
@@ -186,6 +187,17 @@ def test_missing_negative_or_malformed_concentration_is_rejected(
 
     assert_form_invalid(response)
     assert _reload(session, models.Sample, objs.sample.id).qubit_concentration == 3.0
+
+
+def test_rerender_shows_each_row_once_with_submitted_values(client: TestClient, objs: Objects, insider_token: str):
+    """Regression: a failed submission re-rendered every row twice (submitted + prefilled again)."""
+    _select(client, objs, insider_token, samples=[objs.sample], libraries=[objs.library])
+
+    response = _measure(client, objs, insider_token, {"sample_forms": [(objs.sample, "")], "library_forms": [(objs.library, "7.5")]})
+
+    assert_form_invalid(response)
+    assert re.findall(r'name="(\w+_forms-\d+)-id_"', response.text) == ["sample_forms-0", "library_forms-0"]
+    assert 'value="7.5"' in response.text
 
 
 def test_redirect_to_experiment(client: TestClient, objs: Objects, insider_token: str):

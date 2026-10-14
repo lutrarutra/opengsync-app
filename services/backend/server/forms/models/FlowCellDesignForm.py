@@ -48,7 +48,7 @@ class FlowCellDesignForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             if form.flow_cell_design is None:
-                raise exc.OpeNGSyncServerException("Flow cell design ID must be provided for edit form.")
+                raise exc.BadRequestException("Flow cell design ID must be provided for edit form.")
             form.populate_from_design()
             return form.make_response()
         return route
@@ -61,7 +61,7 @@ class FlowCellDesignForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.flow_cell_design is None:
-                raise exc.OpeNGSyncServerException("Flow cell design ID must be provided for edit form.")
+                raise exc.BadRequestException("Flow cell design ID must be provided for edit form.")
             form.edit(session)
             return responses.htmx_response(
                 redirect=responses.url_for("design"),

@@ -169,6 +169,16 @@ def test_sample_follows_draft_project_owner_write_stranger_none(session: SyncSes
     assert _level(session, Q.sample.permissions(sample.id, stranger.id)) == C.AccessLevel.NONE
 
 
+
+def test_rejected_sample_is_read_only_for_owner(session: SyncSession):
+    owner = create_user(session)
+    project = create_project(session, owner)
+    sample = create_sample(session, owner, project)
+    sample.status = C.SampleStatus.REJECTED
+    session.save(sample, flush=True)
+
+    assert _level(session, Q.sample.permissions(sample.id, owner.id)) == C.AccessLevel.READ
+
 def test_sample_follows_processing_project_owner_read(session: SyncSession):
     owner = create_user(session)
     project = create_project(session, owner)

@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabChecklistType, PrepStatus, MediaFileType, ServiceType, MUXType, LibraryStatus, LibraryType
+from opengsync_db.categories import LabChecklistType, PrepStatus, MediaFileType, ServiceType, MUXType, LibraryStatus, LibraryType, SampleStatus
 
 from .Base import Base
 from opengsync_db.core.EnumColumn import EnumColumn
@@ -77,18 +77,24 @@ class LabPrep(Base):
             match library.mux_type:
                 case MUXType.TENX_OLIGO | MUXType.TENX_ABC_HASH:
                     for link in library.sample_links:
+                        if link.sample.status == SampleStatus.REJECTED:
+                            continue
                         _oligo_mux_annotated = all(link.mux.get(key) for key in library.mux_type.mux_columns) if link.mux else False
                         if not _oligo_mux_annotated:
                             oligo_mux_libraries_annotations_missing.add(library.name)
                             oligo_mux_annotated = False
                 case MUXType.TENX_FLEX_PROBE:
                     for link in library.sample_links:
+                        if link.sample.status == SampleStatus.REJECTED:
+                            continue
                         _flex_mux_annotated = all(link.mux.get(key) for key in library.mux_type.mux_columns) if link.mux else False
                         if not _flex_mux_annotated:
                             flex_mux_libraries_annotations_missing.add(library.name)
                             flex_mux_annotated = False
                 case MUXType.TENX_ON_CHIP:
                     for link in library.sample_links:
+                        if link.sample.status == SampleStatus.REJECTED:
+                            continue
                         _on_chip_mux_annotated = all(link.mux.get(key) for key in library.mux_type.mux_columns) if link.mux else False
                         if not _on_chip_mux_annotated:
                             on_chip_mux_libraries_annotations_missing.add(library.name)

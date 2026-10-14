@@ -58,7 +58,7 @@ class FeatureKitForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "FeatureKitForm":
             if form_type == "edit" and feature_kit_id is None:
-                raise exc.OpeNGSyncServerException("Feature kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Feature kit ID must be provided for edit form.")
 
             feature_kit = None
             if feature_kit_id is not None:
@@ -73,7 +73,7 @@ class FeatureKitForm(HTMXForm):
             form: "FeatureKitForm" = Depends(FeatureKitForm.Init(form_type="edit")),
         ):
             if form.feature_kit is None:
-                raise exc.OpeNGSyncServerException("Feature kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Feature kit ID must be provided for edit form.")
 
             form.name.data = form.feature_kit.name
             form.identifier.data = form.feature_kit.identifier
@@ -100,7 +100,7 @@ class FeatureKitForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.feature_kit is None:
-                raise exc.OpeNGSyncServerException("Feature kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Feature kit ID must be provided for edit form.")
 
             # Validate identifier
             form.identifier.data = form.identifier.data.strip()

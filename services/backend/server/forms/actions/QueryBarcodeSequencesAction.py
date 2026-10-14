@@ -1,4 +1,4 @@
-from fastapi import Depends, Query
+from fastapi import Depends
 from fastapi.responses import Response
 
 from opengsync_db import SyncSession, queries as Q
@@ -13,7 +13,7 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 class QueryBarcodeSequencesAction(HTMXForm):
     template_path = "actions/query-barcode-sequences.html"
 
-    sequence = inputs.string.StringInputField("Sequence")
+    sequence = inputs.string.StringInputField("Sequence", required=False)
 
     @classmethod
     def Init(cls) -> FormFunc:
@@ -32,10 +32,10 @@ class QueryBarcodeSequencesAction(HTMXForm):
     @htmx_route("POST", "/query-barcode-sequences")
     def Search(cls) -> RouteFunc:
         def route(
-            sequence: str | None = Query(None),
+            form: "QueryBarcodeSequencesAction" = Depends(QueryBarcodeSequencesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            sequence = parsing.make_alpha_numeric(sequence, keep=[], replace_white_spaces_with="")
+            sequence = parsing.make_alpha_numeric(form.sequence.data, keep=[], replace_white_spaces_with="")
             if not sequence:
                 return responses.htmx_response(template="components/barcode_results.html")
 
@@ -59,5 +59,5 @@ class QueryBarcodeSequencesAction(HTMXForm):
                 30,
             )
 
-            return responses.htmx_response(template="components/barcode_results.html",fc_df=fc_df, rc_df=rc_df)
+            return responses.htmx_response(template="components/barcode_results.html", fc_df=fc_df, rc_df=rc_df)
         return route

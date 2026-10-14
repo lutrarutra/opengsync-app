@@ -323,3 +323,18 @@ def test_kit_with_mixed_i7_lengths_is_rejected(client: TestClient, session: Sync
 def test_unknown_kit_is_404(client: TestClient, insider_token: str):
     payload = {**_payload([(BAD_I7, BAD_I5)]), "kit": "999999"}
     assert post_form(client, PATH, payload, token=insider_token).status_code == 404
+
+
+
+@pytest.mark.parametrize("rows, barcode", [
+    ([(BAD_I7 + "AA", BAD_I5)], "i7"),
+    ([(BAD_I7 + "AA", "")], "i7"),
+    ([(BAD_I7, BAD_I5 + "A")], "i5"),
+])
+def test_sequences_of_another_length_than_the_kit_are_rejected(
+    client: TestClient, kit: models.IndexKit, insider_token: str, rows: list[tuple[str, str]], barcode: str,
+):
+    """Kit barcodes are appended to the sequences position by position (was a 500)."""
+    response = post_form(client, PATH, _payload(rows, kit=kit), token=insider_token)
+
+    assert_form_invalid(response, f"but the {barcode} barcodes of kit")

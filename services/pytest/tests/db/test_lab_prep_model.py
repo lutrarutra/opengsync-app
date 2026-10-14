@@ -1,7 +1,7 @@
 import pytest
 
 from opengsync_db import SyncSession, actions, models, queries as Q
-from opengsync_db.categories import LibraryStatus, MediaFileType, MUXType
+from opengsync_db.categories import LibraryStatus, MediaFileType, MUXType, SampleStatus
 
 from .create_units import (
     create_user, create_project, create_sample, create_seq_request, create_library, create_lab_prep,
@@ -87,7 +87,7 @@ def test_lab_prep_checklist_skips_inactive_libraries_in_mux_check(session: SyncS
     annotated = _add_library(session, user, seq_request, lab_prep, mux_type=MUXType.TENX_FLEX_PROBE)
     actions.link_sample_library(session, sample_id=create_sample(session, user, project).id, library_id=annotated.id, mux={"barcode": "BC001"})
 
-    # e.g. 'canceled_samples_' library from sample multiplexing: failed, samples without barcode
+    # e.g. a failed library: samples without barcode
     canceled = _add_library(session, user, seq_request, lab_prep, mux_type=MUXType.TENX_FLEX_PROBE, status=status)
     actions.link_sample_library(session, sample_id=create_sample(session, user, project).id, library_id=canceled.id, mux=None)
     session.refresh(lab_prep)
@@ -108,6 +108,33 @@ def test_lab_prep_checklist_skips_inactive_libraries_in_mux_check(session: SyncS
     assert checklist["flex_mux_libraries_annotations_missing"] == {canceled.name}
     assert checklist["prep_table_submitted"] is None
 
+
+
+def test_lab_prep_checklist_skips_rejected_samples_in_mux_check(session: SyncSession):
+    user = create_user(session)
+    project = create_project(session, user)
+    seq_request = create_seq_request(session, user)
+    lab_prep = create_lab_prep(session, user)
+
+    library = _add_library(session, user, seq_request, lab_prep, mux_type=MUXType.TENX_FLEX_PROBE)
+    actions.link_sample_library(session, sample_id=create_sample(session, user, project).id, library_id=library.id, mux={"barcode": "BC001"})
+    # Failed sample, rejected before its barcode was annotated
+    rejected = create_sample(session, user, project)
+    actions.link_sample_library(session, sample_id=rejected.id, library_id=library.id, mux=None)
+    session.refresh(lab_prep)
+
+    checklist = lab_prep.get_checklist()
+    assert checklist["flex_mux_annotated"] is False
+    assert checklist["flex_mux_libraries_annotations_missing"] == {library.name}
+
+    rejected.status = SampleStatus.REJECTED
+    session.flush()
+    session.refresh(lab_prep)
+
+    checklist = lab_prep.get_checklist()
+    assert checklist["flex_mux_required"] is True
+    assert checklist["flex_mux_annotated"] is True
+    assert checklist["flex_mux_libraries_annotations_missing"] == set()
 
 @pytest.mark.parametrize("status", SKIPPED_STATUSES)
 def test_lab_prep_checklist_skips_inactive_libraries_in_all_steps(session: SyncSession, status: LibraryStatus):

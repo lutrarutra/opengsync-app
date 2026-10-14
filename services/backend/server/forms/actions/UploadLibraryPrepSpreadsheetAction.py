@@ -182,10 +182,6 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
             ext = form.spreadsheet.file_extension or "xlsx"
             filepath = os.path.join(media_folder, file_dir, f"{hash}.{ext}")
 
-            os.makedirs(os.path.join(media_folder, file_dir), exist_ok=True)
-
-            with open(filepath, "wb") as f:
-                f.write(form.spreadsheet.file_bytes)
             size_bytes = len(form.spreadsheet.file_bytes)
 
             form.lab_prep.plates.clear()
@@ -269,6 +265,12 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
                 session.save(new_file)
 
             session.save(form.lab_prep)
+
+            # written last, so a failing database change leaves no file behind
+            session.flush()
+            os.makedirs(os.path.join(media_folder, file_dir), exist_ok=True)
+            with open(filepath, "wb") as f:
+                f.write(form.spreadsheet.file_bytes)
 
             return responses.htmx_response(
                 redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep.id),

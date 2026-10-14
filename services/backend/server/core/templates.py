@@ -228,7 +228,7 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
                 query_kwargs["v"] = version
 
         try:
-            url = absolute_url_for(request, name, external=external, **url_kwargs)
+            url = str(absolute_url_for(request, name, external=external, **url_kwargs))
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
@@ -262,16 +262,23 @@ def absolute_url_for(request, name: str, *, external: bool = False, **path_param
     With ``external`` (links that leave the app: emails, copy-paste commands) the configured
     ``external_base_url`` is used instead of the request's Host header, which the client
     controls. The reverse proxy prefix (``root_path``, from X-Forwarded-Prefix) is kept,
-    unless the configured base already ends with it. Without that setting it falls back to the request.
+    unless the configured base already ends with it. Like legacy, a base without a scheme
+    (``example.org``) gets ``https://``. Without that setting it falls back to the request,
+    still forcing ``https`` outside dev (legacy used ``http`` only in debug).
     """
     base = settings.app_config.external_base_url if external else None
     if base:
         base = base.rstrip("/")
+        if "://" not in base:
+            base = f"https://{base}"
         root_path = request.scope.get("root_path", "").rstrip("/")
         if root_path and not base.endswith(root_path):
             base += root_path
         return URL(base + request.app.url_path_for(name, **path_params))
-    return request.url_for(name, **path_params)
+    url = request.url_for(name, **path_params)
+    if external and settings.ENVIRONMENT != "dev":
+        url = url.replace(scheme="https")
+    return url
 
 def _get_route_param_names(router, name: str, provided: set[str] | None = None) -> set:
     """Extract path parameter names from a route by its name."""

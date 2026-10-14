@@ -33,7 +33,7 @@ class SamplePoolingForm(HTMXFlaskForm):
 
         sample_table = T.lab_prep_pooling_table(
             db.session.get_pandas(
-                Q.pd.lab_prep_pooling_table(self.lab_prep.id), limit=None
+                Q.pd.lab_prep_pooling_table(self.lab_prep.id, include_rejected=True), limit=None
             ),
             expand_mux_=False,
         )

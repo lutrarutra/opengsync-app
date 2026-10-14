@@ -11,7 +11,9 @@ clears both); an ACCEPTED pool with a size becomes STORED.
 """
 
 import json
+import re
 import uuid
+from html import unescape
 from pathlib import Path
 
 import pytest
@@ -115,6 +117,11 @@ def _manual(client: TestClient, objs: Objects, token: str, values: dict, pdf: by
 def _excel(client: TestClient, objs: Objects, token: str, content: bytes | None, values: dict | None = None):
     files = {"ba_excel": ("export.csv", content, "text/csv")} if content is not None else {}
     return _post_files(client, _url(client, "BAReportForm.Submit"), _entries(values or {}), files, token, {**objs.params, "method": "excel"})
+
+
+def _rows(html: str) -> list[str]:
+    """The rendered list rows, e.g. ``["sample_forms-0", "library_forms-0"]``."""
+    return re.findall(r'name="(\w+_forms-\d+)-id_"', html)
 
 
 def _reload(session: SyncSession, model, obj_id: int):
@@ -251,6 +258,20 @@ def test_manual_requires_pdf(client: TestClient, session: SyncSession, objs: Obj
     assert _reload(session, models.Sample, objs.sample.id).avg_fragment_size is None
 
 
+@pytest.mark.parametrize("pdf, size", [(None, "300"), (PDF, "0")], ids=["missing-pdf", "invalid-size"])
+def test_manual_rerender_shows_each_row_once(client: TestClient, objs: Objects, insider_token: str, pdf: bytes | None, size: str):
+    """Regression: a failed submission re-rendered every row twice (submitted + prefilled again)."""
+    _select(client, objs, insider_token, samples=[objs.sample], libraries=[objs.library])
+
+    response = _manual(client, objs, insider_token, {
+        "sample_forms": [(objs.sample, "sample", size)],
+        "library_forms": [(objs.library, "library", "400")],
+    }, pdf=pdf)
+
+    assert_form_invalid(response)
+    assert _rows(response.text) == ["sample_forms-0", "library_forms-0"]
+
+
 def test_manual_rejects_non_pdf(client: TestClient, session: SyncSession, objs: Objects, insider_token: str):
     _select(client, objs, insider_token, samples=[objs.sample])
 
@@ -355,6 +376,29 @@ def test_excel_complete_requires_pdf(client: TestClient, session: SyncSession, o
     assert _reload(session, models.Sample, objs.sample.id).avg_fragment_size is None
 
 
+def test_excel_complete_rerender_keeps_rows_and_edits(client: TestClient, session: SyncSession, objs: Objects, insider_token: str):
+    """Regression: submitting the confirm step without the PDF re-rendered every row twice —
+    the submitted rows plus a fresh copy of the parsed sizes — so a resubmit saved the parsed
+    size over the user's correction."""
+    _excel_to_complete(client, objs, insider_token)
+    entries = _entries({"sample_forms": [(objs.sample, "sample", "350")], "library_forms": [(objs.library, "library", "999")]})
+
+    response = _post_files(client, _url(client, "CompleteBAReport.Submit"), entries, {}, insider_token, objs.params)
+
+    assert_form_invalid(response, "BA PDF File is required")
+    assert _rows(response.text) == ["sample_forms-0", "library_forms-0"]
+    assert 'value="999"' in response.text
+    assert 'value="420"' not in response.text
+
+    response = _post_files(
+        client, _url(client, "CompleteBAReport.Submit"), entries,
+        {"pdf": ("report.pdf", PDF, "application/pdf")}, insider_token, objs.params,
+    )
+
+    assert_htmx_redirect(response, "/")
+    assert _reload(session, models.Library, objs.library.id).avg_fragment_size == 999
+
+
 def test_excel_requires_file(client: TestClient, objs: Objects, insider_token: str):
     _select(client, objs, insider_token, samples=[objs.sample])
     assert_form_invalid(_excel(client, objs, insider_token, None), "Please upload an Excel file.")
@@ -404,3 +448,131 @@ def test_malformed_order_is_rejected(client: TestClient, objs: Objects, insider_
     response = post_form(client, _url(client, "ParseBAExcelFileForm.Submit"), {"left_order": left, "right_order": right}, token=insider_token, params=objs.params)
 
     assert response.status_code in (202, 400)
+
+
+# ── Back navigation ─────────────────────────────────────────────────────────
+
+
+def _selected_ids(html: str, field: str) -> list[int]:
+    [value] = re.findall(rf'name="{field}"[^>]*value="([^"]*)"', html)
+    return json.loads(unescape(value))
+
+
+def _assignment(html: str) -> tuple[list[str], list[str]]:
+    """The ordering step's two lists: selection row indexes (left) and well names (right)."""
+    return re.findall(r'<li class="list-group-item" data-idx="(\d+)">', html), re.findall(r'data-name="([^"]*)"', html)
+
+
+def _parse(client: TestClient, objs: Objects, token: str, left: list[int], right: list[tuple[str, str]]):
+    return post_form(client, _url(client, "ParseBAExcelFileForm.Submit"), {
+        "left_order": json.dumps(left),
+        "right_order": json.dumps([{"name": name, "value": value} for name, value in right]),
+    }, token=token, params=objs.params)
+
+
+def test_selection_has_no_back(client: TestClient, objs: Objects, insider_token: str):
+    response = get(client, _url(client, "Begin"), insider_token, params=objs.params)
+
+    assert "back-ba_report-form-btn" not in response.text
+
+
+def test_back_from_upload_keeps_the_selection(client: TestClient, objs: Objects, insider_token: str):
+    response = _select(client, objs, insider_token, samples=[objs.sample], libraries=[objs.library], pools=[objs.pool], lanes=[objs.lane])
+    assert _url(client, "SelectSamplesForm.Previous") in response.text
+
+    response = get(client, _url(client, "SelectSamplesForm.Previous"), insider_token, params=objs.params)
+
+    assert response.status_code == 200, response.text
+    assert "back-ba_report-form-btn" not in response.text
+    assert _selected_ids(response.text, "selected_sample_ids") == [objs.sample.id]
+    assert _selected_ids(response.text, "selected_library_ids") == [objs.library.id]
+    assert _selected_ids(response.text, "selected_pool_ids") == [objs.pool.id]
+    assert _selected_ids(response.text, "selected_lane_ids") == [objs.lane.id]
+
+
+def test_back_to_selection_and_change_it(client: TestClient, session: SyncSession, objs: Objects, insider_token: str):
+    _select(client, objs, insider_token, samples=[objs.sample])
+    get(client, _url(client, "SelectSamplesForm.Previous"), insider_token, params=objs.params)
+
+    response = _select(client, objs, insider_token, libraries=[objs.library])
+
+    assert _rows(response.text) == ["library_forms-0"]
+    response = _manual(client, objs, insider_token, {"library_forms": [(objs.library, "library", "400")]})
+    assert_htmx_redirect(response, "/")
+    assert _reload(session, models.Library, objs.library.id).avg_fragment_size == 400
+    # The first selection is no longer part of the report
+    response = _manual(client, objs, insider_token, {"sample_forms": [(objs.sample, "sample", "300")]})
+    assert response.status_code == 400
+
+
+def test_back_from_assignment_to_upload(client: TestClient, objs: Objects, insider_token: str):
+    _select(client, objs, insider_token, samples=[objs.sample], libraries=[objs.library])
+    response = _excel(client, objs, insider_token, _csv({"Well1": 350, "Well2": 420}))
+    assert _url(client, "BAReportForm.Previous") in response.text
+
+    response = get(client, _url(client, "BAReportForm.Previous"), insider_token, params=objs.params)
+
+    assert response.status_code == 200, response.text
+    assert _rows(response.text) == ["sample_forms-0", "library_forms-0"]
+    assert _url(client, "SelectSamplesForm.Previous") in response.text  # and back again from there
+
+
+def test_back_from_confirm_keeps_the_assignment(client: TestClient, session: SyncSession, objs: Objects, insider_token: str):
+    _select(client, objs, insider_token, samples=[objs.sample], libraries=[objs.library])
+    _excel(client, objs, insider_token, _csv({"Well1": 350, "Well2": 420}))
+    response = _parse(client, objs, insider_token, [1, 0], [("Well2", "420"), ("Well1", "350")])
+    assert response.status_code == 200, response.text
+    assert _url(client, "ParseBAExcelFileForm.Previous") in response.text
+
+    response = get(client, _url(client, "ParseBAExcelFileForm.Previous"), insider_token, params=objs.params)
+
+    assert response.status_code == 200, response.text
+    assert _assignment(response.text) == (["1", "0"], ["Well2", "Well1"])
+    assert _url(client, "BAReportForm.Previous") in response.text
+
+    # Re-assign: sample ← Well2, library ← Well1, then confirm
+    response = _parse(client, objs, insider_token, [0, 1], [("Well2", "420"), ("Well1", "350")])
+    assert 'value="420"' in response.text and 'value="350"' in response.text
+    response = _post_files(
+        client, _url(client, "CompleteBAReport.Submit"),
+        _entries({"sample_forms": [(objs.sample, "sample", "420")], "library_forms": [(objs.library, "library", "350")]}),
+        {"pdf": ("report.pdf", PDF, "application/pdf")}, insider_token, objs.params,
+    )
+    assert_htmx_redirect(response, "/")
+    assert _reload(session, models.Sample, objs.sample.id).avg_fragment_size == 420
+    assert _reload(session, models.Library, objs.library.id).avg_fragment_size == 350
+
+
+def test_new_upload_after_back_resets_the_assignment(client: TestClient, objs: Objects, insider_token: str):
+    _select(client, objs, insider_token, samples=[objs.sample], libraries=[objs.library])
+    _excel(client, objs, insider_token, _csv({"Well1": 350, "Well2": 420}))
+    _parse(client, objs, insider_token, [1, 0], [("Well2", "420"), ("Well1", "350")])
+    get(client, _url(client, "ParseBAExcelFileForm.Previous"), insider_token, params=objs.params)
+    get(client, _url(client, "BAReportForm.Previous"), insider_token, params=objs.params)
+
+    response = _excel(client, objs, insider_token, _csv({"WellA": 300, "WellB": 400}))
+
+    assert response.status_code == 200, response.text
+    assert _assignment(response.text) == (["0", "1"], ["WellA", "WellB"])
+
+
+@pytest.mark.parametrize("step", ["SelectSamplesForm", "BAReportForm", "ParseBAExcelFileForm"])
+def test_back_without_workflow_state_is_400(client: TestClient, objs: Objects, insider_token: str, step: str):
+    assert get(client, _url(client, f"{step}.Previous"), insider_token, params=objs.params).status_code == 400
+
+
+def test_back_after_completion_is_400(client: TestClient, objs: Objects, insider_token: str):
+    _select(client, objs, insider_token, samples=[objs.sample])
+    _manual(client, objs, insider_token, {"sample_forms": [(objs.sample, "sample", "300")]})
+
+    assert get(client, _url(client, "SelectSamplesForm.Previous"), insider_token, params=objs.params).status_code == 400
+    assert get(client, _url(client, "BAReportForm.Previous"), insider_token, params=objs.params).status_code == 400
+
+
+@pytest.mark.parametrize("step", ["SelectSamplesForm", "BAReportForm", "ParseBAExcelFileForm"])
+def test_back_is_insider_only(client: TestClient, objs: Objects, insider_token: str, user_token: str, step: str):
+    _select(client, objs, insider_token, samples=[objs.sample])
+    _excel(client, objs, insider_token, _csv({"Well1": 350}))
+
+    assert get(client, _url(client, f"{step}.Previous"), user_token, params=objs.params).status_code == 403
+

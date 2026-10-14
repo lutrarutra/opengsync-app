@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from opengsync_db import models, categories as C, queries as Q, SyncSession, actions
 
-from ....core import responses, exceptions as exc, dependencies
+from ....core import responses, exceptions as exc, dependencies, msf_helpers
 from ....utils import barcodes, parsing
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
@@ -97,7 +97,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         if contains_spatial_samples:
             if self.library_properties_table is None:
                 logger.error(f"{self.workflow.uuid}: Library properties table not found for visium samples.")
-                raise exc.OpeNGSyncServerException("Library properties table not found for visium samples.")
+                raise exc.BadRequestException(msf_helpers.EXPIRED)
             
             spatial_libraries = self.library_table[self.library_table["library_type_id"].isin(spatial_library_type_ids)]["library_name"].values  # type: ignore
             self._context["spatial_table"] = self.library_properties_table[self.library_properties_table["library_name"].isin(spatial_libraries)]
@@ -109,7 +109,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         if contains_crispr_guides:
             if (table := self.workflow.tables.get("crispr_guide_table")) is None:
                 logger.error(f"{self.workflow.uuid}: CRISPR guide table not found for CRISPR guide samples.")
-                raise exc.OpeNGSyncServerException("CRISPR guide table not found for CRISPR guide samples.")
+                raise exc.BadRequestException(msf_helpers.EXPIRED)
             
             crispr_guide_table = table[["guide_name", "target_gene", "prefix", "guide_sequence", "suffix"]].copy()
             self._context["crispr_guide_table"] = crispr_guide_table
@@ -138,7 +138,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         for group, _ in parsing.safe_groupby(self.sample_pooling_table, SamplePoolingLibraryMuxGroup, dropna=True):
             self.library_table.loc[self.library_table["library_name"] == group.library_name, "mux_type_id"] = group.mux_type_id
     
-    def prepare(self):
+    def prepare_context(self) -> None:
         self._context["library_table"] = self.library_table
         self._context["sample_table"] = self.sample_table
         self._context["sample_pooling_table"] = self.sample_pooling_table
@@ -232,7 +232,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
             if (project_id := form.workflow.metadata.get("project_id")) is not None:
                 if (project := session.first(Q.project.select(id=project_id))) is None:
                     logger.error(f"{form.workflow.uuid}: Project with id {project_id} not found.")
-                    raise ValueError(f"Project with id {project_id} not found.")
+                    raise exc.NotFoundException(f"Project with id {project_id} not found.")
             else:
                 project = session.save(Q.project.create(
                     title=form.workflow.metadata["project_title"],
@@ -252,6 +252,8 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
             for idx, row in parsing.safe_iter(form.sample_table, SampleTableRow):
                 if row.sample_id is not None:
                     sample = session.get_one(Q.sample.select(id=row.sample_id))
+                    if sample.status == C.SampleStatus.REJECTED:
+                        raise exc.BadRequestException(f"Sample '{sample.name}' is rejected and cannot be re-used.")
                 else:
                     sample = session.save(Q.sample.create(
                         name=row.sample_name,
@@ -285,7 +287,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
 
                 if form.pool_table is None:
                     logger.error(f"{form.workflow.uuid}: Pool table not found.")
-                    raise ValueError("Pool table not found.")
+                    raise exc.BadRequestException(msf_helpers.EXPIRED)
                 
                 for idx, row in parsing.safe_iter(form.pool_table, PoolTableRow):
                     if row.pool_id is not None:
@@ -323,7 +325,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                 if library_type == C.LibraryType.PARSE_SC_CRISPR:
                     if (crispr_guide_table := form.workflow.tables.get("crispr_guide_table")) is None:
                         logger.error(f"{form.workflow.uuid}: CRISPR guide table not found.")
-                        raise ValueError("CRISPR guide table not found.")
+                        raise exc.BadRequestException(msf_helpers.EXPIRED)
                     
                     if properties is None:
                         properties = {}
@@ -333,7 +335,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                 if form.submission_type == C.SubmissionType.POOLED_LIBRARIES:
                     if form.pool_table is None:
                         logger.error(f"{form.workflow.uuid}: Pool table not found.")
-                        raise ValueError("Pool table not found.")
+                        raise exc.BadRequestException(msf_helpers.EXPIRED)
                     pool_id = int(form.pool_table[form.pool_table["pool_label"] == row.pool]["pool_id"].values[0])  # type: ignore
                 else:
                     pool_id = None
@@ -362,7 +364,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                 if form.submission_type == C.SubmissionType.POOLED_LIBRARIES:
                     if form.barcode_table is None:
                         logger.error(f"{form.workflow.uuid}: Barcode table not found.")
-                        raise ValueError("Barcode table not found.")
+                        raise exc.BadRequestException(msf_helpers.EXPIRED)
 
                     library_barcodes: pd.DataFrame = form.barcode_table[form.barcode_table["library_name"] == row.library_name]  # type: ignore
                     if library.type == C.LibraryType.TENX_SC_ATAC:

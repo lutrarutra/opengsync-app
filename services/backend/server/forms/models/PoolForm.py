@@ -48,7 +48,7 @@ class PoolForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),
         ) -> "PoolForm":
             pool = None
-            if pool_id is not None:
+            if form_type != "create" and pool_id is not None:  # a create form ignores a stray id
                 pool = session.get_one(Q.pool.select(id=pool_id).options(
                     orm.selectinload(models.Pool.contact),
                 ))
@@ -121,7 +121,7 @@ class PoolForm(HTMXForm):
                 raise exc.NoPermissionsException("You do not have permission to edit this pool.")
 
             if form.pool is None:
-                raise exc.OpeNGSyncServerException("Pool must be provided for edit form.")
+                raise exc.BadRequestException("Pool must be provided for edit form.")
 
             form.name.data = form.pool.name
             form.pool_type.data = form.pool.type.id
@@ -147,7 +147,7 @@ class PoolForm(HTMXForm):
                 raise exc.NoPermissionsException("You do not have permission to edit this pool.")
 
             if form.pool is None:
-                raise exc.OpeNGSyncServerException("Pool must be provided for edit form.")
+                raise exc.BadRequestException("Pool must be provided for edit form.")
 
             if access_level < C.AccessLevel.INSIDER and form.status.data != form.pool.status.id:
                 form.status.errors.append("Only insiders can change pool status.")

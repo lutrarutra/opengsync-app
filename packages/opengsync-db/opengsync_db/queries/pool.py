@@ -120,6 +120,7 @@ def select(
     experiment_id: int | None = None,
     lab_prep_id: int | None = None,
     seq_request_id: int | None = None,
+    name: str | None = None,
     associated_to_experiment: bool | None = None,
     status: PoolStatus | None = None,
     status_in: list[PoolStatus] | None = None,
@@ -136,6 +137,7 @@ def select(
         lab_prep_id=lab_prep_id,
         seq_request_id=seq_request_id,
         associated_to_experiment=associated_to_experiment,
+        name=name,
         status=status,
         status_in=status_in,
         library_types_in=library_types_in,
@@ -156,6 +158,7 @@ def where_clauses(
     lab_prep_id: int | None = None,
     seq_request_id: int | None = None,
     associated_to_experiment: bool | None = None,
+    name: str | None = None,
     status: PoolStatus | None = None,
     status_in: list[PoolStatus] | None = None,
     library_types_in: list[LibraryType] | None = None,
@@ -202,6 +205,8 @@ def where_clauses(
             clauses.append(Pool.experiment_id.isnot(None))
         else:
             clauses.append(Pool.experiment_id.is_(None))
+    if name is not None:
+        clauses.append(Pool.name == name)
 
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)

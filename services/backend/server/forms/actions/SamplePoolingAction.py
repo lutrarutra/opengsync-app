@@ -7,7 +7,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
-from ...components.tables.spreadsheet import TextColumn, IntegerColumn
+from ...components.tables.spreadsheet import TextColumn, IntegerColumn, InvalidCellValue
 from ...utils.parsing import map_columns
 from ..HTMXForm import RouteFunc, htmx_route, HTMXForm, FormFunc
 
@@ -81,9 +81,16 @@ class SamplePoolingAction(HTMXForm):
             df = form.spreadsheet.data
             assert df is not None
 
+            for idx, row in df.iterrows():
+                if str(row["sample_pool"]).strip().lower() == "x":
+                    form.spreadsheet.add_error(idx, "sample_pool", InvalidCellValue("To fail a sample, use the 'Reject Samples' step instead."))
+
+            form.assert_valid()
+
+            # Rejected samples are hidden from the spreadsheet but every link is re-created below
             sample_table = T.lab_prep_pooling_table(
                 session.get_pandas(
-                    Q.pd.lab_prep_pooling_table(form.lab_prep_id),
+                    Q.pd.lab_prep_pooling_table(form.lab_prep_id, include_rejected=True),
                     limit=None,
                 ),
                 expand_mux_=False,
@@ -91,15 +98,15 @@ class SamplePoolingAction(HTMXForm):
             sample_table = sample_table[sample_table["mux_type"].notna()]
 
             sample_table["new_sample_pool"] = map_columns(sample_table, df, "sample_id", "sample_pool")
-
-            old_libraries: dict[int, models.Library] = {}
+            rejected = sample_table["sample_status"] == C.SampleStatus.REJECTED
+            # Rejected samples stay in their current pool
+            sample_table.loc[rejected, "new_sample_pool"] = sample_table.loc[rejected, "sample_pool"]
 
             for library_id in sample_table["library_id"].unique():
                 if (library := session.first(Q.library.select(id=int(library_id)))) is None:
                     logger.error(f"Library {library_id} not found.")
                     raise exc.NotFoundException(f"Library {library_id} not found.")
 
-                old_libraries[library.id] = library
                 library.sample_links.clear()
                 session.save(library)
                 session.flush()
@@ -109,7 +116,7 @@ class SamplePoolingAction(HTMXForm):
 
             for (new_sample_pool, library_id), _df in sample_table.groupby(["new_sample_pool", "library_id"]):
                 old_library = session.get_one(Q.library.select(id=int(library_id)))  # type: ignore
-                library_name = f"{new_sample_pool}_{old_library.type.identifier}" if new_sample_pool != "x" else f"canceled_samples_{old_library.type.identifier}"
+                library_name = f"{new_sample_pool}_{old_library.type.identifier}"
                 if (new_library := libraries.get(library_name)) is None:
                     new_library = session.save(Q.library.create(
                         name=library_name,
@@ -130,8 +137,6 @@ class SamplePoolingAction(HTMXForm):
                     libraries[library_name] = new_library
 
                 new_library.features = old_library.features
-                if new_sample_pool == "x":
-                    new_library.status = C.LibraryStatus.FAILED
                 session.save(new_library)
 
                 for _, row in _df.iterrows():

@@ -18,7 +18,7 @@ class SampleStatus(ExtendedEnum):
     WAITING_DELIVERY = SampleStatusEnum(1, "Waiting Delivery", "📭", "Waiting for delivery")
     STORED = SampleStatusEnum(2, "Stored", "📦", "Sample specimen was received from customer and stored")
     DEPLETED = SampleStatusEnum(10, "Depleted", "🪫", "Sample specimen was depleted")
-    REJECTED = SampleStatusEnum(11, "Rejected", "⛔", "Request was rejected")
+    REJECTED = SampleStatusEnum(11, "Rejected", "⛔", "Sample failed during library preparation and is excluded from further processing")
 
     @property
     def select_name(self) -> str:

@@ -1,11 +1,13 @@
+import time
+import datetime as dt
 from typing import Self
 
-from fastapi import Query, Depends, APIRouter
+from fastapi import Query, Depends, APIRouter, Request, Response
 
 from opengsync_db import categories as C, models, queries as Q, SyncSession
 
 from ....core import dependencies, exceptions as exc, redis, responses
-from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
+from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc, WorkflowRun, StepMode
 from ...HTMXForm import RouteFunc, FormFunc
 from ..HTMXWorkflowStep import HTMXWorkflowStep
 from .. import library_annotation as wf
@@ -41,6 +43,16 @@ class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
             return form
         return dependency
 
+    def make_response(self, status_code: int = 200, **kwargs) -> Response:
+        # Showing a step is activity on the run; a fresh render (not a re-render with
+        # validation errors) is also where the run resumes.
+        if (user_id := self.workflow.user_id) is not None:
+            if self.validated:
+                self.workflow.touch(user_id)
+            else:
+                self.workflow.touch(user_id, step=self.__class__.__name__, step_mode=self.workflow.step_mode)
+        return super().make_response(status_code=status_code, **kwargs)
+
 def require_seq_request_write(
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ) -> C.AccessLevel:
@@ -50,51 +62,209 @@ def require_seq_request_write(
     return access_level
 
 
-class LibraryAnnotationWorkflow(HTMXWorkflow):    
+class LibraryAnnotationWorkflow(HTMXWorkflow):
+    # Someone else showing a step this recently may still be working on the run.
+    ACTIVE_ELSEWHERE_SECONDS = 15 * 60
+
+    STEP_LABELS = {
+        "ProjectSelectForm": "Select Project",
+        "SampleAnnotationForm": "Sample Annotation",
+        "SampleAttributeAnnotationForm": "Sample Attributes",
+        "SelectServiceForm": "Select Services",
+        "DefineMultiplexedSamplesForm": "Define Multiplexed Samples",
+        "CustomAssayAnnotationForm": "Specify Libraries",
+        "PooledLibraryAnnotationForm": "Specify Library Pooling",
+        "PoolMappingForm": "Specify Pools",
+        "BarcodeInputForm": "Specify Barcodes",
+        "TENXATACBarcodeInputForm": "Specify 10X ATAC Barcodes",
+        "BarcodeMatchForm": "Match Barcodes",
+        "FeatureAnnotationForm": "Feature Reference",
+        "OCMAnnotationForm": "On-Chip Multiplexing",
+        "OligoMuxAnnotationForm": "Oligo-Multiplexing",
+        "FlexAnnotationForm": "Flex Multiplexing",
+        "ParseMuxAnnotationForm": "Parse Multiplexing",
+        "ParseCRISPRGuideAnnotationForm": "Parse CRISPR Guides",
+        "OpenSTAnnotationForm": "OpenST Annotation",
+        "VisiumAnnotationForm": "10X Visium Annotation",
+        "CompleteSASForm": "Complete Submission",
+    }
+
     def __init__(self, step: str, seq_request_id: int, r: redis.RedisClient, uuid: str | None = None) -> None:
         super().__init__(uuid=uuid, r=r, step=step)
         self.seq_request_id = seq_request_id
+        # Set per request by ``Init``: who is working on the run and how the step was reached.
+        self.user_id: int | None = None
+        self.step_mode: StepMode | None = None
+
+    @staticmethod
+    def context_for(seq_request_id: int) -> str:
+        return f"seq_request:{seq_request_id}"
+
+    @property
+    def context(self) -> str:
+        return self.context_for(self.seq_request_id)
+
+    @staticmethod
+    def may_access_run(run: WorkflowRun, user_id: int, access_level: C.AccessLevel) -> bool:
+        """Insiders may see and continue every run of a request, others only the runs they started."""
+        return access_level >= C.AccessLevel.INSIDER or run.started_by_id == user_id
+
+    def authorize(self, step: str, user_id: int, access_level: C.AccessLevel) -> None:
+        # The state is keyed by UUID only, so a run must be bound to the request it was
+        # started for: WRITE on the request in the URL says nothing about the run's data.
+        # Project selection starts (binds) a run; every other step needs a bound run.
+        bound_seq_request_id = self.header.get("seq_request_id")
+        if bound_seq_request_id is None and step != "ProjectSelectForm":
+            raise exc.BadRequestException("This annotation has expired. Please start again.")
+        if bound_seq_request_id is not None and bound_seq_request_id != self.seq_request_id:
+            raise exc.BadRequestException("This annotation belongs to another sequencing request.")
+        # Every step has its own URL; only steps this run has been routed to (the tracker
+        # holds every reached step, incl. the one currently shown) may be shown or posted.
+        if step != "ProjectSelectForm" and step not in self.step_tracker.steps:
+            raise exc.BadRequestException("This step is not part of the current annotation.")
+        # Runs started before the registry existed have no record and stay open to the request.
+        if (run := self.run) is not None and not self.may_access_run(run, user_id, access_level):
+            raise exc.NoPermissionsException("This annotation was started by another user.")
 
     @classmethod
     def Init(cls, step: str) -> WorkflowFunc:
         def dependency(
+            request: Request,
             seq_request_id: int,
             uuid: str | None = Query(None, description="The UUID of the workflow state."),
             r: redis.RedisClient = Depends(dependencies.redis),
+            user_id: int = Depends(dependencies.require_user_id),
+            access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
         ) -> "LibraryAnnotationWorkflow":
             workflow = cls(uuid=uuid, r=r, seq_request_id=seq_request_id, step=step)
-            # The state is keyed by UUID only, so a run must be bound to the request it was
-            # started for: WRITE on the request in the URL says nothing about the run's data.
-            # Project selection starts (binds) a run; every other step needs a bound run.
-            bound_seq_request_id = workflow.header.get("seq_request_id")
-            if bound_seq_request_id is None and step != "ProjectSelectForm":
-                raise exc.BadRequestException("This annotation has expired. Please start again.")
-            if bound_seq_request_id is not None and bound_seq_request_id != seq_request_id:
-                raise exc.BadRequestException("This annotation belongs to another sequencing request.")
-            # Every step has its own URL; only steps this run has been routed to (the tracker
-            # holds every reached step, incl. the one currently shown) may be shown or posted.
-            if step != "ProjectSelectForm" and step not in workflow.step_tracker.steps:
-                raise exc.BadRequestException("This step is not part of the current annotation.")
+            workflow.authorize(step, user_id, access_level)
+            workflow.user_id = user_id
+            # A step's GET route is its 'Previous' (Back); POSTs submit and render the next step.
+            workflow.step_mode = "back" if request.method == "GET" else "forward"
             return workflow
         return dependency
-    
+
+    # ── Unfinished runs ────────────────────────────────────────────────
+
+    @classmethod
+    def visible_runs(cls, r: redis.RedisClient, seq_request_id: int, user_id: int, access_level: C.AccessLevel) -> list[WorkflowRun]:
+        """Unfinished runs of the request the user may continue, most recently started first."""
+        runs = [
+            run for run in cls.unfinished_runs(r, cls.context_for(seq_request_id))
+            if cls.may_access_run(run, user_id, access_level)
+        ]
+        return sorted(runs, key=lambda run: run.started_at, reverse=True)
+
+    @classmethod
+    def unfinished_runs_response(
+        cls, session: SyncSession, runs: list[WorkflowRun], seq_request_id: int, user_id: int,
+        flash: responses.FlashMessage | None = None,
+    ) -> Response:
+        users = {
+            uid: session.first(Q.user.select(id=uid))
+            for uid in {run.started_by_id for run in runs} | {run.last_active_by_id for run in runs}
+        }
+        now = time.time()
+        rows = []
+        for run in runs:
+            if run.step_mode == "back":
+                # Reached via 'Back': its 'Previous' route prefills what it was submitted with
+                continue_url = responses.url_for(f"{cls.__name__}.{run.step}.Previous", seq_request_id=seq_request_id)
+            else:
+                continue_url = responses.url_for(f"{cls.__name__}.Resume", seq_request_id=seq_request_id)
+            idle_seconds = now - run.last_active_at
+            rows.append({
+                "run": run,
+                "started_by": users.get(run.started_by_id),
+                "last_active_by": users.get(run.last_active_by_id),
+                "started_at": dt.datetime.fromtimestamp(run.started_at, tz=dt.timezone.utc),
+                "last_active_at": dt.datetime.fromtimestamp(run.last_active_at, tz=dt.timezone.utc),
+                "is_own": run.started_by_id == user_id,
+                "active_elsewhere_minutes": (
+                    int(idle_seconds // 60)
+                    if run.last_active_by_id != user_id and idle_seconds < cls.ACTIVE_ELSEWHERE_SECONDS
+                    else None
+                ),
+                "step_label": cls.STEP_LABELS.get(run.step, run.step),
+                "continue_url": continue_url.include_query_params(uuid=run.uuid),
+                "discard_url": responses.url_for(f"{cls.__name__}.Discard", seq_request_id=seq_request_id, run_uuid=run.uuid),
+            })
+        return responses.htmx_response(
+            template="workflows/library_annotation/sas-unfinished_runs.html",
+            rows=rows,
+            new_url=responses.url_for(f"{cls.__name__}.Begin", seq_request_id=seq_request_id).include_query_params(new=True),
+            flash=flash,
+        )
+
     @classmethod
     def Begin(cls) -> RouteFunc:
         def route(
+            seq_request_id: int,
+            new: bool = Query(False, description="Start a new annotation without listing the unfinished ones."),
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-            _: models.User = Depends(dependencies.require_user),
+            current_user: models.User = Depends(dependencies.require_user),
+            session: SyncSession = Depends(dependencies.db_session),
+            r: redis.RedisClient = Depends(dependencies.redis),
             form: wf.ProjectSelectForm = Depends(wf.ProjectSelectForm.Init()),
         ):
             if access_level < C.AccessLevel.WRITE:
-                raise exc.OpeNGSyncServerException("You do not have permission to begin this workflow.")
-            
+                raise exc.NoPermissionsException("You do not have permission to begin this workflow.")
+
+            if not new and (runs := cls.visible_runs(r, seq_request_id, current_user.id, access_level)):
+                return cls.unfinished_runs_response(session, runs, seq_request_id, current_user.id)
             return form.make_response()
+        return route
+
+    @classmethod
+    def Resume(cls) -> RouteFunc:
+        """Show the step a run was left at, as it was rendered after submitting the step before it."""
+        def route(
+            seq_request_id: int,
+            uuid: str = Query(..., description="The UUID of the workflow state."),
+            access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+            current_user: models.User = Depends(dependencies.require_user),
+            r: redis.RedisClient = Depends(dependencies.redis),
+        ) -> Response:
+            if (run := cls.load_run(r, uuid)) is None:
+                raise exc.BadRequestException("This annotation has expired. Please start again.")
+            workflow = cls(step=run.step, seq_request_id=seq_request_id, r=r, uuid=uuid)
+            workflow.authorize(run.step, current_user.id, access_level)
+            workflow.user_id = current_user.id
+            if run.step == "ProjectSelectForm" or (step_cls := getattr(wf, run.step, None)) is None:
+                raise exc.BadRequestException("This annotation cannot be resumed. Please start again.")
+            return step_cls(workflow).make_response()
+        return route
+
+    @classmethod
+    def Discard(cls) -> RouteFunc:
+        def route(
+            seq_request_id: int,
+            run_uuid: str,
+            access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+            current_user: models.User = Depends(dependencies.require_user),
+            session: SyncSession = Depends(dependencies.db_session),
+            r: redis.RedisClient = Depends(dependencies.redis),
+            form: wf.ProjectSelectForm = Depends(wf.ProjectSelectForm.Init()),
+        ) -> Response:
+            run = cls.load_run(r, run_uuid)
+            if run is None or run.context != cls.context_for(seq_request_id):
+                raise exc.BadRequestException("This annotation has already been completed, discarded, or has expired.")
+            if not cls.may_access_run(run, current_user.id, access_level):
+                raise exc.NoPermissionsException("This annotation was started by another user.")
+            cls(step=run.step, seq_request_id=seq_request_id, r=r, uuid=run_uuid).complete()
+
+            flash = responses.flash("Annotation discarded.", "success")
+            if runs := cls.visible_runs(r, seq_request_id, current_user.id, access_level):
+                return cls.unfinished_runs_response(session, runs, seq_request_id, current_user.id, flash=flash)
+            return form.make_response(flash=flash)
         return route
 
     @classmethod
     def Router(cls) -> APIRouter:
         router = APIRouter(prefix="/library-annotation/{seq_request_id}", tags=["library-annotation"], dependencies=[Depends(require_seq_request_write)])
         router.add_api_route("/begin", LibraryAnnotationWorkflow.Begin(), methods=["GET"], name="LibraryAnnotationWorkflow.Begin")
+        router.add_api_route("/resume", LibraryAnnotationWorkflow.Resume(), methods=["GET"], name="LibraryAnnotationWorkflow.Resume")
+        router.add_api_route("/unfinished/{run_uuid}", LibraryAnnotationWorkflow.Discard(), methods=["DELETE"], name="LibraryAnnotationWorkflow.Discard")
         router.include_router(wf.ProjectSelectForm.Router(cls.__name__))
         router.include_router(wf.SampleAnnotationForm.Router(cls.__name__))
         router.include_router(wf.SampleAttributeAnnotationForm.Router(cls.__name__))

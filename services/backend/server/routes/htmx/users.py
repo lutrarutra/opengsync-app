@@ -44,11 +44,8 @@ def render_user_table(
     if group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/group-user.html"
         table.url_params["group_id"] = group_id
-        table.context["group"] = session.get_one(Q.group.select(id=group_id))
-    else:
-        table.template = "components/tables/user.html"
+    table.template = "components/tables/user.html"
 
     users = table.paginate(
         session, stmt, page=page, order_by=order_by,

@@ -4,9 +4,11 @@ The spreadsheet lists every sample of the lab prep's multiplexed libraries with 
 current pool (``Library.sample_name``). On submit, as legacy
 ``mux_prep_workflow.sample_pooling``: each (pool, old library) group becomes a new
 library ``{pool}_{library type identifier}`` that copies the old library's properties
-and features, samples are re-linked keeping their mux barcode, pool ``x`` collects
-cancelled samples in a FAILED ``canceled_samples_{type}`` library, and libraries left
+and features, samples are re-linked keeping their mux barcode, and libraries left
 without samples are deleted. Non-multiplexed libraries are not touched.
+
+Samples are no longer failed here (pool ``x`` is refused): that is RejectSamplesAction.
+REJECTED samples are hidden from the spreadsheet and stay in their current pool.
 
 Access is insider-only. Legacy had no role check on this route (login only); lab preps
 are insider-only everywhere else, so the stricter FastAPI check is kept.
@@ -205,18 +207,52 @@ def test_emptied_pool_library_is_deleted(client: TestClient, prep: Prep, insider
     assert prep.layout() == {"PoolA_10XFLEXGEX": {"S1": "BC_S1", "S2": "BC_S2", "S3": "BC_S3", "S4": "BC_S4"}}
 
 
-def test_pool_x_cancels_samples_into_a_failed_library(client: TestClient, prep: Prep, insider_token: str):
-    response = _submit(client, prep, insider_token, S2="x")
+def test_pool_x_is_refused(client: TestClient, prep: Prep, insider_token: str):
+    before = prep.layout()
+
+    for pool in ("x", "X"):
+        response = _submit(client, prep, insider_token, S2=pool)
+
+        assert_form_invalid(response)
+        assert "Reject Samples" in response.text
+    assert prep.layout() == before
+    assert {lib.id for lib in prep.libraries().values()} == {prep.pool_a.id, prep.pool_b.id}
+
+
+def test_render_hides_rejected_samples(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    prep.s2.status = C.SampleStatus.REJECTED
+    session.save(prep.s2, flush=True)
+    session.commit()
+
+    response = get(client, _path(prep.lab_prep.id), insider_token)
+
+    assert response.status_code == 200
+    assert "S1" in response.text
+    assert "S2" not in response.text
+
+
+def test_rejected_samples_stay_in_their_pool(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    prep.s2.status = C.SampleStatus.REJECTED
+    session.save(prep.s2, flush=True)
+    session.commit()
+    pools = prep.pools(S1="PoolB")
+    del pools[prep.s2]
+
+    response = post_form(client, _path(prep.lab_prep.id), _payload(pools), token=insider_token)
 
     assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
     assert prep.layout() == {
-        "PoolA_10XFLEXGEX": {"S1": "BC_S1"},
-        "PoolB_10XFLEXGEX": {"S3": "BC_S3", "S4": "BC_S4"},
-        "canceled_samples_10XFLEXGEX": {"S2": "BC_S2"},
+        "PoolA_10XFLEXGEX": {"S2": "BC_S2"},
+        "PoolB_10XFLEXGEX": {"S1": "BC_S1", "S3": "BC_S3", "S4": "BC_S4"},
     }
     libraries = prep.libraries()
-    assert libraries["canceled_samples_10XFLEXGEX"].status == C.LibraryStatus.FAILED
+    # Library status is not changed, even if only rejected samples are left
     assert libraries["PoolA_10XFLEXGEX"].status == C.LibraryStatus.ACCEPTED
+    assert prep.s2.status == C.SampleStatus.REJECTED
 
 
 def test_new_libraries_copy_the_old_library(

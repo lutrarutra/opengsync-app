@@ -69,7 +69,7 @@ class LabPrepForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "LabPrepForm":
             lab_prep = None
-            if lab_prep_id is not None:
+            if form_type != "create" and lab_prep_id is not None:  # a create form ignores a stray id
                 lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
             return LabPrepForm(form_type=form_type, lab_prep=lab_prep)
         return dependency
@@ -132,7 +132,7 @@ class LabPrepForm(HTMXForm):
             form: "LabPrepForm" = Depends(LabPrepForm.Init(form_type="edit")),
         ):
             if form.lab_prep is None:
-                raise exc.OpeNGSyncServerException("Lab prep must be provided for edit form.")
+                raise exc.BadRequestException("Lab prep must be provided for edit form.")
             return form.make_response()
         return route
 
@@ -144,7 +144,7 @@ class LabPrepForm(HTMXForm):
             form: "LabPrepForm" = Depends(LabPrepForm.Validate(form_type="edit")),
         ) -> Response:
             if form.lab_prep is None:
-                raise exc.OpeNGSyncServerException("Lab prep must be provided for edit form.")
+                raise exc.BadRequestException("Lab prep must be provided for edit form.")
 
             checklist_type, service_type = form._validate_types()
 

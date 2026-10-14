@@ -185,20 +185,13 @@ services:
             POSTGRES_DB: ${POSTGRES_DB}
             PGPORT: ${POSTGRES_PORT}
             TZ: ${TIMEZONE}
-            # pgBackRest SCP repository
-            PGBACKREST_REPO1_TYPE: scp
-            PGBACKREST_REPO1_HOST: ${PGBACKREST_REPO1_HOST}
-            PGBACKREST_REPO1_USER: ${PGBACKREST_REPO1_USER}
-            PGBACKREST_REPO1_PATH: ${PGBACKREST_REPO1_PATH}
-            PGBACKREST_REPO1_SSH_KEY: /etc/pgbackrest/id_ed25519
         expose:
             - ${POSTGRES_PORT}
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         volumes:
             - postgres_data:/var/lib/postgresql/data
-            - ${PGBACKREST_SSH_KEY}:/etc/pgbackrest/id_ed25519:ro
-            - ${PGBACKREST_KNOWN_HOSTS}:/etc/ssh/ssh_known_hosts:ro
+            - postgres_archive:/var/lib/postgresql/archive
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -232,3 +225,6 @@ volumes:
     postgres_data:
         external: true
         name: opengsync-prod_postgres_data
+    postgres_archive:
+        external: true
+        name: opengsync-prod_postgres_archive

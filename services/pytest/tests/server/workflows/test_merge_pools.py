@@ -174,6 +174,20 @@ def test_invalid_merge_is_rejected_and_changes_nothing(
     assert setup.reload(setup.a).status != C.PoolStatus.REPOOLED
 
 
+def test_invalid_merge_rerenders_pools_and_submitted_values(client: TestClient, setup: Setup, user_token: str):
+    """The error re-render still loads the pools (template context) but keeps the submitted rows."""
+    params = setup.params()
+    _select(client, user_token, params, [setup.a, setup.b])
+
+    response = _merge(client, user_token, params, _merge_payload([setup.a, setup.b], name="ab") | {"pool_forms-0-pipet": "12.5"})
+
+    assert_form_invalid(response)
+    assert setup.a.name in response.text and setup.b.name in response.text
+    assert 'name="pool_forms-1-pipet"' in response.text
+    assert 'name="pool_forms-2-pipet"' not in response.text
+    assert 'value="12.5"' in response.text
+
+
 def test_name_of_another_own_pool_is_rejected(client: TestClient, session: SyncSession, setup: Setup, user_token: str):
     existing = setup._pool(1.0, 0)
     existing.name = "Taken Name"

@@ -29,6 +29,7 @@
                 <div class="px-2">{{ form.set_requestor_as_owner.render() }} <label for="{{ form.set_requestor_as_owner.id }}">Set the Requestor ({{ form.seq_request.requestor.name }}) as Project Owner when creating a new project.</label></div>
             </div>
             {% endif %}
+            {{ form.replaces_uuid.render() }}
             {{ form.csrf_token.render() }}
         </div>
     </div>

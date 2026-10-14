@@ -7,6 +7,8 @@ from loguru import logger
 
 __all__ = ["decorator"]
 
+PREFIX = "fastapi-cache"
+
 def request_key_builder(
     func,
     namespace: str = "",

@@ -391,8 +391,7 @@ class SeqRequestBP(DBBlueprint):
                 sample.status = SampleStatus.WAITING_DELIVERY
             elif status == SeqRequestStatus.DRAFT:
                 sample.status = SampleStatus.DRAFT
-            elif status == SeqRequestStatus.REJECTED:
-                sample.status = SampleStatus.REJECTED
+            # On request rejection, samples stay draft so that they can be re-submitted
         
         is_prepared = status == SeqRequestStatus.ACCEPTED
         for library in seq_request.libraries:

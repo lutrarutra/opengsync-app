@@ -1,0 +1,106 @@
+<div id="unfinished-annotations-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Unfinished Annotations</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <h5>Instructions</h5>
+            <ul>
+                <li>These sample annotations of this request were started but not completed.</li>
+                <li>Continue an annotation where it was left, discard the ones that are no longer needed, or start a new annotation.</li>
+                <li>Unfinished annotations are removed automatically 7 days after their last activity.</li>
+            </ul>
+        </div>
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Started by</th>
+                    <th>Started</th>
+                    <th>Last activity</th>
+                    <th>Progress</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                {% set started_by_name = row.started_by.name if row.started_by else "Unknown user" %}
+                {% set last_active_by_name = row.last_active_by.name if row.last_active_by else "Unknown user" %}
+                <tr>
+                    <td>{{ row.run.label or "-" }}</td>
+                    <td>
+                        {{ started_by_name }}
+                        {% if row.is_own %}<span class="badge text-bg-primary">you</span>{% endif %}
+                    </td>
+                    <td>{{ row.started_at | format_datetime }}</td>
+                    <td>
+                        {{ row.last_active_at | format_datetime }}
+                        {% if row.run.last_active_by_id != row.run.started_by_id %}
+                        <span class="desc">by {{ last_active_by_name }}</span>
+                        {% endif %}
+                        {% if row.active_elsewhere_minutes is not none %}
+                        <div class="text-warning">
+                            ⚠️ {{ last_active_by_name }} was active {% if row.active_elsewhere_minutes == 0 %}less than a minute{% else %}{{ row.active_elsewhere_minutes }} min{% endif %} ago and might still be working on it.
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        <span class="badge rounded-circle text-bg-primary d-inline-flex align-items-center justify-content-center" style="width: 1.75em; height: 1.75em;" title="{{ row.run.steps_completed }} step{{ 's' if row.run.steps_completed != 1 }} completed">{{ row.run.steps_completed }}</span>
+                        {{ row.step_label }}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <button type="button" class="btn btn-primary"
+                            hx-get="{{ row.continue_url }}"
+                            hx-target="#unfinished-annotations-container" hx-swap="outerHTML"
+                            {% if row.active_elsewhere_minutes is not none %}
+                            data-confirm-title="{{ last_active_by_name }} might still be working on this annotation"
+                            data-confirm-text="Continuing at the same time can overwrite each other's changes. Continue anyway?"
+                            _="on htmx:confirm(issueRequest)
+                                halt the event
+                                call Swal.fire({
+                                    title: my @data-confirm-title,
+                                    text: my @data-confirm-text,
+                                    showDenyButton: true,
+                                    confirmButtonText: 'Yes',
+                                    denyButtonText: 'No'
+                                })
+                                if result.isConfirmed issueRequest()"
+                            {% endif %}>
+                            Continue
+                        </button>
+                        <button type="button" class="btn btn-danger"
+                            hx-delete="{{ row.discard_url }}"
+                            hx-target="#unfinished-annotations-container" hx-swap="outerHTML"
+                            data-confirm-title="{% if row.is_own %}Discard your annotation{% else %}Discard {{ started_by_name }}'s annotation{% endif %} started {{ row.started_at | format_datetime }}?"
+                            data-confirm-text="Everything entered in it will be lost."
+                            _="on htmx:confirm(issueRequest)
+                                halt the event
+                                call Swal.fire({
+                                    title: my @data-confirm-title,
+                                    text: my @data-confirm-text,
+                                    showDenyButton: true,
+                                    confirmButtonText: 'Discard',
+                                    denyButtonText: 'Cancel'
+                                })
+                                if result.isConfirmed issueRequest()">
+                            Discard
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-get="{{ new_url }}"
+                hx-target="#unfinished-annotations-container" hx-swap="outerHTML">
+                Start New Annotation
+            </button>
+        </div>
+    </div>
+</div>

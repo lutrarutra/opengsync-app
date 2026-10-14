@@ -141,6 +141,7 @@ def test_base_page_sends_the_token_with_htmx(client: TestClient, user_token: str
 
     assert page.status_code == 200
     assert 'htmx:configRequest' in page.text
+    assert '$.ajaxPrefilter' in page.text  # jQuery POSTs (plots)
     assert 'X-CSRF-Token' in page.text
 
 

@@ -39,6 +39,8 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
     has_write_access = sa.select(1).where(
         Sample.project_id == Project.id,
         Project.status == ProjectStatus.DRAFT,
+        # Rejected samples can only be edited by insiders
+        Sample.status.is_distinct_from(SampleStatus.REJECTED),
         sa.or_(
             Project.owner_id == user_id,
             sa.select(1).where(

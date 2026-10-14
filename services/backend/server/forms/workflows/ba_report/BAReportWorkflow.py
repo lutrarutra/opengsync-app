@@ -89,6 +89,17 @@ class BAReportWorkflow(HTMXWorkflow):
         return route
             
 
+    def get_next_step(self, form: "BAReportWorkflowStep", next_form_cls: type["BAReportWorkflowStep"]) -> "BAReportWorkflowStep":
+        """Advance from ``form`` to a new ``next_form_cls`` step whose 'Back' returns to ``form``."""
+        self.add_step(form.__class__.__name__)
+        next_form = next_form_cls(workflow=self)
+        # Set after creating the step: entering it copies the submitted step's metadata
+        self.previous_url = responses.url_for(
+            f"{self.__class__.__name__}.{form.__class__.__name__}.Previous",
+        ).include_query_params(uuid=self.uuid, **self._query_params)
+        self.add_step(next_form.__class__.__name__)
+        return next_form
+
     @classmethod
     def Router(cls) -> APIRouter:
         router = APIRouter(prefix="/ba-report", tags=["ba-report"])

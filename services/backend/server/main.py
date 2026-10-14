@@ -3,6 +3,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
+from sqlalchemy import exc as sa_exc
 from loguru import logger
 
 from opengsync_db import exceptions as db_exc, models
@@ -14,6 +15,7 @@ from . import routes
 app = FastAPI(lifespan=lifespan.lifespan)  # type: ignore
 app.exception_handler(Exception)(exc.OpeNGSyncServerException.Handler)
 app.exception_handler(fastapi_exc.RequestValidationError)(exc.request_validation_exception_handler)
+app.exception_handler(sa_exc.DataError)(exc.data_error_handler)
 app.exception_handler(HTTPException)(exc.OpeNGSyncServerException.Handler)
 
 app.exception_handler(exc.UserNotAuthenticatedException)(exc.UserNotAuthenticatedException.Handler)
@@ -69,7 +71,10 @@ def dashboard(
     
 
 @app.get("/help")
-def help():
+def help(
+    current_user: models.User | None = Depends(dependencies.get_user)
+):
+    # Resolve the (optional) user so the template sees current_user; the page stays public
     return responses.html_response(template="help.html")
 
 @app.get("/status")

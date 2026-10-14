@@ -41,10 +41,10 @@ class ProjectForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),
         ) -> "ProjectForm":
             if form_type == "edit" and project_id is None:
-                raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
+                raise exc.BadRequestException("Project ID must be provided for edit form.")
             
             project = None
-            if project_id is not None:
+            if form_type != "create" and project_id is not None:  # a create form ignores a stray id
                 project = session.get_one(Q.project.select(id=project_id))
             form = ProjectForm(form_type=form_type, project=project)
             form.status.read_only = not current_user.is_insider
@@ -59,7 +59,7 @@ class ProjectForm(HTMXForm):
             form: "ProjectForm" = Depends(ProjectForm.Init(form_type="edit"))
         ):
             if form.project is None:
-                raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
+                raise exc.BadRequestException("Project ID must be provided for edit form.")
 
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this project.")
@@ -91,7 +91,7 @@ class ProjectForm(HTMXForm):
             form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="edit")),
         ) -> Response:
             if form.project is None:
-                raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
+                raise exc.BadRequestException("Project ID must be provided for edit form.")
             
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this project.")

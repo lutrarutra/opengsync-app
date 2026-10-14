@@ -67,6 +67,14 @@ class BAReportForm(BAReportWorkflowStep):
             entry.type.data = row.type
             entry.avg_fragment_size.data = row.avg_fragment_size
 
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            form: "BAReportForm" = Depends(BAReportForm.Init()),
+        ) -> Response:
+            return form.make_response()
+        return route
+
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
@@ -125,10 +133,7 @@ class BAReportForm(BAReportWorkflowStep):
                     raise exc.FormValidationException(form)
 
                 form.workflow.tables["excel_table"] = df
-                form.workflow.add_step(form.__class__.__name__)
-                next_form = ParseBAExcelFileForm(workflow=form.workflow)
-                form.workflow.add_step(next_form.__class__.__name__)
-                return next_form.make_response()
+                return form.workflow.get_next_step(form, ParseBAExcelFileForm).make_response()
             else:
                 raise exc.BadRequestException(f"Invalid method: {method}")
         return route

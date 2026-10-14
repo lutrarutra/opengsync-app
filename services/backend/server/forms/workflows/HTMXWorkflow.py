@@ -1,5 +1,8 @@
+import json
+import time
 from uuid import uuid7
-from typing import TypeAlias, Callable
+from dataclasses import dataclass, asdict, fields
+from typing import TypeAlias, Callable, Literal
 from abc import ABC, abstractmethod
 
 from starlette.datastructures import URL
@@ -7,6 +10,32 @@ from starlette.datastructures import URL
 from ...core import msf_helpers, redis
 
 WorkflowFunc: TypeAlias = Callable[..., "HTMXWorkflow"]
+StepMode: TypeAlias = Literal["forward", "back"]
+
+
+@dataclass
+class WorkflowRun:
+    """Registry record of an unfinished run, stored at ``{key_prefix}:run``.
+
+    ``step`` is the step last shown and ``step_mode`` how it was reached: "forward" (rendered
+    fresh after submitting the step before it) or "back" (its 'Previous' route, prefilled with
+    what it was submitted with). The step tracker can't tell: it keeps every step ever reached.
+    """
+    uuid: str
+    context: str
+    started_by_id: int
+    started_at: float
+    last_active_by_id: int
+    last_active_at: float
+    step: str
+    step_mode: StepMode
+    label: str | None = None
+    steps_completed: int = 0
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "WorkflowRun":
+        return cls(**{f.name: data[f.name] for f in fields(cls) if f.name in data})
+
 
 class HTMXWorkflow(ABC):
     def __init__(
@@ -22,6 +51,7 @@ class HTMXWorkflow(ABC):
         self._active_step: str | None = None
 
         self.header = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:header", r=r)
+        self._run: WorkflowRun | None = None
         self.init_step(step or self.step_tracker.last() or self.__class__.__name__)
 
     def _step_prefix(self, step_name: str) -> str:
@@ -120,8 +150,103 @@ class HTMXWorkflow(ABC):
         self.metadata.save()
 
     def complete(self) -> None:
+        if (run := self.run) is not None:
+            self.r.zrem(self._index_key(run.context), self.uuid)
+            self._run = None
         # delete all keys associated with this workflow in Redis
         self.r.delete_pattern(f"{self.key_prefix}:*")
+
+    # ── Run registry ───────────────────────────────────────────────────
+    # A registered run is listed in a sorted set per context (e.g. one sequencing request),
+    # scored by its last activity. Every touch refreshes the TTL of all of the run's keys
+    # together, so a run expires as a unit exactly one TTL after its last activity, which is
+    # when ``unfinished_runs`` stops listing it. Entries whose run is gone anyway (completed
+    # elsewhere, flushed) are dropped when listing.
+
+    @classmethod
+    def _index_key(cls, context: str) -> str:
+        return f"WorkflowIndex:{cls.__name__}:{context}"
+
+    @property
+    def _run_key(self) -> str:
+        return f"{self.key_prefix}:run"
+
+    @property
+    def run(self) -> WorkflowRun | None:
+        """The registry record, or None when the run was never registered (or has expired)."""
+        if self._run is None:
+            self._run = self.load_run(self.r, self.uuid)
+        return self._run
+
+    def register(
+        self, context: str, user_id: int, label: str | None = None,
+        started_by_id: int | None = None, started_at: float | None = None,
+    ) -> WorkflowRun:
+        """List this run as unfinished under ``context``; ``started_*`` carry over a replaced run.
+
+        Registering a run again (e.g. its first step re-submitted) keeps who started it and when.
+        """
+        now = time.time()
+        if (existing := self.run) is not None:
+            started_by_id = started_by_id if started_by_id is not None else existing.started_by_id
+            started_at = started_at if started_at is not None else existing.started_at
+        self._run = WorkflowRun(
+            uuid=self.uuid, context=context,
+            started_by_id=started_by_id if started_by_id is not None else user_id,
+            started_at=started_at if started_at is not None else now,
+            last_active_by_id=user_id, last_active_at=now,
+            step=self.current_step, step_mode="forward", label=label,
+        )
+        self._persist_run()
+        return self._run
+
+    def touch(self, user_id: int, step: str | None = None, step_mode: StepMode | None = None) -> None:
+        """Record activity on a registered run and keep all of its keys alive."""
+        if (run := self.run) is None:
+            return
+        run.last_active_by_id = user_id
+        run.last_active_at = time.time()
+        if step is not None:
+            run.step = step
+            # Steps submitted on the way to it: the ones before it in the tracker
+            steps = self.step_tracker.steps
+            run.steps_completed = steps.index(step) if step in steps else len(steps)
+        if step_mode is not None:
+            run.step_mode = step_mode
+        self._persist_run()
+
+    def _persist_run(self) -> None:
+        assert self._run is not None
+        ttl = self.r.ttl_hours * 3600
+        index_key = self._index_key(self._run.context)
+        with self.r.pipeline() as pipe:
+            pipe.set(self._run_key, json.dumps(asdict(self._run)).encode("utf-8"), ex=ttl)
+            pipe.zadd(index_key, {self.uuid: self._run.last_active_at})
+            pipe.expire(index_key, ttl)
+            for key in self.r.scan_iter(match=f"{self.key_prefix}:*"):
+                pipe.expire(key, ttl)
+            pipe.execute()
+
+    @classmethod
+    def load_run(cls, r: redis.RedisClient, uuid: str) -> WorkflowRun | None:
+        """The registry record of a run, without loading the run's state."""
+        if (data := r.get_dict(f"{cls.__name__}:{uuid}:run")) is None:
+            return None
+        return WorkflowRun.from_dict(data)
+
+    @classmethod
+    def unfinished_runs(cls, r: redis.RedisClient, context: str) -> list[WorkflowRun]:
+        """Registered runs of ``context`` that have not expired, most recently active first."""
+        index_key = cls._index_key(context)
+        r.zremrangebyscore(index_key, "-inf", time.time() - r.ttl_hours * 3600)
+        runs: list[WorkflowRun] = []
+        for uuid in r.zrevrange(index_key, 0, -1):
+            uuid = uuid.decode("utf-8")
+            if (run := cls.load_run(r, uuid)) is None:
+                r.zrem(index_key, uuid)
+                continue
+            runs.append(run)
+        return runs
 
     @classmethod
     @abstractmethod

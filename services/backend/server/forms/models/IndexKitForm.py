@@ -58,10 +58,10 @@ class IndexKitForm(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "IndexKitForm":
             if form_type == "edit" and index_kit_id is None:
-                raise exc.OpeNGSyncServerException("Index kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Index kit ID must be provided for edit form.")
 
             index_kit = None
-            if index_kit_id is not None:
+            if form_type != "create" and index_kit_id is not None:  # a create form ignores a stray id
                 index_kit = session.get_one(Q.index_kit.select(id=index_kit_id))
             return IndexKitForm(form_type=form_type, index_kit=index_kit)
 
@@ -73,7 +73,7 @@ class IndexKitForm(HTMXForm):
             form: "IndexKitForm" = Depends(IndexKitForm.Init(form_type="edit")),
         ):
             if form.index_kit is None:
-                raise exc.OpeNGSyncServerException("Index kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Index kit ID must be provided for edit form.")
 
             form.name.data = form.index_kit.name
             form.identifier.data = form.index_kit.identifier
@@ -100,7 +100,7 @@ class IndexKitForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.index_kit is None:
-                raise exc.OpeNGSyncServerException("Index kit ID must be provided for edit form.")
+                raise exc.BadRequestException("Index kit ID must be provided for edit form.")
 
             # Validate identifier
             form.identifier.data = form.identifier.data.strip()

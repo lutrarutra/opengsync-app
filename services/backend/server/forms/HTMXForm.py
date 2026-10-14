@@ -137,7 +137,7 @@ class HTMXForm(ABC):
             form: "HTMXForm" = Depends(cls.Init(**kwargs))
         ) -> "HTMXForm":
             if request.method not in ("POST", "PUT"):
-                raise exc.OpeNGSyncServerException("Form submission must be a POST or PUT request.")
+                raise exc.MethodNotAllowedException("Form submission must be a POST or PUT request.")
 
             form.validate(request.state.form_data, csrf_token=csrf_token)
             return form
@@ -438,7 +438,15 @@ class HTMXForm(ABC):
         if not self.is_valid:
             raise exc.FormValidationException(self)
 
-    def prepare(self):
+    def prepare_context(self) -> None:
+        """Load what the template needs besides the fields (tables, related objects). Runs
+        before every render, including the re-render after a failed submission."""
+        pass
+
+    def prepare(self) -> None:
+        """Prefill the fields (and dynamic list entries) for the initial render. Not run when
+        re-rendering a submission: that shows the submitted values, so refilling here would
+        overwrite them, or append a second copy of every list entry."""
         pass
 
     def get_context(self) -> dict:
@@ -464,6 +472,7 @@ class HTMXForm(ABC):
             if token:
                 self.csrf_token.data = token
 
+        self.prepare_context()
         if not self.validated:
             self.prepare()
         elif self.raw_data:
@@ -512,7 +521,6 @@ class HTMXForm(ABC):
     
     def invalid_response_handler(self, request: Request, exc: exc.FormValidationException) -> Response:
         """Re-render the form with errors. 202 means the POST was accepted but did not advance."""
-        self.prepare()
         flash = responses.flash(exc.flash_message, "error") if exc.flash_message else None
         return self.make_response(status_code=exc.status_code, flash=flash)
 

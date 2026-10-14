@@ -68,7 +68,7 @@ class PoolDesignForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             if form.pool_design is not None:
-                raise exc.OpeNGSyncServerException("Pool design must be absent for create form.")
+                raise exc.BadRequestException("Pool design must be absent for create form.")
             return form.make_response()
         return route
 
@@ -80,7 +80,7 @@ class PoolDesignForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.pool_design is not None:
-                raise exc.OpeNGSyncServerException("Pool design must be absent for create form.")
+                raise exc.BadRequestException("Pool design must be absent for create form.")
             pool_design = session.save(Q.pool_design.create(
                 name=form.pool_design_name.data,
                 num_m_requested_reads=form.num_m_requested_reads.data,
@@ -104,7 +104,7 @@ class PoolDesignForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             if form.pool_design is None:
-                raise exc.OpeNGSyncServerException("Pool design ID must be provided for edit form.")
+                raise exc.BadRequestException("Pool design ID must be provided for edit form.")
             form.populate_from_design()
             return form.make_response()
         return route
@@ -117,7 +117,7 @@ class PoolDesignForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.pool_design is None:
-                raise exc.OpeNGSyncServerException("Pool design ID must be provided for edit form.")
+                raise exc.BadRequestException("Pool design ID must be provided for edit form.")
 
             pool_id = form.pool_id.data
             if pool_id:

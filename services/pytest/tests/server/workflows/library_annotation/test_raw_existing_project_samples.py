@@ -76,3 +76,22 @@ def test_raw_existing_project_samples_annotation(
         ["Sample Name", "Multiplexing Pool"], [["Existing_1", "Rerun_Pool"]],
     ), status=202)  # Existing_1 already has a 5' GEX library in this request
     assert len(libraries_by_name(session, seq_request.id)) == 4
+
+
+def test_rejected_project_sample_cannot_be_reused(
+    client, session: SyncSession, user, user_token,
+):
+    """A sample that failed in the lab (REJECTED) can't be sequenced again under the same name."""
+    project = session.save(Q.project.create(title="Rejected Sample Project", description="existing", owner_id=user.id), flush=True)
+    session.save(Q.sample.create(name="Failed_1", project_id=project.id, owner_id=user.id, status=C.SampleStatus.REJECTED), flush=True)
+    seq_request = create_seq_request(session, user, submission_type=C.SubmissionType.RAW_SAMPLES)
+    session.commit()
+
+    wf = AnnotationWorkflow(client, user_token, seq_request.id)
+    wf.begin()
+    wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    response = wf.post("sample-annotation", spreadsheet(["Sample Name", "Genome"], [["Failed_1", HUMAN], ["New_1", HUMAN]]), status=202)
+    assert "Sample &#39;Failed_1&#39; is rejected, please specify another name." in response.text or \
+        "Sample 'Failed_1' is rejected, please specify another name." in response.text
+
+    wf.samples([["Failed_1_re", HUMAN], ["New_1", HUMAN]])

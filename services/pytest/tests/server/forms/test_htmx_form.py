@@ -4,11 +4,13 @@ import types
 
 import pytest
 from fastapi.routing import iter_route_contexts
+from fastapi import Response
 from fastapi.testclient import TestClient
 
 from server.components import inputs
-from server.core import exceptions as exc
+from server.core import exceptions as exc, responses
 from server.forms.HTMXForm import HTMXForm, _class_name_to_path, htmx_route
+from server.forms.SubHTMXForm import SubHTMXForm
 from server.forms.auth.APITokenForm import APITokenForm
 
 CSRF = "test-csrf"
@@ -219,7 +221,7 @@ def test_validate_requires_the_csrf_cookie():
 
 
 def test_validate_rejects_non_submission_methods():
-    with pytest.raises(exc.OpeNGSyncServerException):
+    with pytest.raises(exc.MethodNotAllowedException):
         _validate(_valid_data(), method="GET")
 
 
@@ -255,3 +257,72 @@ def test_validate_clears_previous_errors_on_resubmission():
 
     assert form.errors == {}
     assert form.is_valid is True
+
+
+# ── prepare() / prepare_context() ───────────────────────────────────────────
+
+
+class RowSubForm(SubHTMXForm):
+    value = inputs.string.StringInputField("Value", required=True)
+
+
+class PreparedForm(HTMXForm):
+    """Prefills two rows like the workflow steps do (one entry per selected object)."""
+    template_path = "forms/auth/api_token.html"
+
+    rows = inputs.dynamic.SubFormList[RowSubForm](min_elements=0)
+
+    def __init__(self):
+        super().__init__()
+        self.calls: list[str] = []
+
+    def prepare_context(self) -> None:
+        self.calls.append("prepare_context")
+        self._context["loaded"] = True
+
+    def prepare(self) -> None:
+        self.calls.append("prepare")
+        for value in ("a", "b"):
+            self.rows.append_entry().value.data = value
+
+
+@pytest.fixture
+def rendered(monkeypatch: pytest.MonkeyPatch) -> dict:
+    """Capture the template context instead of rendering."""
+    captured: dict = {}
+
+    def htmx_response(**kwargs):
+        captured.update(kwargs)
+        return Response()
+
+    monkeypatch.setattr(responses, "htmx_response", htmx_response)
+    return captured
+
+
+def test_initial_render_prepares_context_and_prefills(rendered: dict):
+    form = PreparedForm()
+    form.csrf_token.data = CSRF  # skips the request cookie lookup
+
+    form.make_response()
+
+    assert form.calls == ["prepare_context", "prepare"]
+    assert [entry.value.data for entry in form.rows] == ["a", "b"]
+    assert rendered["loaded"] is True
+
+
+def test_failed_submission_rerenders_submitted_rows_without_prefill(rendered: dict):
+    """Regression: the error re-render ran prepare() on top of the rows rebuilt from the
+    submission, so every prefilled entry showed up twice (and its copy carried the original
+    value, overwriting the edit on the next submit)."""
+    form = PreparedForm()
+
+    with pytest.raises(exc.FormValidationException) as excinfo:
+        _validate({"csrf_token": CSRF, "rows-0-value": "edited", "rows-1-value": ""}, form=form)
+    form.invalid_response_handler(None, excinfo.value)  # type: ignore[arg-type]
+
+    assert form.calls == ["prepare_context"]
+    assert [entry.value.name for entry in form.rows] == ["rows-0-value", "rows-1-value"]
+    assert form.rows[0].value.data == "edited"
+    assert rendered["loaded"] is True
+    assert rendered["status"] == 202
+

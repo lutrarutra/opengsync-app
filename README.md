@@ -393,11 +393,11 @@ session.delete(existing_project, flush=True)
 ## Backup and Restore
 
 ### WAL Archiving
-- Enabled by default in `services/db/postgresql.conf`: `archive_command = 'cp %p /var/lib/postgresql/wal/%f'` (mounted on `${DB_DIR}/archive/wal`)
+- Enabled in production (`services/db/postgresql.prod.conf`): `archive_command = 'cp %p /var/lib/postgresql/archive/%f'`, stored in the `opengsync-prod_postgres_archive` volume.
 
-### Restore from pgBackRest
-- pgBackRest handles nightly backups and WAL archiving via SCP to a remote backup server.
-- See `services/db/pgbackrest.conf` and `services/db/pgbackrest-backup.sh` for details.
+### pgBackRest
+- Currently disabled: no backup repository is configured.
+- `services/db/pgbackrest.conf` and `services/db/pgbackrest-backup.sh` are kept for re-enabling it later.
 5. `docker compose -f compose.yaml -p opengsync run --rm postgres` # should start the postgres successfully
 
 

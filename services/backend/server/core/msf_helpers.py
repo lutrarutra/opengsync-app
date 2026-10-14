@@ -4,6 +4,10 @@ import json
 import pandas as pd
 
 from .redis import RedisClient
+from .exceptions import BadRequestException
+
+# A workflow step read a table that was never stored or has expired (state lives in Redis with a TTL).
+EXPIRED = "This workflow has expired or was not started. Please start again."
 
 
 class CachedFrameContainer:
@@ -15,7 +19,7 @@ class CachedFrameContainer:
     def __getitem__(self, key: str) -> pd.DataFrame:
         if key not in self.__tables:
             if (table := self.r.get_table(f"{self.prefix}:{key}")) is None:
-                raise KeyError(f"Table '{key}' not found in cache.")
+                raise BadRequestException(EXPIRED)
             self.__tables[key] = table
             return table
         return self.__tables[key]

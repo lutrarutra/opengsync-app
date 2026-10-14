@@ -50,6 +50,7 @@ SPECS = [
     Spec("StoreSamplesAction", "insider"),
     Spec("MergeProjectsAction", "insider"),
     Spec("SamplePoolingAction", "insider", (("lab_prep_id", "lab_prep"),)),
+    Spec("RejectSamplesAction", "insider", (("lab_prep_id", "lab_prep"),)),
     Spec("DilutePoolsAction", "insider", (("experiment_id", "separate_experiment"),)),
     Spec("BarcodeConstraintsAction", "insider"),
     Spec("UploadLibraryPrepSpreadsheetAction", "insider", (("lab_prep_id", "lab_prep"),)),

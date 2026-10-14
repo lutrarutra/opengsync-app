@@ -1,5 +1,6 @@
 import json
 import io
+import re
 from pathlib import Path
 from typing import Iterable, Literal
 from urllib.parse import quote
@@ -197,7 +198,7 @@ def accel_redirect_response(
     headers.pop("Content-Length", None)
     headers.pop("content-length", None)
     if disposition is not None:
-        headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+        headers["Content-Disposition"] = content_disposition(disposition, filename)
     headers["X-Accel-Redirect"] = accel
 
     response = Response(
@@ -208,6 +209,16 @@ def accel_redirect_response(
     if "content-length" in response.headers:
         del response.headers["content-length"]
     return response
+
+
+def content_disposition(disposition: str, filename: str) -> str:
+    """``Content-Disposition`` for any filename: header values must be latin-1, so a name outside
+    ASCII (or with quotes or control characters) gets an ASCII fallback plus the RFC 5987 ``filename*``, as Flask's send_file."""
+    fallback = re.sub(r'[^\x20-\x7e]|["\\]', "_", filename)  # printable ASCII; no quotes or line breaks
+    value = f'{disposition}; filename="{fallback}"'
+    if fallback != filename:
+        value += f"; filename*=UTF-8''{quote(filename, safe='')}"
+    return value
 
 
 def file_response(
@@ -243,7 +254,7 @@ def file_response(
 
     headers = dict(extra_headers or {})
     if disposition is not None:
-        headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+        headers["Content-Disposition"] = content_disposition(disposition, filename)
 
     media_type = content_type or "application/octet-stream"
 
@@ -266,7 +277,7 @@ def bytes_response(*, data: bytes | io.BytesIO, filename: str, content_type: str
         raw = data
 
     headers = {
-        "Content-Disposition": f'{disposition}; filename="{filename}"'
+        "Content-Disposition": content_disposition(disposition, filename)
     }
     response = Response(
         content=raw,

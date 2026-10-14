@@ -43,6 +43,16 @@ class SelectSamplesForm(BAReportWorkflowStep):
         def route(
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Init()),
         ) -> Response:
+            sample_table = form.workflow.tables.get("sample_table")
+            if sample_table is None:
+                raise exc.BadRequestException("This report has expired. Please start again.")
+            for field, obj_type in (
+                (form.selected_sample_ids, "sample"),
+                (form.selected_library_ids, "library"),
+                (form.selected_pool_ids, "pool"),
+                (form.selected_lane_ids, "lane"),
+            ):
+                field.data = [int(i) for i in sample_table.loc[sample_table["type"] == obj_type, "id"]]
             return form.make_response()
         return route
     
@@ -135,8 +145,5 @@ class SelectSamplesForm(BAReportWorkflowStep):
                 raise exc.FormValidationException(form)
 
             form.workflow.tables["sample_table"] = sample_table
-            form.workflow.add_step(form.__class__.__name__)
-            next_form = BAReportForm(workflow=form.workflow)
-            form.workflow.add_step(next_form.__class__.__name__)
-            return next_form.make_response()
+            return form.workflow.get_next_step(form, BAReportForm).make_response()
         return route

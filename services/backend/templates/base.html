@@ -13,10 +13,14 @@
     <!-- htmx -->
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
     <script>
-        // CSRF: send the csrf_token cookie with every htmx request (checked by dependencies.csrf_protect)
-        document.addEventListener("htmx:configRequest", function (event) {
+        // CSRF: send the csrf_token cookie back as a header (checked by dependencies.csrf_protect)
+        function csrfToken() {
             const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
-            if (match) event.detail.headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+            return match ? decodeURIComponent(match[1]) : null;
+        }
+        document.addEventListener("htmx:configRequest", function (event) {
+            const token = csrfToken();
+            if (token) event.detail.headers["X-CSRF-Token"] = token;
         });
     </script>
     
@@ -33,6 +37,13 @@
 
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script>
+        // CSRF for state-changing jQuery requests ($.ajax POSTs, e.g. the plots)
+        $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
+            const token = csrfToken();
+            if (token && !/^(GET|HEAD|OPTIONS)$/i.test(options.type)) jqXHR.setRequestHeader("X-CSRF-Token", token);
+        });
+    </script>
 
     <!-- hyperscript -->
     <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>

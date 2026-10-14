@@ -328,6 +328,8 @@ def download_lab_prep_spreadsheet_template(
         for library in lab_prep.libraries:
             if library.type == C.LibraryType.TENX_SC_GEX_FLEX:
                 for sample_link in library.sample_links:
+                    if sample_link.sample.status == C.SampleStatus.REJECTED:
+                        continue
                     sample_num_cell = flex_table[f"{column_mapping['sample_num']}{i}"]
                     sample_name_cell = flex_table[f"{column_mapping['sample_name']}{i}"]
                     sample_num_cell.value = i - 1
@@ -347,6 +349,8 @@ def download_lab_prep_spreadsheet_template(
         for library in lab_prep.libraries:
             if library.type in (C.LibraryType.TENX_SC_GEX_3PRIME, C.LibraryType.TENX_SC_GEX_5PRIME):
                 for sample_link in library.sample_links:
+                    if sample_link.sample.status == C.SampleStatus.REJECTED:
+                        continue
                     sample_num_cell = tenx_table[f"{column_mapping['sample_num']}{i}"]
                     sample_name_cell = tenx_table[f"{column_mapping['sample_name']}{i}"]
                     library_name_cell = tenx_table[f"{column_mapping['library_name']}{i}"]
@@ -436,11 +440,12 @@ def lab_prep_mux_prep(
 
     if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
         raise exc.NotFoundException("Lab prep not found.")
-    if C.MUXType.get(mux_type_id) is None:
+    try:
+        mux_type = C.MUXType.get(mux_type_id)
+    except ValueError:
         raise exc.BadRequestException("Invalid multiplexing type.")
 
     workflow = MuxPrepWorkflow(step="Begin", lab_prep_id=lab_prep_id, mux_type_id=mux_type_id, r=r)
-    mux_type = C.MUXType.get(mux_type_id)
     if mux_type == C.MUXType.TENX_OLIGO:
         form = OligoMuxForm.build(workflow, session)
     elif mux_type == C.MUXType.TENX_FLEX_PROBE:

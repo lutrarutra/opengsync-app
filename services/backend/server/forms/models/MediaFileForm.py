@@ -161,7 +161,7 @@ class MediaFileForm(HTMXForm):
                 seq_request_id=seq_request_id,
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
-            ))
+            ), flush=True)  # database errors surface before the file is written
             form.file.save(media_file)
             return responses.htmx_response(redirect=redirect, flash=responses.flash("File uploaded successfully!", "success"))
         return submit

@@ -95,3 +95,29 @@ def test_edit_csrf_mismatch(client: TestClient, session: SyncSession, user, insi
     session.commit()
     response = post_form_csrf_mismatch(client, _url(EDIT_PATH, todo_comment_id=tc.id), _payload(), token=insider_token)
     assert_form_invalid(response)
+
+# ── Request parameters (controlled 400, was 500) ────────────────────────────
+
+
+def test_both_design_ids_are_rejected(client: TestClient, session: SyncSession, insider_token: str):
+    from ...db.create_units import create_flow_cell_design
+
+    pd, fcd = create_pool_design(session), create_flow_cell_design(session)
+    session.commit()
+
+    assert get(client, _url(FORM_PATH, pool_design_id=pd.id, flow_cell_design_id=fcd.id), insider_token).status_code == 400
+
+
+def test_create_route_with_existing_comment_is_rejected(client: TestClient, session: SyncSession, user, insider_token: str):
+    comment = create_todo_comment(session, user, pool_design_id=create_pool_design(session).id)
+    session.commit()
+
+    response = post_form(client, _url(FORM_PATH, todo_comment_id=comment.id), _payload(text="changed"), token=insider_token)
+
+    assert response.status_code == 400
+    session.expire_all()
+    assert session.get_one(Q.todo_comment.select(id=comment.id)).text != "changed"
+
+
+def test_edit_without_comment_is_rejected(client: TestClient, insider_token: str):
+    assert post_form(client, EDIT_PATH, _payload(), token=insider_token).status_code == 400

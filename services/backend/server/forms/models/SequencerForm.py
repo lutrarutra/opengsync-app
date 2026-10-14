@@ -53,7 +53,7 @@ class SequencerForm(HTMXForm):
             form: "SequencerForm" = Depends(SequencerForm.Init()),
         ):
             if form.sequencer is None:
-                raise exc.OpeNGSyncServerException("Sequencer ID must be provided for edit form.")
+                raise exc.BadRequestException("Sequencer ID must be provided for edit form.")
 
             form.name.data = form.sequencer.name
             form.model.data = form.sequencer.model.id
@@ -78,7 +78,7 @@ class SequencerForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> Response:
             if form.sequencer is None:
-                raise exc.OpeNGSyncServerException("Sequencer ID must be provided for edit form.")
+                raise exc.BadRequestException("Sequencer ID must be provided for edit form.")
 
             if session.exists(Q.sequencer.select(name=form.name.data).where(models.Sequencer.id != form.sequencer.id)):
                 form.name.errors.append("You already have a sequencer with this name.")

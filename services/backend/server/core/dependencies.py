@@ -7,7 +7,6 @@ import hashlib
 import hmac
 
 from fastapi import Depends, Request, Header, Cookie, Query
-from fastapi_cache import FastAPICache
 from pydantic_ai import Agent
 from loguru import logger
 from redis.exceptions import RedisError
@@ -294,7 +293,7 @@ def get_user_id(
         try:
             payload = secrets.validate_login_token(access_token)
             auth_response = auth.AuthResponse.model_validate(payload)
-        except (exc.OpeNGSyncServerException, ValueError, TypeError):
+        except (exc.UserNotAuthenticatedException, ValueError, TypeError):
             pass
         else:
             user = _resolve_user(auth_response.id, session, r)
@@ -453,9 +452,9 @@ def invalidate_cache(request: runtime.Request):
     if not substrings:
         return
 
-    prefix = FastAPICache.get_prefix()
+    # FastAPICache.init is disabled (lifespan), so get_prefix() would raise; same prefix as the init there
     for substring in substrings:
-        pattern = f"{prefix}:*:{substring}:*"
+        pattern = f"{cache.PREFIX}:*:{substring}:*"
         cache.scan_and_delete(pattern=pattern, redis_pool=request.app.state.redis_pool)
 
 
@@ -682,31 +681,31 @@ def parse_order_by(
 def parse_from_page(
     from_page: str | None = Query(None, alias="from", description="The page the user came from, in the format 'page_name@id'."),
 ) -> list[tuple[str, responses.URL]] | None:
-    if from_page is None:
+    # a malformed value (no "@" or a non-numeric id) is ignored, as an unknown page is
+    page, _, id = (from_page or "").partition("@")
+    if not id.isdigit():
         return None
-    
+
     path_list = []
-    if from_page is not None:
-        page, id = from_page.split("@")
-        if page == "user":
-            path_list = [
-                ("Users", responses.url_for("users_page")),
-                (f"User {id}", responses.url_for("user_page", user_id=id)),
-            ]
-        elif page == "seq_request":
-            path_list = [
-                ("Requests", responses.url_for("seq_requests_page")),
-                (f"Request {id}", responses.url_for("seq_request_page", seq_request_id=id)),
-            ]
-        elif page == "project":
-            path_list = [
-                ("Projects", responses.url_for("projects_page")),
-                (f"Project {id}", responses.url_for("project_page", project_id=id)),
-            ]
-        elif page == "sample":
-            path_list = [
-                ("Samples", responses.url_for("samples_page")),
-                (f"Sample {id}", responses.url_for("sample_page", sample_id=id)),
-            ]
+    if page == "user":
+        path_list = [
+            ("Users", responses.url_for("users_page")),
+            (f"User {id}", responses.url_for("user_page", user_id=id)),
+        ]
+    elif page == "seq_request":
+        path_list = [
+            ("Requests", responses.url_for("seq_requests_page")),
+            (f"Request {id}", responses.url_for("seq_request_page", seq_request_id=id)),
+        ]
+    elif page == "project":
+        path_list = [
+            ("Projects", responses.url_for("projects_page")),
+            (f"Project {id}", responses.url_for("project_page", project_id=id)),
+        ]
+    elif page == "sample":
+        path_list = [
+            ("Samples", responses.url_for("samples_page")),
+            (f"Sample {id}", responses.url_for("sample_page", sample_id=id)),
+        ]
 
     return path_list

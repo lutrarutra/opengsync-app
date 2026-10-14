@@ -251,8 +251,7 @@ def process_seq_request(session: Session, seq_request: models.SeqRequest, status
             sample.status = C.SampleStatus.WAITING_DELIVERY
         elif status == C.SeqRequestStatus.DRAFT:
             sample.status = C.SampleStatus.DRAFT
-        elif status == C.SeqRequestStatus.REJECTED:
-            sample.status = C.SampleStatus.REJECTED
+        # On request rejection, samples stay draft so that they can be re-submitted
     
     is_prepared = status == C.SeqRequestStatus.ACCEPTED
     for library in seq_request.libraries:

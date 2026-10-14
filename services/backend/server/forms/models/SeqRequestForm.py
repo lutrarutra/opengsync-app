@@ -241,10 +241,10 @@ class SeqRequestForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),
         ) -> "SeqRequestForm":
             if form_type == "edit" and seq_request_id is None:
-                raise exc.OpeNGSyncServerException("SeqRequest ID must be provided for edit form.")
+                raise exc.BadRequestException("SeqRequest ID must be provided for edit form.")
 
             seq_request = None
-            if seq_request_id is not None:
+            if form_type != "create" and seq_request_id is not None:  # a create form ignores a stray id
                 seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
             return SeqRequestForm(form_type=form_type, seq_request=seq_request, is_insider=current_user.is_insider)
 
@@ -299,7 +299,7 @@ class SeqRequestForm(HTMXForm):
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this request.")
             if form.seq_request is None:
-                raise exc.OpeNGSyncServerException("SeqRequest ID must be provided for edit form.")
+                raise exc.BadRequestException("SeqRequest ID must be provided for edit form.")
 
             form.disclaimer.validated = True
             form.disclaimer.accepted.data = True

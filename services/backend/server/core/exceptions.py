@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Literal
 from fastapi import HTTPException, status, Request, Response, exceptions as fastapi_exc
 from fastapi.responses import JSONResponse
 from loguru import logger
+from psycopg import errors as psycopg_errors
+from sqlalchemy import exc as sa_exc
 
 from . import context, responses
 
@@ -155,6 +157,15 @@ class MethodNotAllowedException(HTTPException):
     @staticmethod
     def Handler(request: Request, e: "MethodNotAllowedException") -> Response:
         return error_response(request, status.HTTP_405_METHOD_NOT_ALLOWED, e.detail)
+
+
+def data_error_handler(request: Request, e: sa_exc.DataError) -> Response:
+    """An id or number too large for its column (e.g. ``?project_id=99999999999``) is a bad request like
+    any other invalid parameter; other data errors are unexpected and stay 500."""
+    if isinstance(e.orig, psycopg_errors.NumericValueOutOfRange):
+        logger.debug(f"Numeric parameter out of range: {request.method.upper()} {request.url.path}")
+        return error_response(request, status.HTTP_422_UNPROCESSABLE_CONTENT, "Invalid request.")
+    return OpeNGSyncServerException.Handler(request, e)
 
 
 def request_validation_exception_handler(

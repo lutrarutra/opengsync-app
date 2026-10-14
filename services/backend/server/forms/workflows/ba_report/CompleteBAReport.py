@@ -33,7 +33,6 @@ def save_report(form: "BAReportWorkflowStep", session: SyncSession, uploader_id:
         uploader_id=uploader_id,
         lab_prep_id=form.workflow.lab_prep_id,
     ), flush=True)
-    pdf.save(media_file)
 
     models_by_type = {"sample": models.Sample, "library": models.Library, "pool": models.Pool, "lane": models.Lane}
     for entry in entries:
@@ -43,6 +42,10 @@ def save_report(form: "BAReportWorkflowStep", session: SyncSession, uploader_id:
         if isinstance(obj, models.Pool) and entry.avg_fragment_size.data is not None and obj.status == C.PoolStatus.ACCEPTED:
             obj.status = C.PoolStatus.STORED
         session.save(obj)
+
+    # written last, so a failing database change leaves no file behind
+    session.flush()
+    pdf.save(media_file)
 
     redirect = responses.url_for("dashboard")
     if form.workflow.lab_prep_id is not None:
