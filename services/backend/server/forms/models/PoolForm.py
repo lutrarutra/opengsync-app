@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import Depends, Response
 from sqlalchemy import orm
 
-from opengsync_db import SyncSession, models, queries as Q, categories as C
+from opengsync_db import SyncSession, models, queries as Q, categories as C, actions
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -212,9 +212,13 @@ class PoolForm(HTMXForm):
                 )
                 raise exc.FormValidationException(form)
 
+            original_pool_id = pool.original_pool_id if pool.original_pool_id is not None else pool.id
+            # As legacy (pool create used to number clones): existing clones of the original + 1
+            clone_number = session.count(Q.pool.select().where(models.Pool.original_pool_id == original_pool_id)) + 1
+
             cloned_pool = session.save(Q.pool.create(
                 name=form.name.data,
-                status=C.PoolStatus.STORED,
+                status=C.PoolStatus.get(form.status.data),  # as legacy: the chosen status (prefilled STORED)
                 num_m_reads_requested=form.num_m_reads_requested.data,
                 owner_id=current_user.id,
                 pool_type=pool.type,
@@ -224,12 +228,8 @@ class PoolForm(HTMXForm):
                 contact_name=pool.contact.name,
                 contact_phone=pool.contact.phone,
                 seq_request_id=pool.seq_request_id,
-                original_pool_id=(
-                    pool.original_pool_id
-                    if pool.original_pool_id is not None
-                    else pool.id
-                ),
-                clone_number=0,
+                original_pool_id=original_pool_id,
+                clone_number=clone_number,
             ), flush=True)
 
             cloned_pool.ba_report_id = pool.ba_report_id
@@ -248,27 +248,15 @@ class PoolForm(HTMXForm):
 
             session.flush()
 
+            # As legacy: full library clones (samples, features and indices)
             for library in pool.libraries:
-                cloned_lib = session.save(Q.library.create(
-                    name=library.name,
-                    sample_name=library.sample_name,
-                    library_type=library.type,
+                cloned_lib = actions.clone_library(
+                    session,
+                    library_id=library.id,
                     seq_request_id=library.seq_request_id,
-                    owner_id=library.owner_id,
-                    genome_ref=library.genome_ref,
-                    service_type=library.service_type,
-                    mux_type=library.mux_type,
-                    properties=library.properties,
-                    index_type=library.index_type,
-                    nuclei_isolation=library.nuclei_isolation,
-                    clone_number=library.clone_number + 1,
-                    original_library_id=(
-                        library.original_library_id
-                        if library.original_library_id is not None
-                        else library.id
-                    ),
+                    indexed=True,
                     status=C.LibraryStatus.POOLED,
-                ), flush=True)
+                )
                 cloned_lib.pool_id = cloned_pool.id
 
             return responses.htmx_response(

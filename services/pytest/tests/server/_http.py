@@ -28,7 +28,8 @@ class OpenGSyncTestClient(TestClient):
 
 
 def auth(token: str) -> dict[str, str]:
-    return {"Cookie": f"access_token={token}"}
+    """Login cookie plus a matching CSRF cookie + header, as a page of the app sends them."""
+    return {"Cookie": f"access_token={token}; csrf_token={CSRF}", "X-CSRF-Token": CSRF}
 
 
 def htmx_headers(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -154,7 +155,9 @@ def get(
 
 
 def delete(client: TestClient, path: str, token: str | None = None, htmx: bool = False, **kwargs):
-    extra_headers = kwargs.pop("headers", {})
+    """DELETE with a matching CSRF cookie + ``X-CSRF-Token`` header (as htmx sends it)."""
+    client.cookies.set("csrf_token", CSRF)
+    extra_headers = {"X-CSRF-Token": CSRF, **kwargs.pop("headers", {})}
     headers = _request_headers(client, token, htmx=htmx, headers=extra_headers)
     return client.delete(
         path,

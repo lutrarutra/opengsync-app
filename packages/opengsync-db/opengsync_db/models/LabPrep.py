@@ -45,15 +45,22 @@ class LabPrep(Base):
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
 
+    CHECKLIST_SKIPPED_LIBRARY_STATUSES = (LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED, LibraryStatus.REMOVED)
+    # Libraries already sequenced or only going through QC need no pool
+    CHECKLIST_NO_POOL_LIBRARY_STATUSES = (LibraryStatus.SEQUENCED, LibraryStatus.SHARED, LibraryStatus.QC_PENDING, LibraryStatus.QC_COMPLETED)
+
     def get_checklist(self) -> dict:
         if orm.object_session(self) is None:
             raise orm.exc.DetachedInstanceError("Session must be open for checklist")
         
         libraries_added = len(self.libraries) > 0
 
-        oligo_mux_required = any(library.mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH]  for library in self.libraries)
-        flex_mux_required = any(library.mux_type == MUXType.TENX_FLEX_PROBE for library in self.libraries)
-        on_chip_mux_required = any(library.mux_type == MUXType.TENX_ON_CHIP for library in self.libraries)
+        # Failed/rejected/archived/removed libraries need no further work and never block a step
+        active_libraries = [library for library in self.libraries if library.status not in LabPrep.CHECKLIST_SKIPPED_LIBRARY_STATUSES]
+
+        oligo_mux_required = any(library.mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH]  for library in active_libraries)
+        flex_mux_required = any(library.mux_type == MUXType.TENX_FLEX_PROBE for library in active_libraries)
+        on_chip_mux_required = any(library.mux_type == MUXType.TENX_ON_CHIP for library in active_libraries)
 
         oligo_mux_annotated = True
         flex_mux_annotated = True
@@ -63,7 +70,7 @@ class LabPrep(Base):
         flex_mux_libraries_annotations_missing = set()
         on_chip_mux_libraries_annotations_missing = set()
 
-        for library in self.libraries:
+        for library in active_libraries:
             if library.mux_type is None:
                 continue
 
@@ -94,28 +101,28 @@ class LabPrep(Base):
         samples_muxed = (oligo_mux_annotated or not oligo_mux_required) and (flex_mux_annotated or not flex_mux_required) and (on_chip_mux_annotated or not on_chip_mux_required) if libraries_added else None
 
         if samples_pooled is False:
-            for library in self.libraries:
+            for library in active_libraries:
                 if library.mux_type is not None:
                     samples_pooled = True
                     break
                 
-        prep_table_submitted = (self.prep_file is not None) if (libraries_added and samples_muxed) else None
+        prep_table_submitted = True if self.prep_file is not None else (False if (libraries_added and samples_muxed) else None)
 
         protocols_selected = all(
-            library.protocol_id is not None for library in self.libraries
+            library.protocol_id is not None for library in active_libraries
         ) if (libraries_added and samples_muxed) else None
 
         library_fragment_sizes_measured = all(
-            library.avg_fragment_size is not None for library in self.libraries
+            library.avg_fragment_size is not None for library in active_libraries
         ) if libraries_added else None
 
         libraries_indexed = all(
-            library.is_indexed or library.status == LibraryStatus.FAILED for library in self.libraries
+            library.is_indexed for library in active_libraries
         ) if libraries_added else None
 
         libraries_pooled = all(
-            library.pool_id is not None or library.status >= LibraryStatus.SEQUENCED
-            for library in self.libraries
+            library.pool_id is not None or library.status in LabPrep.CHECKLIST_NO_POOL_LIBRARY_STATUSES
+            for library in active_libraries
         ) if (libraries_added and libraries_indexed and samples_muxed) else None
 
         lab_prep_completed = self.status >= PrepStatus.COMPLETED if (libraries_added and libraries_pooled) else None

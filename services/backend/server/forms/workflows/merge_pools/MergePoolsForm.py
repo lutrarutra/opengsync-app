@@ -14,8 +14,8 @@ from .MergePoolsWorkflow import MergePoolsWorkflowStep, MergePoolsWorkflow
 
 class PoolSubForm(SubHTMXForm):
     pool_id = inputs.numeric.IntInputField("Pool ID", hidden=True)
-    num_m_reads_requested = inputs.numeric.FloatInputField("Number of M Reads Requested", unit="m Reads")
-    pipet = inputs.numeric.FloatInputField("Pipet Volume", unit="μL", default=20)
+    num_m_reads_requested = inputs.numeric.FloatInputField("Number of M Reads Requested", unit="m Reads", gt=0.0)
+    pipet = inputs.numeric.FloatInputField("Pipet Volume", unit="μL", default=20, gt=0.0)
 
 
 class MergePoolsForm(MergePoolsWorkflowStep):

@@ -383,6 +383,43 @@ def verify_csrf_header(
     if not csrf_cookie or not csrf_header or not hmac.compare_digest(csrf_cookie, csrf_header):
         raise exc.NoPermissionsException("Security token invalid or missing. Please reload the page.")
 
+_MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+_checks_csrf_itself_cache: dict[int, bool] = {}
+
+
+def _checks_csrf_itself(route) -> bool:
+    """Whether the route checks the CSRF token itself: HTMXForm validation (re-renders the form)
+    or ``verify_csrf_header`` (chat, passkeys; audit their rejections)."""
+    key = id(route)
+    if key not in _checks_csrf_itself_cache:
+        def calls(dependant):
+            for dependency in dependant.dependencies:
+                yield getattr(dependency.call, "__qualname__", "")
+                yield from calls(dependency)
+        _checks_csrf_itself_cache[key] = any(
+            "HTMXForm.Validate" in name or name == "verify_csrf_header" for name in calls(route.dependant)
+        )
+    return _checks_csrf_itself_cache[key]
+
+
+def csrf_protect(request: runtime.Request) -> None:
+    """Double-submit CSRF check for every state-changing request made with the login cookie.
+
+    The token is the ``csrf_token`` cookie, sent back as the ``X-CSRF-Token`` header (htmx adds it
+    to every request, see base.html) or as the ``csrf_token`` form field. Requests without the
+    login cookie (anonymous, API tokens) carry no ambient credentials and are not checked.
+    """
+    if request.method not in _MUTATING_METHODS or "access_token" not in request.cookies:
+        return
+    route = request.scope.get("route")
+    if route is not None and _checks_csrf_itself(route):
+        return
+    cookie = request.cookies.get("csrf_token")
+    sent = request.headers.get("X-CSRF-Token") or (getattr(request.state, "form_data", None) or {}).get("csrf_token")
+    if not cookie or not isinstance(sent, str) or not hmac.compare_digest(cookie, sent):
+        raise exc.NoPermissionsException("Security token invalid or missing. Please reload the page.")
+
+
 def audit_log(request: runtime.Request):
     request.state.audit = audit.AuditLogger(request)
     return request.state.audit

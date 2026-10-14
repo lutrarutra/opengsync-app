@@ -15,6 +15,7 @@ from opengsync_db import SyncSession, models, queries as Q, categories as C
 from ...db.create_units import create_pool, create_seq_request
 from .._http import (
     assert_flash,
+    delete,
     assert_form_invalid,
     assert_htmx_redirect,
     get,
@@ -601,3 +602,160 @@ def test_status_is_read_only_for_client(
         assert not re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', get(client, path, insider_token).text), path
     # The read-only select still submits DRAFT (id 0) through its hidden input.
     assert '<input type="hidden" name="status" value="0">' in get(client, "/htmx/pools/create", user_token).text
+
+
+# ── Clone: library copies, numbering, status (as legacy PoolForm.__clone_pool) ──
+
+
+def _clone_payload(pool: models.Pool, name: str, status: C.PoolStatus = C.PoolStatus.STORED) -> dict[str, str]:
+    return _payload(name=name, pool_type=pool.type.id, status=status.id, num_m_reads_requested="10")
+
+
+def _pool_with_library(session: SyncSession, user) -> tuple[models.Pool, models.Library, models.Sample]:
+    from opengsync_db import actions
+    from ...db.create_units import create_library, create_project, create_sample
+
+    seq_request = create_seq_request(session, user)
+    pool = create_pool(session, user, seq_request)
+    sample = create_sample(session, user, create_project(session, user))
+    library = create_library(session, user, seq_request)
+    library.pool_id = pool.id
+    session.save(library, flush=True)
+    actions.link_sample_library(session, sample_id=sample.id, library_id=library.id)
+    actions.add_index_to_library(
+        session, library_id=library.id, index_kit_i7_id=None, name_i7="i7", sequence_i7="ACGTACGT",
+        index_kit_i5_id=None, name_i5="i5", sequence_i5="TTGGCCAA", orientation=None,
+    )
+    actions.dilute_pool(session, pool, qubit_concentration=1.5, operator_id=user.id)
+    _commit(session)
+    return pool, library, sample
+
+
+def test_clone_copies_libraries_with_samples_and_indices(client: TestClient, session: SyncSession, user, insider_token):
+    pool, library, sample = _pool_with_library(session, user)
+
+    response = post_form(client, _clone_path(pool.id), _clone_payload(pool, "Cloned_With_Libs"), token=insider_token)
+
+    assert_htmx_redirect(response, "/pools/")
+    cloned = _pool(session, "Cloned_With_Libs")
+    [cloned_library] = cloned.libraries
+    assert cloned_library.id != library.id
+    assert cloned_library.original_library_id == library.id
+    assert cloned_library.clone_number == library.clone_number + 1
+    assert cloned_library.status == C.LibraryStatus.POOLED
+    assert [link.sample_id for link in cloned_library.sample_links] == [sample.id]
+    assert [(i.sequence_i7, i.sequence_i5) for i in cloned_library.indices] == [("ACGTACGT", "TTGGCCAA")]
+    assert [(d.identifier, d.qubit_concentration) for d in cloned.dilutions] == [("A", 1.5)]
+    assert [lib.id for lib in _reload(session, pool).libraries] == [library.id]  # original untouched
+
+
+def test_clone_number_counts_the_originals_clones(client: TestClient, session: SyncSession, user, insider_token):
+    pool, _, _ = _pool_with_library(session, user)
+
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Clone_One"), token=insider_token)
+    first = _pool(session, "Clone_One")
+    post_form(client, _clone_path(first.id), _clone_payload(pool, "Clone_Two"), token=insider_token)
+
+    second = _pool(session, "Clone_Two")
+    assert (first.clone_number, first.original_pool_id) == (1, pool.id)
+    assert (second.clone_number, second.original_pool_id) == (2, pool.id)  # a clone of a clone points to the original
+
+
+def test_clone_keeps_the_chosen_status(client: TestClient, session: SyncSession, user, insider_token):
+    pool, _, _ = _pool_with_library(session, user)
+
+    response = post_form(client, _clone_path(pool.id), _clone_payload(pool, "Clone_Draft", C.PoolStatus.DRAFT), token=insider_token)
+
+    assert_htmx_redirect(response, "/pools/")
+    assert _pool(session, "Clone_Draft").status == C.PoolStatus.DRAFT
+
+
+def test_clone_form_prefills_stored_status(client: TestClient, session: SyncSession, user, insider_token):
+    pool, _, _ = _pool_with_library(session, user)
+
+    response = get(client, _clone_path(pool.id), insider_token)
+
+    assert response.status_code == 200
+    assert re.search(rf'<option value="{C.PoolStatus.STORED.id}"\s+selected', response.text)
+
+
+# ── Clone: shared BA report ─────────────────────────────────────────────────
+# The clone points to the same BA report media file as the original (as legacy); it is not copied.
+
+
+def _ba_report(session: SyncSession, user) -> models.MediaFile:
+    import uuid as uuid_
+    return session.save(Q.media_file.create(
+        name="ba-report", extension=".pdf", size_bytes=1, type=C.MediaFileType.BIOANALYZER_REPORT,
+        uploader_id=user.id, uuid=str(uuid_.uuid4()),
+    ), flush=True)
+
+
+def _pool_with_ba_report(session: SyncSession, user, insider) -> tuple[models.Pool, models.MediaFile]:
+    """A pool without libraries (so it can be deleted), measured with a BA report."""
+    pool = create_pool(session, user, create_seq_request(session, user))
+    report = _ba_report(session, insider)
+    pool.ba_report_id, pool.avg_fragment_size = report.id, 400
+    session.save(pool, flush=True)
+    _commit(session)
+    return pool, report
+
+
+def _clone(client: TestClient, session: SyncSession, pool: models.Pool, insider_token: str, name: str) -> models.Pool:
+    assert_htmx_redirect(post_form(client, _clone_path(pool.id), _clone_payload(pool, name), token=insider_token), "/pools/")
+    clone = _pool(session, name)
+    assert clone is not None
+    return clone
+
+
+def test_clone_shares_the_ba_report(client: TestClient, session: SyncSession, user, insider, insider_token):
+    pool, report = _pool_with_ba_report(session, user, insider)
+
+    clone = _clone(client, session, pool, insider_token, "Clone_BA")
+
+    assert (clone.ba_report_id, clone.avg_fragment_size) == (report.id, 400)
+
+
+def test_deleting_the_original_keeps_the_clones_ba_report(client: TestClient, session: SyncSession, user, insider, insider_token):
+    pool, report = _pool_with_ba_report(session, user, insider)
+    clone = _clone(client, session, pool, insider_token, "Clone_After_Delete")
+    pool_id, report_id = pool.id, report.id
+
+    response = delete(client, f"/htmx/pools/{pool_id}/delete", insider_token)
+
+    assert response.status_code == 204, response.text
+    session.expire_all()
+    assert session.first(Q.pool.select(id=pool_id)) is None
+    assert session.first(Q.media_file.select(id=report_id)) is not None  # the report is not deleted with the pool
+    assert (_reload(session, clone).ba_report_id, _reload(session, clone).avg_fragment_size) == (report_id, 400)
+
+
+def test_new_ba_report_on_the_original_leaves_the_clone_on_the_old_one(client: TestClient, session: SyncSession, user, insider, insider_token):
+    """A new BA report run creates a new media file and re-points only the measured objects
+    (``CompleteBAReport``); the old file is kept."""
+    pool, old_report = _pool_with_ba_report(session, user, insider)
+    clone = _clone(client, session, pool, insider_token, "Clone_Old_Report")
+
+    new_report = _ba_report(session, insider)
+    pool = _reload(session, pool)
+    pool.ba_report_id, pool.avg_fragment_size = new_report.id, 500
+    session.save(pool, flush=True)
+    _commit(session)
+
+    assert (_reload(session, pool).ba_report_id, _reload(session, pool).avg_fragment_size) == (new_report.id, 500)
+    assert (_reload(session, clone).ba_report_id, _reload(session, clone).avg_fragment_size) == (old_report.id, 400)
+    assert session.first(Q.media_file.select(id=old_report.id)) is not None
+
+
+def test_deleting_the_ba_report_clears_it_on_original_and_clone(client: TestClient, session: SyncSession, user, insider, insider_token):
+    pool, report = _pool_with_ba_report(session, user, insider)
+    clone = _clone(client, session, pool, insider_token, "Clone_Report_Deleted")
+    report_id = report.id
+
+    response = delete(client, f"/htmx/files/{report_id}/delete", insider_token)
+
+    assert response.status_code == 204, response.text
+    session.expire_all()
+    assert session.first(Q.media_file.select(id=report_id)) is None
+    for p in (pool, clone):  # ondelete="SET NULL"; the fragment size stays
+        assert (_reload(session, p).ba_report_id, _reload(session, p).avg_fragment_size) == (None, 400)

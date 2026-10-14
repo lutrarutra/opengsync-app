@@ -17,6 +17,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
         unit: str | None = None,
         placeholder: str | None = None,
         ge: float | None = None,
+        gt: float | None = None,
         le: float | None = None,
         description: str | None = None,
         default: float | None = None,
@@ -33,6 +34,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
         unit: str | None = None,
         placeholder: str | None = None,
         ge: float | None = None,
+        gt: float | None = None,
         le: float | None = None,
         description: str | None = None,
         default: float | None = None,
@@ -45,6 +47,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
         unit: str | None = None,
         placeholder: str | None = None,
         ge: float | None = None,
+        gt: float | None = None,
         le: float | None = None,
         description: str | None = None,
         default: float | None = None,
@@ -54,16 +57,20 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
     ):
         pydantic_type: Any = float
 
-        if ge is not None or le is not None:
+        if ge is not None or gt is not None or le is not None:
             constraints = []
             if ge is not None:
                 constraints.append(f"must be >= {ge}")
+            if gt is not None:
+                constraints.append(f"must be > {gt}")
             if le is not None:
                 constraints.append(f"must be <= {le}")
 
             def _validate(x: float) -> float:
                 if ge is not None and x < ge:
                     raise ValueError(f"Value must be >= {ge}")
+                if gt is not None and x <= gt:
+                    raise ValueError(f"Value must be > {gt}")
                 if le is not None and x > le:
                     raise ValueError(f"Value must be <= {le}")
                 return x
@@ -84,6 +91,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
         self.unit = unit
         self.placeholder = placeholder
         self.ge = ge
+        self.gt = gt
         self.le = le
 
 

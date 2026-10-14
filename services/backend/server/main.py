@@ -54,10 +54,10 @@ if config.settings.ENVIRONMENT != "prod":
 
 routes.api.router.get("/health")(lambda: {"status": "ok"})
 
-app.include_router(routes.api.router)
-app.include_router(routes.api.tokens.router)
-app.include_router(routes.pages.router)
-app.include_router(routes.htmx.router)
+app.include_router(routes.api.router, dependencies=[Depends(dependencies.csrf_protect)])
+app.include_router(routes.api.tokens.router, dependencies=[Depends(dependencies.csrf_protect)])
+app.include_router(routes.pages.router, dependencies=[Depends(dependencies.csrf_protect)])
+app.include_router(routes.htmx.router, dependencies=[Depends(dependencies.csrf_protect)])
 
 @app.get("/")
 def dashboard(

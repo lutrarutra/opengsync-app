@@ -12,6 +12,13 @@
     <title>{% if title is defined %}{{ title }}{% else %}OpeNGSync{% endif %}</title>
     <!-- htmx -->
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+    <script>
+        // CSRF: send the csrf_token cookie with every htmx request (checked by dependencies.csrf_protect)
+        document.addEventListener("htmx:configRequest", function (event) {
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+            if (match) event.detail.headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+        });
+    </script>
     
     <!-- Sweet Alert 2 -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4@4/bootstrap-4.css" rel="stylesheet">

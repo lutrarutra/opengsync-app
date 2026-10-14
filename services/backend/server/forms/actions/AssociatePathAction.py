@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, queries as Q, SyncSession, exceptions as db_exc, categories as C
+from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ...core import dependencies, responses, config, exceptions as exc
 from ...utils.file_browser import is_within_root
@@ -81,45 +81,21 @@ class AssociatePathAction(HTMXForm):
 
             posix_path = form.path.as_posix()
 
-            if form.project.data is not None:
-                try:
-                    session.save(Q.data_path.create(
-                        path=posix_path,
-                        type=file_type,
-                        project=session.get_one(Q.project.select(id=int(form.project.data))),
-                    ))
-                except db_exc.LinkAlreadyExists:
-                    pass
-
-            if form.experiment.data is not None:
-                try:
-                    session.save(Q.data_path.create(
-                        path=posix_path,
-                        type=file_type,
-                        experiment=session.get_one(Q.experiment.select(id=int(form.experiment.data))),
-                    ))
-                except db_exc.LinkAlreadyExists:
-                    pass
-
-            if form.seq_request.data is not None:
-                try:
-                    session.save(Q.data_path.create(
-                        path=posix_path,
-                        type=file_type,
-                        seq_request=session.get_one(Q.seq_request.select(id=int(form.seq_request.data))),
-                    ))
-                except db_exc.LinkAlreadyExists:
-                    pass
-
-            if form.library.data is not None:
-                try:
-                    session.save(Q.data_path.create(
-                        path=posix_path,
-                        type=file_type,
-                        library=session.get_one(Q.library.select(id=int(form.library.data))),
-                    ))
-                except db_exc.LinkAlreadyExists:
-                    pass
+            # (field, query module, DataPath keyword); an existing association is skipped, as legacy
+            # intended (its LinkAlreadyExists handling never fired, so it stored duplicates)
+            targets = (
+                (form.project, Q.project, "project"),
+                (form.experiment, Q.experiment, "experiment"),
+                (form.seq_request, Q.seq_request, "seq_request"),
+                (form.library, Q.library, "library"),
+            )
+            for field, query, key in targets:
+                if field.data is None:
+                    continue
+                target = session.get_one(query.select(id=int(field.data)))
+                if session.first(Q.data_path.select(path=posix_path, **{f"{key}_id": target.id})) is not None:
+                    continue
+                session.save(Q.data_path.create(path=posix_path, type=file_type, **{key: target}))
 
             session.flush()
             data_paths = session.get_all(

@@ -5,7 +5,7 @@ or a lab prep. Each selected library is cloned (``clone_number + 1``, linked to 
 with its samples and features; "Indexed" also copies its indices, "Raw" does not. Clones stay
 in the library's request. Redirects to the request / lab prep page.
 
-Differs from legacy, not changed: an indexed clone gets status STORED (legacy: ACCEPTED for
+Differs from legacy, kept (decided 2026-10-14): an indexed clone gets status STORED (legacy: ACCEPTED for
 both types); QC-only requests cannot be re-sequenced.
 """
 

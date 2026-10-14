@@ -155,7 +155,12 @@ def test_merge_moves_libraries_and_marks_sources_repooled(client: TestClient, se
     ({"pool_forms-0-pipet": ""}, None),
     ({"pool_forms-0-num_m_reads_requested": ""}, None),
     ({"total_volume_ul": ""}, None),
-], ids=["short-name", "missing-name", "missing-contact", "missing-pipet", "missing-reads", "missing-volume"])
+    ({"pool_forms-0-pipet": "0"}, "must be > 0"),
+    ({"pool_forms-1-pipet": "-5"}, "must be > 0"),
+    ({"pool_forms-0-num_m_reads_requested": "0"}, "must be > 0"),
+    ({"pool_forms-1-num_m_reads_requested": "-10"}, "must be > 0"),
+], ids=["short-name", "missing-name", "missing-contact", "missing-pipet", "missing-reads", "missing-volume",
+        "zero-pipet", "negative-pipet", "zero-reads", "negative-reads"])
 def test_invalid_merge_is_rejected_and_changes_nothing(
     client: TestClient, session: SyncSession, setup: Setup, user_token: str, overrides: dict, error: str | None,
 ):

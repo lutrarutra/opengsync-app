@@ -78,12 +78,12 @@ def test_search_handles_empty_sequence(
     assert response.status_code == 200
 
 
-def test_search_csrf_mismatch_still_succeeds(
+def test_search_csrf_mismatch_is_rejected(
     client: TestClient,
     session: SyncSession,
     user_token: str,
 ):
-    """The Search route does not call Validate() — CSRF is not checked."""
+    """The Search route does not call Validate(); the central check (``csrf_protect``) covers it."""
     response = post_form_csrf_mismatch(
         client,
         _path(),
@@ -92,4 +92,4 @@ def test_search_csrf_mismatch_still_succeeds(
         token=user_token,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 403
