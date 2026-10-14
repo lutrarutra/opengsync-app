@@ -29,7 +29,8 @@ def _libraries(session: SyncSession, *names: str):
     libraries = []
     for name in names:
         library = create_library(session, owner, seq_request)
-        library.name = name
+        # sample_name is searched too; keep the factory's random uuid out of the results
+        library.name = library.sample_name = name
         libraries.append(session.save(library, flush=True))
     return libraries
 
