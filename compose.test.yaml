@@ -13,6 +13,10 @@ services:
             - ./services/backend/server:/app/services/backend/server
             # Host templates mounted so template changes are picked up without rebuilding.
             - ./services/backend/templates:/templates
+            # Docs mounted read-only so tests can check generated sections (docs/state-transitions.md).
+            - ./docs:/app/docs:ro
+            # Alembic migrations mounted so migration tests run the current versions.
+            - ./services/db/alembic:/app/alembic:ro
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password

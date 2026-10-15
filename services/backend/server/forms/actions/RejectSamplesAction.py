@@ -2,6 +2,7 @@ import pandas as pd
 from fastapi import Depends, Response
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
@@ -87,7 +88,7 @@ class RejectSamplesAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
             r: rds.RedisClient = Depends(dependencies.redis),
         ) -> Response:
-            if session.first(Q.lab_prep.select(id=form.lab_prep_id)) is None:
+            if (lab_prep := session.first(Q.lab_prep.select(id=form.lab_prep_id))) is None:
                 raise exc.NotFoundException()
 
             df = form.spreadsheet.data
@@ -99,22 +100,23 @@ class RejectSamplesAction(HTMXForm):
             }
 
             # Only samples of this prep's multiplexed libraries can be (un-)rejected
-            num_rejected = num_restored = 0
-            for sample_id in RejectSamplesAction.get_sample_table(session, form.lab_prep_id)["sample_id"]:
-                sample = session.get_one(Q.sample.select(id=int(sample_id)))
-                if sample.id in rejected_ids and sample.status != C.SampleStatus.REJECTED:
-                    sample.status = C.SampleStatus.REJECTED
-                    num_rejected += 1
-                elif sample.id not in rejected_ids and sample.status == C.SampleStatus.REJECTED:
-                    sample.status = C.SampleStatus.STORED
-                    num_restored += 1
-                else:
-                    continue
+            with run_operation(session, lab_ops.REJECT_SAMPLES, subject=lab_prep):
+                num_rejected = num_restored = 0
+                for sample_id in RejectSamplesAction.get_sample_table(session, form.lab_prep_id)["sample_id"]:
+                    sample = session.get_one(Q.sample.select(id=int(sample_id)))
+                    if sample.id in rejected_ids and sample.status != C.SampleStatus.REJECTED:
+                        sample.status = C.SampleStatus.REJECTED
+                        num_rejected += 1
+                    elif sample.id not in rejected_ids and sample.status == C.SampleStatus.REJECTED:
+                        sample.status = C.SampleStatus.STORED
+                        num_restored += 1
+                    else:
+                        continue
 
-                session.save(sample)
-                # Write access depends on the sample status
-                for key in r.scan_iter(match=f"access:sample:{sample.id}:user:*"):
-                    r.delete(key)
+                    session.save(sample)
+                    # Write access depends on the sample status
+                    for key in r.scan_iter(match=f"access:sample:{sample.id}:user:*"):
+                        r.delete(key)
 
             return responses.htmx_response(
                 redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep_id),

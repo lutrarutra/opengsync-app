@@ -4,6 +4,7 @@ from fastapi import Depends, Response
 from sqlalchemy import orm
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C, actions
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -12,6 +13,10 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 class PoolForm(HTMXForm):
     template_path = "forms/pool.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
 
     name = inputs.string.StringInputField("Pool Name", max_length=models.Pool.name.type.length, min_length=4)
     pool_type = inputs.selectable.SelectableInputField("Pool Type", options=C.PoolType.as_selectable())
@@ -93,17 +98,18 @@ class PoolForm(HTMXForm):
 
             pool_type = C.PoolType.get(form.pool_type.data)
 
-            pool = session.save(Q.pool.create(
-                name=form.name.data,
-                status=C.PoolStatus.get(form.status.data),
-                num_m_reads_requested=form.num_m_reads_requested.data,
-                owner_id=current_user.id,
-                pool_type=pool_type,
-                contact_name=form.contact_name.data if contact_obj is None else contact_obj.name,
-                contact_email=form.contact_email.data if contact_obj is None else contact_obj.email,
-                contact_phone=form.contact_phone.data,
-                clone_number=0,
-            ), flush=True)
+            with run_operation(session, create_ops.POOL_CREATE):
+                pool = session.save(Q.pool.create(
+                    name=form.name.data,
+                    status=C.PoolStatus.get(form.status.data),
+                    num_m_reads_requested=form.num_m_reads_requested.data,
+                    owner_id=current_user.id,
+                    pool_type=pool_type,
+                    contact_name=form.contact_name.data if contact_obj is None else contact_obj.name,
+                    contact_email=form.contact_email.data if contact_obj is None else contact_obj.email,
+                    contact_phone=form.contact_phone.data,
+                    clone_number=0,
+                ), flush=True)
 
             return responses.htmx_response(
                 redirect=responses.url_for("pool_page", pool_id=pool.id),
@@ -127,6 +133,7 @@ class PoolForm(HTMXForm):
             form.pool_type.data = form.pool.type.id
             form.num_m_reads_requested.data = form.pool.num_m_reads_requested
             form.status.data = form.pool.status.id
+            form.status_comment.hidden = bool(form.status.read_only)
 
             if form.pool.contact is not None:
                 form.contact_name.data = form.pool.contact.name
@@ -153,13 +160,14 @@ class PoolForm(HTMXForm):
                 form.status.errors.append("Only insiders can change pool status.")
                 raise exc.FormValidationException(form)
 
-            form.pool.name = form.name.data
-            form.pool.status = C.PoolStatus.get(form.status.data)
-            form.pool.type = C.PoolType.get(form.pool_type.data)
-            form.pool.num_m_reads_requested = form.num_m_reads_requested.data
-            form.pool.contact.name = form.contact_name.data
-            form.pool.contact.email = form.contact_email.data
-            form.pool.contact.phone = form.contact_phone.data
+            with run_operation(session, manual_ops.EDIT_POOL, subject=form.pool, comment=form.status_comment.data):
+                form.pool.name = form.name.data
+                form.pool.status = C.PoolStatus.get(form.status.data)
+                form.pool.type = C.PoolType.get(form.pool_type.data)
+                form.pool.num_m_reads_requested = form.num_m_reads_requested.data
+                form.pool.contact.name = form.contact_name.data
+                form.pool.contact.email = form.contact_email.data
+                form.pool.contact.phone = form.contact_phone.data
 
             return responses.htmx_response(
                 redirect=responses.url_for("pool_page", pool_id=form.pool.id),
@@ -216,48 +224,49 @@ class PoolForm(HTMXForm):
             # As legacy (pool create used to number clones): existing clones of the original + 1
             clone_number = session.count(Q.pool.select().where(models.Pool.original_pool_id == original_pool_id)) + 1
 
-            cloned_pool = session.save(Q.pool.create(
-                name=form.name.data,
-                status=C.PoolStatus.get(form.status.data),  # as legacy: the chosen status (prefilled STORED)
-                num_m_reads_requested=form.num_m_reads_requested.data,
-                owner_id=current_user.id,
-                pool_type=pool.type,
-                contact_email=(
-                    pool.contact.email if pool.contact.email else "unknown"
-                ),
-                contact_name=pool.contact.name,
-                contact_phone=pool.contact.phone,
-                seq_request_id=pool.seq_request_id,
-                original_pool_id=original_pool_id,
-                clone_number=clone_number,
-            ), flush=True)
+            with run_operation(session, create_ops.POOL_CLONE, subject=pool):
+                cloned_pool = session.save(Q.pool.create(
+                    name=form.name.data,
+                    status=C.PoolStatus.get(form.status.data),  # as legacy: the chosen status (prefilled STORED)
+                    num_m_reads_requested=form.num_m_reads_requested.data,
+                    owner_id=current_user.id,
+                    pool_type=pool.type,
+                    contact_email=(
+                        pool.contact.email if pool.contact.email else "unknown"
+                    ),
+                    contact_name=pool.contact.name,
+                    contact_phone=pool.contact.phone,
+                    seq_request_id=pool.seq_request_id,
+                    original_pool_id=original_pool_id,
+                    clone_number=clone_number,
+                ), flush=True)
 
-            cloned_pool.ba_report_id = pool.ba_report_id
-            cloned_pool.avg_fragment_size = pool.avg_fragment_size
-            cloned_pool.qubit_concentration = pool.qubit_concentration
+                cloned_pool.ba_report_id = pool.ba_report_id
+                cloned_pool.avg_fragment_size = pool.avg_fragment_size
+                cloned_pool.qubit_concentration = pool.qubit_concentration
 
-            for dilution in pool.dilutions:
-                cloned_pool.dilutions.append(models.PoolDilution(
-                    pool_id=cloned_pool.id,
-                    operator_id=dilution.operator_id,
-                    identifier=dilution.identifier,
-                    qubit_concentration=dilution.qubit_concentration,
-                    volume_ul=dilution.volume_ul,
-                    timestamp_utc=dilution.timestamp_utc,
-                ))
+                for dilution in pool.dilutions:
+                    cloned_pool.dilutions.append(models.PoolDilution(
+                        pool_id=cloned_pool.id,
+                        operator_id=dilution.operator_id,
+                        identifier=dilution.identifier,
+                        qubit_concentration=dilution.qubit_concentration,
+                        volume_ul=dilution.volume_ul,
+                        timestamp_utc=dilution.timestamp_utc,
+                    ))
 
-            session.flush()
+                session.flush()
 
-            # As legacy: full library clones (samples, features and indices)
-            for library in pool.libraries:
-                cloned_lib = actions.clone_library(
-                    session,
-                    library_id=library.id,
-                    seq_request_id=library.seq_request_id,
-                    indexed=True,
-                    status=C.LibraryStatus.POOLED,
-                )
-                cloned_lib.pool_id = cloned_pool.id
+                # As legacy: full library clones (samples, features and indices)
+                for library in pool.libraries:
+                    cloned_lib = actions.clone_library(
+                        session,
+                        library_id=library.id,
+                        seq_request_id=library.seq_request_id,
+                        indexed=True,
+                        status=C.LibraryStatus.POOLED,
+                    )
+                    cloned_lib.pool_id = cloned_pool.id
 
             return responses.htmx_response(
                 redirect=responses.url_for("pool_page", pool_id=cloned_pool.id),

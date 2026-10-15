@@ -65,6 +65,7 @@
     --menu_box_shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 
     --jss-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+    --jss-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-width='2'%3E%3Ccircle cx='6.5' cy='6.5' r='4.5'/%3E%3Cpath d='m10 10 4.5 4.5'/%3E%3C/g%3E%3C/svg%3E");
 
     /* Rounded frame around the grid; the outer cell borders are dropped so they don't double up with it */
     .jss_content {
@@ -83,8 +84,11 @@
         }
     }
 
+    /* Cells only draw their top and left borders. The bottom edge closes the last row when the rows don't fill
+       the frame (when they do, it sits on the frame's bottom border once scrolled to the end) */
     .jss_worksheet {
         border: 0;
+        border-bottom: 1px solid var(--border_color);
 
         > thead > tr > td {
             border-top-color: transparent;
@@ -122,11 +126,11 @@
             background-position: right 8px center;
         }
 
-        /* Query column (static/js/jss-query-column.js), looks like a dropdown */
+        /* Query column (static/js/jss-query-column.js), laid out like a dropdown with a search icon */
         > tbody > tr > td.jss_query {
             text-align: left !important;
             padding-right: 26px;
-            background-image: var(--jss-chevron);
+            background-image: var(--jss-search);
             background-repeat: no-repeat;
             background-size: 12px;
             background-position: right 8px center;
@@ -135,6 +139,15 @@
         /* Text that is not one of the options */
         > tbody > tr > td.jss_query_unresolved {
             color: var(--bs-danger);
+        }
+
+        /* Text that is a new value (allowNew) */
+        > tbody > tr > td.jss_query_new:not(.editor)::after {
+            content: "new";
+            margin-left: 0.5em;
+            color: var(--color-gray-500);
+            font-size: 0.75em;
+            font-style: italic;
         }
 
         > tbody > tr > td.jss_query_editor {
@@ -201,6 +214,19 @@
 
             &.jss_query_selected.jss_query_cursor {
                 background-color: var(--color-cemm-blue-dark);
+            }
+
+            /* Creates the typed text (allowNew) */
+            &.jss_query_create {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .jss_query_hint {
+                flex: none;
+                color: var(--color-gray-500);
+                font-style: italic;
             }
         }
 

@@ -75,16 +75,16 @@ def test_simple_raw_bulk_rna_seq_annotation(
     assert session.first(Q.project.select(title=project_title)) is None
 
     human = C.GenomeRef.HUMAN.display_name
-    sample_columns = ["Sample Name", "Genome"]
+    sample_columns = ["Sample Name", "Organism"]
     sample_name_max = models.Sample.name.type.length
 
     post("sample-annotation", spreadsheet_payload(sample_columns, []), status=202)  # empty spreadsheet
     post("sample-annotation", {"spreadsheet": "[]"}, status=202)  # missing columns payload
     post("sample-annotation", {
         "spreadsheet": "not-json",
-        "columns": '["Sample Name", "Genome"]',
+        "columns": '["Sample Name", "Organism"]',
     }, status=202)  # invalid spreadsheet JSON
-    post("sample-annotation", spreadsheet_payload(["Genome"], [[human]]), status=202)  # missing Sample Name column
+    post("sample-annotation", spreadsheet_payload(["Organism"], [[human]]), status=202)  # missing Sample Name column
     post("sample-annotation", spreadsheet_payload(["Sample Name"], [["Sample_A"]]), status=202)  # missing Genome column
     post("sample-annotation", spreadsheet_payload(sample_columns, [
         ["", human],
@@ -129,37 +129,37 @@ def test_simple_raw_bulk_rna_seq_annotation(
         ["Sample_B", human],
     ]))
 
-    attribute_columns = ["Sample Name", "Sample ID", "Test Attribute"]
+    attribute_columns = ["Sample", "Test Attribute"]
     post("sample-attribute-annotation", spreadsheet_payload(attribute_columns, []), status=202)  # empty spreadsheet
-    post("sample-attribute-annotation", spreadsheet_payload(["Sample Name"], [
-        ["Sample_A"],
-        ["Sample_B"],
-    ]), status=202)  # missing required Sample ID column
+    post("sample-attribute-annotation", spreadsheet_payload(["Test Attribute"], [
+        ["Test Attribute A"],
+        ["Test Attribute B"],
+    ]), status=202)  # missing required Sample column
     post("sample-attribute-annotation", spreadsheet_payload(
-        ["Sample Name", "Sample ID", "xy"],
+        ["Sample", "xy"],
         [
-            ["Sample_A", "(new)", "value"],
-            ["Sample_B", "(new)", "value"],
+            ["Sample_A [new]", "value"],
+            ["Sample_B [new]", "value"],
         ],
     ), status=202)  # attribute column name shorter than 3 characters
     post("sample-attribute-annotation", spreadsheet_payload(attribute_columns, [
-        ["Sample_A", "(new)", "Test Attribute A"],
+        ["Sample_A [new]", "Test Attribute A"],
     ]), status=202)  # a sample from the previous step is missing
     post("sample-attribute-annotation", spreadsheet_payload(attribute_columns, [
-        ["Sample_A", "(new)", "Test Attribute A"],
-        ["Sample_B", "(new)", ""],
+        ["Sample_A [new]", "Test Attribute A"],
+        ["Sample_B [new]", ""],
     ]), status=202)  # attribute column is only partially filled
     post("sample-attribute-annotation", spreadsheet_payload(
-        ["Sample Name", "Sample ID", "Sex"],
+        ["Sample", "Sex"],
         [
-            ["Sample_A", "(new)", "V" * (models.SampleAttribute.MAX_NAME_LENGTH + 1)],
-            ["Sample_B", "(new)", "ok"],
+            ["Sample_A [new]", "V" * (models.SampleAttribute.MAX_NAME_LENGTH + 1)],
+            ["Sample_B [new]", "ok"],
         ],
     ), status=202)  # attribute value longer than max length
 
     post("sample-attribute-annotation", spreadsheet_payload(attribute_columns, [
-        ["Sample_A", "(new)", "Test Attribute A"],
-        ["Sample_B", "(new)", "Test Attribute B"],
+        ["Sample_A [new]", "Test Attribute A"],
+        ["Sample_B [new]", "Test Attribute B"],
     ]))
 
     post("select-service", {}, status=202)  # service type is required

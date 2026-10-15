@@ -52,7 +52,7 @@ class Library(Base):
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
     type: Mapped[LibraryType] = mapped_column(EnumColumn[LibraryType](LibraryType), nullable=False, name="type_id", key="type")
-    status: Mapped[LibraryStatus] = mapped_column(EnumColumn[LibraryStatus](LibraryStatus), nullable=False, name="status_id", key="status")
+    status: Mapped[LibraryStatus] = mapped_column(EnumColumn[LibraryStatus](LibraryStatus), nullable=False, name="status_id", key="status", active_history=True)
     genome_ref: Mapped[GenomeRef] = mapped_column(EnumColumn[GenomeRef](GenomeRef), nullable=False, name="genome_ref_id", key="genome_ref")
     service_type: Mapped[ServiceType] = mapped_column(EnumColumn[ServiceType](ServiceType), nullable=False, name="service_type_id", key="service_type")
     mux_type: Mapped[MUXType | None] = mapped_column(EnumColumn[MUXType](MUXType), nullable=True, name="mux_type_id", key="mux_type")

@@ -36,10 +36,45 @@
                 
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ul>
+                        <li>Add one row per sample. Copy-paste from Excel or another spreadsheet works.</li>
+                        {% if project_id %}
+                        <li>To reuse samples of the project, start typing a sample name and pick it from the list, or copy the names from the <b>Project Samples</b> tab.</li>
+                        <li>A name that is not a sample of the project creates a new sample. The list shows it as <i>Create new</i> and the cell marks it as <i>new</i>.</li>
+                        {% else %}
+                        <li>The project is new, so every sample in the spreadsheet is a new sample.</li>
+                        {% endif %}
+                    </ul>
+                    <h5>Columns</h5>
+                    <ul>
+                        <li>
+                            <b>Sample Name</b> <span class="desc">required</span>
+                            <ul>
+                                <li>The name of the biological sample, e.g. the tissue, cell line or condition with a replicate number.</li>
+                                <li>At least 4 characters: letters, numbers and underscores. Other characters, e.g. spaces, are replaced with underscores.</li>
+                                <li>Each sample appears only once.</li>
+                                {% if project_id %}
+                                <li>Rejected samples of the project cannot be reused, please give the sample another name.</li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        <li>
+                            <b>Organism</b> <span class="desc">required</span>
+                            <ul>
+                                <li>The organism the sample comes from. Its reference genome is used for the analysis.</li>
+                                <li>Select <i>Custom</i> if the organism is not listed.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <h5>Example</h5>
+                </div>
+                {% if example_spreadsheet is defined %}{{ example_spreadsheet.render(height="220px") }}{% endif %}
             </div>
             {% if project_id %}
             <div class="tab-pane fade" id ="form-tab-project-samples" role="tabpanel" tabindex="2">
-                <div hx-get="{{ url_for('render_sample_table', project_id=project_id) }}" hx-swap="outerHTML" hx-trigger="intersect once">
+                <div hx-get="{{ url_for('render_project_sample_attribute_spreadsheet', project_id=project_id) }}" hx-swap="outerHTML" hx-trigger="intersect once">
                     {{ spinner() }}
                 </div>
             </div>

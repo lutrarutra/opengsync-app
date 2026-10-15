@@ -4,6 +4,7 @@ from fastapi import Depends, Response, Query
 from loguru import logger
 
 from opengsync_db import categories as C, SyncSession, queries as Q
+from opengsync_db.transitions import run_operation, receipt as receipt_ops
 
 from ...core import dependencies, exceptions, responses
 from ...components import inputs
@@ -83,87 +84,89 @@ class StoreSamplesAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
             _=Depends(dependencies.require_insider),
         ) -> Response:
+            seq_request = None
             if form.seq_request_id is not None:
-                session.get_one(Q.seq_request.select(id=form.seq_request_id))
+                seq_request = session.get_one(Q.seq_request.select(id=form.seq_request_id))
 
             if not (form.selected_sample_ids.data or form.selected_library_ids.data or form.selected_pool_ids.data):
                 form.add_general_error("Select at least one sample, library, or pool.")
                 raise exceptions.FormValidationException(form)
 
-            check_request_ids: set[int] = set()
-            for sample in form.selected_sample_ids.get_selected_samples(session=session):
-                sample.status = C.SampleStatus.STORED
-                sample.timestamp_stored_utc = datetime.now()
-                for library_link in sample.library_links:
-                    if library_link.library.seq_request.status == C.SeqRequestStatus.ACCEPTED:
-                        check_request_ids.add(library_link.library.seq_request.id)
-                session.save(sample)
+            with run_operation(session, receipt_ops.STORE_SAMPLES, subject=seq_request):
+                check_request_ids: set[int] = set()
+                for sample in form.selected_sample_ids.get_selected_samples(session=session):
+                    sample.status = C.SampleStatus.STORED
+                    sample.timestamp_stored_utc = datetime.now()
+                    for library_link in sample.library_links:
+                        if library_link.library.seq_request.status == C.SeqRequestStatus.ACCEPTED:
+                            check_request_ids.add(library_link.library.seq_request.id)
+                    session.save(sample)
 
-            for library in form.selected_library_ids.get_selected_libraries(session=session):
-                if library.seq_request_id not in check_request_ids:
-                    check_request_ids.add(library.seq_request_id)
+                for library in form.selected_library_ids.get_selected_libraries(session=session):
+                    if library.seq_request_id not in check_request_ids:
+                        check_request_ids.add(library.seq_request_id)
                 
-                if library.is_pooled:
-                    library.status = C.LibraryStatus.POOLED
-                else:
-                    library.status = C.LibraryStatus.STORED
+                    if library.is_pooled:
+                        library.status = C.LibraryStatus.POOLED
+                    else:
+                        library.status = C.LibraryStatus.STORED
                 
-                library.timestamp_stored_utc = datetime.now()
-                session.save(library)
+                    library.timestamp_stored_utc = datetime.now()
+                    session.save(library)
 
-            for pool in form.selected_pool_ids.get_selected_pools(session=session):
-                if pool.seq_request_id is not None:
-                    check_request_ids.add(pool.seq_request_id)
+                for pool in form.selected_pool_ids.get_selected_pools(session=session):
+                    if pool.seq_request_id is not None:
+                        check_request_ids.add(pool.seq_request_id)
 
-                pool.status = C.PoolStatus.STORED
-                pool.timestamp_stored_utc = datetime.now()
-                session.save(pool)
+                    pool.status = C.PoolStatus.STORED
+                    pool.timestamp_stored_utc = datetime.now()
+                    session.save(pool)
 
-            for _srid in check_request_ids:
-                seq_request = session.get_one(Q.seq_request.select(id=_srid))
+                for _srid in check_request_ids:
+                    seq_request = session.get_one(Q.seq_request.select(id=_srid))
 
-                if seq_request.submission_type == C.SubmissionType.QC_ONLY:
-                    all_libraries_stored = all(
-                        library.status >= C.LibraryStatus.STORED
-                        for library in seq_request.libraries
-                    )
-                    if all_libraries_stored and seq_request.libraries:
+                    if seq_request.submission_type == C.SubmissionType.QC_ONLY:
+                        all_libraries_stored = all(
+                            library.status >= C.LibraryStatus.STORED
+                            for library in seq_request.libraries
+                        )
+                        if all_libraries_stored and seq_request.libraries:
+                            for library in seq_request.libraries:
+                                library.status = C.LibraryStatus.QC_PENDING
+                                session.save(library)
+                            seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
+                            session.save(seq_request)
+
+                    elif seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
+                        all_samples_stored = True
+                        for sample in seq_request.samples:
+                            all_samples_stored = sample.status >= C.SampleStatus.STORED and all_samples_stored
+                            if not all_samples_stored:
+                                break
+                        if all_samples_stored:
+                            seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
+                            session.save(seq_request)
+
+                    elif seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES:
+                        all_pools_stored = True
+                        for pool in seq_request.pools:
+                            all_pools_stored = pool.status >= C.PoolStatus.STORED and all_pools_stored
+                            if not all_pools_stored:
+                                logger.info(f"Pool {pool.id} status: {pool.status} not stored")
+                                break
+                        if all_pools_stored:
+                            seq_request.status = C.SeqRequestStatus.PREPARED
+                            session.save(seq_request)
+
+                    elif seq_request.submission_type == C.SubmissionType.UNPOOLED_LIBRARIES:
+                        all_libraries_stored = True
                         for library in seq_request.libraries:
-                            library.status = C.LibraryStatus.QC_PENDING
-                            session.save(library)
-                        seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
-                        session.save(seq_request)
-
-                elif seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
-                    all_samples_stored = True
-                    for sample in seq_request.samples:
-                        all_samples_stored = sample.status >= C.SampleStatus.STORED and all_samples_stored
-                        if not all_samples_stored:
-                            break
-                    if all_samples_stored:
-                        seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
-                        session.save(seq_request)
-
-                elif seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES:
-                    all_pools_stored = True
-                    for pool in seq_request.pools:
-                        all_pools_stored = pool.status >= C.PoolStatus.STORED and all_pools_stored
-                        if not all_pools_stored:
-                            logger.info(f"Pool {pool.id} status: {pool.status} not stored")
-                            break
-                    if all_pools_stored:
-                        seq_request.status = C.SeqRequestStatus.PREPARED
-                        session.save(seq_request)
-
-                elif seq_request.submission_type == C.SubmissionType.UNPOOLED_LIBRARIES:
-                    all_libraries_stored = True
-                    for library in seq_request.libraries:
-                        all_libraries_stored = library.status >= C.LibraryStatus.STORED and all_libraries_stored
-                        if not all_libraries_stored:
-                            break
-                    if all_libraries_stored:
-                        seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
-                        session.save(seq_request)
+                            all_libraries_stored = library.status >= C.LibraryStatus.STORED and all_libraries_stored
+                            if not all_libraries_stored:
+                                break
+                        if all_libraries_stored:
+                            seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
+                            session.save(seq_request)
 
             flash = responses.flash("Samples Stored!", "success")
             if form.seq_request_id is not None:

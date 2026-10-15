@@ -29,7 +29,7 @@ def test_annotation_steps_require_write_access(
     from redis import Redis
     Redis(connection_pool=client.app.state.redis_pool).delete(f"access:seq_request:{seq_request.id}:user:{seq_request.requestor_id}")
 
-    wf.post("sample-attribute-annotation", spreadsheet(["Sample Name", "Sample ID"], [["Late_Sample", "(new)"]]), status=403)
+    wf.post("sample-attribute-annotation", spreadsheet(["Sample"], [["Late_Sample [new]"]]), status=403)
     wf.post("select-service", {"service_type": str(C.ServiceType.BULK_RNA_SEQ.id)}, status=403)
     wf.post("complete-s-a-s", status=403)
 

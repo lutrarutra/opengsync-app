@@ -77,7 +77,9 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self.height = height
         self.id = uuid7().__str__()
         self.columns: dict[str, SpreadSheetColumn] = {}
-        self.table_data: list[list] = []
+        self.table_data = []
+        # Submitted columns without a definition (allow_new_cols): label -> title
+        self._extra_columns: dict[str, str] = {}
         self.post_url: responses.URL | None = None
         self.csrf_token: str = ""
         self.editable: bool = False
@@ -113,6 +115,29 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self._data = value
         self._validated = True
 
+    @property
+    def table_data(self) -> list[list]:
+        """Rows of the rendered cells, in the order of the columns.
+
+        Kept by column label until rendering, so that columns added after validation (e.g. by the route that
+        reports more errors) and DBObjectColumns that were split into their backend columns stay in place.
+        """
+        if self._display_df is None:
+            return self._table_data
+        df = self._display_df.loc[:, ~self._display_df.columns.duplicated()]
+        df = df.reindex(columns=[*self.columns.keys(), *self.extra_columns.keys()]).astype(object)
+        return df.where(df.notna(), "").values.tolist()
+
+    @table_data.setter
+    def table_data(self, value: list[list]) -> None:
+        self._table_data = value
+        self._display_df: pd.DataFrame | None = None
+
+    @property
+    def extra_columns(self) -> dict[str, str]:
+        """Submitted columns that have no definition, by label: their titles."""
+        return {label: title for label, title in self._extra_columns.items() if label not in self.columns}
+
     def add_column(self, column: SpreadSheetColumn) -> None:
         if column.label in self.columns:
             raise ValueError(f"Column with label '{column.label}' already exists.")
@@ -125,40 +150,28 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
     def set_data(self, df: pd.DataFrame):
         self._ensure_lazy_options()
-        # Do not mutate workflow state while converting stored category keys
-        # to the labels displayed by the spreadsheet.
+        self._extra_columns = {}
+        self._display_df = self._to_display(df)
+
+    def _to_display(self, df: pd.DataFrame) -> pd.DataFrame:
+        """The cell values of the columns of a stored DataFrame, by column label (without changing ``df``)."""
         display_df = df.copy()
         for col in self.columns.values():
             if isinstance(col, DBObjectColumn):
-                # A DBObjectColumn has no physical column in the stored
-                # DataFrame. Build its visible value from the backend columns
-                # every time data is restored (including Previous navigation).
-                if all(
-                    backend_column in display_df.columns
-                    for backend_column in col.backend_columns
-                ):
+                # A DBObjectColumn has no physical column in the stored DataFrame, its value is built from
+                # the backend columns
+                if all(backend_column in display_df.columns for backend_column in col.backend_columns):
                     display_df = col.cast_backend_columns(display_df)
-                    display_df[col.label] = display_df.apply(
-                        col.to_display_row,
-                        axis=1,
+                    display_df[col.label] = pd.Series(
+                        [col.to_display_row(row) for _, row in display_df.iterrows()], index=display_df.index, dtype=object,
                     )
-                elif col.label not in display_df.columns:
-                    display_df[col.label] = None
             elif isinstance(col, CategoricalDropDown) and col.label in display_df.columns:
-                display_df[col.label] = display_df[col.label].apply(
-                    lambda v, c=col: c.to_display(v)
-                )
-            elif isinstance(col, QueryColumn) and col.label in display_df.columns:
+                # Stored keys are shown as their labels
+                display_df[col.label] = display_df[col.label].apply(col.to_display)
+            elif isinstance(col, QueryColumn):
                 # The cells keep the ids, the editor shows their names
-                col.set_labels(display_df[col.label].tolist())
-                display_df[col.label] = display_df[col.label].astype(object).map(
-                    lambda v, c=col: "" if (object_id := c.to_id(v)) is None else object_id
-                )
-            elif col.label not in display_df.columns:
-                display_df[col.label] = None
-        self.table_data = display_df[
-            [col.label for col in self.columns.values()]
-        ].astype(object).replace(np.nan, "").values.tolist()
+                display_df[col.label] = pd.Series(col.to_display(display_df), index=display_df.index, dtype=object)
+        return display_df
 
     def configure(
         self,
@@ -272,9 +285,14 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             col_title_map.get(c, c.lower().replace(" ", "_")) if isinstance(c, str) else c
             for c in col_names
         ]
+        self._extra_columns = {
+            label: str(title) for label, title in zip(df.columns, col_names) if label not in self.columns
+        }
 
         # Positions index the rows below (enumerate, df.at, table_data), so blank rows must not leave gaps
         df = df.dropna(how="all").reset_index(drop=True)
+        # Shown again as submitted when the validation fails
+        self._display_df = df.copy()
 
         if df.empty:
             if not self.can_be_empty:
@@ -380,6 +398,13 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         if self._errors:
             return False
 
+        # Option names and new values, before the cleanup empties the ids of new values
+        for label, column in self.columns.items():
+            if isinstance(column, QueryColumn) and column.name_column is not None and label in df.columns:
+                df[column.name_column.label] = pd.Series(
+                    [column.to_name(value) for value in df[label].tolist()], index=df.index, dtype=pd.StringDtype(),
+                )
+
         # Final cleanup pass
         for label, column in self.columns.items():
             if label not in df.columns and column.can_be_deleted:
@@ -404,17 +429,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 df[label] = df[label].astype(pd.Float64Dtype())
 
         self._data = df
-        # Build table_data with display values for CategoricalDropDown columns
-        # so the frontend dropdown cells show the human-readable label, not the key.
-        table_df = df.copy()
-        for col in self.columns.values():
-            if isinstance(col, CategoricalDropDown):
-                if col.label in table_df.columns:
-                    table_df[col.label] = table_df[col.label].apply(
-                        lambda v, c=col: c.to_display(v)
-                    )
-        # Nullable Int64/Float64 columns cannot hold "", so convert to object first.
-        self.table_data = table_df.astype(object).where(table_df.notna(), "").values.tolist()
+        self._display_df = self._to_display(df)
         self._validated = True
         return True
 

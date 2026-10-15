@@ -18,8 +18,9 @@ from opengsync_db import (
 )
 
 from opengsync_db.core.blueprints import pd_transforms as T
+from opengsync_db.transitions import run_operation, request as request_ops, create as create_ops
 
-from ...core import dependencies, responses, exceptions as exc, config
+from ...core import dependencies, overview, responses, exceptions as exc, config
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -278,14 +279,14 @@ def archive_seq_request(
 ):
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if (
-        seq_request.status != C.SeqRequestStatus.DRAFT
-        and access_level < C.AccessLevel.INSIDER
-    ):
+    # DRAFT requests can be archived by users who can edit them, all others only by staff
+    required = C.AccessLevel.WRITE if seq_request.status == C.SeqRequestStatus.DRAFT else C.AccessLevel.INSIDER
+    if access_level < required:
         raise exc.NoPermissionsException()
 
-    seq_request.status = C.SeqRequestStatus.ARCHIVED
-    session.save(seq_request)
+    with run_operation(session, request_ops.ARCHIVE, subject=seq_request):
+        seq_request.status = C.SeqRequestStatus.ARCHIVED
+        session.save(seq_request)
 
     return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
@@ -304,9 +305,10 @@ def unarchive_seq_request(
 ):
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    seq_request.status = C.SeqRequestStatus.DRAFT
-    seq_request.timestamp_submitted_utc = None
-    session.save(seq_request)
+    with run_operation(session, request_ops.UNARCHIVE, subject=seq_request):
+        seq_request.status = C.SeqRequestStatus.DRAFT
+        seq_request.timestamp_submitted_utc = None
+        session.save(seq_request)
 
     return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
@@ -449,123 +451,14 @@ def remove_all_seq_request_libraries(
     )
 
 
-@router.get("/{seq_request_id}/overview")
+@router.get("/{seq_request_id}/overview", dependencies=[Depends(dependencies.seq_request_permissions)])
 def render_seq_request_overview(
     seq_request_id: int,
     session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.READ:
-        raise exc.NoPermissionsException()
-
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[
-            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.project),
-            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library).selectinload(models.Library.pool),
-            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library).with_expression(models.Library._num_samples, models.Library.num_samples.expression),
-        ],
-    )
-
-    LINK_WIDTH_UNIT = 1
-    samples = seq_request.samples
-
-    nodes = []
-    links = []
-    contains_pooled = seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES
-
-    idx = 0
-    project_nodes: dict[int, int] = {}
-    sample_nodes: dict[int, int] = {}
-    library_nodes: dict[int, int] = {}
-    pool_nodes: dict[int, int] = {}
-    pool_link_widths: dict[int, int] = {}
-
-    for sample in samples:
-        if sample.project_id not in project_nodes:
-            project_node = {
-                "node": idx,
-                "name": sample.project.title,
-                "id": f"project-{sample.project_id}",
-            }
-            nodes.append(project_node)
-            project_nodes[sample.project.id] = idx
-            project_idx = idx
-            idx += 1
-        else:
-            project_idx = project_nodes[sample.project.id]
-
-        sample_node = {"node": idx, "name": sample.name, "id": f"sample-{sample.id}"}
-        nodes.append(sample_node)
-        sample_nodes[sample.id] = idx
-        idx += 1
-
-        n_sample_links = 0
-        for link in sample.library_links:
-            if link.library.seq_request_id == seq_request_id:
-                n_sample_links += 1
-                if link.library.id not in library_nodes:
-                    library_node = {
-                        "node": idx,
-                        "name": link.library.type.identifier,
-                        "id": f"library-{link.library.id}",
-                    }
-                    nodes.append(library_node)
-                    library_nodes[link.library.id] = idx
-                    library_idx = idx
-                    idx += 1
-
-                    if contains_pooled and link.library.pool is not None:
-                        if link.library.pool_id not in pool_nodes:
-                            pool_node = {
-                                "node": idx,
-                                "name": link.library.pool.name,
-                                "id": f"pool-{link.library.pool.id}",
-                            }
-                            nodes.append(pool_node)
-                            pool_nodes[link.library.pool.id] = idx
-                            pool_link_widths[link.library.pool.id] = 0
-                            pool_idx = idx
-                            idx += 1
-                        else:
-                            pool_idx = pool_nodes[link.library.pool.id]
-
-                        pool_link_widths[link.library.pool.id] += (
-                            LINK_WIDTH_UNIT * link.library.num_samples
-                        )
-                        links.append(
-                            {
-                                "source": library_nodes[link.library.id],
-                                "target": pool_idx,
-                                "value": LINK_WIDTH_UNIT * link.library.num_samples,
-                            }
-                        )
-                else:
-                    library_idx = library_nodes[link.library.id]
-
-                links.append(
-                    {
-                        "source": sample_node["node"],
-                        "target": library_idx,
-                        "value": LINK_WIDTH_UNIT,
-                    }
-                )
-
-        links.append(
-            {
-                "source": project_idx,
-                "target": sample_nodes[sample.id],
-                "value": LINK_WIDTH_UNIT * n_sample_links,
-            }
-        )
-
-    return responses.htmx_response(
-        template="components/plots/request_overview.html",
-        nodes=nodes,
-        links=links,
-        contains_pooled=contains_pooled,
-    )
-
+    current_user: models.User = Depends(dependencies.require_user),
+) -> dict:
+    """Projects → samples → libraries → pools → experiments of the request (JSON for static/js/overview-graph.js)."""
+    return overview.seq_request_graph(session, seq_request_id, insider=current_user.is_insider)
 
 @router.delete("/{seq_request_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])
 def remove_seq_request_assignee(
@@ -965,13 +858,14 @@ def reseq_library(
     if library.seq_request_id != seq_request.id:
         raise exc.BadRequestException()
 
-    actions.clone_library(
-        session=session,
-        library_id=library.id,
-        seq_request_id=seq_request.id,
-        status=C.LibraryStatus.PREPARING,
-        indexed=True,
-    )
+    with run_operation(session, create_ops.LIBRARY_RESEQ_SINGLE, subject=library):
+        actions.clone_library(
+            session=session,
+            library_id=library.id,
+            seq_request_id=seq_request.id,
+            status=C.LibraryStatus.PREPARING,
+            indexed=True,
+        )
 
     return responses.htmx_response(
         # redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),

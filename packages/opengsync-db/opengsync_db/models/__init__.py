@@ -28,6 +28,7 @@ from .Kit import Kit
 from .FlowCellDesign import FlowCellDesign
 from .PoolDesign import PoolDesign
 from .SharePath import SharePath
+from .StatusHistory import OperationRun, StatusChange
 from .ShareToken import ShareToken
 from .DataPath import DataPath
 from .Protocol import Protocol
@@ -75,5 +76,7 @@ __all__ = [
     "APIToken",
     "UserPasskey",
     "TODOComment",
+    "OperationRun",
+    "StatusChange",
     "links",
 ]

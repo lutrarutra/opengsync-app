@@ -127,7 +127,7 @@ class SeqRequestDeliveryEmailLink(Base):
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
     
-    status: Mapped[DeliveryStatus] = mapped_column(EnumColumn[DeliveryStatus](DeliveryStatus), nullable=False, default=DeliveryStatus.PENDING.id, name="status_id", key="status")
+    status: Mapped[DeliveryStatus] = mapped_column(EnumColumn[DeliveryStatus](DeliveryStatus), nullable=False, default=DeliveryStatus.PENDING.id, name="status_id", key="status", active_history=True)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="delivery_email_links")
 
     def __str__(self) -> str:

@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import Depends, Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -11,6 +12,10 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 class ProjectForm(HTMXForm):
     template_path = "forms/project.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
 
     identifier = inputs.string.StringInputField(
         "Identifier",
@@ -68,6 +73,7 @@ class ProjectForm(HTMXForm):
             form.title.data = form.project.title
             form.description.data = form.project.description
             form.status.data = form.project.status.id
+            form.status_comment.hidden = bool(form.status.read_only)
             form.owner.data = form.project.owner_id
             form.group.data = form.project.group_id
             return form.make_response()
@@ -137,12 +143,13 @@ class ProjectForm(HTMXForm):
                 form.owner.errors.append("Only insiders can change project owner.")
                 raise exc.FormValidationException(form)
 
-            form.project.identifier = form.identifier.data
-            form.project.title = form.title.data
-            form.project.description = form.description.data
-            form.project.status = C.ProjectStatus.get(form.status.data)
-            form.project.owner_id = form.owner.data
-            form.project.group_id = group.id if group else None
+            with run_operation(session, manual_ops.EDIT_PROJECT, subject=form.project, comment=form.status_comment.data):
+                form.project.identifier = form.identifier.data
+                form.project.title = form.title.data
+                form.project.description = form.description.data
+                form.project.status = C.ProjectStatus.get(form.status.data)
+                form.project.owner_id = form.owner.data
+                form.project.group_id = group.id if group else None
 
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=form.project.id),
@@ -190,14 +197,15 @@ class ProjectForm(HTMXForm):
                 form.identifier.errors.append("Only insiders can set a project identifier.")
                 raise exc.FormValidationException(form)
 
-            project = session.save(Q.project.create(
-                identifier=form.identifier.data,
-                title=form.title.data,
-                description=form.description.data,
-                status=C.ProjectStatus.get(form.status.data),
-                owner_id=form.owner.data,
-                group_id=group.id if group else None,
-            ), flush=True)
+            with run_operation(session, create_ops.PROJECT_CREATE):
+                project = session.save(Q.project.create(
+                    identifier=form.identifier.data,
+                    title=form.title.data,
+                    description=form.description.data,
+                    status=C.ProjectStatus.get(form.status.data),
+                    owner_id=form.owner.data,
+                    group_id=group.id if group else None,
+                ), flush=True)
 
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=project.id),

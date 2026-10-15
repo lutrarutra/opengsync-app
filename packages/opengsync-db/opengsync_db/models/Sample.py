@@ -48,7 +48,7 @@ class Sample(Base):
     
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status: Mapped[SampleStatus | None] = mapped_column(EnumColumn[SampleStatus](SampleStatus), nullable=True, name="status_id", key="status")
+    status: Mapped[SampleStatus | None] = mapped_column(EnumColumn[SampleStatus](SampleStatus), nullable=True, name="status_id", key="status", active_history=True)
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)

@@ -80,7 +80,8 @@ COPY services/backend/templates /templates
 COPY services/backend/static /static
 RUN mkdir -p /logs /static /templates
 RUN uv sync --frozen --no-editable --no-dev
-RUN uv pip install pytest httpx
+RUN uv pip install pytest httpx alembic python-dotenv
+COPY services/db/alembic /app/alembic
 # Copy tests last so edits only invalidate this layer (not uv sync).
 COPY services/pytest/tests /app/tests
 CMD ["pytest"]

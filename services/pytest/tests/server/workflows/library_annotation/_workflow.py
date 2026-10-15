@@ -1,6 +1,7 @@
 """Shared driver for LibraryAnnotationWorkflow HTTP tests."""
 
 import ast
+import json
 import re
 import uuid
 from typing import Any
@@ -29,6 +30,7 @@ class AnnotationWorkflow:
         self.uuid = str(uuid.uuid4())
         self.params = {"uuid": self.uuid}
         self.prefix = f"/htmx/workflows/library-annotation/{seq_request_id}"
+        self.last_response = None
 
     def begin(self):
         response = get(self.client, f"{self.prefix}/begin", self.token, params=self.params)
@@ -60,6 +62,7 @@ class AnnotationWorkflow:
             )
             assert response.status_code == 200, f"{step}: re-submit after 'Back' returned {response.status_code}"
             assert self.rendered_step(response) == reached, f"{step}: re-submit after 'Back' led to '{self.rendered_step(response)}', not '{reached}'"
+        self.last_response = response
         return response
 
     def rendered_step(self, response) -> str | None:
@@ -89,12 +92,15 @@ class AnnotationWorkflow:
 
     def samples(self, rows: list[list[str]], next_step: str = "sample-attribute-annotation"):
         """``rows`` are ``[sample_name, genome]`` pairs."""
-        return self.post("sample-annotation", spreadsheet_payload(["Sample Name", "Genome"], rows), next_step=next_step)
+        return self.post("sample-annotation", spreadsheet_payload(["Sample Name", "Organism"], rows), next_step=next_step)
 
     def attributes(self, sample_names: list[str], next_step: str = "select-service"):
+        """Submits the samples as the step shows them, i.e. 'name [id]' or 'name [new]'."""
+        shown = {}
+        if self.last_response is not None and self.rendered_step(self.last_response) == "sample-attribute-annotation":
+            shown = {row[0].rpartition(" [")[0]: row[0] for row in spreadsheet_rows(self.last_response)}
         return self.post("sample-attribute-annotation", spreadsheet_payload(
-            ["Sample Name", "Sample ID"],
-            [[name, "(new)"] for name in sample_names],
+            ["Sample"], [[shown.get(name, f"{name} [new]")] for name in sample_names],
         ), next_step=next_step)
 
     def service(self, service_type: C.ServiceType, next_step: str | None = None, status: int = 200, **flags: Any):
@@ -135,6 +141,14 @@ def spreadsheet_rows(response) -> list[list]:
     return ast.literal_eval(match.group(1))
 
 
+def spreadsheet_records(response) -> list[dict[str, Any]]:
+    """Rows the server pre-filled into the rendered spreadsheet, by column title (every cell under its column)."""
+    match = re.search(r"data: (\[\[[^\n]*?\]\]),\n\s*columns: \[(.*?)\n\s*\],", response.text, re.DOTALL)
+    assert match is not None, "no spreadsheet in response"
+    titles = [json.loads(title) for title in re.findall(r'title: ("(?:[^"\\]|\\.)*")', match.group(2))]
+    return [dict(zip(titles, row, strict=True)) for row in ast.literal_eval(match.group(1))]
+
+
 def spreadsheet(columns: list[str], rows: list[list[Any]]) -> dict[str, str]:
     return spreadsheet_payload(columns, rows)
 
@@ -143,7 +157,7 @@ ABC_LIBRARY_TYPES = (C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_
 
 
 def assert_features_only_on_abc_libraries(libraries: dict[str, models.Library]) -> None:
-    """Antibody features (also rows without 'Sample Name') are linked to antibody-capture libraries only."""
+    """Antibody features (also rows without 'Sample') are linked to antibody-capture libraries only."""
     wrongly_linked = sorted(
         name for name, library in libraries.items()
         if library.type not in ABC_LIBRARY_TYPES and library.features

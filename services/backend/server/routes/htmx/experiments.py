@@ -8,7 +8,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import config, dependencies, overview, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...components.tables import StaticSpreadsheet, TextColumn
 from ... import forms
@@ -148,101 +148,11 @@ def experiment_checklist(
 def experiment_overview(
     experiment_id: int,
     session: SyncSession = Depends(dependencies.db_session),
-):
+) -> dict:
+    """Requests → libraries → pools → lanes of the experiment (JSON for static/js/overview-graph.js)."""
     if not session.exists(Q.experiment.select(id=experiment_id)):
         raise exc.NotFoundException(f"Experiment with ID {experiment_id} not found.")
-    
-    LINK_WIDTH_UNIT = 1
-    df = T.experiment_libraries(
-        session.get_pandas(
-            Q.pd.experiment_libraries(
-                experiment_id,
-                include_indices=False,
-                include_seq_request=True,
-            ),
-            limit=None,
-        ),
-        include_indices=False,
-        collapse_indicies=True,
-        drop_empty_columns=True,
-        collapse_lanes_=False,
-    )
-
-    if df.empty:
-        return responses.htmx_response(template="components/plots/experiment_overview.html", links=[], nodes=[])
-    
-    nodes = []
-    links = []
-
-    node_idx = 0
-
-    libraries = {}
-    pools = {}
-    lanes = {}
-    lane_widths = {}
-    for lane in df["lane"].unique():
-        lane_node = {
-            "node": node_idx,
-            "name": f"Lane {lane}"
-        }
-        node_idx += 1
-        nodes.append(lane_node)
-        lanes[lane] = lane_node
-        lane_widths[lane] = 0
-
-    for (_, request_name), _df in df.groupby(["seq_request_id", "request_name"]):
-        request_node = {
-            "node": node_idx,
-            "name": request_name
-        }
-        nodes.append(request_node)
-        node_idx += 1
-        for (pool_id, pool_name, lane), __df in _df.groupby(["pool_id", "pool_name", "lane"]):
-            if pool_id not in pools.keys():
-                pool_node = {
-                    "node": node_idx,
-                    "name": pool_name
-                }
-                node_idx += 1
-                nodes.append(pool_node)
-                pools[pool_id] = pool_node
-            else:
-                pool_node = pools[pool_id]
-
-            width = __df.shape[0] / len(df[df["pool_id"] == pool_id]["lane"].unique())
-            links.append({
-                "source": pool_node["node"],
-                "target": lanes[lane]["node"],
-                "value": LINK_WIDTH_UNIT * width
-            })
-            lane_widths[lane] += width
-
-            for i, row in __df.iterrows():
-                if row["library_id"] not in libraries.keys():
-                    library_node = {
-                        "node": node_idx,
-                        "name": row["library_type"].name
-                    }
-                    node_idx += 1
-                    nodes.append(library_node)
-                    libraries[row["library_id"]] = library_node
-                    links.append({
-                        "source": library_node["node"],
-                        "target": pool_node["node"],
-                        "value": LINK_WIDTH_UNIT
-                    })
-                    links.append({
-                        "source": request_node["node"],
-                        "target": library_node["node"],
-                        "value": LINK_WIDTH_UNIT
-                    })
-                else:
-                    library_node = libraries[row["library_id"]]
-    
-    return responses.htmx_response(
-        template="components/plots/experiment_overview.html",
-        links=links, nodes=nodes
-    )
+    return overview.experiment_graph(session, experiment_id)
 
 @router.get("/{experiment_id}/stats", dependencies=[Depends(dependencies.require_insider)])
 def experiment_stats(
@@ -381,7 +291,7 @@ def render_experiment_sample_pooling_table(
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
     file = session.get_one(Q.media_file.select(id=file_id, experiment_id=experiment.id))
 
-    if not os.path.exists(filepath := os.path.join("/media", file.path)):
+    if not os.path.exists(filepath := os.path.join(config.settings.app_config.media_folder, file.path)):
         raise exc.NotFoundException()
 
     df = pd.read_csv(filepath, sep="\t")

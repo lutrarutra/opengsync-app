@@ -264,7 +264,13 @@ class CategoricalDropDown(SpreadSheetColumn):
 
 
 class DBObjectColumn(CategoricalDropDown):
-    """Render an object's id and name DataFrame columns as one selectable "name [id]" column."""
+    """Render an object's id and name DataFrame columns as one selectable "name [id]" column.
+
+    Objects that are not created yet (``new_names`` of ``set_categories``) are shown as "name [new]" and keep an
+    empty id.
+    """
+
+    NEW_ID = "new"
 
     def __init__(
         self,
@@ -282,6 +288,16 @@ class DBObjectColumn(CategoricalDropDown):
         super().__init__(label, label, width, categories, required, unique=unique, read_only=read_only)
         self.backend_columns = columns
         self.all_options_required = all_options_required
+        self.new_values: list[str] = []
+
+    def new_value(self, name: str) -> str:
+        return f"{name} [{self.NEW_ID}]"
+
+    def set_categories(self, categories: dict[Any, str], new_names: Sequence[str] = ()) -> None:
+        """Set the options, ``new_names`` are options of objects without id."""
+        super().set_categories(categories)
+        self.new_values = [self.new_value(name) for name in new_names]
+        self.source = self.source + self.new_values
 
     def cast_backend_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Cast the id column to Int64 and the name column to string."""
@@ -298,7 +314,8 @@ class DBObjectColumn(CategoricalDropDown):
             if self.required:
                 raise MissingCellValue(f"Missing value for '{self.label}'")
             return
-        if self.categories and value not in self.rev_categories:
+        options = self.categories or self.new_values
+        if options and value not in self.rev_categories and value not in self.new_values:
             raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
         if self.unique and list(column_values).count(value) > 1:
             raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
@@ -308,6 +325,8 @@ class DBObjectColumn(CategoricalDropDown):
         object_id = row.get(self.backend_columns[0])
         object_name = row.get(self.backend_columns[1])
         if pd.isna(object_id):
+            if pd.notna(object_name) and (new_value := self.new_value(object_name)) in self.new_values:
+                return new_value
             return None
         # Use the category value as the canonical frontend value so restored
         # data round-trips exactly like a value selected in the dropdown.
@@ -324,6 +343,8 @@ class DBObjectColumn(CategoricalDropDown):
         name, separator, identifier = text.rpartition(" [")
         if not separator or not identifier.endswith("]"):
             raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
+        if text in self.new_values:
+            return {self.backend_columns[0]: None, self.backend_columns[1]: name.strip()}
         try:
             object_id = int(identifier[:-1])
         except ValueError as error:
@@ -335,30 +356,38 @@ class QueryColumn(SpreadSheetColumn):
     """Column whose options are searched on the backend instead of being sent with the page.
 
     The cell shows the option name and submits its id. The editor requests ``url`` with ``word`` and ``page``
-    and expects ``responses.query_options_response``. ``lookup`` returns the names of the given ids that the user
-    may select: it names the ids shown in the table and rejects submitted ids that are unknown or not allowed.
+    and expects ``responses.query_options_response``, without ``url`` there are no options to pick. ``lookup``
+    returns the names of the given ids that the user may select: it names the ids shown in the table and rejects
+    submitted ids that are unknown or not allowed.
+
+    ``name_column`` adds a DataFrame column with the name of each option. With ``allow_new`` a cell may also hold
+    text that is none of the options: a new value, validated and cleaned up by ``name_column``, whose id is empty.
     """
 
     def __init__(
         self, label: str, name: str, width: float,
-        url: URL | Callable[[], URL],
+        url: URL | Callable[[], URL | None] | None,
         lookup: Callable[[Sequence[int]], dict[int, str]],
         required: bool = False, letter: str | None = None, optional_col: bool = False, unique: bool = False,
-        read_only: bool = False,
+        read_only: bool = False, allow_new: bool = False, name_column: TextColumn | None = None,
     ):
+        if allow_new and name_column is None:
+            raise ValueError("A QueryColumn with allow_new needs a name_column for the new values.")
         super().__init__(
             label=label, name=name, type="query", width=width, var_type=int,
             letter=letter, required=required, optional_col=optional_col, unique=unique, read_only=read_only,
         )
         self._url = url
         self.lookup = lookup
+        self.allow_new = allow_new
+        self.name_column = name_column
         self.labels: dict[int, str] = {}
 
     @property
-    def url(self) -> URL:
+    def url(self) -> URL | None:
         return self._url() if callable(self._url) else self._url
 
-    def set_url(self, url: URL | Callable[[], URL]) -> None:
+    def set_url(self, url: URL | Callable[[], URL | None] | None) -> None:
         """Change the queried route, e.g. to add query parameters from the request context."""
         self._url = url
 
@@ -373,17 +402,55 @@ class QueryColumn(SpreadSheetColumn):
             return int(value)
         return None
 
+    def new_value(self, value: Any) -> str | None:
+        """The cleaned up text of a new value, None for ids, empty cells and columns without new values."""
+        if not self.allow_new or not isinstance(value, str) or not value.strip():
+            return None
+        return cast(TextColumn, self.name_column).clean_up(value, ignore_missing=True)
+
+    def _unique_key(self, value: Any) -> int | str | None:
+        """Cells are duplicates when their ids or the cleaned up texts of their new values are equal."""
+        object_id = self.to_id(value)
+        return object_id if object_id is not None else self.new_value(value)
+
+    def to_name(self, value: Any) -> str | None:
+        """The option name of an id, or the text of a new value."""
+        if (object_id := self.to_id(value)) is not None:
+            return self.labels.get(object_id)
+        return self.new_value(value)
+
+    def to_display(self, df: pd.DataFrame) -> list[Any]:
+        """Cell values of a DataFrame with this column and maybe ``name_column``: ids, and the names of new values."""
+        ids = df[self.label].tolist() if self.label in df.columns else [None] * len(df)
+        names = [None] * len(df)
+        if self.allow_new and (name_label := cast(TextColumn, self.name_column).label) in df.columns:
+            names = df[name_label].tolist()
+        self.set_labels(ids)
+        return [
+            object_id if (object_id := self.to_id(value)) is not None else ("" if pd.isna(name) else name)
+            for value, name in zip(ids, names)
+        ]
+
     def set_labels(self, values: Iterable[Any]) -> None:
         """Look up the names of the ids in the table."""
         ids = sorted({object_id for value in values if (object_id := self.to_id(value)) is not None})
         self.labels = self.lookup(ids) if ids else {}
 
     def validate(self, value: Any, column_values: Sequence[Any]):
-        super().validate(value, column_values)
         if pd.isna(value):
+            if self.required:
+                raise MissingCellValue(f"Missing value for '{self.label}'")
             return
-        if (object_id := self.to_id(value)) is None or object_id not in self.labels:
+        if (object_id := self.to_id(value)) is not None:
+            if object_id not in self.labels:
+                raise InvalidCellValue(f"Unknown {self.name.lower()} '{value}'.")
+        elif self.allow_new and isinstance(value, str):
+            cast(TextColumn, self.name_column).validate(value, [])
+        else:
             raise InvalidCellValue(f"Unknown {self.name.lower()} '{value}'.")
+        if self.unique:
+            if [self._unique_key(v) for v in column_values].count(self._unique_key(value)) > 1:
+                raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
 
     def clean_up(self, value: Any, ignore_missing: bool = False) -> int | None:
         if pd.isna(value):

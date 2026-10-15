@@ -8,6 +8,7 @@ libraries to the new pool and marks the sources REPOOLED. Barcode clashes are on
 """
 
 import json
+import re
 import uuid
 
 import pytest
@@ -275,3 +276,41 @@ def test_lab_prep_context_is_insider_only(client: TestClient, session: SyncSessi
 
 def test_unknown_request_is_404(client: TestClient, user_token: str):
     assert get(client, _url(client, "Begin"), user_token, params={"seq_request_id": 999999}).status_code == 404
+
+
+# ── Status of the merged pool (staff only) ──────────────────────────────────
+
+
+def test_client_cannot_choose_merged_pool_status(client: TestClient, session: SyncSession, setup: Setup, user_token: str):
+    params = setup.params()
+    _select(client, user_token, params, [setup.a, setup.b])
+
+    response = _merge(client, user_token, params, _merge_payload([setup.a, setup.b], status=str(C.PoolStatus.STORED.id)))
+
+    assert_form_invalid(response, "Only staff can choose the status of the merged pool.")
+    assert _pools_named(session, "Merged Pool") == []
+    assert setup.reload(setup.a).status != C.PoolStatus.REPOOLED
+
+
+def test_client_sees_draft_status_read_only(client: TestClient, session: SyncSession, setup: Setup, user_token: str):
+    for pool in (setup.a, setup.b):
+        pool.status = C.PoolStatus.STORED
+    session.commit()
+    params = setup.params()
+
+    response = _select(client, user_token, params, [setup.a, setup.b])
+
+    assert response.status_code == 200, response.text
+    status_select = re.search(r'<select[^>]*name="status"[^>]*>', response.text)
+    assert status_select is not None and "disabled" in status_select.group(0)
+
+
+def test_insider_can_choose_merged_pool_status(client: TestClient, session: SyncSession, setup: Setup, insider_token: str):
+    params = setup.params()
+    _select(client, insider_token, params, [setup.a, setup.b])
+
+    response = _merge(client, insider_token, params, _merge_payload([setup.a, setup.b], status=str(C.PoolStatus.STORED.id)))
+
+    assert_htmx_redirect(response, "/pools/")
+    [merged] = _pools_named(session, "Merged Pool")
+    assert merged.status == C.PoolStatus.STORED

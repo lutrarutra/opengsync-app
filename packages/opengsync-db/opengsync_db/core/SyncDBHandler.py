@@ -20,8 +20,12 @@ class SyncDBHandler:
         auto_commit: bool = False,
         auto_open: bool = False,
         default_row_limit: int | None = 10,
+        session_info: dict | None = None,
     ):
+        """`session_info` is copied into `Session.info` of every session, e.g.
+        `{"transitions.mode": "strict"}` (see opengsync_db.transitions.tracking)."""
         self._logger = logger
+        self.session_info = dict(session_info or {})
         self.auto_open = auto_open
         self._engine: Engine = None  # type: ignore[assignment]
         self.expire_on_commit = expire_on_commit
@@ -55,6 +59,7 @@ class SyncDBHandler:
             expire_on_commit=self.expire_on_commit,
             class_=SyncSession,
             default_limit=self.default_limit,
+            info=self.session_info,
         )
         SyncDBHandler.Session = orm.scoped_session(self.session_factory)
         from . import listeners  # noqa: F401

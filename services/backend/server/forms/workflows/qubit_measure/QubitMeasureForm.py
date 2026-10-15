@@ -2,6 +2,7 @@ from fastapi import Depends, Response
 from sqlalchemy import orm
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ....core import dependencies, exceptions as exc, responses
 from ....components import inputs
@@ -73,23 +74,24 @@ class QubitMeasureForm(QubitMeasureWorkflowStep):
                 if any(entry.id_.data not in selected for entry in getattr(form, list_name).entries):
                     raise exc.BadRequestException("The measurements do not match the selection. Please start again.")
 
-            for entry in form.sample_forms.entries:
-                sample = session.get_one(Q.sample.select(id=entry.id_.data))
-                sample.qubit_concentration = entry.qubit_concentration.data
+            with run_operation(session, lab_ops.QUBIT):
+                for entry in form.sample_forms.entries:
+                    sample = session.get_one(Q.sample.select(id=entry.id_.data))
+                    sample.qubit_concentration = entry.qubit_concentration.data
 
-            for entry in form.library_forms.entries:
-                library = session.get_one(Q.library.select(id=entry.id_.data))
-                library.qubit_concentration = entry.qubit_concentration.data
+                for entry in form.library_forms.entries:
+                    library = session.get_one(Q.library.select(id=entry.id_.data))
+                    library.qubit_concentration = entry.qubit_concentration.data
 
-            for entry in form.pool_forms.entries:
-                pool = session.get_one(Q.pool.select(id=entry.id_.data))
-                pool.qubit_concentration = entry.qubit_concentration.data
-                if pool.status == C.PoolStatus.ACCEPTED:
-                    pool.status = C.PoolStatus.STORED
+                for entry in form.pool_forms.entries:
+                    pool = session.get_one(Q.pool.select(id=entry.id_.data))
+                    pool.qubit_concentration = entry.qubit_concentration.data
+                    if pool.status == C.PoolStatus.ACCEPTED:
+                        pool.status = C.PoolStatus.STORED
 
-            for entry in form.lane_forms.entries:
-                lane = session.get_one(Q.lane.select(id=entry.id_.data))
-                lane.original_qubit_concentration = entry.qubit_concentration.data
+                for entry in form.lane_forms.entries:
+                    lane = session.get_one(Q.lane.select(id=entry.id_.data))
+                    lane.original_qubit_concentration = entry.qubit_concentration.data
 
             next_url = responses.url_for("dashboard")
             if form.workflow.experiment_id:

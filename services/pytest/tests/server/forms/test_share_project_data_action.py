@@ -2,13 +2,14 @@
 
 Access control:
 - **Init()** requires the project to exist (404 if not).
-- **GET (Begin)** requires WRITE on the project (owner of a DRAFT project, or insider).
-- **POST (Submit)** requires WRITE on the project.
-- Non-insiders cannot send to custom emails or create links longer than the default validity.
+- **GET (Begin)** and **POST (Submit)** are insiders only: sharing releases the data (libraries SEQUENCED → SHARED,
+  project DELIVERED), as the release API. Owners of a DRAFT project have WRITE but are still denied.
 """
 
 import json
 import re
+
+import sqlalchemy as sa
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,6 +24,7 @@ from .._http import (
     assert_flash,
     assert_form_invalid,
     assert_htmx_redirect,
+    auth,
     get,
     post_form,
     post_form_csrf_mismatch,
@@ -78,38 +80,7 @@ def _input_tag(html: str, name: str) -> str:
 # ── Render (GET) ────────────────────────────────────────────────────────────
 
 
-def test_render_get_allows_draft_owner(
-    client: TestClient,
-    session: SyncSession,
-    user,
-    user_token: str,
-):
-    """Owner of a DRAFT project has WRITE access."""
-    project = _shareable_project(session, user)
-
-    response = get(client, _path(project.id), user_token)
-
-    assert response.status_code == 200
-    assert 'name="custom_email"' in response.text
-    assert "results" in response.text
-    assert _path(project.id) in response.text
-
-
-def test_render_get_custom_email_read_only_for_client(
-    client: TestClient,
-    session: SyncSession,
-    user,
-    user_token: str,
-):
-    project = _shareable_project(session, user)
-
-    response = get(client, _path(project.id), user_token)
-
-    assert response.status_code == 200
-    assert "readonly" in _input_tag(response.text, "custom_email")
-
-
-def test_render_get_custom_email_editable_for_insider(
+def test_render_get_as_insider(
     client: TestClient,
     session: SyncSession,
     user,
@@ -121,6 +92,20 @@ def test_render_get_custom_email_editable_for_insider(
 
     assert response.status_code == 200
     assert "readonly" not in _input_tag(response.text, "custom_email")
+    assert "results" in response.text
+    assert _path(project.id) in response.text
+
+
+def test_render_get_denies_draft_owner(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    """The owner of a DRAFT project has WRITE, but sharing is insiders only."""
+    project = _shareable_project(session, user)
+
+    assert get(client, _path(project.id), user_token).status_code == 403
 
 
 def test_render_get_denies_stranger(
@@ -186,13 +171,13 @@ def test_submit_creates_share_token(
     assert [p.path for p in share_token.paths] == ["results"]
 
 
-def test_submit_as_draft_owner(
+def test_submit_denies_draft_owner(
     client: TestClient,
     session: SyncSession,
     user,
     user_token: str,
 ):
-    """Non-insiders with WRITE can share to the project owner."""
+    """The owner of a DRAFT project has WRITE, but sharing is insiders only."""
     project = _shareable_project(session, user)
 
     response = post_form(
@@ -201,19 +186,31 @@ def test_submit_as_draft_owner(
         token=user_token,
     )
 
-    assert_htmx_redirect(response, f"/projects/{project.id}")
+    assert response.status_code == 403
     updated = _reload_project(session, project.id)
-    assert updated.share_token is not None
-    assert updated.share_token.owner_id == user.id
+    assert updated.share_token is None
+    assert updated.status == C.ProjectStatus.DRAFT
 
 
-def test_submit_without_marking_delivered_keeps_status(
+def _project_with_library(session: SyncSession, owner: models.User, library_status: C.LibraryStatus) -> tuple[models.Project, models.Library]:
+    project = _shareable_project(session, owner)
+    seq_request = create_seq_request(session, owner)
+    library = create_library(session, owner, seq_request)
+    library.status = library_status
+    sample = create_sample(session, owner, project)
+    actions.link_sample_library(session, sample.id, library.id)
+    session.commit()
+    return project, library
+
+
+def test_submit_without_marking_delivered_waits_for_sequenced_libraries(
     client: TestClient,
     session: SyncSession,
     user,
     insider_token: str,
 ):
-    project = _shareable_project(session, user)
+    """Unticked, as the release API: the project becomes DELIVERED only once all its libraries are sequenced."""
+    project, library = _project_with_library(session, user, C.LibraryStatus.POOLED)
 
     response = post_form(
         client, _path(project.id), _payload(mark_project_delivered="false"), token=insider_token,
@@ -223,6 +220,93 @@ def test_submit_without_marking_delivered_keeps_status(
     updated = _reload_project(session, project.id)
     assert updated.status == C.ProjectStatus.DRAFT
     assert updated.share_token is not None
+    assert session.get_one(Q.library.select(id=library.id)).status == C.LibraryStatus.POOLED
+
+
+def test_submit_without_marking_delivered_delivers_sequenced_project(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    project, library = _project_with_library(session, user, C.LibraryStatus.SEQUENCED)
+
+    response = post_form(
+        client, _path(project.id), _payload(mark_project_delivered="false"), token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    assert _reload_project(session, project.id).status == C.ProjectStatus.DELIVERED
+    assert session.get_one(Q.library.select(id=library.id)).status == C.LibraryStatus.SHARED
+
+
+def test_submit_sets_sequenced_libraries_shared(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider,
+    insider_token: str,
+):
+    """As the release API: sequenced libraries become SHARED, so their requests can reach FINISHED."""
+    project, library = _project_with_library(session, user, C.LibraryStatus.SEQUENCED)
+
+    response = post_form(client, _path(project.id), _payload(), token=insider_token)
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=library.id)).status == C.LibraryStatus.SHARED
+    [run] = session.execute(
+        sa.select(models.OperationRun).where(models.OperationRun.operation == "project.share_data")
+    ).scalars().all()
+    assert run.actor_id == insider.id
+    assert {(c.entity_type, c.to_status) for c in run.changes} == {
+        ("project", C.ProjectStatus.DELIVERED.id), ("library", C.LibraryStatus.SHARED.id),
+    }
+
+
+def test_submit_does_not_move_archived_project_back(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    project = _shareable_project(session, user)
+    project.status = C.ProjectStatus.ARCHIVED
+    session.commit()
+
+    response = post_form(client, _path(project.id), _payload(), token=insider_token)
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    assert _reload_project(session, project.id).status == C.ProjectStatus.ARCHIVED
+
+
+def test_share_and_release_api_change_the_same_statuses(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """The UI share and the release API run the same function, so they leave the same statuses."""
+    results = []
+    for via_api in (False, True):
+        project, library = _project_with_library(session, user, C.LibraryStatus.SEQUENCED)
+        project.identifier = f"P{project.id:04d}"
+        session.commit()
+        if via_api:
+            response = client.post(
+                "/api/shares/release-project_data",
+                json={"project_id": project.id, "internal_access": False, "time_valid_min": 60, "recipients": [RECIPIENT]},
+                headers=auth(insider_token),
+            )
+            assert response.status_code == 200, response.text
+        else:
+            post_form(client, _path(project.id), _payload(mark_project_delivered="false"), token=insider_token)
+        session.expire_all()
+        results.append((
+            session.get_one(Q.project.select(id=project.id)).status,
+            session.get_one(Q.library.select(id=library.id)).status,
+        ))
+    assert results[0] == results[1] == (C.ProjectStatus.DELIVERED, C.LibraryStatus.SHARED)
 
 
 def test_submit_expires_previous_share_token(
@@ -358,38 +442,6 @@ def test_submit_requires_data_paths(
     response = post_form(client, _path(project.id), _payload(), token=insider_token)
 
     assert_form_invalid(response, "No data paths available to share.")
-    assert _reload_project(session, project.id).share_token is None
-
-
-def test_submit_client_cannot_send_to_custom_email(
-    client: TestClient,
-    session: SyncSession,
-    user,
-    user_token: str,
-):
-    project = _shareable_project(session, user)
-
-    response = post_form(
-        client, _path(project.id), _payload(custom_email=CUSTOM_EMAIL), token=user_token,
-    )
-
-    assert_form_invalid(response, "You don't have permissions to send to custom email addresses.")
-    assert _reload_project(session, project.id).share_token is None
-
-
-def test_submit_client_cannot_exceed_default_validity(
-    client: TestClient,
-    session: SyncSession,
-    user,
-    user_token: str,
-):
-    project = _shareable_project(session, user)
-
-    response = post_form(
-        client, _path(project.id), _payload(time_valid_min=TIME_VALID_CHOICES[-1][0]), token=user_token,
-    )
-
-    assert_form_invalid(response, "You don't have permissions to create a link that lasts more than")
     assert _reload_project(session, project.id).share_token is None
 
 

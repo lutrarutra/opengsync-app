@@ -36,7 +36,7 @@ class Project(Base):
 
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    status: Mapped[ProjectStatus] = mapped_column(EnumColumn[ProjectStatus](ProjectStatus), nullable=False, name="status_id", key="status")
+    status: Mapped[ProjectStatus] = mapped_column(EnumColumn[ProjectStatus](ProjectStatus), nullable=False, name="status_id", key="status", active_history=True)
 
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="project", lazy="select")
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")

@@ -2,6 +2,7 @@ from fastapi import Depends, Response
 from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C, actions
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ....core import dependencies, exceptions as exc, responses
 from ....core.context import ctx
@@ -35,6 +36,13 @@ class MergePoolsForm(MergePoolsWorkflowStep):
     def __init__(self, workflow: MergePoolsWorkflow) -> None:
         super().__init__(workflow=workflow)
         self.pools: list[models.Pool] = []
+
+    def status_selectable(self, session: SyncSession, user_id: int) -> bool:
+        """Only staff choose the merged pool's status; others create a DRAFT pool, as when creating a pool.
+        Request-scoped merges use the request's access level; lab-prep merges are staff-only (workflow Init)."""
+        if self.workflow.seq_request_id is not None:
+            return session.get_access_level(Q.seq_request.permissions(self.workflow.seq_request_id, user_id)) >= C.AccessLevel.INSIDER
+        return True
 
     def prepare_context(self) -> None:
         session = ctx.session
@@ -97,6 +105,9 @@ class MergePoolsForm(MergePoolsWorkflowStep):
 
         self.num_m_reads_requested.data = num_requested_reads
         self.status.data = status.id if status is not None else C.PoolStatus.DRAFT.id
+        if current_user is not None and not self.status_selectable(ctx.session, current_user.id):
+            self.status.data = C.PoolStatus.DRAFT.id
+            self.status.read_only = True
         if contact_id is not None:
             self.contact.data = contact_id
         self.contact_name.data = contact_name or ""
@@ -133,6 +144,9 @@ class MergePoolsForm(MergePoolsWorkflowStep):
             if sorted(posted_ids) != sorted(selected_ids):
                 form.add_general_error("The pools do not match the pools selected in the previous step.")
 
+            if form.status.data != C.PoolStatus.DRAFT.id and not form.status_selectable(session, current_user.id):
+                form.status.errors.append("Only staff can choose the status of the merged pool.")
+
             if form.contact.data is None:
                 if not form.contact_name.data:
                     form.contact_name.errors.append("Contact is required")
@@ -145,33 +159,34 @@ class MergePoolsForm(MergePoolsWorkflowStep):
             if form.contact.data is not None:
                 contact_obj = session.get_one(Q.user.select(id=form.contact.data))
 
-            pool = session.save(Q.pool.create(
-                name=form.name.data,
-                status=C.PoolStatus.get(form.status.data),
-                num_m_reads_requested=form.num_m_reads_requested.data,
-                owner_id=current_user.id,
-                seq_request_id=form.workflow.seq_request_id,
-                lab_prep_id=form.workflow.lab_prep_id,
-                pool_type=C.PoolType.get(form.pool_type.data),
-                contact_name=form.contact_name.data if contact_obj is None else contact_obj.name,
-                contact_email=form.contact_email.data if contact_obj is None else (contact_obj.email or ""),
-                contact_phone=form.contact_phone.data,
-                clone_number=0,
-            ), flush=True)
+            with run_operation(session, lab_ops.MERGE_POOLS):
+                pool = session.save(Q.pool.create(
+                    name=form.name.data,
+                    status=C.PoolStatus.get(form.status.data),
+                    num_m_reads_requested=form.num_m_reads_requested.data,
+                    owner_id=current_user.id,
+                    seq_request_id=form.workflow.seq_request_id,
+                    lab_prep_id=form.workflow.lab_prep_id,
+                    pool_type=C.PoolType.get(form.pool_type.data),
+                    contact_name=form.contact_name.data if contact_obj is None else contact_obj.name,
+                    contact_email=form.contact_email.data if contact_obj is None else (contact_obj.email or ""),
+                    contact_phone=form.contact_phone.data,
+                    clone_number=0,
+                ), flush=True)
 
-            source_pools: list[models.Pool] = []
-            pool.merge_ratios = {}
-            for entry in form.pool_forms.entries:
-                pool.merge_ratios[str(entry.pool_id.data)] = {
-                    "num_m_reads_requested": entry.num_m_reads_requested.data,
-                    "pipet_volume_ul": entry.pipet.data,
-                }
-                source_pools.append(session.get_one(
-                    Q.pool.select(id=entry.pool_id.data),
-                    options=[orm.selectinload(models.Pool.libraries)],
-                ))
+                source_pools: list[models.Pool] = []
+                pool.merge_ratios = {}
+                for entry in form.pool_forms.entries:
+                    pool.merge_ratios[str(entry.pool_id.data)] = {
+                        "num_m_reads_requested": entry.num_m_reads_requested.data,
+                        "pipet_volume_ul": entry.pipet.data,
+                    }
+                    source_pools.append(session.get_one(
+                        Q.pool.select(id=entry.pool_id.data),
+                        options=[orm.selectinload(models.Pool.libraries)],
+                    ))
 
-            pool = actions.merge_pools(session, merged_pool=pool, pools=source_pools)
+                pool = actions.merge_pools(session, merged_pool=pool, pools=source_pools)
             pool = session.get_one(
                 Q.pool.select(id=pool.id),
                 options=[orm.selectinload(models.Pool.libraries)],

@@ -2,10 +2,10 @@
 
 help:
 	@echo "Error: Please specify a target."
-	@echo "Usage: make [deploy|test|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
+	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-logs prod-logs-all prod-stop deploy test pentest gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
 OVERRIDE_FILE := $(wildcard compose.override.yaml)
@@ -93,6 +93,13 @@ test:
 	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
 	trap 'exit 130' HUP INT TERM; \
 	$(COMPOSE_TEST) up --build --remove-orphans --attach opengsync-pytest --exit-code-from opengsync-pytest
+
+# Runs the Strix security scanner against the source tree.
+# Sources LLM credentials (STRIX_LLM, LLM_API_KEY, LLM_API_BASE, ...) from $(ENV_FILE);
+# uncomment the strix export lines there first.
+pentest:
+	@set -a; [ -f $(ENV_FILE) ] && . ./$(ENV_FILE); set +a; \
+	uv run strix --target .
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d

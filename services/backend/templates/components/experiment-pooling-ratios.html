@@ -31,7 +31,7 @@
             </thead>
             <tbody>
                 {% for _, row in df.iterrows() %}
-                <tr class="pool-row-{{lane}}">
+                <tr>
                     <th>{{ row["pool"] }}</th>
                     <td><b>{{ row['dilution'] }}</b></td>
                     <td>
@@ -60,7 +60,7 @@
                     </td>
                     <td>
                         <div class="quantity-container">
-                            <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
+                            <div class="value {{ row.get('molarity_color', '') }}">{{ "%0.2f" % row["molarity"] }}</div>
                             <div class="unit">nM</div>
                         </div>
                     </td>

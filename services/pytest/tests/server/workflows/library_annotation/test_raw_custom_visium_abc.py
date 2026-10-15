@@ -32,8 +32,8 @@ def test_raw_custom_visium_abc_annotation(
     ]), next_step="feature-annotation")
 
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
-        [["Section_1", "", "", "PanCK", "AAGCGTAATGCGTCA", "5PNNNNNNNNNN(BC)", "R2"]],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        [["Section_1 [new]", "", "", "PanCK", "AAGCGTAATGCGTCA", "5PNNNNNNNNNN(BC)", "R2"]],
     ), next_step="visium-annotation")
 
     visium_columns = ["Sample Name", "Image", "Slide", "Area", "H&E Image"]

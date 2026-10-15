@@ -107,7 +107,7 @@ def test_raw_10x_3p_oligo_mux_abc_annotation(
     ]), status=202)  # same oligo used twice in one pool
     wf.post("oligo-mux-annotation", spreadsheet(oligo_columns, valid_oligo_rows), next_step="feature-annotation")
 
-    feature_columns = ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"]
+    feature_columns = ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"]
     valid_feature_rows = [
         ["", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
         ["", "", "", "CD4", "TGTTCCCGCTCAACT", "5PNNNNNNNNNN(BC)", "R2"],
@@ -121,11 +121,11 @@ def test_raw_10x_3p_oligo_mux_abc_annotation(
         valid_feature_rows[0],
     ]), status=202)  # duplicate feature definition
     wf.post("feature-annotation", spreadsheet(feature_columns, [
-        ["Pool_A", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
+        ["Pool_A [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
     ]), status=202)  # sample-specific features must cover every ABC library (Pool_B missing)
     wf.post("feature-annotation", spreadsheet(feature_columns, [
-        ["Sample_1", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
-        ["Pool_B", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
+        ["Sample_1 [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
+        ["Pool_B [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
     ]), status=202)  # sample name must be an ABC library's pool, not an individual sample
     wf.post("feature-annotation", spreadsheet(feature_columns, valid_feature_rows), next_step="complete-s-a-s")
 

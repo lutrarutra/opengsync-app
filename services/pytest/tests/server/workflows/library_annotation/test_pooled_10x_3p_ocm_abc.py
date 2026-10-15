@@ -70,7 +70,7 @@ def test_pooled_10x_3p_ocm_abc_annotation(
     }, next_step="feature-annotation")
 
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
         [["", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
     ), next_step="complete-s-a-s")
 

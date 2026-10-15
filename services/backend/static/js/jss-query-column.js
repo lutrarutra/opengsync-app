@@ -1,12 +1,13 @@
 /**
  * Spreadsheet column whose options are searched on the backend (QueryColumn in components/tables/spreadsheet.py).
- * It is a jspreadsheet custom editor: `{ type: jssQueryColumn, url, labels }`.
+ * It is a jspreadsheet custom editor: `{ type: jssQueryColumn, url, labels, allowNew }`.
  *
  * Cells hold the option id and show its name; `labels` maps the ids in the table to their names and collects the
  * names of every option the backend returns. The editor requests `url` with `word` and `page` and expects
  * `{options: [{id, name}], has_more}`, further pages load when the list is scrolled to its end. Text that is typed
  * or pasted instead of picked is resolved to the option with exactly that name, otherwise it stays text and the
- * backend rejects it.
+ * backend rejects it. With `allowNew` such text is a new value instead, which the list offers to create. Without
+ * `url` there are no options.
  */
 window.jssQueryColumn = (() => {
     const SEARCH_DELAY = 250;
@@ -18,6 +19,9 @@ window.jssQueryColumn = (() => {
     const normalize = (text) => String(text).trim().toLowerCase();
 
     const fetchPage = async (options, word, page, signal) => {
+        if (!options.url) {
+            return { options: [], has_more: false };
+        }
         const url = new URL(options.url, window.location.href);
         url.searchParams.set("word", word);
         url.searchParams.set("page", page);
@@ -45,7 +49,9 @@ window.jssQueryColumn = (() => {
         } else {
             cell.textContent = value ?? "";
         }
-        cell.classList.toggle("jss_query_unresolved", typeof value === "string" && value !== "");
+        const text = typeof value === "string" && value !== "";
+        cell.classList.toggle("jss_query_unresolved", text && !options.allowNew);
+        cell.classList.toggle("jss_query_new", text && !!options.allowNew);
     };
 
     // Searches the backend for the name, once for all cells pasted with it
@@ -68,14 +74,37 @@ window.jssQueryColumn = (() => {
         render(worksheet.records[y][x].element, id, options);
     };
 
+    // The options, after an entry that creates the typed text when new values are allowed and it is none of them
+    const listEntries = (state) => {
+        const { options, word } = state;
+        if (!options.allowNew || !state.typed || !word) {
+            return state.items;
+        }
+        const known = state.items.some((item) => normalize(item.name) === normalize(word)) || findByName(word, options) !== null;
+        return known ? state.items : [{ id: null, name: word, isNew: true }, ...state.items];
+    };
+
     const renderList = (state) => {
-        const items = state.items.map((item, i) => {
+        // An exact match on a later page removes the create entry, keep the cursor on the same option
+        const hadNew = state.entries[0]?.isNew;
+        state.entries = listEntries(state);
+        if (hadNew && !state.entries[0]?.isNew && state.cursor > 0) {
+            state.cursor -= 1;
+        }
+        const items = state.entries.map((item, i) => {
             const element = document.createElement("div");
             element.className = "jss_query_item";
             element.textContent = item.name;
             element.dataset.index = i;
+            if (item.isNew) {
+                const hint = document.createElement("span");
+                hint.className = "jss_query_hint";
+                hint.textContent = "Create new";
+                element.classList.add("jss_query_create");
+                element.append(hint);
+            }
             element.classList.toggle("jss_query_cursor", i === state.cursor);
-            element.classList.toggle("jss_query_selected", item.id === state.value);
+            element.classList.toggle("jss_query_selected", !item.isNew && item.id === state.value);
             return element;
         });
         const message = state.error ? "Could not load options" : state.loading ? "Loading…" : !items.length ? "No matches" : null;
@@ -116,7 +145,7 @@ window.jssQueryColumn = (() => {
         if (state.controller) {
             state.controller.abort();
         }
-        Object.assign(state, { word, page: 0, items: [], cursor: -1, hasMore: true, loading: false, error: false });
+        Object.assign(state, { word, page: 0, items: [], entries: [], cursor: -1, hasMore: true, loading: false, error: false });
         state.list.scrollTop = 0;
         loadMore(state);
     };
@@ -160,11 +189,11 @@ window.jssQueryColumn = (() => {
     };
 
     const moveCursor = (state, step) => {
-        if (!state.items.length) {
+        if (!state.entries.length) {
             return;
         }
         state.moved = true;
-        state.cursor = Math.min(Math.max(state.cursor + step, 0), state.items.length - 1);
+        state.cursor = Math.min(Math.max(state.cursor + step, 0), state.entries.length - 1);
         renderList(state);
         // Scroll the list only, scrollIntoView would also scroll the spreadsheet and close the editor
         const item = state.list.children[state.cursor];
@@ -173,7 +202,7 @@ window.jssQueryColumn = (() => {
         } else if (item.offsetTop + item.offsetHeight > state.list.scrollTop + state.list.clientHeight) {
             state.list.scrollTop = item.offsetTop + item.offsetHeight - state.list.clientHeight;
         }
-        if (state.cursor >= state.items.length - 3) {
+        if (state.cursor >= state.entries.length - 3) {
             loadMore(state);
         }
     };
@@ -215,7 +244,7 @@ window.jssQueryColumn = (() => {
             // jspreadsheet closes the editor by blurring the first child on Enter and Tab
             cell.append(input, list);
 
-            const state = { cell, input, list, worksheet, options, value, typed: false, moved: false, selected: undefined };
+            const state = { cell, input, list, worksheet, options, value, entries: [], typed: false, moved: false, selected: undefined };
             cell.jssQuery = state;
 
             input.addEventListener("input", () => {
@@ -241,7 +270,8 @@ window.jssQueryColumn = (() => {
             list.addEventListener("click", (event) => {
                 const item = event.target.closest(".jss_query_item");
                 if (item) {
-                    state.selected = state.items[item.dataset.index].id;
+                    const entry = state.entries[item.dataset.index];
+                    state.selected = entry.isNew ? entry.name : entry.id;
                     worksheet.closeEditor(cell, true);
                 }
             });
@@ -279,15 +309,15 @@ window.jssQueryColumn = (() => {
             if (state.typed && !text && !state.moved) {
                 return "";
             }
-            const current = state.items[state.cursor];
+            const current = state.entries[state.cursor];
             // The highlighted option, if the list shows the results for the text in the input
             if ((state.typed || state.moved) && current && !state.loading && state.word === (state.typed ? text : "")) {
-                return current.id;
+                return current.isNew ? current.name : current.id;
             }
             if (!state.typed) {
                 return state.value;
             }
-            // Resolved by name in updateCell
+            // Resolved by name in updateCell, otherwise a new value if allowed
             return text;
         },
     };

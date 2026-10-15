@@ -66,13 +66,10 @@ class QCLanesForm(LaneQCWorkflowStep):
                 entry.lane_id.data = row.id
                 if row.phi_x is not None:
                     entry.phi_x.data = row.phi_x
-                qubit = (
-                    row.sequencing_qubit_concentration
-                    if row.sequencing_qubit_concentration is not None
-                    else row.original_qubit_concentration
-                )
-                if qubit is not None:
-                    entry.qubit_concentration.data = qubit
+                # The original (pre-dilution) qubit, which this form saves; not the sequencing qubit
+                # measured after dilution at flow-cell loading, or re-saving would overwrite the original with it
+                if row.original_qubit_concentration is not None:
+                    entry.qubit_concentration.data = row.original_qubit_concentration
                 if row.avg_fragment_size is not None:
                     entry.avg_fragment_size.data = int(row.avg_fragment_size)
         return form

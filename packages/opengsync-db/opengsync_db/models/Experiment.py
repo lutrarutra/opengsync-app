@@ -39,7 +39,7 @@ class Experiment(Base):
     i2_cycles: Mapped[int | None] = mapped_column(nullable=True)
 
     workflow: Mapped[ExperimentWorkFlow] = mapped_column(EnumColumn[ExperimentWorkFlow](ExperimentWorkFlow), name="workflow_id", key="workflow")
-    status: Mapped[ExperimentStatus] = mapped_column(EnumColumn[ExperimentStatus](ExperimentStatus), nullable=False, default=0, name="status_id", key="status")
+    status: Mapped[ExperimentStatus] = mapped_column(EnumColumn[ExperimentStatus](ExperimentStatus), nullable=False, default=0, name="status_id", key="status", active_history=True)
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="select")

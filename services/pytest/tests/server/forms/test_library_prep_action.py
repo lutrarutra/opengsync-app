@@ -9,6 +9,8 @@ Access control:
 
 import json
 
+import sqlalchemy as sa
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -18,6 +20,7 @@ from .._http import (
     assert_flash,
     assert_form_invalid,
     assert_htmx_redirect,
+    delete,
     get,
     post_form,
     post_form_csrf_mismatch,
@@ -224,3 +227,76 @@ def test_submit_unknown_is_404(
     )
 
     assert response.status_code == 404
+
+# ── Status (PREPARING restored, regression from d9685235) ───────────────────
+
+
+def test_submit_sets_libraries_below_preparing_to_preparing(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider,
+    insider_token: str,
+):
+    lab_prep, libraries = _lab_prep_with_accepted_libraries(session, user, num_libraries=3)
+    libraries[1].status = C.LibraryStatus.SUBMITTED
+    libraries[2].status = C.LibraryStatus.STORED
+    session.commit()
+
+    response = post_form(
+        client,
+        _submit_path(lab_prep.id),
+        _payload(selected_library_ids=json.dumps([lib.id for lib in libraries])),
+        token=insider_token,
+    )
+    assert_htmx_redirect(response, f"/lab_preps/{lab_prep.id}")
+
+    session.expire_all()
+    statuses = [session.get_one(Q.library.select(id=lib.id)).status for lib in libraries]
+    assert statuses == [C.LibraryStatus.PREPARING, C.LibraryStatus.PREPARING, C.LibraryStatus.STORED]
+
+    [run] = session.execute(
+        sa.select(models.OperationRun).where(models.OperationRun.operation == "prep.add_libraries")
+    ).scalars().all()
+    assert run.actor_id == insider.id
+    assert len(run.changes) == 2
+
+
+def test_remove_library_reverts_preparing(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    lab_prep, libraries = _lab_prep_with_accepted_libraries(session, user)
+    libraries[0].status = C.LibraryStatus.PREPARING
+    libraries[0].lab_prep_id = lab_prep.id
+    libraries[1].status = C.LibraryStatus.POOLED
+    libraries[1].lab_prep_id = lab_prep.id
+    session.commit()
+
+    for library in libraries:
+        response = delete(client, f"/htmx/lab_preps/{lab_prep.id}/remove-library?library_id={library.id}", insider_token, htmx=True)
+        assert response.status_code in (200, 204), response.text
+
+    session.expire_all()
+    first, second = (session.get_one(Q.library.select(id=lib.id)) for lib in libraries)
+    assert (first.lab_prep_id, first.status) == (None, C.LibraryStatus.ACCEPTED)
+    assert (second.lab_prep_id, second.status) == (None, C.LibraryStatus.POOLED)
+
+
+def test_remove_library_of_another_prep_is_404(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    lab_prep, libraries = _lab_prep_with_accepted_libraries(session, user, num_libraries=1)
+    other = _create_lab_prep(session, user)
+    libraries[0].lab_prep_id = other.id
+    session.commit()
+
+    response = delete(client, f"/htmx/lab_preps/{lab_prep.id}/remove-library?library_id={libraries[0].id}", insider_token, htmx=True)
+    assert response.status_code == 404
+    session.expire_all()
+    assert session.get_one(Q.library.select(id=libraries[0].id)).lab_prep_id == other.id

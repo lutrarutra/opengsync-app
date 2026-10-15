@@ -39,8 +39,10 @@ class SeqRequest(Base):
     
     data_delivery_mode: Mapped[DataDeliveryMode] = mapped_column(EnumColumn[DataDeliveryMode](DataDeliveryMode), nullable=False, name="data_delivery_mode_id", key="data_delivery_mode")
     read_type: Mapped[ReadType] = mapped_column(EnumColumn[ReadType](ReadType), nullable=False, name="read_type_id", key="read_type")
+    route_override: Mapped[str | None] = mapped_column(sa.String(32), nullable=True, default=None)
+    """Route id pinned by staff (opengsync_db.transitions.routes); NULL means inferred."""
     submission_type: Mapped[SubmissionType] = mapped_column(EnumColumn[SubmissionType](SubmissionType), nullable=False, name="submission_type_id", key="submission_type")
-    status: Mapped[SeqRequestStatus] = mapped_column(EnumColumn[SeqRequestStatus](SeqRequestStatus), nullable=False, default=SeqRequestStatus.DRAFT.id, name="status_id", key="status")
+    status: Mapped[SeqRequestStatus] = mapped_column(EnumColumn[SeqRequestStatus](SeqRequestStatus), nullable=False, default=SeqRequestStatus.DRAFT.id, name="status_id", key="status", active_history=True)
 
     timestamp_submitted_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     timestamp_finished_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)

@@ -25,7 +25,7 @@ def test_input_features(
         optional_assays__antibody_capture="on", optional_assays__antibody_capture_kit="  TotalSeq-B  ",
     )
 
-    columns = ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"]
+    columns = ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"]
     cd4 = ["", "", "", "CD4", "TGTTCCCGCTCAACT", PATTERN, "R2"]
     invalid = [
         (["", "", "", "CD3", "CTCATTGTAACTCCZ", PATTERN, "R2"], "non-DNA base in sequence"),
@@ -34,7 +34,7 @@ def test_input_features(
         (["", "", "", "CD3", "CTCATTGTAACTCCT", "", "R2"], "missing pattern"),
         (["", "", "", "C" * (models.Feature.name.type.length + 1), "CTCATTGTAACTCCT", PATTERN, "R2"], "name too long"),
         (["", "", "", "CD3", "A" * (models.Feature.sequence.type.length + 1), PATTERN, "R2"], "sequence too long"),
-        (["Feat_2", "", "", "CD3", "CTCATTGTAACTCCT", PATTERN, "R2"], "unknown sample"),
+        (["Feat_2 [new]", "", "", "CD3", "CTCATTGTAACTCCT", PATTERN, "R2"], "unknown sample"),
         (["", "", "", "CD3", "TGTTCCCGCTCAACT", PATTERN, "R2"], "same sequence as CD4"),
     ]
     for row, reason in invalid:
@@ -42,7 +42,7 @@ def test_input_features(
         assert wf.rendered_step(response) == "feature-annotation", reason
 
     wf.post("feature-annotation", spreadsheet(columns, [
-        [" Feat_1 ", "", "", "  CD3 ", "ctcatt gtaactcct", f"  {PATTERN} ", "R2"],
+        [" Feat_1 [new] ", "", "", "  CD3 ", "ctcatt gtaactcct", f"  {PATTERN} ", "R2"],
         cd4,
     ]), next_step="complete-s-a-s")
     wf.complete()

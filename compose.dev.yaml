@@ -54,7 +54,7 @@ services:
             MAIL_PORT: ${MAIL_PORT}
             MAIL_SENDER: ${MAIL_SENDER}
             MAIL_PASSWORD: ${MAIL_PASSWORD}
-            SECRET_KEY: ${SECRET_KEY}
+            SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
             MAIL_USER: ${MAIL_USER}
             CHAT_API_KEY: ${CHAT_API_KEY:-}
             ENVIRONMENT: dev

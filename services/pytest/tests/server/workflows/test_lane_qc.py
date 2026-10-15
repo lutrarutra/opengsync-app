@@ -2,12 +2,18 @@
 
 As legacy ``lane_qc_workflow``: insider-only, single step. Experiments with combined lanes
 get one set of values that is applied to every lane (``UnifiedQCLanesForm``); the others get
-one row per lane (``QCLanesForm``). Values are prefilled from the lanes (the sequencing qubit
-concentration, falling back to the original one). Completion redirects to the experiment.
+one row per lane (``QCLanesForm``). Values are prefilled from the lanes. Completion redirects
+to the experiment.
+
+The qubit is prefilled with the original (pre-dilution) concentration, the value this form
+saves. Legacy prefilled the sequencing qubit (measured after dilution at flow-cell loading)
+when there was one, so re-saving lane QC after loading overwrote the original concentration
+with the diluted one and changed the library volume of the next loading (see "Regression").
 
 Basic separate-lane submit, access and fragment size 0 are in ``tests/server/test_workflows.py``.
 """
 
+import re
 import uuid
 
 import pytest
@@ -41,6 +47,12 @@ def _lanes(session: SyncSession, experiment: models.Experiment) -> list[models.L
 
 def _qc(lane: models.Lane) -> tuple:
     return (lane.phi_x, lane.avg_fragment_size, lane.original_qubit_concentration)
+
+
+def _prefilled(html: str, name: str) -> str | None:
+    """The value an input named ``name`` is rendered with."""
+    match = re.search(rf'value="([^"]*)" name="{re.escape(name)}"', html)
+    return match.group(1) if match else None
 
 
 def _params(experiment: models.Experiment) -> dict:
@@ -78,7 +90,7 @@ def test_combined_begin_renders_one_set_of_values_prefilled_from_the_first_lane(
     experiment = _experiment(session, insider, COMBINED)
     for lane in _lanes(session, experiment):
         lane.phi_x, lane.avg_fragment_size = 2.25, 410
-        lane.original_qubit_concentration, lane.sequencing_qubit_concentration = 1.0, 3.75
+        lane.original_qubit_concentration, lane.sequencing_qubit_concentration = 1.75, 3.75
         session.save(lane, flush=True)
     session.commit()
 
@@ -86,9 +98,9 @@ def test_combined_begin_renders_one_set_of_values_prefilled_from_the_first_lane(
 
     assert response.status_code == 200, response.text
     assert "fields-0-phi_x" not in response.text
-    for name, value in (("phi_x", "2.25"), ("avg_fragment_size", "410"), ("qubit_concentration", "3.75")):
-        assert f'name="{name}"' in response.text
-        assert f'value="{value}"' in response.text
+    assert _prefilled(response.text, "phi_x") == "2.25"
+    assert _prefilled(response.text, "avg_fragment_size") == "410"
+    assert _prefilled(response.text, "qubit_concentration") == "1.75"  # the original, not the sequencing qubit
 
 
 def test_combined_submit_sets_every_lane_and_clears_state(
@@ -147,7 +159,7 @@ def test_separate_begin_prefills_each_lane(client: TestClient, session: SyncSess
     experiment = _experiment(session, insider, SEPARATE)
     first, second = _lanes(session, experiment)[:2]
     first.phi_x, first.avg_fragment_size, first.original_qubit_concentration = 1.25, 300, 2.0
-    second.original_qubit_concentration, second.sequencing_qubit_concentration = 1.0, 4.5
+    second.original_qubit_concentration, second.sequencing_qubit_concentration = 1.75, 4.5
     session.save(first, flush=True)
     session.save(second, flush=True)
     session.commit()
@@ -157,8 +169,10 @@ def test_separate_begin_prefills_each_lane(client: TestClient, session: SyncSess
     assert response.status_code == 200, response.text
     text = response.text
     assert 'name="fields-0-lane_id"' in text and 'name="fields-1-lane_id"' in text
-    assert 'value="1.25"' in text and 'value="300"' in text and 'value="2.0"' in text
-    assert 'value="4.5"' in text  # sequencing qubit preferred over the original one
+    assert (_prefilled(text, "fields-0-phi_x"), _prefilled(text, "fields-0-avg_fragment_size")) == ("1.25", "300")
+    assert _prefilled(text, "fields-0-qubit_concentration") == "2.0"
+    assert _prefilled(text, "fields-1-qubit_concentration") == "1.75"  # the original, not the sequencing qubit
+    assert 'value="4.5"' not in text
 
 
 def test_separate_lanes_get_their_own_values(client: TestClient, session: SyncSession, insider, insider_token: str):
@@ -249,6 +263,88 @@ def test_separate_lane_of_another_experiment_is_rejected(
 
     assert response.status_code == 404
     assert {_qc(lane) for lane in _lanes(session, experiment) + _lanes(session, other)} == {(None, None, None)}
+
+
+# ── Regression: re-saving lane QC after flow-cell loading ───────────────────
+
+QUBIT, SIZE, DILUTED_QUBIT = 2.0, 400, 0.4
+LOAD = {"phi_x": "1.5", "target_molarity": "1.5", "total_volume_ul": "100", "measured_qubit": str(DILUTED_QUBIT)}
+LIBRARY_VOLUME = 100.0 * 1.5 / (QUBIT / (SIZE * 660) * 1_000_000)  # total volume × target / lane molarity
+QC_FIELD = re.compile(r"(fields-\d+-)?(lane_id|phi_x|avg_fragment_size|qubit_concentration)")
+
+
+def _prefilled_qc_payload(html: str) -> dict[str, str]:
+    """What the lane QC form posts when it is saved without changes."""
+    return {name: value for value, name in re.findall(r'value="([^"]*)" name="([^"]*)"', html) if QC_FIELD.fullmatch(name)}
+
+
+def _load_flow_cell(client: TestClient, token: str, experiment: models.Experiment, lanes: list[models.Lane]):
+    if experiment.workflow.combined_lanes:
+        path, payload = f"/htmx/experiments/{experiment.id}/load-flow-cell/combined", LOAD
+    else:
+        path = f"/htmx/experiments/{experiment.id}/load-flow-cell/separate"
+        payload = {f"fields-{i}-{key}": value for i, lane in enumerate(lanes) for key, value in {"lane_id": str(lane.id), **LOAD}.items()}
+    return post_form(client, path, payload, token=token)
+
+
+@pytest.mark.parametrize("workflow", [COMBINED, SEPARATE], ids=["combined", "separate"])
+def test_resaving_lane_qc_after_loading_keeps_the_original_qubit_and_library_volume(
+    client: TestClient, session: SyncSession, insider, insider_token: str, workflow: C.ExperimentWorkFlow,
+):
+    """QC, load the flow cell (measuring the diluted qubit), then open lane QC again and save it
+    unchanged: the original qubit, the lane molarity and the next loading's library volume stay the same."""
+    experiment = _experiment(session, insider, workflow)
+    lanes = _lanes(session, experiment)
+    params = _params(experiment)
+    _begin(client, insider_token, params)
+    qc = {"phi_x": "1", "avg_fragment_size": str(SIZE), "qubit_concentration": str(QUBIT)}
+    if workflow.combined_lanes:
+        assert_htmx_redirect(_submit_combined(client, insider_token, params, **qc), f"/experiments/{experiment.id}")
+    else:
+        assert_htmx_redirect(_submit_separate(client, insider_token, params, _separate_payload(
+            lanes, **{str(i): qc for i in range(len(lanes))},
+        )), f"/experiments/{experiment.id}")
+
+    assert_htmx_redirect(_load_flow_cell(client, insider_token, experiment, lanes), f"/experiments/{experiment.id}")
+    lanes = _lanes(session, experiment)
+    assert {(lane.original_qubit_concentration, lane.sequencing_qubit_concentration) for lane in lanes} == {(QUBIT, DILUTED_QUBIT)}
+    assert all(lane.library_volume_ul == pytest.approx(LIBRARY_VOLUME) for lane in lanes)
+    lane_molarity = lanes[0].lane_molarity
+
+    # Open lane QC again and save it as prefilled
+    params = _params(experiment)
+    response = _begin(client, insider_token, params)
+    assert response.status_code == 200, response.text
+    payload = _prefilled_qc_payload(response.text)
+    assert {value for name, value in payload.items() if name.endswith("qubit_concentration")} == {str(QUBIT)}
+    route = "UnifiedQCLanesForm.Submit" if workflow.combined_lanes else "QCLanesForm.Submit"
+    response = post_form(client, _url(client, route), payload, token=insider_token, params=params)
+    assert_htmx_redirect(response, f"/experiments/{experiment.id}")
+
+    lanes = _lanes(session, experiment)
+    assert {lane.original_qubit_concentration for lane in lanes} == {QUBIT}
+    assert all(lane.lane_molarity == pytest.approx(lane_molarity) for lane in lanes)
+
+    assert_htmx_redirect(_load_flow_cell(client, insider_token, experiment, lanes), f"/experiments/{experiment.id}")
+    assert all(lane.library_volume_ul == pytest.approx(LIBRARY_VOLUME) for lane in _lanes(session, experiment))
+
+
+@pytest.mark.parametrize("workflow", [COMBINED, SEPARATE], ids=["combined", "separate"])
+def test_sequencing_qubit_alone_is_not_prefilled(
+    client: TestClient, session: SyncSession, insider, insider_token: str, workflow: C.ExperimentWorkFlow,
+):
+    """Without an original qubit the field stays empty: the diluted measurement is never offered as the original."""
+    experiment = _experiment(session, insider, workflow)
+    for lane in _lanes(session, experiment):
+        lane.sequencing_qubit_concentration = DILUTED_QUBIT
+        session.save(lane, flush=True)
+    session.commit()
+
+    response = _begin(client, insider_token, _params(experiment))
+
+    assert response.status_code == 200, response.text
+    qubits = {value for name, value in _prefilled_qc_payload(response.text).items() if name.endswith("qubit_concentration")}
+    assert qubits == {""}
 
 
 # ── Access ──────────────────────────────────────────────────────────────────

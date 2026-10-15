@@ -9,11 +9,19 @@ function deleteCookie(name) {
     document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
 }
 
+// Toast messages interpolate user-controlled names (files, samples, ...): always render them as text, never as HTML.
+function flashToastContent(text) {
+    const content = document.createElement('div');
+    content.style.cssText = 'display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;';
+    content.textContent = text;
+    return content;
+}
+
 function showFlashToast(msg) {
     Swal.fire({
         position: 'top',
         icon: msg.category || 'success',
-        html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
+        html: flashToastContent(msg.message),
         showConfirmButton: false,
         timer: msg.category === 'error' || msg.category === 'warning' ? null : 1500,
         toast: true,

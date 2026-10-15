@@ -29,7 +29,7 @@ class Pool(Base):
     __tablename__ = "pool"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status: Mapped[PoolStatus] = mapped_column(EnumColumn[PoolStatus](PoolStatus), nullable=False, default=0, name="status_id", key="status")
+    status: Mapped[PoolStatus] = mapped_column(EnumColumn[PoolStatus](PoolStatus), nullable=False, default=0, name="status_id", key="status", active_history=True)
     type: Mapped[PoolType] = mapped_column(EnumColumn[PoolType](PoolType), nullable=False, name="type_id", key="type")
 
     timestamp_stored_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)

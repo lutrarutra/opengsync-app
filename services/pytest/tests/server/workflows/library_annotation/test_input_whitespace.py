@@ -18,9 +18,9 @@ def test_input_whitespace(
         "new_project": "   Padded Project Title   ",
         "project_description": "\tPadded description \n",
     }, next_step="sample-annotation")
-    wf.post("sample-annotation", spreadsheet(["Sample Name", "Genome"], [["  Pad_Sample  ", f" {HUMAN} "]]), next_step="sample-attribute-annotation")
+    wf.post("sample-annotation", spreadsheet(["Sample Name", "Organism"], [["  Pad_Sample  ", f" {HUMAN} "]]), next_step="sample-attribute-annotation")
     wf.post("sample-attribute-annotation", spreadsheet(
-        ["Sample Name", "Sample ID", "Condition"], [["Pad_Sample", "(new)", "  treated  "]],
+        ["Sample", "Condition"], [["Pad_Sample [new]", "  treated  "]],
     ), next_step="select-service")
     wf.service(C.ServiceType.BULK_RNA_SEQ, next_step="pooled-library-annotation", additional_info="  keep cold  ")
 

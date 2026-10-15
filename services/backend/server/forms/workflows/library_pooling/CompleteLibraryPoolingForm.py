@@ -4,6 +4,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
@@ -68,85 +69,93 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
             pooling_table = form.workflow.tables["pooling_table"].copy()
             library_table = form.workflow.tables["library_table"]
 
-            pooling_table["old_pool_id"] = parsing.map_columns(pooling_table, library_table, "library_id", "pool_id")
-            pooling_table["experiment_id"] = None
+            with run_operation(session, lab_ops.POOL_LIBRARIES, subject=lab_prep):
+                pooling_table["old_pool_id"] = parsing.map_columns(pooling_table, library_table, "library_id", "pool_id")
+                pooling_table["experiment_id"] = None
 
-            for pool in lab_prep.pools:
-                pooling_table.loc[pooling_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
-                session.delete(pool)
+                for pool in lab_prep.pools:
+                    pooling_table.loc[pooling_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
+                    session.delete(pool)
 
-            # x (failed), t (control) and skip are not pools, even when they are the only value
-            special_pools = ("x", "t", "skip")
-            unique_pools = pooling_table["pool"].unique()
-            single_pool = len(unique_pools) == 1 and str(unique_pools[0]).strip().lower() not in special_pools
-            if single_pool:
-                pooling_table["pool"] = "1"
+                # x (failed), t (control) and skip are not pools, even when they are the only value
+                special_pools = ("x", "t", "skip")
+                unique_pools = pooling_table["pool"].unique()
+                single_pool = len(unique_pools) == 1 and str(unique_pools[0]).strip().lower() not in special_pools
+                if single_pool:
+                    pooling_table["pool"] = "1"
 
-            experiment_mappings: dict[str, int] = {}
-            for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
-                experiment_ids = group["experiment_id"].unique()
-                if len(experiment_ids) == 1 and pd.notna(experiment_ids[0]):
-                    experiment_mappings[key.pool] = int(experiment_ids[0])
-
-            def _experiment_id(pool_suffix: str) -> int | None:
-                return experiment_mappings.get(pool_suffix)
-
-            if not single_pool:
+                experiment_mappings: dict[str, int] = {}
                 for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
-                    pool_suffix = key.pool.strip().lower()
-                    if pool_suffix in ("t", "skip"):
-                        continue
-                    if pool_suffix == "x":
+                    experiment_ids = group["experiment_id"].unique()
+                    if len(experiment_ids) == 1 and pd.notna(experiment_ids[0]):
+                        experiment_mappings[key.pool] = int(experiment_ids[0])
+
+                def _experiment_id(pool_suffix: str) -> int | None:
+                    return experiment_mappings.get(pool_suffix)
+
+                def _num_m_reads_requested(group: pd.DataFrame) -> float | None:
+                    # validated to be set and equal within a pool in the pooling step
+                    values = group["num_m_reads_requested"].dropna()
+                    return float(values.iloc[0]) if not values.empty else None
+
+                if not single_pool:
+                    for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
+                        pool_suffix = key.pool.strip().lower()
+                        if pool_suffix in ("t", "skip"):
+                            continue
+                        if pool_suffix == "x":
+                            for _, row in parsing.safe_iter(group, PooledLibraryRow):
+                                library = session.get_one(Q.library.select(id=row.library_id))
+                                library.status = C.LibraryStatus.FAILED
+                                session.save(library)
+                            continue
+
+                        pool_suffix = str(key.pool).removeprefix(f"{lab_prep.name}_").strip()
+                        pool = session.save(Q.pool.create(
+                            name=f"{lab_prep.name}_{pool_suffix}",
+                            pool_type=C.PoolType.INTERNAL,
+                            contact_email=current_user.email,
+                            contact_name=current_user.name,
+                            owner_id=current_user.id,
+                            lab_prep_id=lab_prep.id,
+                            experiment_id=_experiment_id(pool_suffix),
+                            num_m_reads_requested=_num_m_reads_requested(group),
+                            clone_number=0,
+                        ))
                         for _, row in parsing.safe_iter(group, PooledLibraryRow):
                             library = session.get_one(Q.library.select(id=row.library_id))
-                            library.status = C.LibraryStatus.FAILED
+                            library.pool_id = pool.id
+                            library.status = C.LibraryStatus.POOLED
                             session.save(library)
-                        continue
 
-                    pool_suffix = str(key.pool).removeprefix(f"{lab_prep.name}_").strip()
+                else:
                     pool = session.save(Q.pool.create(
-                        name=f"{lab_prep.name}_{pool_suffix}",
+                        name=lab_prep.name,
                         pool_type=C.PoolType.INTERNAL,
                         contact_email=current_user.email,
                         contact_name=current_user.name,
                         owner_id=current_user.id,
                         lab_prep_id=lab_prep.id,
-                        experiment_id=_experiment_id(pool_suffix),
+                        experiment_id=_experiment_id("1"),
+                        num_m_reads_requested=_num_m_reads_requested(pooling_table),
                         clone_number=0,
                     ))
-                    for _, row in parsing.safe_iter(group, PooledLibraryRow):
+                    for _, row in parsing.safe_iter(pooling_table, PooledLibraryRow):
                         library = session.get_one(Q.library.select(id=row.library_id))
                         library.pool_id = pool.id
                         library.status = C.LibraryStatus.POOLED
                         session.save(library)
 
-            else:
-                pool = session.save(Q.pool.create(
-                    name=lab_prep.name,
-                    pool_type=C.PoolType.INTERNAL,
-                    contact_email=current_user.email,
-                    contact_name=current_user.name,
-                    owner_id=current_user.id,
-                    lab_prep_id=lab_prep.id,
-                    experiment_id=_experiment_id("1"),
-                    clone_number=0,
-                ))
-                for _, row in parsing.safe_iter(pooling_table, PooledLibraryRow):
-                    library = session.get_one(Q.library.select(id=row.library_id))
-                    library.pool_id = pool.id
-                    library.status = C.LibraryStatus.POOLED
-                    session.save(library)
-
-            for seq_request_id in library_table["seq_request_id"].dropna().unique():
-                seq_request = session.get_one(
-                    Q.seq_request.select(id=int(seq_request_id)).options(
-                        orm.selectinload(models.SeqRequest.libraries),
+                for seq_request_id in library_table["seq_request_id"].dropna().unique():
+                    seq_request = session.get_one(
+                        Q.seq_request.select(id=int(seq_request_id)).options(
+                            orm.selectinload(models.SeqRequest.libraries),
+                        )
                     )
-                )
-                prepared = all(library.status.id >= C.LibraryStatus.POOLED.id for library in seq_request.libraries)
-                if prepared and seq_request.status == C.SeqRequestStatus.ACCEPTED:
-                    seq_request.status = C.SeqRequestStatus.PREPARED
-                    session.save(seq_request)
+                    prepared = all(library.status.id >= C.LibraryStatus.POOLED.id for library in seq_request.libraries)
+                    if prepared and seq_request.status == C.SeqRequestStatus.ACCEPTED:
+                        seq_request.status = C.SeqRequestStatus.PREPARED
+                        session.save(seq_request)
 
             form.workflow.complete()
             return responses.htmx_response(

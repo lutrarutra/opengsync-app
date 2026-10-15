@@ -1,6 +1,7 @@
 from fastapi import Depends, Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -18,6 +19,10 @@ def _check_sample_name(val: str) -> str | None:
 
 class SampleForm(HTMXForm):
     template_path = "forms/sample.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
 
     name = inputs.string.StringInputField(
         "Sample Name", max_length=models.Sample.name.type.length, min_length=3,
@@ -56,6 +61,7 @@ class SampleForm(HTMXForm):
         ):
             form.name.data = form.sample.name
             form.status.data = form.sample.status.id if form.sample.status is not None else None
+            form.status_comment.hidden = bool(form.status.read_only)
             return form.make_response()
         return route
 
@@ -80,9 +86,10 @@ class SampleForm(HTMXForm):
                     form.name.errors.append("Project already has a sample with this name.")
                     raise exc.FormValidationException(form)
 
-            form.sample.name = form.name.data
-            form.sample.status = C.SampleStatus.get(form.status.data) if form.status.data is not None else None
-            session.save(form.sample)
+            with run_operation(session, manual_ops.EDIT_SAMPLE, subject=form.sample, comment=form.status_comment.data):
+                form.sample.name = form.name.data
+                form.sample.status = C.SampleStatus.get(form.status.data) if form.status.data is not None else None
+                session.save(form.sample)
 
             return responses.htmx_response(
                 redirect=responses.url_for("sample_page", sample_id=form.sample.id),

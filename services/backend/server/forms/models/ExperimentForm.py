@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import Depends, Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -11,6 +12,10 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 class ExperimentForm(HTMXForm):
     template_path = "forms/experiment.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
 
     name = inputs.string.StringInputField("Experiment Name", max_length=models.Experiment.name.type.length, placeholder="e.g., EXP_2024_001")
     workflow = inputs.selectable.SelectableInputField("Workflow", options=C.ExperimentWorkFlow.as_selectable(),)
@@ -67,6 +72,7 @@ class ExperimentForm(HTMXForm):
             form.sequencer.data = form.experiment.sequencer_id
             form.operator.data = form.experiment.operator_id
             form.status.data = form.experiment.status.id
+            form.status_comment.hidden = bool(form.status.read_only)
             form.r1_cycles.data = form.experiment.r1_cycles
             form.r2_cycles.data = form.experiment.r2_cycles
             form.i1_cycles.data = form.experiment.i1_cycles
@@ -110,16 +116,17 @@ class ExperimentForm(HTMXForm):
                 form.workflow.errors.append(str(e))
                 raise exc.FormValidationException(form)
 
-            form.experiment.name = form.name.data
-            form.experiment.workflow = workflow
-            form.experiment.sequencer_id = sequencer.id
-            form.experiment.operator_id = operator.id
-            form.experiment.status = status
-            form.experiment.r1_cycles = form.r1_cycles.data
-            form.experiment.r2_cycles = form.r2_cycles.data
-            form.experiment.i1_cycles = form.i1_cycles.data
-            form.experiment.i2_cycles = form.i2_cycles.data
-            session.save(form.experiment)
+            with run_operation(session, manual_ops.EDIT_EXPERIMENT, subject=form.experiment, comment=form.status_comment.data):
+                form.experiment.name = form.name.data
+                form.experiment.workflow = workflow
+                form.experiment.sequencer_id = sequencer.id
+                form.experiment.operator_id = operator.id
+                form.experiment.status = status
+                form.experiment.r1_cycles = form.r1_cycles.data
+                form.experiment.r2_cycles = form.r2_cycles.data
+                form.experiment.i1_cycles = form.i1_cycles.data
+                form.experiment.i2_cycles = form.i2_cycles.data
+                session.save(form.experiment)
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=form.experiment.id),
                 flash=responses.flash("Experiment Updated!", "success"),
@@ -147,17 +154,18 @@ class ExperimentForm(HTMXForm):
                 form.workflow.errors.append(str(e))
                 raise exc.FormValidationException(form)
 
-            experiment = session.save(Q.experiment.create(
-                name=form.name.data,
-                workflow=workflow,
-                sequencer_id=sequencer.id,
-                operator_id=operator.id,
-                status=status,
-                r1_cycles=form.r1_cycles.data,
-                r2_cycles=form.r2_cycles.data,
-                i1_cycles=form.i1_cycles.data,
-                i2_cycles=form.i2_cycles.data,
-            ), flush=True)
+            with run_operation(session, create_ops.EXPERIMENT_CREATE):
+                experiment = session.save(Q.experiment.create(
+                    name=form.name.data,
+                    workflow=workflow,
+                    sequencer_id=sequencer.id,
+                    operator_id=operator.id,
+                    status=status,
+                    r1_cycles=form.r1_cycles.data,
+                    r2_cycles=form.r2_cycles.data,
+                    i1_cycles=form.i1_cycles.data,
+                    i2_cycles=form.i2_cycles.data,
+                ), flush=True)
 
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=experiment.id),

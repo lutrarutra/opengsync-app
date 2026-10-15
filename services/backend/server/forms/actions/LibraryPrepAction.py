@@ -2,7 +2,7 @@ import json
 
 from fastapi import Depends, Response
 
-from opengsync_db import SyncSession, queries as Q, categories as C
+from opengsync_db import SyncSession, queries as Q, categories as C, actions
 from opengsync_db.categories import LibraryStatus, LibraryType, LabChecklistType
 
 from ...core import dependencies, exceptions as exc, responses
@@ -70,10 +70,8 @@ class LibraryPrepAction(HTMXForm):
             if lab_prep is None:
                 raise exc.NotFoundException()
 
-            for library in form.selected_library_ids.get_selected_libraries(session=session):
-                lab_prep.libraries.append(library)
-
-            session.save(lab_prep)
+            libraries = form.selected_library_ids.get_selected_libraries(session=session)
+            actions.add_libraries_to_prep(session, lab_prep=lab_prep, libraries=libraries)
 
             return responses.htmx_response(
                 redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep_id),

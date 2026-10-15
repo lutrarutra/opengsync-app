@@ -3,6 +3,7 @@ from fastapi import Depends
 from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc, config
 from ...components import inputs
@@ -108,16 +109,17 @@ class LabPrepForm(HTMXForm):
             if not form.name.data:
                 form.name.data = f"{checklist_type.identifier}{prep_number:04d}"
 
-            lab_prep = session.save(
-                Q.lab_prep.create(
-                    name=form.name.data.strip(),
-                    checklist_type=checklist_type,
-                    service_type=service_type,
-                    number=prep_number,
-                    creator=current_user,
-                ),
-                flush=True,
-            )
+            with run_operation(session, create_ops.LAB_PREP_CREATE):
+                lab_prep = session.save(
+                    Q.lab_prep.create(
+                        name=form.name.data.strip(),
+                        checklist_type=checklist_type,
+                        service_type=service_type,
+                        number=prep_number,
+                        creator=current_user,
+                    ),
+                    flush=True,
+                )
 
             return responses.htmx_response(
                 redirect=responses.url_for("lab_prep_page", lab_prep_id=lab_prep.id),

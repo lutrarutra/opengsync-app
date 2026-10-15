@@ -4,18 +4,17 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
-from pydantic import BaseModel
 from sqlalchemy import orm
 from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from opengsync_db.core.blueprints import pd_transforms as T
+from opengsync_db.transitions import run_operation, release as release_ops
 
-from ...core import config, dependencies, responses, exceptions as exc, redis as rds
+from ...core import config, dependencies, overview, responses, exceptions as exc, redis as rds
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
-from ...utils import parsing
 from ...utils.file_browser import PROJECT_SERVABLE_EXTENSIONS, is_servable
 from ...utils.io import is_browser_friendly
 from ...utils.shared_file_browser import SharedFileBrowser
@@ -311,7 +310,8 @@ def complete_project(
                 ),
             )
 
-    project.status = C.ProjectStatus.DELIVERED
+    with run_operation(session, release_ops.COMPLETE, subject=project):
+        project.status = C.ProjectStatus.DELIVERED
     return responses.htmx_response(
         redirect=ctx.request.url_for("project_page", project_id=project.id),
         flash=responses.flash("Project Completed!", "success"),
@@ -326,8 +326,9 @@ def archive_project(
     """Archive the project. Only the project status changes; samples/libraries are untouched."""
     project = session.get_one(Q.project.select(id=project_id))
 
-    project.status = C.ProjectStatus.ARCHIVED
-    session.save(project)
+    with run_operation(session, release_ops.ARCHIVE, subject=project):
+        project.status = C.ProjectStatus.ARCHIVED
+        session.save(project)
 
     return responses.htmx_response(
         redirect=ctx.request.url_for("project_page", project_id=project.id),
@@ -356,13 +357,14 @@ def unarchive_project(
         C.LibraryStatus.REJECTED,
         C.LibraryStatus.ARCHIVED,
     }
-    if not project.libraries:
-        project.status = C.ProjectStatus.DRAFT
-    elif all(library.status in finished_statuses for library in project.libraries):
-        project.status = C.ProjectStatus.DELIVERED
-    else:
-        project.status = C.ProjectStatus.PROCESSING
-    session.save(project)
+    with run_operation(session, release_ops.UNARCHIVE, subject=project):
+        if not project.libraries:
+            project.status = C.ProjectStatus.DRAFT
+        elif all(library.status in finished_statuses for library in project.libraries):
+            project.status = C.ProjectStatus.DELIVERED
+        else:
+            project.status = C.ProjectStatus.PROCESSING
+        session.save(project)
 
     return responses.htmx_response(
         redirect=ctx.request.url_for("project_page", project_id=project.id),
@@ -411,136 +413,10 @@ def render_project_sample_attribute_spreadsheet(
 def render_project_overview(
     project_id: int,
     session: SyncSession = Depends(dependencies.db_session),
-):
-    libraries = session.get_pandas(Q.pd.project_data(project_id), limit=None)
-    experiment_ids = libraries["experiment_id"].unique().tolist()
-    library_ids = libraries["library_id"].unique().tolist()
-    lanes = session.get_pandas(
-        Q.pd.project_libraries_lanes(experiment_ids, library_ids),
-        limit=None,
-    )
-    df = T.project_libraries(libraries, lanes, collapse_lanes_=True)
-
-    LINK_WIDTH_UNIT = 1
-
-    nodes = []
-    links = []
-    library_in_nodes = {}
-    library_out_nodes = {}
-
-    experiment_nodes = {}
-    seq_request_nodes = {}
-    idx = 0
-
-    class ExperimentNameKey(BaseModel):
-        experiment_name: str
-
-    class SeqRequestIdKey(BaseModel):
-        seq_request_id: int
-
-    class SampleNameKey(BaseModel):
-        sample_name: str
-
-    class OverviewLibraryRow(BaseModel):
-        library_name: str
-        library_id: int
-        seq_request_id: int
-        experiment_name: str | None = None
-
-    for key, _ in parsing.safe_groupby(df, ExperimentNameKey, dropna=True):
-        node = {
-            "node": idx,
-            "name": key.experiment_name,
-        }
-        experiment_nodes[key.experiment_name] = node
-        nodes.append(node)
-        idx += 1
-
-    for key, _ in parsing.safe_groupby(df, SeqRequestIdKey):
-        node = {
-            "node": idx,
-            "name": f"Request {key.seq_request_id}",
-        }
-        seq_request_nodes[key.seq_request_id] = node
-        nodes.append(node)
-        idx += 1
-
-    for key, sample_df in parsing.safe_groupby(df, SampleNameKey):
-        sample_node = {
-            "node": idx,
-            "name": key.sample_name,
-        }
-        idx += 1
-        nodes.append(sample_node)
-
-        for _, row in parsing.safe_iter(sample_df, OverviewLibraryRow):
-            library_name = row.library_name
-            library_id = row.library_id
-            seq_request_id = row.seq_request_id
-            experiment_name = row.experiment_name
-
-            if library_id not in library_in_nodes:
-                library_in_node = {
-                    "node": idx,
-                    "name": library_name,
-                }
-                idx += 1
-                nodes.append(library_in_node)
-                library_in_nodes[library_id] = library_in_node
-                links.append(
-                    {
-                        "source": library_in_node["node"],
-                        "target": seq_request_nodes[seq_request_id]["node"],
-                        "value": LINK_WIDTH_UNIT
-                        * len(df[df["library_id"] == library_id]),
-                    }
-                )
-            else:
-                library_in_node = library_in_nodes[library_id]
-
-            links.append(
-                {
-                    "source": sample_node["node"],
-                    "target": library_in_node["node"],
-                    "value": LINK_WIDTH_UNIT,
-                }
-            )
-
-            if experiment_name is not None and library_id not in library_out_nodes:
-                library_out_node = {
-                    "node": idx,
-                    "name": library_name,
-                }
-                idx += 1
-                nodes.append(library_out_node)
-                library_out_nodes[library_id] = library_out_node
-                links.append(
-                    {
-                        "source": library_out_node["node"],
-                        "target": experiment_nodes[experiment_name]["node"],
-                        "value": LINK_WIDTH_UNIT
-                        * len(df[df["library_id"] == library_id]),
-                    }
-                )
-                links.append(
-                    {
-                        "source": seq_request_nodes[seq_request_id]["node"],
-                        "target": library_out_node["node"],
-                        "value": LINK_WIDTH_UNIT
-                        * len(
-                            df[
-                                (df["library_id"] == library_id)
-                                & (df["seq_request_id"] == seq_request_id)
-                            ]
-                        ),
-                    }
-                )
-
-    return responses.htmx_response(
-        template="components/plots/project_overview.html",
-        nodes=nodes, links=links,
-    )
-
+    current_user: models.User = Depends(dependencies.require_user),
+) -> dict:
+    """Samples → libraries → pools → experiments of the project (JSON for static/js/overview-graph.js)."""
+    return overview.project_graph(session, project_id, insider=current_user.is_insider)
 
 @router.get("/{project_id}/software", dependencies=[Depends(dependencies.project_permissions)])
 def render_project_software(

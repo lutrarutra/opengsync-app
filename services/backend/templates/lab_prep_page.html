@@ -86,6 +86,15 @@
             data-bs-target="#lab_prep-checklist-tab" type="button" role="tab"
             aria-controls="lab_prep-checklist-tab" aria-selected="true">Checklist {{ tab_count(checklist_steps_completed, checklist_total_steps) }}</button>
         </li>
+        {% if current_user.is_insider %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#lab_prep-status-tab" type="button" role="tab"
+                aria-controls="lab_prep-status-tab" aria-selected="false">
+                Status
+            </button>
+        </li>
+        {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#lab_prep-pools-tab" type="button" role="tab"
@@ -165,6 +174,13 @@
                 {{ spinner() }}
             </div>
         </div>
+        {% if current_user.is_insider %}
+        <div class="tab-pane fade" id="lab_prep-status-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('render_status', entity='lab_prep', obj_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
 
         <div class="tab-pane fade" id="lab_prep-pools-tab" role="tabpanel" tabindex="2">
             <div class="d-flex justify-content-between align-items-center">

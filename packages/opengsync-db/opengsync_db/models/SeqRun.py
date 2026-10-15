@@ -20,7 +20,7 @@ class SeqRun(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
     experiment_name: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True, index=True)
-    status: Mapped[RunStatus] = mapped_column(EnumColumn[RunStatus](RunStatus), nullable=False, name="status_id", key="status")
+    status: Mapped[RunStatus] = mapped_column(EnumColumn[RunStatus](RunStatus), nullable=False, name="status_id", key="status", active_history=True)
 
     instrument_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     run_folder: Mapped[str] = mapped_column(sa.String(64), nullable=False)

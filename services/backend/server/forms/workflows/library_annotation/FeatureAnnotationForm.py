@@ -1,22 +1,38 @@
+import json
+from typing import Sequence, cast
+
 import pandas as pd
 from fastapi import Depends, Response
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
 
-from ....core import responses, dependencies, exceptions as exc
+from ....core import dependencies, exceptions as exc, responses
+from ....core.context import ctx
 from .... import utils
 from ....components import inputs
-from ....components.tables import TextColumn, CategoricalDropDown, DropdownColumn, DuplicateCellValue, InvalidCellValue, MissingCellValue
-from ...HTMXForm import RouteFunc, FormFunc, htmx_route
+from ....components.tables import TextColumn, DropdownColumn, DBObjectColumn, QueryColumn, DuplicateCellValue, InvalidCellValue, MissingCellValue
+from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
+
+SAMPLE_COLUMN = "Sample"
+
+
+def _antibody_kit_names(ids: Sequence[int]) -> dict[int, str]:
+    """Names of the given feature kits that can be selected: antibody kits."""
+    stmt = Q.feature_kit.select(type=C.FeatureType.ANTIBODY).where(models.FeatureKit.id.in_(ids))
+    return {kit.id: f"[{kit.identifier}] {kit.name}" for kit in ctx.session.get_all(stmt, limit=None)}
 
 
 class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-feature_annotation.html"
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
-        DropdownColumn("sample_name", "Sample Name", 170, choices=[], required=False),
-        CategoricalDropDown("kit", "Kit", 250, categories={}, required=False),
+        # Samples (or pools) of the antibody capture libraries, existing samples by "name [id]", others by "name [new]"
+        DBObjectColumn(("sample_id", "sample_name"), SAMPLE_COLUMN, 170, categories={}, required=False),
+        QueryColumn(
+            "kit_id", "Kit", 250, required=False, lookup=_antibody_kit_names,
+            url=lambda: responses.url_for("query_feature_kits").include_query_params(type_in=json.dumps([C.FeatureType.ANTIBODY.id])),
+        ),
         TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False, clean_up_fnc=utils.parsing.normalize_to_ascii, validation_fnc=utils.parsing.check_string),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=utils.barcodes.clean_sequence, validation_fnc=utils.barcodes.check_sequence),
@@ -39,17 +55,18 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
                 [C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id]
             )
         ]
-        from ....core.context import ctx
-        kits_mapping = {
-            kit.identifier: f"[{kit.identifier}] {kit.name}"
-            for kit in ctx.session.get_all(
-                Q.feature_kit.select(type=C.FeatureType.ANTIBODY).order_by(models.FeatureKit.name.asc()),
-                limit=None,
-            )
-        }
         self.abc_samples = self.abc_libraries["sample_name"].unique().tolist()
-        self.spreadsheet.columns["sample_name"].set_choices(self.abc_samples)  # type: ignore
-        self.spreadsheet.columns["kit"].set_categories(kits_mapping)
+        # Library sample names are samples, or pools of multiplexed samples (which are never existing samples)
+        sample_table = self.workflow.tables["sample_table"]
+        existing = sample_table.dropna(subset=["sample_id"])
+        self.sample_ids: dict[str, int] = {
+            name: int(sample_id) for name, sample_id in zip(existing["sample_name"], existing["sample_id"])
+            if name in self.abc_samples
+        }
+        cast(DBObjectColumn, self.spreadsheet.columns[SAMPLE_COLUMN]).set_categories(
+            {sample_id: f"{name} [{sample_id}]" for name, sample_id in self.sample_ids.items()},
+            new_names=[name for name in self.abc_samples if name not in self.sample_ids],
+        )
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
@@ -61,6 +78,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
             # One row per sample for multiplexed pools: the pool's library name repeats
             library_sample_map = form.abc_libraries.drop_duplicates("library_name").set_index("library_name")["sample_name"]
             feature_table["sample_name"] = feature_table["library_name"].map(library_sample_map)
+            feature_table["sample_id"] = feature_table["sample_name"].map(form.sample_ids)
             form.spreadsheet.set_data(feature_table)
             return form.make_response()
         return route
@@ -78,37 +96,34 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
                 form.spreadsheet.add_general_error(f"No features assigned to samples: {unmentioned}")
                 raise exc.FormValidationException(form)
             
-            kit_feature = pd.notna(df["kit"])
+            kit_feature = pd.notna(df["kit_id"])
             custom_feature = pd.notna(df["feature"]) & pd.notna(df["sequence"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
             duplicate_identifier = pd.notna(df["identifier"]) & df.duplicated(subset=["identifier", "sample_name"], keep=False)
             duplicate_name = pd.notna(df["feature"]) & df.duplicated(subset=["feature", "sample_name"], keep=False)
             duplicated = df.duplicated(keep=False)
 
-            kit_identifiers = df["kit"].dropna().unique().tolist()
-            kits: dict[str, tuple[models.FeatureKit, pd.DataFrame]] = dict()
-            
-            df["kit_id"] = None
-            for identifier in kit_identifiers:
-                kit = session.get_one(Q.feature_kit.select(identifier=identifier))
+            kits: dict[int, tuple[models.FeatureKit, pd.DataFrame]] = dict()
+            for kit_id in df["kit_id"].dropna().unique().tolist():
+                kit = session.get_one(Q.feature_kit.select(id=int(kit_id)))
                 kit_df = session.get_pandas(
                     Q.pd.feature_kit_features(kit.id),
                     limit=None,
                 )
-                kits[identifier] = (kit, kit_df)
-                df.loc[df["kit"] == identifier, "kit_id"] = kit.id
+                kits[kit.id] = (kit, kit_df)
+            df["kit"] = df["kit_id"].map(lambda kit_id: kits[int(kit_id)][0].identifier if pd.notna(kit_id) else None)
 
-            for identifier, (kit, kit_df) in kits.items():
-                view = df[df["kit"] == identifier]
+            for kit_id, (kit, kit_df) in kits.items():
+                view = df[df["kit_id"].eq(kit_id).fillna(False)]
                 mask = kit_df["name"].isin(view["feature"])
 
                 for _, kit_row in kit_df[mask].iterrows():
                     df.loc[
-                        (df["kit"] == identifier) & (df["feature"] == kit_row["name"]),
+                        df["kit_id"].eq(kit_id).fillna(False) & df["feature"].eq(kit_row["name"]).fillna(False),
                         ["sequence", "pattern", "read"]
                     ] = kit_row[["sequence", "pattern", "read"]].values
 
                     df.loc[
-                        (df["kit"] == identifier) & (df["identifier"] == kit_row["identifier"]),
+                        df["kit_id"].eq(kit_id).fillna(False) & df["identifier"].eq(kit_row["identifier"]).fillna(False),
                         ["sequence", "pattern", "read"]
                     ] = kit_row[["sequence", "pattern", "read"]].values
 
@@ -120,19 +135,16 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
                     form.spreadsheet.add_error(idx, "feature", DuplicateCellValue("duplicate feature name"))
 
                 if duplicated.at[idx]:
-                    form.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("duplicate feature definition"))
-                    form.spreadsheet.add_error(idx, "kit", DuplicateCellValue("duplicate feature definition"))
+                    form.spreadsheet.add_error(idx, SAMPLE_COLUMN, DuplicateCellValue("duplicate feature definition"))
+                    form.spreadsheet.add_error(idx, "kit_id", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "feature", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "read", DuplicateCellValue("duplicate feature definition"))
 
-                if pd.notna(row["sample_name"]) and row["sample_name"] not in form.abc_libraries["sample_name"].values:
-                    form.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"'Sample Name' must be one of: [{', '.join(set(form.abc_libraries['sample_name'].values.tolist()))}]"))  # type: ignore
-
                 if kit_feature.at[idx]:
                     identifier = row["kit"]
-                    kit, kit_df = kits[identifier]
+                    kit, kit_df = kits[int(row["kit_id"])]
                     if pd.notna(row["identifier"]):
                         if row["identifier"] not in kit_df["identifier"].values:
                             form.spreadsheet.add_error(idx, "identifier", InvalidCellValue(f"Identifier '{row['identifier']}' not found in kit '{identifier}'"))
@@ -144,7 +156,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
 
                 # Not defined custom nor kit feature
                 elif (not custom_feature.at[idx] and not kit_feature.at[idx]):
-                    form.spreadsheet.add_error(idx, "kit", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                    form.spreadsheet.add_error(idx, "kit_id", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
                     form.spreadsheet.add_error(idx, "feature", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
                     form.spreadsheet.add_error(idx, "sequence", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
                     form.spreadsheet.add_error(idx, "pattern", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
@@ -152,7 +164,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
 
                 # Defined both custom and kit feature
                 elif custom_feature.at[idx] and kit_feature.at[idx]:
-                    form.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                    form.spreadsheet.add_error(idx, "kit_id", InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
                     form.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
                     form.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
                     form.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
@@ -175,12 +187,12 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
 
                 elif kit_feature.at[idx]:
                     idx_sample_name = df["sample_name"] == row["sample_name"]
-                    idx_kit = df["kit"] == row["kit"]
+                    idx_kit = df["kit_id"].eq(row["kit_id"]).fillna(False)
                     idx_feature = df["feature"] == row["feature"]
                     idx = True
                     if pd.notna(row["sample_name"]):
                         idx = idx & idx_sample_name
-                    if pd.notna(row["kit"]):
+                    if pd.notna(row["kit_id"]):
                         idx = idx & idx_kit
                     if pd.notna(row["feature"]):
                         idx = idx & idx_feature
@@ -209,7 +221,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
         return route
     
 
-    def get_feature_table(self, df: pd.DataFrame, kits: dict[str, tuple[models.FeatureKit, pd.DataFrame]]) -> pd.DataFrame:
+    def get_feature_table(self, df: pd.DataFrame, kits: dict[int, tuple[models.FeatureKit, pd.DataFrame]]) -> pd.DataFrame:
         feature_data = {
             "library_name": [],
             "kit": [],
@@ -241,7 +253,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
             feature_data["read"].append(read)
 
         for _, row in df.iterrows():
-            if pd.isna(kit_identifier := row["kit"]):
+            if pd.isna(row["kit_id"]):
                 add_feature(
                     library_name=row["library_name"],
                     feature_name=row["feature"],
@@ -252,7 +264,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
                 )
                 continue
 
-            kit, kit_df = kits[kit_identifier]
+            kit, kit_df = kits[int(row["kit_id"])]
 
             if pd.isna(row["identifier"]) and pd.isna(row["feature"]):
                 for _, kit_row in kit_df.iterrows():

@@ -35,6 +35,9 @@ def _audit_format(record) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Refuse to start without a key, before anything else: it signs login, registration and password reset tokens
+    secrets.require_secret_key()
+
     logger.remove()
     logger.add(
         sys.stdout, level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO",

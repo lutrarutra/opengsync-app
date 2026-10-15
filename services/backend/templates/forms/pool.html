@@ -12,6 +12,11 @@
                 {{ form.num_m_reads_requested.render("col-3") }}
                 {{ form.status.render("col-3") }}
             </div>
+            {% if form.status_comment is defined and not form.status_comment.hidden %}
+            <div class="row">
+                {{ form.status_comment.render("col-12") }}
+            </div>
+            {% endif %}
             <div class="row">
                 {% if (form.form_type == "create" or form.form_type == "clone") and current_user.is_insider %}
                 {{ form.contact.render(url_for('search_users'), "name", "col-4") }}

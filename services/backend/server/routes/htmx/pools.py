@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
@@ -151,14 +152,15 @@ def remove_library_from_pool(
     if pool.status != C.PoolStatus.DRAFT and not current_user.is_admin:
         raise exc.NoPermissionsException()
 
-    pool.libraries.remove(library)
-    if library.status == C.LibraryStatus.POOLED:
-        library.status = C.LibraryStatus.STORED
+    with run_operation(session, lab_ops.REMOVE_POOL_LIBRARY, subject=pool):
+        pool.libraries.remove(library)
+        if library.status == C.LibraryStatus.POOLED:
+            library.status = C.LibraryStatus.STORED
 
-    if library.experiment_id == pool.experiment_id:
-        library.experiment_id = None
+        if library.experiment_id == pool.experiment_id:
+            library.experiment_id = None
 
-    session.save(pool)
+        session.save(pool)
     return responses.htmx_response(
         # redirect=responses.url_for("pool_page", pool_id=pool_id),
         flash=responses.flash(f"Library {library.name} removed from pool", "success")
@@ -178,12 +180,13 @@ def remove_libraries_from_pool(
     if pool.status != C.PoolStatus.DRAFT and not current_user.is_admin:
         raise exc.NoPermissionsException()
 
-    for library in pool.libraries:
-        library.pool_id = None
-        if library.status == C.LibraryStatus.POOLED:
-            library.status = C.LibraryStatus.STORED
+    with run_operation(session, lab_ops.REMOVE_POOL_LIBRARY, subject=pool):
+        for library in pool.libraries:
+            library.pool_id = None
+            if library.status == C.LibraryStatus.POOLED:
+                library.status = C.LibraryStatus.STORED
 
-    session.save(pool)
+        session.save(pool)
     
     return responses.htmx_response(
         redirect=responses.url_for("pool_page", pool_id=pool_id),

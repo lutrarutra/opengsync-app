@@ -4,6 +4,7 @@ import pandas as pd
 from fastapi import Depends, Response
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
+from opengsync_db.transitions import run_operation, create as create_ops
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
@@ -164,56 +165,57 @@ class SamplePoolingAction(HTMXForm):
                     assigned[key] = library_id
                     unused.discard(library_id)
 
-            for key in sorted(targets):
-                pool, library_type = key[0], C.LibraryType.get(key[1])
-                samples = targets[key]
-                if (library_id := assigned.get(key)) is not None:
+            with run_operation(session, create_ops.MUX_SAMPLE_POOLING, subject=lab_prep):
+                for key in sorted(targets):
+                    pool, library_type = key[0], C.LibraryType.get(key[1])
+                    samples = targets[key]
+                    if (library_id := assigned.get(key)) is not None:
+                        library = session.get_one(Q.library.select(id=int(library_id)))
+                        library.name = f"{pool}_{library_type.identifier}"
+                        library.sample_name = pool
+                    else:
+                        old_library = session.get_one(Q.library.select(id=min(template_id for _, template_id in samples.values())))
+                        library = session.save(Q.library.create(
+                            name=f"{pool}_{library_type.identifier}",
+                            sample_name=pool,
+                            library_type=old_library.type,
+                            status=old_library.status,
+                            owner_id=old_library.owner_id,
+                            seq_request_id=old_library.seq_request_id,
+                            lab_prep_id=form.lab_prep_id,
+                            genome_ref=old_library.genome_ref,
+                            service_type=old_library.service_type,
+                            mux_type=old_library.mux_type,
+                            nuclei_isolation=old_library.nuclei_isolation,
+                            index_type=old_library.index_type,
+                            original_library_id=old_library.original_library_id if old_library.original_library_id is not None else None,
+                            clone_number=old_library.clone_number,
+                        ))
+                        library.features = old_library.features
+                    session.save(library, flush=True)
+
+                    current = {link.sample_id: link for link in library.sample_links}
+                    for sample_id, link in current.items():
+                        if sample_id not in samples:
+                            session.delete(link)
+                    for sample_id, (mux, _) in samples.items():
+                        if (link := current.get(sample_id)) is None:
+                            actions.link_sample_library(session=session, sample_id=sample_id, library_id=library.id, mux=mux, flush=False)
+                        elif link.mux != mux:
+                            link.mux = mux
+
+                # Libraries without a pool are emptied and deleted below, once their samples are linked elsewhere
+                for library_id in unused:
                     library = session.get_one(Q.library.select(id=int(library_id)))
-                    library.name = f"{pool}_{library_type.identifier}"
-                    library.sample_name = pool
-                else:
-                    old_library = session.get_one(Q.library.select(id=min(template_id for _, template_id in samples.values())))
-                    library = session.save(Q.library.create(
-                        name=f"{pool}_{library_type.identifier}",
-                        sample_name=pool,
-                        library_type=old_library.type,
-                        status=old_library.status,
-                        owner_id=old_library.owner_id,
-                        seq_request_id=old_library.seq_request_id,
-                        lab_prep_id=form.lab_prep_id,
-                        genome_ref=old_library.genome_ref,
-                        service_type=old_library.service_type,
-                        mux_type=old_library.mux_type,
-                        nuclei_isolation=old_library.nuclei_isolation,
-                        index_type=old_library.index_type,
-                        original_library_id=old_library.original_library_id if old_library.original_library_id is not None else None,
-                        clone_number=old_library.clone_number,
-                    ))
-                    library.features = old_library.features
-                session.save(library, flush=True)
-
-                current = {link.sample_id: link for link in library.sample_links}
-                for sample_id, link in current.items():
-                    if sample_id not in samples:
+                    for link in library.sample_links:
                         session.delete(link)
-                for sample_id, (mux, _) in samples.items():
-                    if (link := current.get(sample_id)) is None:
-                        actions.link_sample_library(session=session, sample_id=sample_id, library_id=library.id, mux=mux, flush=False)
-                    elif link.mux != mux:
-                        link.mux = mux
 
-            # Libraries without a pool are emptied and deleted below, once their samples are linked elsewhere
-            for library_id in unused:
-                library = session.get_one(Q.library.select(id=int(library_id)))
-                for link in library.sample_links:
-                    session.delete(link)
-
-            session.flush()
-            session.refresh(lab_prep)
-            for library in lab_prep.libraries:
-                session.refresh(library)
-                if len(library.sample_links) == 0:
-                    session.delete(library)
+                session.flush()
+                session.refresh(lab_prep)
+                for library in lab_prep.libraries:
+                    session.refresh(library)
+                    if len(library.sample_links) == 0:
+                        session.delete(library)
 
             return responses.htmx_response(
                 redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep_id),

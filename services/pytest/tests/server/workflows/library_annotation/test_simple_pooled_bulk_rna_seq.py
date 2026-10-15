@@ -49,15 +49,15 @@ def test_simple_pooled_bulk_rna_seq_annotation(
     })
 
     human = C.GenomeRef.HUMAN.display_name
-    post("sample-annotation", spreadsheet_payload(["Sample Name", "Genome"], [
+    post("sample-annotation", spreadsheet_payload(["Sample Name", "Organism"], [
         ["Sample_A", human],
         ["Sample_B", human],
     ]))
     post("sample-attribute-annotation", spreadsheet_payload(
-        ["Sample Name", "Sample ID", "Test Attribute"],
+        ["Sample", "Test Attribute"],
         [
-            ["Sample_A", "(new)", "Test Attribute A"],
-            ["Sample_B", "(new)", "Test Attribute B"],
+            ["Sample_A [new]", "Test Attribute A"],
+            ["Sample_B [new]", "Test Attribute B"],
         ],
     ))
     post("select-service", {"service_type": str(C.ServiceType.BULK_RNA_SEQ.id)})

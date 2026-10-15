@@ -1,6 +1,7 @@
 from fastapi import Depends, Response, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
+from opengsync_db.transitions import run_operation, create as create_ops
 
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
@@ -95,20 +96,21 @@ class ReseqAction(HTMXForm):
                 seq_request_id=form.seq_request_id,
                 lab_prep_id=form.lab_prep_id if form.seq_request_id is None else None,
             )
-            for library in libraries:
-                seq_request_id = library.seq_request_id
-                if form.seq_request_id is not None:
-                    seq_request_id = form.seq_request_id
+            with run_operation(session, create_ops.LIBRARY_RESEQ):
+                for library in libraries:
+                    seq_request_id = library.seq_request_id
+                    if form.seq_request_id is not None:
+                        seq_request_id = form.seq_request_id
 
-                status = C.LibraryStatus.STORED if indexed else C.LibraryStatus.ACCEPTED
+                    status = C.LibraryStatus.STORED if indexed else C.LibraryStatus.ACCEPTED
 
-                actions.clone_library(
-                    session=session,
-                    library_id=library.id,
-                    seq_request_id=seq_request_id,
-                    indexed=indexed,
-                    status=status,
-                )
+                    actions.clone_library(
+                        session=session,
+                        library_id=library.id,
+                        seq_request_id=seq_request_id,
+                        indexed=indexed,
+                        status=status,
+                    )
 
             flash = responses.flash("Libraries Cloned!", "success")
 

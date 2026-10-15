@@ -4,6 +4,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 
 from .. import models, categories as C
+from ..transitions import tracking  # noqa: F401  (status history flush hook)
 
 @event.listens_for(models.Library, "after_delete")
 def after_library_delete(mapper: orm.Mapper, connection: Connection, target: models.Library):

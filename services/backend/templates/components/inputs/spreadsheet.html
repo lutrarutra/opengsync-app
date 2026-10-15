@@ -14,7 +14,6 @@
 <script>
     // TODO: This is a temporary fix to allow the spreadsheet to load on staging (v2)
     load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
-    // load_jspreadsheet("https://biomedical-sequencing.at/opengsync/v2/static/js/jss-extended.js").then(() => {
         window.spread_sheet = window.jspreadsheet(document.getElementById("{{ grid_id }}"), {
             worksheets: [{
                 data: {{ field.table_data | safe if field.table_data else "[[null]]" }},
@@ -25,9 +24,13 @@
                     {%- elif col["type"] == "dropdown" -%}
                     { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true{% if col.read_only %},  readOnly: true {% endif %}{% if col.backend_columns is defined %}, sortings: jssObjectSortings{% endif %} },
                     {%- elif col.type == "query" -%}
-                    { type: jssQueryColumn, title: "{{col.name}}", width: {{ col.width }}, url: {{ col.url | string | tojson }}, labels: {{ col.labels | tojson }}{% if col.read_only %}, readOnly: true{% endif %} },
+                    { type: jssQueryColumn, title: "{{col.name}}", width: {{ col.width }}, url: {{ col.url | string | tojson if col.url else "null" }}, labels: {{ col.labels | tojson }}{% if col.allow_new %}, allowNew: true{% endif %}{% if col.read_only %}, readOnly: true{% endif %} },
                     {%- endif -%}
                     {% endfor %}
+                    {#- Columns the user added #}
+                    {% for title in (field.extra_columns.values() if field.extra_columns is defined else []) -%}
+                    { type: "text", title: {{ title | tojson }}, width: 100 },
+                    {%- endfor %}
                 ],
                 minSpareRows: {{ field.min_spare_rows }},
                 allowInsertColumn: {{ field.allow_new_cols }},

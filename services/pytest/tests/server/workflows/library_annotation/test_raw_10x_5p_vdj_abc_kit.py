@@ -43,32 +43,31 @@ def test_raw_10x_5p_vdj_abc_kit_annotation(
         additional_services__nuclei_isolation="on",
     )
 
-    feature_columns = ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"]
-    kit_label = "[TSC-TEST] TotalSeq-C Test Panel"  # the dropdown submits the display label
+    feature_columns = ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"]
     wf.post("feature-annotation", spreadsheet(feature_columns, [
         ["", "NOT-A-KIT", "", "", "", "", ""],
-    ]), status=202)  # unknown kit identifier
+    ]), status=202)  # not a kit id
     wf.post("feature-annotation", spreadsheet(feature_columns, [
-        ["", kit_label, "C9999", "", "", "", ""],
+        ["", kit.id, "C9999", "", "", "", ""],
     ]), status=202)  # identifier not in kit
     wf.post("feature-annotation", spreadsheet(feature_columns, [
-        ["", kit_label, "", "CD999", "", "", ""],
+        ["", kit.id, "", "CD999", "", "", ""],
     ]), status=202)  # feature name not in kit
 
     # Donors get the whole kit, the mouse sample gets one kit feature by identifier + a custom one.
     wf.post("feature-annotation", spreadsheet(feature_columns, [
-        ["Donor_1", kit_label, "", "", "", "", ""],
-        ["Donor_2", kit_label, "", "", "", "", ""],
-        ["Mouse_1", kit_label, "C0002", "", "", "", ""],
-        ["Mouse_1", "", "", "Mouse_CD19", "AAGGCAGACGGTGCA", "5PNNNNNNNNNN(BC)", "R2"],
+        ["Donor_1 [new]", kit.id, "", "", "", "", ""],
+        ["Donor_2 [new]", kit.id, "", "", "", "", ""],
+        ["Mouse_1 [new]", kit.id, "C0002", "", "", "", ""],
+        ["Mouse_1 [new]", "", "", "Mouse_CD19", "AAGGCAGACGGTGCA", "5PNNNNNNNNNN(BC)", "R2"],
     ]), next_step="complete-s-a-s")
 
     # 'Back' shows one row per resolved feature, keyed by sample; re-submitting it gives the same result.
     back_rows = [row[:7] for row in spreadsheet_rows(wf.back("feature-annotation"))]
     assert sorted((row[0], row[3]) for row in back_rows) == sorted([
-        ("Donor_1", "CD3"), ("Donor_1", "CD4"), ("Donor_1", "CD8"),
-        ("Donor_2", "CD3"), ("Donor_2", "CD4"), ("Donor_2", "CD8"),
-        ("Mouse_1", "CD4"), ("Mouse_1", "Mouse_CD19"),
+        ("Donor_1 [new]", "CD3"), ("Donor_1 [new]", "CD4"), ("Donor_1 [new]", "CD8"),
+        ("Donor_2 [new]", "CD3"), ("Donor_2 [new]", "CD4"), ("Donor_2 [new]", "CD8"),
+        ("Mouse_1 [new]", "CD4"), ("Mouse_1 [new]", "Mouse_CD19"),
     ])
     wf.post("feature-annotation", spreadsheet(feature_columns, back_rows), next_step="complete-s-a-s")
 

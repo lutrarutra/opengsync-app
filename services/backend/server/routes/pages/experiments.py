@@ -1,9 +1,11 @@
+import os
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses
+from ...core import config, dependencies, responses, exceptions as exc
 
 router = APIRouter(prefix="/experiments", tags=["experiments"], dependencies=[Depends(dependencies.require_insider)])
 
@@ -59,4 +61,29 @@ def experiment_page(
         selected_user=experiment.operator,
         checklist_steps_completed=steps_completed,
         checklist_total_steps=len(steps),
+    )
+
+@router.get("/{experiment_id}/lane-pooling-table/{file_id}")
+def lane_pooling_table_page(
+    experiment_id: int,
+    file_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    """A lane pooling table of the experiment on its own page, e.g. to print a superseded one."""
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    file = session.get_one(Q.media_file.select(id=file_id, experiment_id=experiment.id))
+    if file.type != C.MediaFileType.LANE_POOLING_TABLE:
+        raise exc.NotFoundException(f"File {file.id} is not a lane pooling table.")
+
+    latest = experiment.lane_pooling_table
+    return responses.html_response(
+        template="lane_pooling_table_page.html", experiment=experiment, file=file,
+        title=f"{experiment.name} - Lane Pooling Table",
+        latest=latest if latest is not None and latest.id != file.id else None,
+        file_exists=os.path.isfile(os.path.join(config.settings.app_config.media_folder, file.path)),
+        path_list=[
+            ("Experiments", responses.url_for("experiments_page")),
+            (experiment.name, responses.url_for("experiment_page", experiment_id=experiment.id)),
+            (f"Lane Pooling Table {file.id}", ""),
+        ],
     )

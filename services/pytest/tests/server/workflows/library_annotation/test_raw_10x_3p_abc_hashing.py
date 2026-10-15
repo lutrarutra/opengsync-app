@@ -53,8 +53,8 @@ def test_raw_10x_3p_abc_hashing_annotation(
     ), next_step="feature-annotation")
 
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
-        [["Hash_Pool", "", "", "CD45", "TCCCTTGCGATTTAC", "5PNNNNNNNNNN(BC)", "R2"]],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        [["Hash_Pool [new]", "", "", "CD45", "TCCCTTGCGATTTAC", "5PNNNNNNNNNN(BC)", "R2"]],
     ), next_step="complete-s-a-s")
 
     wf.complete()

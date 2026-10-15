@@ -4,6 +4,7 @@ from fastapi import Cookie, Depends, Request
 from fastapi.responses import Response
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc, secrets
 from ...components import inputs
@@ -434,27 +435,28 @@ class SeqRequestForm(HTMXForm):
                 form.billing.address.data,
             )
 
-            seq_request = session.save(
-                Q.seq_request.create(
-                    name=form.basic_info.name.data,
-                    description=form.basic_info.description.data,
-                    read_type=C.ReadType.get(form.technical_info.read_type.data),
-                    read_length=int(form.technical_info.read_length.data) if form.technical_info.read_length.data else None,
-                    num_lanes=int(form.technical_info.num_lanes.data) if form.technical_info.num_lanes.data else None,
-                    data_delivery_mode=C.DataDeliveryMode.get(form.technical_info.data_delivery_mode.data),
-                    special_requirements=form.technical_info.special_requirements.data,
-                    submission_type=C.SubmissionType.get(form.technical_info.submission_type.data),
-                    billing_code=form.billing.code.data or None,
-                    contact_person=contact_person,
-                    pi_contact=pi_contact,
-                    bioinformatician_contact=bioinformatician,
-                    organization_contact=organization,
-                    billing_contact=billing_contact,
-                    requestor=requestor,
-                    group=group,
-                ),
-                flush=True,
-            )
+            with run_operation(session, create_ops.REQUEST_CREATE):
+                seq_request = session.save(
+                    Q.seq_request.create(
+                        name=form.basic_info.name.data,
+                        description=form.basic_info.description.data,
+                        read_type=C.ReadType.get(form.technical_info.read_type.data),
+                        read_length=int(form.technical_info.read_length.data) if form.technical_info.read_length.data else None,
+                        num_lanes=int(form.technical_info.num_lanes.data) if form.technical_info.num_lanes.data else None,
+                        data_delivery_mode=C.DataDeliveryMode.get(form.technical_info.data_delivery_mode.data),
+                        special_requirements=form.technical_info.special_requirements.data,
+                        submission_type=C.SubmissionType.get(form.technical_info.submission_type.data),
+                        billing_code=form.billing.code.data or None,
+                        contact_person=contact_person,
+                        pi_contact=pi_contact,
+                        bioinformatician_contact=bioinformatician,
+                        organization_contact=organization,
+                        billing_contact=billing_contact,
+                        requestor=requestor,
+                        group=group,
+                    ),
+                    flush=True,
+                )
 
             return responses.htmx_response(
                 redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),

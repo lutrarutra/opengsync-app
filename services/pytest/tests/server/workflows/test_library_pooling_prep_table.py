@@ -56,8 +56,8 @@ def _begin(client: OpenGSyncTestClient, token: str, lab_prep: models.LabPrep):
 
 
 def _id_pool_rows(response) -> list[tuple[int, str]]:
-    """(library_id, pool) per spreadsheet row; columns are library_id, library_name, pool."""
-    return [(int(row[0]), row[2] or "") for row in spreadsheet_rows(response)]
+    """(library_id, pool) per spreadsheet row; columns are library ("name [id]"), pool, M reads requested."""
+    return [(int(row[0].rpartition(" [")[2].rstrip("]")), row[1] or "") for row in spreadsheet_rows(response)]
 
 
 def test_rows_follow_prep_table_order_and_take_its_pool(

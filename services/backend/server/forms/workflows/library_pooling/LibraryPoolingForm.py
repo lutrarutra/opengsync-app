@@ -11,7 +11,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 
 from ....core import dependencies, responses, config
 from ....components import inputs
-from ....components.tables.spreadsheet import TextColumn, IntegerColumn, InvalidCellValue
+from ....components.tables.spreadsheet import TextColumn, FloatColumn, DBObjectColumn, InvalidCellValue, MissingCellValue
 from ....utils import parsing
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from .LibraryPoolingWorkflow import LibraryPoolingWorkflow, LibraryPoolingWorkflowStep
@@ -22,9 +22,10 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
     template_path = "workflows/library_pooling/library_pooling.html"
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(
         columns=[
-            IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
-            TextColumn("library_name", "Library Name", 300, required=True, read_only=True),
+            # Categories are the lab prep's libraries, set in build
+            DBObjectColumn(("library_id", "library_name"), "Library", 300, categories={}, required=True, read_only=True),
             TextColumn("pool", "Pool", 300, required=True),
+            FloatColumn("num_m_reads_requested", "M Reads Requested", 150),
         ],
         allow_new_rows=False,
     )
@@ -97,6 +98,10 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
         form.lab_prep = lab_prep
         form.library_table = library_table
         form.prefill_flash = flash
+        form.spreadsheet.columns["Library"].set_categories({
+            int(library.library_id): f"{library.library_name} [{library.library_id}]"
+            for library in library_table.itertuples()
+        })
         form.spreadsheet.configure(
             csrf_token=form.csrf_token_value,
             post_url=form.post_url,
@@ -128,42 +133,30 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: LibraryPoolingForm = Depends(LibraryPoolingForm.Validate()),
-            session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             df = form.spreadsheet.data
             if df.loc[~df["pool"].astype(str).str.strip().str.lower().isin(["x", "t", "skip"]), "pool"].isna().all():
                 df.loc[df["pool"].isna(), "pool"] = "1"
 
-            assert form.lab_prep is not None
+            # one value per pool: required and >= 0 for pooled rows, identical within a pool
+            pool_num_m_reads: dict[str, float] = {}
+            for idx, row in df.iterrows():
+                pool = str(row["pool"]).strip() if pd.notna(row["pool"]) else ""
+                if pool.lower() in ("", "x", "t", "skip"):
+                    continue
+                num_m_reads = row["num_m_reads_requested"]
+                if pd.isna(num_m_reads):
+                    form.spreadsheet.add_error(idx, "num_m_reads_requested", MissingCellValue("Number of M reads requested is required"))
+                elif float(num_m_reads) < 0:
+                    form.spreadsheet.add_error(idx, "num_m_reads_requested", InvalidCellValue("Number of M reads requested must be >= 0"))
+                elif pool_num_m_reads.setdefault(pool, float(num_m_reads)) != float(num_m_reads):
+                    form.spreadsheet.add_error(idx, "num_m_reads_requested", InvalidCellValue(f"All libraries in pool '{pool}' must have the same number of M reads requested"))
+
+            # the Library column only accepts the prep's libraries (id and name), so every row is one of them
             for idx, row in df.iterrows():
                 pool = str(row["pool"]).strip().lower() if pd.notna(row["pool"]) else ""
-                if pool == "x":
-                    continue
                 if pool == "t":
-                    if row["library_id"]:
-                        form.spreadsheet.add_error(idx, "pool", InvalidCellValue("Requested library cannot be marked as control"))
-                    continue
-
-                if row["library_id"] not in form.library_table["library_id"].values:
-                    form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
-                    continue
-
-                try:
-                    library_id = int(row["library_id"])
-                except (TypeError, ValueError):
-                    form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
-                    continue
-
-                library = session.first(Q.library.select(id=library_id))
-                if library is None:
-                    form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
-                elif library.name != row["library_name"]:
-                    form.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
-                elif library.lab_prep_id != form.lab_prep.id:
-                    form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("Library is not part of this lab prep"))
-
-                if form.library_table[form.library_table["library_id"] == row["library_id"]]["library_name"].isin([row["library_name"]]).all() == 0:
-                    form.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
+                    form.spreadsheet.add_error(idx, "pool", InvalidCellValue("Requested library cannot be marked as control"))
 
             form.assert_valid()
 

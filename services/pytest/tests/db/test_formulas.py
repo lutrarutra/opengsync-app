@@ -1,7 +1,8 @@
 import random
 from pytest import approx
-from opengsync_db import SyncSession, actions, categories as C, queries as Q
+from opengsync_db import SyncSession, actions, models, categories as C, queries as Q
 
+from .test_hybrid_properties import assert_hybrids
 from .create_units import (
     create_user, create_experiment, create_pool, create_library, create_seq_request
 )
@@ -129,3 +130,51 @@ def test_separate_lane_molarity(session: SyncSession):
         assert row["sequencing_molarity"] == approx(lane.sequencing_molarity)  # type: ignore
         assert row["original_molarity"] == approx(lane.original_molarity)  # type: ignore
         assert row["molarity"] == approx(lane.molarity)  # type: ignore
+
+# Illumina: nM = ng/µL × 10^6 / (660 g/mol per bp × average size in bp)
+QUBIT, SIZE, DILUTED_QUBIT = 2.0, 400, 0.4
+ORIGINAL_NM = 7.575757575757576  # 2 ng/µL × 10^6 / (660 × 400 bp)
+DILUTED_NM = 1.5151515151515151  # 0.4 ng/µL × 10^6 / (660 × 400 bp)
+
+
+def test_molarity_matches_the_illumina_conversion(session: SyncSession):
+    """Pool molarity (Python and SQL) against a hand-computed value."""
+    user = create_user(session)
+    pool = create_pool(session, user, create_seq_request(session, user))
+    pool.qubit_concentration, pool.avg_fragment_size = QUBIT, SIZE
+
+    assert_hybrids(session, pool, models.Pool, {"molarity": ORIGINAL_NM})
+
+
+def test_pool_molarity_without_a_positive_size_is_unknown(session: SyncSession):
+    user = create_user(session)
+    pool = create_pool(session, user, create_seq_request(session, user))
+    pool.qubit_concentration, pool.avg_fragment_size = QUBIT, 0
+
+    assert_hybrids(session, pool, models.Pool, {"molarity": None})
+
+
+def test_lane_molarity_ignores_the_sequencing_qubit(session: SyncSession):
+    """The original/lane molarity (which the library volume at flow-cell loading divides by) stays the
+    pre-dilution value when the diluted qubit is measured; only ``molarity`` switches to the sequencing one."""
+    user = create_user(session)
+    experiment = create_experiment(session, user, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
+    lane = experiment.lanes[0]
+    lane.original_qubit_concentration, lane.avg_fragment_size = QUBIT, SIZE
+
+    assert_hybrids(session, lane, models.Lane, {
+        "original_molarity": ORIGINAL_NM,
+        "lane_molarity": ORIGINAL_NM,
+        "sequencing_molarity": None,
+        "molarity": ORIGINAL_NM,
+    })
+
+    lane.sequencing_qubit_concentration = DILUTED_QUBIT
+
+    assert_hybrids(session, lane, models.Lane, {
+        "original_qubit_concentration": QUBIT,
+        "original_molarity": ORIGINAL_NM,
+        "lane_molarity": ORIGINAL_NM,
+        "sequencing_molarity": DILUTED_NM,
+        "molarity": DILUTED_NM,
+    })

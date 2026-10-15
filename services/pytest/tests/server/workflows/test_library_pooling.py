@@ -1,22 +1,24 @@
 """LibraryPoolingWorkflow: assign a lab prep's libraries to pools.
 
-As legacy ``library_pooling_workflow``: insider-only. Step 1 is a spreadsheet (library
-ID, name, pool) of the prep's libraries; rows must name a library of the prep with its
-name, ``t`` (control) is not allowed for a library. Step 2 previews barcode clashes per
+As legacy ``library_pooling_workflow``: insider-only. Step 1 is a spreadsheet (library as
+"name [id]", pool, M reads requested) of the prep's libraries; the library must be one of
+the prep's, ``t`` (control) is not allowed for a library. M reads requested is
+required (>= 0) for pooled rows and must be equal within a pool; it is prefilled from the
+library's current pool. Step 2 previews barcode clashes per
 pool (no rejection) and completes:
 
 - the prep's existing pools are deleted; a new pool keeps the old pool's experiment when
   all of its libraries came from pools of one experiment;
 - one pool value → one pool named ``<prep>``; several → ``<prep>_<value>``;
 - ``x`` marks the library FAILED, ``skip``/``t`` leave it untouched;
-- pooled libraries become POOLED.
+- pooled libraries become POOLED;
+- each new pool gets the M reads requested of its rows.
 
 FastAPI also moves an ACCEPTED request to PREPARED once all its libraries are pooled
 (legacy collected the request IDs into a set that was never filled).
 """
 
 import uuid
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -35,15 +37,26 @@ from .._http import (
     spreadsheet_payload,
 )
 
-COLUMNS = ["Library ID", "Library Name", "Pool"]
+COLUMNS = ["Library", "Pool", "M Reads Requested"]
 
 
 def _url(client: TestClient, route: str) -> str:
     return client.app.url_path_for(f"LibraryPoolingWorkflow.{route}")  # type: ignore[attr-defined]
 
 
-def _payload(rows: list[tuple[models.Library, Any]]) -> dict[str, str]:
-    return spreadsheet_payload(COLUMNS, [[library.id, library.name, pool] for library, pool in rows])
+DEFAULT_NUM_M_READS = 100.0
+
+
+def _payload(rows: list[tuple]) -> dict[str, str]:
+    """Rows are (library, pool) or (library, pool, num_m_reads_requested)."""
+    return spreadsheet_payload(COLUMNS, [
+        [_label(row[0]), row[1], row[2] if len(row) > 2 else DEFAULT_NUM_M_READS] for row in rows
+    ])
+
+
+def _label(library: models.Library) -> str:
+    """The library's option in the Library column."""
+    return f"{library.name} [{library.id}]"
 
 
 class Prep:
@@ -83,7 +96,7 @@ def prep(session: SyncSession, insider, user) -> Prep:
     return Prep(session, insider, user)
 
 
-def _select(client: TestClient, prep: Prep, token: str, rows: list[tuple[models.Library, Any]]):
+def _select(client: TestClient, prep: Prep, token: str, rows: list[tuple]):
     return post_form(client, _url(client, "LibraryPoolingForm.Submit"), _payload(rows), token=token, params=prep.params)
 
 
@@ -91,7 +104,7 @@ def _complete(client: TestClient, prep: Prep, token: str):
     return post_form(client, _url(client, "CompleteLibraryPoolingForm.Submit"), {}, token=token, params=prep.params)
 
 
-def _run(client: TestClient, prep: Prep, token: str, rows: list[tuple[models.Library, Any]]):
+def _run(client: TestClient, prep: Prep, token: str, rows: list[tuple]):
     response = _select(client, prep, token, rows)
     assert response.status_code == 200, response.text
     return _complete(client, prep, token)
@@ -187,11 +200,11 @@ def test_clash_across_pools_is_not_an_error(client: TestClient, session: SyncSes
 
 def test_library_name_mismatch_is_rejected(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
     payload = spreadsheet_payload(COLUMNS, [
-        [prep.a.id, prep.b.name, "1"], [prep.b.id, prep.b.name, "1"], [prep.c.id, prep.c.name, "1"],
+        [f"{prep.b.name} [{prep.a.id}]", "1", 1.0], [_label(prep.b), "1", 1.0], [_label(prep.c), "1", 1.0],
     ])
     response = post_form(client, _url(client, "LibraryPoolingForm.Submit"), payload, token=insider_token, params=prep.params)
 
-    assert_form_invalid(response, "invalid 'library_name' for 'library_id'")
+    assert_form_invalid(response, "for 'Library'")
 
 
 def test_library_outside_prep_is_rejected(client: TestClient, session: SyncSession, prep: Prep, user, insider_token: str):
@@ -200,7 +213,7 @@ def test_library_outside_prep_is_rejected(client: TestClient, session: SyncSessi
 
     response = _select(client, prep, insider_token, [(prep.a, "1"), (prep.b, "1"), (outside, "1")])
 
-    assert_form_invalid(response, "invalid 'library_id'")
+    assert_form_invalid(response, "for 'Library'")
 
 
 def test_library_marked_as_control_is_rejected(client: TestClient, prep: Prep, insider_token: str):
@@ -213,6 +226,30 @@ def test_missing_pool_is_rejected(client: TestClient, prep: Prep, insider_token:
     response = _select(client, prep, insider_token, [(prep.a, ""), (prep.b, "1"), (prep.c, "1")])
 
     assert_form_invalid(response)
+
+
+def test_missing_num_m_reads_is_rejected(client: TestClient, prep: Prep, insider_token: str):
+    response = _select(client, prep, insider_token, [(prep.a, "1", None), (prep.b, "1"), (prep.c, "1")])
+
+    assert_form_invalid(response, "Number of M reads requested is required")
+
+
+def test_negative_num_m_reads_is_rejected(client: TestClient, prep: Prep, insider_token: str):
+    response = _select(client, prep, insider_token, [(prep.a, "1", -1), (prep.b, "1", -1), (prep.c, "1", -1)])
+
+    assert_form_invalid(response, "Number of M reads requested must be >= 0")
+
+
+def test_different_num_m_reads_within_pool_is_rejected(client: TestClient, prep: Prep, insider_token: str):
+    response = _select(client, prep, insider_token, [(prep.a, "1", 10), (prep.b, "1", 20), (prep.c, "2", 30)])
+
+    assert_form_invalid(response, "All libraries in pool '1' must have the same number of M reads requested")
+
+
+def test_num_m_reads_not_required_for_x_and_skip(client: TestClient, prep: Prep, insider_token: str):
+    response = _select(client, prep, insider_token, [(prep.a, "1"), (prep.b, "x", None), (prep.c, "skip", None)])
+
+    assert response.status_code == 200, response.text
 
 
 # ── Completion ──────────────────────────────────────────────────────────────
@@ -234,6 +271,35 @@ def test_several_pools_are_created_with_suffix(
     assert (pool.type, pool.owner_id, pool.contact.email, pool.contact.name) == (
         C.PoolType.INTERNAL, insider.id, insider.email, insider.name,
     )
+
+
+def test_pools_get_num_m_reads_requested(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
+    _run(client, prep, insider_token, [(prep.a, "1", 0), (prep.b, "1", 0), (prep.c, "2", 250.5)])
+
+    session.expire_all()
+    pool_1 = session.get_one(Q.pool.select(id=_library(session, prep.a).pool_id))
+    pool_2 = session.get_one(Q.pool.select(id=_library(session, prep.c).pool_id))
+    assert (pool_1.num_m_reads_requested, pool_2.num_m_reads_requested) == (0.0, 250.5)
+
+
+def test_single_pool_gets_num_m_reads_requested(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
+    _run(client, prep, insider_token, [(lib, "A", 42) for lib in prep.libraries])
+
+    session.expire_all()
+    pool = session.get_one(Q.pool.select(id=_library(session, prep.a).pool_id))
+    assert pool.num_m_reads_requested == 42.0
+
+
+def test_begin_prefills_num_m_reads_from_current_pool(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    _run(client, prep, insider_token, [(prep.a, "1", 123.5), (prep.b, "1", 123.5), (prep.c, "skip", None)])
+
+    prep.params["uuid"] = str(uuid.uuid4())
+    response = get(client, _url(client, "Begin"), insider_token, params=prep.params)
+
+    assert response.status_code == 200, response.text
+    assert "123.5" in response.text
 
 
 def test_single_pool_is_named_after_prep(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):

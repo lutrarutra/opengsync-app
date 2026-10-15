@@ -1,3 +1,4 @@
+{% from "components/overview-graph.jinja2" import overview_button, overview_modal with context %}
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link, metadata_quantity %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
 
@@ -10,6 +11,7 @@
             <h1>{{ experiment.name }} <span class="desc">{{ experiment.workflow.display_name }}</span></h1>
         </div>
         <div class="page-controls">
+            {{ overview_button("experiment-overview") }}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
             data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
             hx-get="{{ url_for('MediaFileForm.Upload', experiment_id=experiment.id) }}">
@@ -90,14 +92,15 @@
                 Metadata
             </button>
         </li>
+        {% if current_user.is_insider %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#experiment-overview-tab" type="button" role="tab"
-                aria-controls="experiment-overview-tab" aria-selected="true"
-                id="experiment-overview-tab-btn">
-                Overview
+                data-bs-target="#experiment-status-tab" type="button" role="tab"
+                aria-controls="experiment-status-tab" aria-selected="false">
+                Status
             </button>
         </li>
+        {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#experiment-files-tab" type="button" role="tab"
@@ -225,12 +228,13 @@
                 {{ metadata_group("R2 Cycles", experiment.r2_cycles, class="col") }}
             </div>
         </div>
-        <div class="tab-pane fade" id="experiment-overview-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('experiment_overview', experiment_id=experiment.id) }}"
-                hx-trigger="intersect once">
+        {% if current_user.is_insider %}
+        <div class="tab-pane fade" id="experiment-status-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('render_status', entity='experiment', obj_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
+        {% endif %}
         <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="6">
             <div hx-get="{{ url_for('render_media_file_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
@@ -316,4 +320,5 @@
         </div>
     </div>
 </div>
+{{ overview_modal("experiment-overview", url_for('experiment_overview', experiment_id=experiment.id), 'Overview · ' ~ experiment.name) }}
 {% endblock content %}

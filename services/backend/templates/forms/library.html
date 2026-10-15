@@ -14,6 +14,11 @@
             {{ form.mux_type.render("col-4") }}
             {{ form.status.render("col-4") }}
         </div>
+        {% if form.status_comment is defined and not form.status_comment.hidden %}
+        <div class="row">
+            {{ form.status_comment.render("col-12") }}
+        </div>
+        {% endif %}
         <div class="row">
             {{ form.protocol.render("col-8") }}
         </div>

@@ -897,6 +897,7 @@ def lab_prep_libraries(lab_prep_id: int) -> sa.Select:
         Library.seq_request_id.label("seq_request_id"),
         Library.genome_ref.label("genome_ref"),
         Pool.id.label("pool_id"), Pool.name.label("pool"),
+        Pool.num_m_reads_requested.label("num_m_reads_requested"),
         Library.index_type.label("index_type"),
     ).where(
         Library.lab_prep_id == lab_prep_id

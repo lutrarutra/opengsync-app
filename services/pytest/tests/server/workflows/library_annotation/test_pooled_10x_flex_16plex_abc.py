@@ -71,8 +71,8 @@ def test_pooled_10x_flex_16plex_abc_annotation(
     wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="feature-annotation")
 
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
-        [["FlexPool", "", "", "CD19", "CTGGGCAATTACTCG", "5PNNNNNNNNNN(BC)", "R2"]],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        [["FlexPool [new]", "", "", "CD19", "CTGGGCAATTACTCG", "5PNNNNNNNNNN(BC)", "R2"]],
     ), next_step="complete-s-a-s")
 
     wf.complete()

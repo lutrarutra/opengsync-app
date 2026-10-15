@@ -26,6 +26,12 @@ def verify_api_token(token: str, hashed_token: str) -> bool:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
+def require_secret_key() -> str:
+    """The key that signs every token. Never empty: with an empty key anyone could sign a valid login token."""
+    if not settings.SECRET_KEY.strip():
+        raise RuntimeError("SECRET_KEY is not set: refusing to sign or verify tokens with an empty key.")
+    return settings.SECRET_KEY
+
 def generate_api_token() -> str:
     return "cf-" + secrets.token_urlsafe(32)
 
@@ -41,16 +47,14 @@ def create_password_reset_token(user_id: int, valid_minutes: int = 60 * 24) -> s
         "iat": issued.timestamp(),
         "action": "password_reset"
     }
-    if not settings.SECRET_KEY:
-        raise ValueError("SECRET_KEY is not set in settings.")
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
 
 def verify_password_reset_token(
     token: str,
     pw_set_datetime: dt.datetime | None = None,
 ) -> int | None:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
         if payload.get("action") != "password_reset":
             return None
         if (
@@ -72,13 +76,11 @@ def generate_registration_token(email: str, role: UserRole, valid_minutes: int =
         "exp": expire,
         "action": "registration"
     }
-    if not settings.SECRET_KEY:
-        raise ValueError("SECRET_KEY is not set in settings.")
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
 
 def verify_registration_token(token: str) -> tuple[str, UserRole] | None:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
         if payload.get("action") != "registration":
             return None
         email = payload.get("email")
@@ -105,11 +107,11 @@ def create_login_token(user: models.User, valid_days: int = 7) -> str:
         "username": user.email,
         "role": user.role.id
     }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
 
 def validate_login_token(token: str) -> dict | None:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
         if (user_id := payload.get("id")) is None:
             logger.warning("Token missing user ID")
             raise exc.UserNotAuthenticatedException(message="Invalid token")

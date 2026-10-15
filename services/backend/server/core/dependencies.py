@@ -15,6 +15,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import make_transient_to_detached
 
 from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, models, categories as C, utils
+from opengsync_db.transitions import tracking
 
 from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache, responses, redis as rds
 from .context import ctx
@@ -303,11 +304,13 @@ def get_user_id(
                 raise exc.UserAccountSuspendedException()
             else:
                 request.state.user_id = auth_response.id
+                tracking.set_actor(session, auth_response.id)
                 return auth_response.id
 
     if api_token:
         user_id = _resolve_user_id_by_api_token(api_token, session, r)
         request.state.user_id = user_id
+        tracking.set_actor(session, user_id)
         return user_id
 
     return None

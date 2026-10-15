@@ -2,6 +2,7 @@ from fastapi import Depends
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops
 
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
@@ -55,10 +56,11 @@ class AddSeqRequestShareEmailAction(HTMXForm):
                 form.email.errors.append("This email address is already in the list.")
                 raise exc.FormValidationException(form)
 
-            form.seq_request.delivery_email_links.append(
-                models.links.SeqRequestDeliveryEmailLink(email=email)
-            )
-            session.save(form.seq_request)
+            with run_operation(session, create_ops.ADD_SHARE_EMAIL, subject=form.seq_request):
+                form.seq_request.delivery_email_links.append(
+                    models.links.SeqRequestDeliveryEmailLink(email=email)
+                )
+                session.save(form.seq_request)
 
             return responses.htmx_response(
                 redirect=responses.url_for("seq_request_page", seq_request_id=form.seq_request.id).include_query_params(tab="request-share-tab"),

@@ -5,7 +5,8 @@ from fastapi import Depends
 from loguru import logger
 from sqlalchemy import orm
 
-from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db import models, queries as Q, SyncSession, categories as C, actions
+from opengsync_db.transitions import run_operation, release as release_ops
 
 from ...core import dependencies, config, responses, exceptions as exc, redis as rds
 from ...core.mailer import Mailer
@@ -39,7 +40,7 @@ class ShareProjectDataAction(HTMXForm):
     recipients = inputs.string.StringInputField("Recipients", required=False, hidden=True)
     mark_project_delivered = inputs.boolean.SwitchInputField("Mark Project as Delivered", default=True)
 
-    def __init__(self, project: models.Project, current_user: models.User) -> None:
+    def __init__(self, project: models.Project) -> None:
         super().__init__()
         self.project = project
         self.paths = parsing.filter_subpaths([data_path.path for data_path in project.data_paths])
@@ -48,15 +49,13 @@ class ShareProjectDataAction(HTMXForm):
         self._context["project"] = project
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit", project_id=project.id)
 
-        if not current_user.is_insider:
-            self.custom_email.read_only = True
-
     @classmethod
     def Init(cls) -> FormFunc:
         def form(
             project_id: int,
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_user),
+            # Sets current_user for the template, also when a CSRF failure re-renders before the route's dependencies
+            _: models.User = Depends(dependencies.require_user),
         ):
             project = session.get_one(
                 Q.project.select(id=project_id),
@@ -66,23 +65,13 @@ class ShareProjectDataAction(HTMXForm):
                     orm.selectinload(models.Project.share_token),
                 ],
             )
-            return ShareProjectDataAction(project=project, current_user=current_user)
+            return ShareProjectDataAction(project=project)
         return form
 
-    def _collect_recipients(self, current_user: models.User) -> None:
+    def _collect_recipients(self) -> None:
         # As legacy's SelectField: only the offered validity periods
         if self.time_valid_min.data not in dict(TIME_VALID_CHOICES):
             self.time_valid_min.errors.append("Not a valid choice.")
-            return
-
-        if not current_user.is_insider and self.time_valid_min.data > DEFAULT_TIME_VALID_MIN:
-            self.add_general_error(
-                f"You don't have permissions to create a link that lasts more than {DEFAULT_TIME_VALID_MIN} minutes."
-            )
-            return
-
-        if not current_user.is_insider and self.custom_email.data:
-            self.add_general_error("You don't have permissions to send to custom email addresses.")
             return
 
         if len(self.paths) == 0:
@@ -114,10 +103,12 @@ class ShareProjectDataAction(HTMXForm):
 
         self.recipient_emails = recipient_emails
 
+    # Insiders only: sharing releases the data (libraries SEQUENCED → SHARED, project DELIVERED), as the release API
     @htmx_route("GET", "/{project_id}/share-data")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "ShareProjectDataAction" = Depends(ShareProjectDataAction.Init()),
+            _: models.User = Depends(dependencies.require_insider),
             access_level: C.AccessLevel = Depends(dependencies.project_permissions),
         ):
             if access_level < C.AccessLevel.WRITE:
@@ -129,16 +120,16 @@ class ShareProjectDataAction(HTMXForm):
     def Submit(cls) -> RouteFunc:
         def route(
             form: "ShareProjectDataAction" = Depends(ShareProjectDataAction.Validate()),
+            current_user: models.User = Depends(dependencies.require_insider),
             access_level: C.AccessLevel = Depends(dependencies.project_permissions),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_user),
             mailer: Mailer = Depends(dependencies.mail_client),
             redis: rds.RedisClient = Depends(dependencies.redis),
         ):
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException()
 
-            form._collect_recipients(current_user)
+            form._collect_recipients()
             form.assert_valid()
 
             project = form.project
@@ -155,9 +146,6 @@ class ShareProjectDataAction(HTMXForm):
                 time_valid_min=form.time_valid_min.data,
                 paths=form.paths,
             ), flush=True)
-
-            if form.mark_project_delivered.data:
-                project.status = C.ProjectStatus.DELIVERED
 
             project.share_token = share_token
             session.save(project)
@@ -178,11 +166,12 @@ class ShareProjectDataAction(HTMXForm):
             else:
                 logger.info(f"Email would be sent to: {form.recipient_emails}")
 
-            for seq_request in project.seq_requests:
-                for link in seq_request.delivery_email_links:
-                    if link.email in form.recipient_emails:
-                        link.status = C.DeliveryStatus.DISPATCHED
-                        session.save(seq_request)
+            # Same statuses as the release API: ticked = deliver now, unticked = deliver once all libraries are sequenced
+            with run_operation(session, release_ops.SHARE_DATA, subject=project):
+                actions.release_project_data(
+                    session, project=project, seq_requests=project.seq_requests, recipients=form.recipient_emails,
+                    mark_project_delivered=True if form.mark_project_delivered.data else None,
+                )
 
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=project.id).include_query_params(

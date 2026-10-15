@@ -19,7 +19,6 @@ class LaneQCRow(BaseModel):
     lane: int
     phi_x: float | None = None
     original_qubit_concentration: float | None = None
-    sequencing_qubit_concentration: float | None = None
     avg_fragment_size: float | int | None = None
 
 
@@ -59,15 +58,12 @@ class UnifiedQCLanesForm(LaneQCWorkflowStep):
         rows = list(parsing.safe_iter(df, LaneQCRow))
         if rows:
             _, row = rows[0]
-            qubit = (
-                row.sequencing_qubit_concentration
-                if row.sequencing_qubit_concentration is not None
-                else row.original_qubit_concentration
-            )
             if ctx.request.method == "GET":
                 form.phi_x.data = row.phi_x
                 form.avg_fragment_size.data = int(row.avg_fragment_size) if row.avg_fragment_size is not None else None
-                form.qubit_concentration.data = qubit
+                # The original (pre-dilution) qubit, which this form saves; not the sequencing qubit
+                # measured after dilution at flow-cell loading, or re-saving would overwrite the original with it
+                form.qubit_concentration.data = row.original_qubit_concentration
         return form
 
     @classmethod

@@ -75,7 +75,7 @@
                 <ol>
                     <li>Double-check the request details:
                         <ul>
-                            <li><button type="button" class="btn btn-primary" onclick="open_tab('request-overview-tab')">Review</button> - Overview of the Sequencing Request</li>
+                            <li><button type="button" class="btn btn-primary" onclick="open_tab('request-overview')">Review</button> - Overview of the Sequencing Request</li>
                             <li><b>Number of samples: {{ seq_request.num_samples }}</b></li>
                             <li><b>Number of libraries: {{ seq_request.num_libraries }}</b> {% for library_type, count in seq_request.library_type_counts.items() %}<span class="badge">{{ library_type.abbreviation }} ({{ count }})</span> {% endfor %}</li>
                         </ul>

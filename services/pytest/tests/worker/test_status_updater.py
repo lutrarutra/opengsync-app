@@ -53,8 +53,43 @@ def test_experiment_status_follows_seq_run(
         run.status = run_status
         session.save(run, flush=True)
 
+    _db_handler.session.info["transitions.mode"] = "strict"  # the worker declares every change
     update_statuses(_db_handler)
 
     session.refresh(experiment)
     # Legacy only promoted experiments with a FINISHED/ARCHIVED run; one without a run stays DRAFT.
     assert experiment.status == expected
+
+
+def test_rules_are_recorded_as_worker_runs(_db_handler: SyncDBHandler, update_statuses):
+    import sqlalchemy as sa
+    from opengsync_db import models
+    from opengsync_db.categories import OperationKind
+
+    session = _db_handler.session
+    user = create_user(session)
+    experiment = create_experiment(session, user, ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
+    run = create_seq_run(session)
+    run.experiment_name = experiment.name
+    session.save(run, flush=True)
+    session.commit()
+
+    _db_handler.session.info["transitions.mode"] = "strict"  # the worker declares every change
+    update_statuses(_db_handler)
+    session.commit()
+
+    [op] = session.execute(
+        sa.select(models.OperationRun).where(models.OperationRun.operation == "worker.experiment_sequencing")
+    ).scalars().all()
+    assert op.kind == OperationKind.WORKER and op.actor_id is None
+    assert op.reason == "seq run of the experiment is RUNNING"
+    [change] = op.changes
+    assert (change.entity_id, change.to_status, change.declared) == (experiment.id, ExperimentStatus.SEQUENCING.id, True)
+    assert change.detail == f"seq run {run.run_folder}"
+
+    count = session.execute(sa.select(sa.func.count()).select_from(models.OperationRun)).scalar_one()
+    _db_handler.session.info["transitions.mode"] = "strict"  # the worker declares every change
+    update_statuses(_db_handler)
+    session.commit()
+    # nothing changed, so no new runs (they are created on the first change only)
+    assert session.execute(sa.select(sa.func.count()).select_from(models.OperationRun)).scalar_one() == count

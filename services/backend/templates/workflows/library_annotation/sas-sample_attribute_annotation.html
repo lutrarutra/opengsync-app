@@ -46,15 +46,29 @@
                 <div class="input-help">
                     <h5>How to?</h5>
                     <ul>
-                        <li>Fill in the required columns in the spreadsheet.</li>
+                        <li>Describe each sample with as many attributes as apply, they are used in the downstream analysis.</li>
+                        <li>A column that is used must be filled in for every sample, leave columns that don't apply empty.</li>
+                        <li>Add your own attributes by right-clicking a column header and inserting a new column, rename columns the same way.</li>
                     </ul>
-                    <h5>Columns: </h5>
+                    <h5>Columns</h5>
                     <ul>
+                        <li>
+                            <b>Sample</b> <span class="desc">read-only</span>
+                            <ul>
+                                <li>The samples of the previous step: existing samples of the project with their ID, e.g. <i>liver_ctrl_1 [12]</i>, new samples marked <i>[new]</i>.</li>
+                                <li>Existing samples come with their attributes, changes are saved to the sample.</li>
+                            </ul>
+                        </li>
+                        <li><b>Sex, Genotype, Cell Type, Condition, Age, Tissue, Disease</b> <span class="desc">optional</span>: common attributes.</li>
                     </ul>
                 </div>
             </div>
             <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="2">
+                {% if example_spreadsheet is defined %}
+                {{ example_spreadsheet.render(height="220px") }}
+                {% else %}
                 {% include "examples/sample_annotation.html" %}
+                {% endif %}
             </div>
         </div>
     </div>

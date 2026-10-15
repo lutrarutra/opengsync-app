@@ -9,9 +9,10 @@ from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
+from opengsync_db.transitions import run_operation, release as release_ops
 
 from ...core import dependencies, exceptions as exc, config, responses, templates, redis as rds
 from ...core.mailer import Mailer
@@ -347,32 +348,11 @@ def release_project_data(
         limit=None,
     )
 
-    if body.mark_project_delivered is None:
-        all_libraries_delivered = True
-        for seq_request in seq_requests:
-            for library in seq_request.libraries:
-                if library.status < C.LibraryStatus.SEQUENCED:
-                    all_libraries_delivered = False
-                    break
-            if not all_libraries_delivered:
-                break
-        if all_libraries_delivered and project.status < C.ProjectStatus.DELIVERED:
-            project.status = C.ProjectStatus.DELIVERED
-            session.save(project)
-    elif body.mark_project_delivered and project.status < C.ProjectStatus.DELIVERED:
-        project.status = C.ProjectStatus.DELIVERED
-        session.save(project)
-
-    for seq_request in seq_requests:
-        for link in seq_request.delivery_email_links:
-            if link.email in recipients:
-                link.status = C.DeliveryStatus.DISPATCHED
-        session.save(seq_request)
-
-    for library in project.libraries:
-        if library.status == C.LibraryStatus.SEQUENCED:
-            library.status = C.LibraryStatus.SHARED
-            session.save(library)
+    with run_operation(session, release_ops.RELEASE, subject=project):
+        actions.release_project_data(
+            session, project=project, seq_requests=seq_requests, recipients=recipients,
+            mark_project_delivered=body.mark_project_delivered,
+        )
 
     return {"result": "success", "recipients": recipients}
 

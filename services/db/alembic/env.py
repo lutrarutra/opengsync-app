@@ -61,6 +61,13 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Tests pass an open connection (config.attributes["connection"]) to migrate a throwaway database.
+    if (connection := config.attributes.get("connection")) is not None:
+        context.configure(connection=connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
+
     user = os.environ["POSTGRES_USER"]
     password = os.environ["POSTGRES_PASSWORD"]
     host = os.environ["POSTGRES_HOST"]

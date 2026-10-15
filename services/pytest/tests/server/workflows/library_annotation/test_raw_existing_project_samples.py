@@ -29,19 +29,20 @@ def test_raw_existing_project_samples_annotation(
     # The existing sample is recognised and its attributes, including custom ones, are pre-filled in their own columns.
     assert '"Batch"' in attribute_step.text
     rows = {row[0]: row for row in spreadsheet_rows(attribute_step)}
-    assert str(rows["Existing_1"][1]) == str(existing_id) and rows["New_1"][1] == "(new)"
+    assert set(rows) == {f"Existing_1 [{existing_id}]", "New_1 [new]"}
+    rows = {name.split(" [")[0]: row for name, row in rows.items()}
     assert "female" in rows["Existing_1"] and "B1" in rows["Existing_1"]
     assert "B1" not in rows["New_1"]
 
-    columns = ["Sample Name", "Sample ID", "Sex", "Batch", "Treatment"]
+    columns = ["Sample", "Sex", "Batch", "Treatment"]
     wf.post("sample-attribute-annotation", spreadsheet(columns, [
-        ["Existing_1", str(existing_id), "female", "B1", "DMSO"], ["New_1", "(new)", "male", "B2", ""],
+        [f"Existing_1 [{existing_id}]", "female", "B1", "DMSO"], ["New_1 [new]", "male", "B2", ""],
     ]), status=202)  # custom attribute only partially filled
     wf.post("sample-attribute-annotation", spreadsheet(columns, [
-        ["Existing_1", str(existing_id), "female", "B1", "DMSO"], ["New_1", "(new)", "male", "", "Drug_X"],
+        [f"Existing_1 [{existing_id}]", "female", "B1", "DMSO"], ["New_1 [new]", "male", "", "Drug_X"],
     ]), status=202)  # existing custom attribute left empty for the new sample
     wf.post("sample-attribute-annotation", spreadsheet(columns, [
-        ["Existing_1", str(existing_id), "female", "B1", "  DMSO "], ["New_1", "(new)", "male", "B2", "Drug_X"],
+        [f"Existing_1 [{existing_id}]", "female", "B1", "  DMSO "], ["New_1 [new]", "male", "B2", "Drug_X"],
     ]), next_step="select-service")
 
     wf.service(C.ServiceType.TENX_SC_GEX_5PRIME, next_step="complete-s-a-s", optional_assays__vdj_t="on")
@@ -90,7 +91,7 @@ def test_rejected_project_sample_cannot_be_reused(
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
     wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
-    response = wf.post("sample-annotation", spreadsheet(["Sample Name", "Genome"], [["Failed_1", HUMAN], ["New_1", HUMAN]]), status=202)
+    response = wf.post("sample-annotation", spreadsheet(["Sample Name", "Organism"], [["Failed_1", HUMAN], ["New_1", HUMAN]]), status=202)
     assert "Sample &#39;Failed_1&#39; is rejected, please specify another name." in response.text or \
         "Sample 'Failed_1' is rejected, please specify another name." in response.text
 

@@ -10,6 +10,11 @@
                 {{ form.name.render(class="col-6") }}
                 {{ form.status.render(class="col-6") }}
             </div>
+            {% if form.status_comment is defined and not form.status_comment.hidden %}
+            <div class="row">
+                {{ form.status_comment.render("col-12") }}
+            </div>
+            {% endif %}
         </div>
     </div>
     <div class="modal-footer">

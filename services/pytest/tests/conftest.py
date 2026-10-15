@@ -51,9 +51,12 @@ def _db_handler(_admin_engine: sa.Engine, _template_db: str):
     with _admin_engine.connect() as conn:
         conn.execute(sa.text(f"CREATE DATABASE {db_name} TEMPLATE {_template_db}"))
 
-    db = SyncDBHandler(auto_open=False, expire_on_commit=False, auto_commit=True)
+    # Sessions the app opens are strict: every status change must run in a declared operation
+    # (opengsync_db.transitions). Test setup sets statuses directly, so the fixture session only records.
+    db = SyncDBHandler(auto_open=False, expire_on_commit=False, auto_commit=True, session_info={"transitions.mode": "strict"})
     db.connect(**_PG, db=db_name)
     db.open_session()
+    db.session.info["transitions.mode"] = "record"
     try:
         yield db
     finally:

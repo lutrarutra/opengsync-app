@@ -1,0 +1,50 @@
+{# Read-only kanban of a record's contents (transitions.kanban.Board): one column per status, one card per record. #}
+{% set page = {"seq_request": ("seq_request_page", "seq_request_id"), "pool": ("pool_page", "pool_id"), "library": ("library_page", "library_id")}[board.child.name] %}
+
+{% macro kanban_card(card, with_status=false) %}
+<a href="{{ url_for(page[0], **{page[1]: card.id}) }}" class="status-kanban-card d-block bg-body border rounded px-2 py-1 mb-1 text-decoration-none text-body small" data-id="{{ card.id }}">
+    <div class="d-flex justify-content-between gap-1">
+        <span class="fw-semibold text-truncate" title="{{ card.name }}">{{ card.name }}</span>
+        {% if card.days_in_status is not none %}
+        <span class="text-muted text-nowrap" title="{{ card.status.display_name }} since {{ card.since | format_datetime }}">{{ card.days_in_status }}d</span>
+        {% endif %}
+    </div>
+    {% if with_status %}<div class="text-muted">{{ card.status.display_name }}</div>{% endif %}
+    {% if card.details %}<div class="text-muted text-truncate">{{ card.details | join(" · ") }}</div>{% endif %}
+    {% if card.next_step %}<div class="text-primary text-truncate">Next: {{ card.next_step }}</div>{% endif %}
+</a>
+{% endmacro %}
+
+<section class="mb-3" aria-label="{{ board.child.label_plural | lower }} by status">
+    <div class="d-flex align-items-baseline gap-2 mb-2">
+        <span class="fw-semibold">{{ board.child.label_plural | capitalize }}</span>
+        <span class="small text-muted">{{ board.total }} · "3d": days in the current status, where the history knows · open a card for its page</span>
+    </div>
+    {% if board.total %}
+    <div class="status-kanban d-flex gap-2 overflow-x-auto pb-2">
+        {% for column in board.columns %}
+        <div class="status-kanban-column bg-body-tertiary rounded p-2" style="flex: 1 0 170px; max-width: 280px;"
+            data-status="{{ column.status.name if column.status else 'OTHER' }}">
+            <div class="d-flex justify-content-between align-items-center small fw-semibold mb-2">
+                <span class="text-truncate">{{ column.status.display_name if column.status else "Other" }}</span>
+                <span class="badge rounded-pill {{ 'text-bg-primary' if column.total else 'text-bg-light border' }}">{{ column.total }}</span>
+            </div>
+            <div style="max-height: 460px; overflow-y: auto;">
+                {% if board.child.name == "library" %}
+                {% for group in column.cards | groupby("group") %}
+                <div class="small text-muted mt-1 mb-1">{{ group.grouper }} · {{ group.list | length }}</div>
+                {% for card in group.list %}{{ kanban_card(card, with_status=column.status is none) }}{% endfor %}
+                {% endfor %}
+                {% else %}
+                {% for card in column.cards %}{{ kanban_card(card, with_status=column.status is none) }}{% endfor %}
+                {% endif %}
+                {% if column.hidden %}<div class="small text-muted">+{{ column.hidden }} more</div>{% endif %}
+                {% if not column.total %}<div class="small text-muted text-center">—</div>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="small text-muted">No {{ board.child.label_plural | lower }} yet.</div>
+    {% endif %}
+</section>

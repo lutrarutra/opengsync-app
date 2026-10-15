@@ -51,8 +51,8 @@ def test_pooled_custom_ocm_annotation(
     ]), next_step="barcode-match")
     wf.post("barcode-match", {"i7_kit": "0", "i7_option": "forward", "i7_primer": "AATGATACGGCGACCACCGA"}, next_step="feature-annotation")
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
-        [["OCM_Chip", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        [["OCM_Chip [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
     ), next_step="complete-s-a-s")
 
     wf.complete()

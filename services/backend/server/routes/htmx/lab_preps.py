@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy import orm
 from loguru import logger
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
@@ -102,7 +103,8 @@ def uncomplete_lab_prep(
 ):
     """Revert a completed lab prep back to preparing."""
     lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
-    lab_prep.status = C.PrepStatus.PREPARING
+    with run_operation(session, lab_ops.UNCOMPLETE, subject=lab_prep):
+        lab_prep.status = C.PrepStatus.PREPARING
 
     return responses.htmx_response(
         redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
@@ -144,7 +146,9 @@ def remove_library_from_prep(
         raise exc.BadRequestException("Cannot remove libraries from a completed prep.")
 
     library = session.get_one(Q.library.select(id=library_id))
-    library.lab_prep = None
+    if library.lab_prep_id != lab_prep.id:
+        raise exc.NotFoundException("Library is not part of this lab prep.")
+    actions.remove_library_from_prep(session, lab_prep_id=lab_prep.id, library_id=library.id)
 
     return responses.htmx_response(
         # redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),
@@ -391,19 +395,20 @@ def complete_lab_prep(
         ],
     )
 
-    for pool in lab_prep.pools:
-        if pool.status < C.PoolStatus.STORED:
-            pool.status = C.PoolStatus.STORED
+    with run_operation(session, lab_ops.COMPLETE, subject=lab_prep):
+        for pool in lab_prep.pools:
+            if pool.status < C.PoolStatus.STORED:
+                pool.status = C.PoolStatus.STORED
 
-    for library in lab_prep.libraries:
-        is_prepared = all(
-            sr_lib.status >= C.LibraryStatus.POOLED
-            for sr_lib in library.seq_request.libraries
-        )
-        if is_prepared:
-            library.seq_request.status = C.SeqRequestStatus.PREPARED
+        for library in lab_prep.libraries:
+            is_prepared = all(
+                sr_lib.status >= C.LibraryStatus.POOLED
+                for sr_lib in library.seq_request.libraries
+            )
+            if is_prepared:
+                library.seq_request.status = C.SeqRequestStatus.PREPARED
 
-    lab_prep.status = C.PrepStatus.COMPLETED
+        lab_prep.status = C.PrepStatus.COMPLETED
 
     return responses.htmx_response(
         redirect=request.url_for("lab_prep_page", lab_prep_id=lab_prep.id),

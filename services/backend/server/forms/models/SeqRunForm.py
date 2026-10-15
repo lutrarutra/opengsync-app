@@ -1,6 +1,7 @@
 from fastapi import Depends, Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -9,6 +10,10 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 class SeqRunForm(HTMXForm):
     template_path = "forms/seq_run.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
 
     experiment_name = inputs.string.StringInputField(
         "Experiment Name",
@@ -96,6 +101,7 @@ class SeqRunForm(HTMXForm):
 
             form.experiment_name.data = form.seq_run.experiment_name
             form.status.data = form.seq_run.status.id
+            form.status_comment.hidden = bool(form.status.read_only)
             form.instrument_name.data = form.seq_run.instrument_name
             form.run_folder.data = form.seq_run.run_folder
             form.flowcell_id.data = form.seq_run.flowcell_id
@@ -138,19 +144,20 @@ class SeqRunForm(HTMXForm):
                 form.experiment_name.errors.append("Experiment name not unique.")
                 raise exc.FormValidationException(form)
 
-            form.seq_run.status = C.RunStatus.get(form.status.data)
-            form.seq_run.run_folder = form.run_folder.data
-            form.seq_run.flowcell_id = form.flowcell_id.data
-            form.seq_run.read_type = C.ReadType.get(form.read_type.data)
-            form.seq_run.rta_version = form.rta_version.data
-            form.seq_run.recipe_version = form.recipe_version.data
-            form.seq_run.instrument_name = form.instrument_name.data
-            form.seq_run.side = form.side.data
-            form.seq_run.flowcell_mode = form.flowcell_mode.data
-            form.seq_run.r1_cycles = form.r1_cycles.data
-            form.seq_run.r2_cycles = form.r2_cycles.data
-            form.seq_run.i1_cycles = form.i1_cycles.data
-            form.seq_run.i2_cycles = form.i2_cycles.data
+            with run_operation(session, manual_ops.EDIT_SEQ_RUN, subject=form.seq_run, comment=form.status_comment.data):
+                form.seq_run.status = C.RunStatus.get(form.status.data)
+                form.seq_run.run_folder = form.run_folder.data
+                form.seq_run.flowcell_id = form.flowcell_id.data
+                form.seq_run.read_type = C.ReadType.get(form.read_type.data)
+                form.seq_run.rta_version = form.rta_version.data
+                form.seq_run.recipe_version = form.recipe_version.data
+                form.seq_run.instrument_name = form.instrument_name.data
+                form.seq_run.side = form.side.data
+                form.seq_run.flowcell_mode = form.flowcell_mode.data
+                form.seq_run.r1_cycles = form.r1_cycles.data
+                form.seq_run.r2_cycles = form.r2_cycles.data
+                form.seq_run.i1_cycles = form.i1_cycles.data
+                form.seq_run.i2_cycles = form.i2_cycles.data
 
             return responses.htmx_response(
                 redirect=responses.url_for("seq_run_page", seq_run_id=form.seq_run.id),
@@ -169,32 +176,33 @@ class SeqRunForm(HTMXForm):
                 form.experiment_name.errors.append("Experiment name not unique.")
                 raise exc.FormValidationException(form)
 
-            seq_run = session.save(Q.seq_run.create(
-                experiment_name=form.experiment_name.data,
-                status=C.RunStatus.get(form.status.data),
-                instrument_name=form.instrument_name.data,
-                run_folder=form.run_folder.data,
-                flowcell_id=form.flowcell_id.data,
-                read_type=C.ReadType.get(form.read_type.data),
-                rta_version=form.rta_version.data,
-                recipe_version=form.recipe_version.data,
-                side=form.side.data,
-                flowcell_mode=form.flowcell_mode.data,
-                r1_cycles=form.r1_cycles.data,
-                r2_cycles=form.r2_cycles.data,
-                i1_cycles=form.i1_cycles.data,
-                i2_cycles=form.i2_cycles.data,
-            ), flush=True)
+            with run_operation(session, manual_ops.CREATE_SEQ_RUN):
+                seq_run = session.save(Q.seq_run.create(
+                    experiment_name=form.experiment_name.data,
+                    status=C.RunStatus.get(form.status.data),
+                    instrument_name=form.instrument_name.data,
+                    run_folder=form.run_folder.data,
+                    flowcell_id=form.flowcell_id.data,
+                    read_type=C.ReadType.get(form.read_type.data),
+                    rta_version=form.rta_version.data,
+                    recipe_version=form.recipe_version.data,
+                    side=form.side.data,
+                    flowcell_mode=form.flowcell_mode.data,
+                    r1_cycles=form.r1_cycles.data,
+                    r2_cycles=form.r2_cycles.data,
+                    i1_cycles=form.i1_cycles.data,
+                    i2_cycles=form.i2_cycles.data,
+                ), flush=True)
 
-            if (experiment := session.first(Q.experiment.select(name=seq_run.experiment_name))) is not None:
-                if seq_run.status == C.RunStatus.FINISHED:
-                    experiment.status = C.ExperimentStatus.SEQUENCED
-                elif seq_run.status == C.RunStatus.FAILED:
-                    experiment.status = C.ExperimentStatus.FAILED
-                elif seq_run.status == C.RunStatus.RUNNING:
-                    experiment.status = C.ExperimentStatus.SEQUENCING
-                elif seq_run.status == C.RunStatus.ARCHIVED:
-                    experiment.status = C.ExperimentStatus.ARCHIVED
+                if (experiment := session.first(Q.experiment.select(name=seq_run.experiment_name))) is not None:
+                    if seq_run.status == C.RunStatus.FINISHED:
+                        experiment.status = C.ExperimentStatus.SEQUENCED
+                    elif seq_run.status == C.RunStatus.FAILED:
+                        experiment.status = C.ExperimentStatus.FAILED
+                    elif seq_run.status == C.RunStatus.RUNNING:
+                        experiment.status = C.ExperimentStatus.SEQUENCING
+                    elif seq_run.status == C.RunStatus.ARCHIVED:
+                        experiment.status = C.ExperimentStatus.ARCHIVED
 
             return responses.htmx_response(
                 redirect=responses.url_for("seq_run_page", seq_run_id=seq_run.id),

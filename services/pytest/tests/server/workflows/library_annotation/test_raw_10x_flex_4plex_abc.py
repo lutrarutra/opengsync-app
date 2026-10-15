@@ -46,11 +46,11 @@ def test_raw_10x_flex_4plex_abc_annotation(
     ), next_step="feature-annotation")
 
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
         [
-            ["flex_pool_1", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
-            ["flex_pool_2", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
-            ["flex_pool_2", "", "", "CD8", "GCTGCGCTTTCCATT", "5PNNNNNNNNNN(BC)", "R2"],
+            ["flex_pool_1 [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
+            ["flex_pool_2 [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"],
+            ["flex_pool_2 [new]", "", "", "CD8", "GCTGCGCTTTCCATT", "5PNNNNNNNNNN(BC)", "R2"],
         ],
     ), next_step="complete-s-a-s")
 

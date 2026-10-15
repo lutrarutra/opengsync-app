@@ -14,6 +14,7 @@ Medium severity:
 6. Missing permission checks: group ownership takeover by managers, seq requests filed into
    foreign groups, library feature tables, comments on insider-only threads. (ProtocolForm and
    SampleForm are covered in their own test files.)
+7. The server started, and signed and verified tokens, with an empty SECRET_KEY.
 """
 
 import hashlib
@@ -904,3 +905,89 @@ def test_comment_on_own_request_still_allowed(
 
     assert_htmx_redirect(response, f"/seq_requests/{own_request.id}")
     assert [c.text for c in _comments(session)] == ["hello"]
+
+
+# ── 7. Empty SECRET_KEY ─────────────────────────────────────────────────────
+# The key signs login, registration and password reset tokens. With an empty key anyone could
+# sign a valid login token for any user, so the server must not start, sign or verify without one.
+
+EMPTY_KEYS = pytest.mark.parametrize("key", ["", "   "], ids=["empty", "whitespace"])
+
+
+def _forged(payload: dict, key: str) -> str:
+    """An HS256 token signed with ``key``, built by hand: recent PyJWT refuses to sign with an empty key."""
+    import base64
+    import hmac
+
+    def b64(data: bytes) -> bytes:
+        return base64.urlsafe_b64encode(data).rstrip(b"=")
+
+    signing_input = b64(b'{"alg":"HS256","typ":"JWT"}') + b"." + b64(json.dumps(payload).encode())
+    signature = hmac.new(key.encode(), signing_input, hashlib.sha256).digest()
+    return (signing_input + b"." + b64(signature)).decode()
+
+
+@EMPTY_KEYS
+def test_server_does_not_start_without_secret_key(monkeypatch: pytest.MonkeyPatch, key: str):
+    import asyncio
+    from fastapi import FastAPI
+    from server.core import lifespan
+
+    monkeypatch.setattr(config.settings, "SECRET_KEY", key)
+    app = FastAPI()
+
+    async def start():
+        async with lifespan.lifespan(app):
+            pass
+
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        asyncio.run(start())
+    assert not hasattr(app.state, "db_handler")  # stopped before connecting to anything
+
+
+@EMPTY_KEYS
+def test_tokens_are_not_signed_without_secret_key(monkeypatch: pytest.MonkeyPatch, key: str, user):
+    from server.core import secrets
+
+    monkeypatch.setattr(config.settings, "SECRET_KEY", key)
+
+    for sign in (
+        lambda: secrets.create_login_token(user),
+        lambda: secrets.create_password_reset_token(user.id),
+        lambda: secrets.generate_registration_token("new@example.com", C.UserRole.CLIENT),
+    ):
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            sign()
+
+
+@EMPTY_KEYS
+def test_forged_tokens_are_not_accepted_without_secret_key(monkeypatch: pytest.MonkeyPatch, key: str, user):
+    from server.core import secrets
+
+    monkeypatch.setattr(config.settings, "SECRET_KEY", key)
+    exp = config.settings.now().timestamp() + 3600
+
+    for verify in (
+        lambda: secrets.validate_login_token(_forged(
+            {"id": user.id, "username": user.email, "role": C.UserRole.ADMIN.id, "exp": exp}, key,
+        )),
+        lambda: secrets.verify_password_reset_token(_forged(
+            {"user_id": user.id, "action": "password_reset", "exp": exp}, key,
+        )),
+        lambda: secrets.verify_registration_token(_forged(
+            {"email": "new@example.com", "role": C.UserRole.ADMIN.id, "action": "registration", "exp": exp}, key,
+        )),
+    ):
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            verify()
+
+
+def test_tokens_round_trip_with_secret_key(user):
+    from server.core import secrets
+
+    assert config.settings.SECRET_KEY.strip()
+    assert secrets.validate_login_token(secrets.create_login_token(user))["id"] == user.id
+    assert secrets.verify_password_reset_token(secrets.create_password_reset_token(user.id)) == user.id
+    assert secrets.verify_registration_token(
+        secrets.generate_registration_token("new@example.com", C.UserRole.CLIENT),
+    ) == ("new@example.com", C.UserRole.CLIENT)

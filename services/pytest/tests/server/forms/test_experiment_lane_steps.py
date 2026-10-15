@@ -289,6 +289,203 @@ def test_separate_pooling_negative_reads_rerender(client: TestClient, separate: 
     assert separate.reads() == before
 
 
+# ── Lane pooling table (rendered in the 'Lane Pools' checklist step) ────────
+
+
+def _pooling_table_file(session: SyncSession, setup: Setup) -> models.MediaFile:
+    session.expire_all()
+    return session.get_one(Q.experiment.select(id=setup.experiment.id)).lane_pooling_table
+
+
+def test_checklist_lane_pools_step_loads_the_latest_pooling_table(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+
+    response = get(client, f"{PREFIX}/{combined.experiment.id}/checklist", insider_token, htmx=True)
+
+    assert response.status_code == 200, response.text
+    assert f"/htmx/experiments/{combined.experiment.id}/sample-pooling-table/{file.id}" in response.text
+
+
+def test_pooling_table_renders_a_printable_table_per_lane(
+    client: TestClient, session: SyncSession, separate: Setup, insider_token: str, media_folder: Path,
+):
+    a, b = separate.a.id, separate.b.id
+    reads = {(1, a): 10.0, (1, b): 30.0, (2, a): 50.0, (2, b): 50.0}
+    post_form(client, separate.path("lane-pools"), _separate_pooling_payload(
+        separate, reads, {1: ("3", "50"), 2: ("2", "40")},
+    ), token=insider_token)
+    file = _pooling_table_file(session, separate)
+
+    response = get(client, f"{PREFIX}/{separate.experiment.id}/sample-pooling-table/{file.id}", insider_token, htmx=True)
+
+    assert response.status_code == 200, response.text
+    assert "print_div('lane-pooling-ratios-container')" in response.text
+    assert f"{separate.experiment.name} - Lane 1" in response.text
+    assert f"{separate.experiment.name} - Lane 2" in response.text
+    assert response.text.count(separate.a.name) == 2
+    assert f"{2.0 / MOLARITY * 0.5 * 40.0:.2f}" in response.text  # pipet of pool b on lane 2
+    assert f"{40.0 - 2 * 2.0 / MOLARITY * 0.5 * 40.0:.2f}" in response.text  # EB volume of lane 2
+
+
+def test_pooling_table_without_lanes_renders_one_table(
+    client: TestClient, session: SyncSession, combined: Setup, insider, insider_token: str, media_folder: Path,
+):
+    """Uploaded pooling tables without a 'lane' column (legacy experiment-wide pooling)."""
+    df = pd.DataFrame({
+        "pool": [combined.a.name, combined.b.name], "dilution": ["Orig.", "Orig."], "num_m_reads": [100.0, 300.0],
+        "share": [0.25, 0.75], "qubit_concentration": [QUBIT, QUBIT], "avg_fragment_size": [SIZE, SIZE],
+        "molarity": [MOLARITY, MOLARITY], "pipet": [1.0, 3.0], "target_molarity": [3.0, 3.0], "target_total_volume": [50.0, 50.0],
+    })
+    file = session.save(Q.media_file.create(
+        name="pooling", uuid="00000000-0000-7000-8000-000000000001", size_bytes=1, type=C.MediaFileType.LANE_POOLING_TABLE,
+        extension=".tsv", uploader_id=insider.id, experiment_id=combined.experiment.id,
+    ))
+    session.commit()
+    os.makedirs(media_folder / C.MediaFileType.LANE_POOLING_TABLE.dir, exist_ok=True)
+    df.to_csv(media_folder / file.path, sep="\t", index=False)
+
+    response = get(client, f"{PREFIX}/{combined.experiment.id}/sample-pooling-table/{file.id}", insider_token, htmx=True)
+
+    assert response.status_code == 200, response.text
+    assert "print_div('lane-pooling-ratios-container')" in response.text
+    assert combined.a.name in response.text and combined.b.name in response.text
+    assert "46.0" in response.text  # EB volume: 50 - (1 + 3)
+
+
+def test_pooling_table_missing_on_disk_is_404(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+    os.remove(media_folder / file.path)
+
+    response = get(client, f"{PREFIX}/{combined.experiment.id}/sample-pooling-table/{file.id}", insider_token, htmx=True)
+
+    assert response.status_code == 404
+
+
+def test_pooling_table_of_another_experiment_is_404(
+    client: TestClient, session: SyncSession, combined: Setup, user, insider, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+    other = Setup(session, user, insider, COMBINED)
+
+    response = get(client, f"{PREFIX}/{other.experiment.id}/sample-pooling-table/{file.id}", insider_token, htmx=True)
+
+    assert response.status_code == 404
+
+
+def test_pooling_table_is_insider_only(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, user_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+
+    response = get(client, f"{PREFIX}/{combined.experiment.id}/sample-pooling-table/{file.id}", user_token, htmx=True)
+
+    assert response.status_code == 403
+
+
+def _pooling_table_page(setup: Setup, file: models.MediaFile) -> str:
+    return f"/experiments/{setup.experiment.id}/lane-pooling-table/{file.id}"
+
+
+def test_file_table_links_every_pooling_table_to_its_page(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    old = _pooling_table_file(session, combined)
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    new = _pooling_table_file(session, combined)
+
+    response = get(client, f"/htmx/files/render-table-page?experiment_id={combined.experiment.id}", insider_token, htmx=True)
+
+    assert response.status_code == 200, response.text
+    assert _pooling_table_page(combined, old) in response.text
+    assert _pooling_table_page(combined, new) in response.text
+    assert response.text.count("bi-table") == 2
+
+
+def test_pooling_table_page_loads_the_table(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+
+    response = get(client, _pooling_table_page(combined, file), insider_token)
+
+    assert response.status_code == 200, response.text
+    assert f"/htmx/experiments/{combined.experiment.id}/sample-pooling-table/{file.id}" in response.text
+    assert f"/htmx/files/{file.id}/download" in response.text
+    assert "A newer lane pooling table exists" not in response.text
+
+
+def test_pooling_table_page_of_an_old_table_links_the_latest(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    old = _pooling_table_file(session, combined)
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    new = _pooling_table_file(session, combined)
+
+    response = get(client, _pooling_table_page(combined, old), insider_token)
+
+    assert response.status_code == 200, response.text
+    assert "A newer lane pooling table exists" in response.text
+    assert _pooling_table_page(combined, new) in response.text
+    assert f"/sample-pooling-table/{old.id}" in response.text
+
+
+def test_pooling_table_page_missing_on_disk_says_so(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+    os.remove(media_folder / file.path)
+
+    response = get(client, _pooling_table_page(combined, file), insider_token)
+
+    assert response.status_code == 200, response.text
+    assert "not found on disk" in response.text
+    assert "/sample-pooling-table/" not in response.text
+
+
+def test_pooling_table_page_of_another_file_type_is_404(
+    client: TestClient, session: SyncSession, combined: Setup, insider, insider_token: str,
+):
+    file = session.save(Q.media_file.create(
+        name="report", uuid="00000000-0000-7000-8000-000000000002", size_bytes=1, type=C.MediaFileType.CUSTOM,
+        extension=".pdf", uploader_id=insider.id, experiment_id=combined.experiment.id,
+    ))
+    session.commit()
+
+    assert get(client, _pooling_table_page(combined, file), insider_token).status_code == 404
+
+
+def test_pooling_table_page_of_another_experiment_is_404(
+    client: TestClient, session: SyncSession, combined: Setup, user, insider, insider_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+    other = Setup(session, user, insider, COMBINED)
+
+    assert get(client, _pooling_table_page(other, file), insider_token).status_code == 404
+
+
+def test_pooling_table_page_is_insider_only(
+    client: TestClient, session: SyncSession, combined: Setup, insider_token: str, user_token: str, media_folder: Path,
+):
+    post_form(client, combined.path("lane-pools"), _combined_pooling_payload(combined), token=insider_token)
+    file = _pooling_table_file(session, combined)
+
+    assert get(client, _pooling_table_page(combined, file), user_token).status_code == 403
+
+
 # ── Read distribution ───────────────────────────────────────────────────────
 
 

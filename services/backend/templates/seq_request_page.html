@@ -1,3 +1,4 @@
+{% from "components/overview-graph.jinja2" import overview_button, overview_modal with context %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/workflow_tile.jinja2" import workflow_tile with context %}
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
@@ -50,6 +51,7 @@
             <h1>{{ seq_request.identifier }} <span class="desc">{{ seq_request.submission_type.label }}</span></h1>
         </div>
         <div class="page-controls">
+            {{ overview_button("request-overview") }}
             {% if current_user.is_insider and seq_request.status == C.SeqRequestStatus.ACCEPTED %}
             <button hx-get="{{ url_for('StoreSamplesAction.Begin', seq_request_id=seq_request.id) }}" class="btn btn-success"
                 data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click">
@@ -211,13 +213,15 @@
             data-bs-target="#request-metadata-tab" type="button" role="tab"
             aria-controls="request-metadata-tab" aria-selected="false">Metadata</button>
         </li>
+        {% if current_user.is_insider %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#request-overview-tab" type="button" role="tab"
-                aria-controls="request-overview-tab" aria-selected="false">
-                Overview
+                data-bs-target="#request-status-tab" type="button" role="tab"
+                aria-controls="request-status-tab" aria-selected="false">
+                Status
             </button>
         </li>
+        {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#seq_request-files-tab" type="button" role="tab"
@@ -453,11 +457,13 @@
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('render_seq_request_overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
+        {% if current_user.is_insider %}
+        <div class="tab-pane fade" id="request-status-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('render_status', entity='seq_request', obj_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
+        {% endif %}
         <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="8">
             <div hx-get="{{ url_for('render_media_file_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
@@ -545,4 +551,5 @@
     </div>
 </div>
 
+{{ overview_modal("request-overview", url_for('render_seq_request_overview', seq_request_id=seq_request.id), 'Overview · ' ~ seq_request.identifier) }}
 {% endblock %}

@@ -2,6 +2,7 @@ from fastapi import Depends, Response
 from sqlalchemy import orm
 
 from opengsync_db import actions, categories as C, models, queries as Q, SyncSession
+from opengsync_db.transitions import run_operation, release as release_ops
 
 from ....components import inputs
 from ....core import dependencies, exceptions as exc, responses
@@ -103,59 +104,60 @@ class ConfirmSplitForm(SplitProjectWorkflowStep):
                 form.destination_status.errors.append("Please select a valid destination status.")
                 raise exc.FormValidationException(form)
 
-            destination_project = None
-            destination_project_id = form.workflow.metadata.get("destination_project_id")
-            options = [
-                orm.selectinload(models.Project.samples).selectinload(models.Sample.library_links),
-                orm.selectinload(models.Project.samples).selectinload(models.Sample.plate_links),
-            ]
+            with run_operation(session, release_ops.SPLIT, subject=source_project):
+                destination_project = None
+                destination_project_id = form.workflow.metadata.get("destination_project_id")
+                options = [
+                    orm.selectinload(models.Project.samples).selectinload(models.Sample.library_links),
+                    orm.selectinload(models.Project.samples).selectinload(models.Sample.plate_links),
+                ]
 
-            if destination_project_id is not None:
-                destination_project = session.first(
-                    Q.project.select(id=destination_project_id),
-                    options=options,
-                )
-                if destination_project is None:
-                    form.add_general_error("The selected destination project no longer exists.")
-                    raise exc.FormValidationException(form)
-                if destination_project.id == source_project.id:
-                    form.add_general_error("Source and destination projects cannot be the same.")
-                    raise exc.FormValidationException(form)
-                if session.get_access_level(Q.project.permissions(destination_project.id, current_user.id)) < C.AccessLevel.WRITE:
-                    form.add_general_error("You do not have permission to select the destination project.")
-                    raise exc.FormValidationException(form)
-            else:
-                title = form.workflow.metadata.get("destination_project_title")
-                description = form.workflow.metadata.get("destination_project_description")
-                if not title or not description:
-                    form.add_general_error("The new destination project is incomplete. Please go back and provide its title and description.")
-                    raise exc.FormValidationException(form)
-                if session.exists(Q.project.select(title=title, owner_id=source_project.owner_id)):
-                    form.add_general_error("A project with the new destination title already exists for the source project owner.")
-                    raise exc.FormValidationException(form)
-                destination_project = Q.project.create(
-                    title=title,
-                    description=description,
-                    owner_id=source_project.owner_id,
-                    group_id=source_project.group_id,
-                    status=destination_status,
-                )
-                session.add(destination_project)
-                session.flush()
+                if destination_project_id is not None:
+                    destination_project = session.first(
+                        Q.project.select(id=destination_project_id),
+                        options=options,
+                    )
+                    if destination_project is None:
+                        form.add_general_error("The selected destination project no longer exists.")
+                        raise exc.FormValidationException(form)
+                    if destination_project.id == source_project.id:
+                        form.add_general_error("Source and destination projects cannot be the same.")
+                        raise exc.FormValidationException(form)
+                    if session.get_access_level(Q.project.permissions(destination_project.id, current_user.id)) < C.AccessLevel.WRITE:
+                        form.add_general_error("You do not have permission to select the destination project.")
+                        raise exc.FormValidationException(form)
+                else:
+                    title = form.workflow.metadata.get("destination_project_title")
+                    description = form.workflow.metadata.get("destination_project_description")
+                    if not title or not description:
+                        form.add_general_error("The new destination project is incomplete. Please go back and provide its title and description.")
+                        raise exc.FormValidationException(form)
+                    if session.exists(Q.project.select(title=title, owner_id=source_project.owner_id)):
+                        form.add_general_error("A project with the new destination title already exists for the source project owner.")
+                        raise exc.FormValidationException(form)
+                    destination_project = Q.project.create(
+                        title=title,
+                        description=description,
+                        owner_id=source_project.owner_id,
+                        group_id=source_project.group_id,
+                        status=destination_status,
+                    )
+                    session.add(destination_project)
+                    session.flush()
 
-            assert destination_project is not None
-            try:
-                form.workflow.metadata["destination_status_id"] = destination_status.id
-                destination_project = actions.split_project(
-                    session,
-                    project_src=source_project,
-                    project_dst=destination_project,
-                    sample_ids=form.workflow.metadata.get("selected_sample_ids", []),
-                    destination_status=destination_status,
-                )
-            except ValueError as error:
-                form.add_general_error(str(error))
-                raise exc.FormValidationException(form)
+                assert destination_project is not None
+                try:
+                    form.workflow.metadata["destination_status_id"] = destination_status.id
+                    destination_project = actions.split_project(
+                        session,
+                        project_src=source_project,
+                        project_dst=destination_project,
+                        sample_ids=form.workflow.metadata.get("selected_sample_ids", []),
+                        destination_status=destination_status,
+                    )
+                except ValueError as error:
+                    form.add_general_error(str(error))
+                    raise exc.FormValidationException(form)
 
             next_url = responses.url_for("project_page", project_id=destination_project.id)
             form.workflow.complete()

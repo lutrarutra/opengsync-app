@@ -4,6 +4,7 @@ from sqlalchemy import orm
 from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db.transitions import run_operation, sequencing as sequencing_ops
 
 from ....core import dependencies, exceptions as exc, responses
 from ....core.context import ctx
@@ -128,9 +129,10 @@ class LoadFlowCellSeparateAction(HTMXForm):
 
             # As legacy: LOADED once every lane of the experiment is loaded (not only the posted ones)
             all_lanes_loaded = all(lane.is_loaded() for lane in form.experiment.lanes)
-            if all_lanes_loaded:
-                form.experiment.status = C.ExperimentStatus.LOADED
-                session.save(form.experiment)
+            with run_operation(session, sequencing_ops.LOAD_FLOWCELL, subject=form.experiment):
+                if all_lanes_loaded:
+                    form.experiment.status = C.ExperimentStatus.LOADED
+                    session.save(form.experiment)
 
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=form.experiment.id),

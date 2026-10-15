@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from fastapi import Depends
 
 from opengsync_db import queries as Q, SyncSession, categories as C, models
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ....core import dependencies, responses, exceptions as exc
 from ....utils import parsing
@@ -35,13 +36,14 @@ def save_report(form: "BAReportWorkflowStep", session: SyncSession, uploader_id:
     ), flush=True)
 
     models_by_type = {"sample": models.Sample, "library": models.Library, "pool": models.Pool, "lane": models.Lane}
-    for entry in entries:
-        obj = session.get_one(sa.select(models_by_type[entry.type.data]).where(models_by_type[entry.type.data].id == entry.id_.data))
-        obj.avg_fragment_size = entry.avg_fragment_size.data
-        obj.ba_report_id = media_file.id if entry.avg_fragment_size.data is not None else None
-        if isinstance(obj, models.Pool) and entry.avg_fragment_size.data is not None and obj.status == C.PoolStatus.ACCEPTED:
-            obj.status = C.PoolStatus.STORED
-        session.save(obj)
+    with run_operation(session, lab_ops.BA_REPORT):
+        for entry in entries:
+            obj = session.get_one(sa.select(models_by_type[entry.type.data]).where(models_by_type[entry.type.data].id == entry.id_.data))
+            obj.avg_fragment_size = entry.avg_fragment_size.data
+            obj.ba_report_id = media_file.id if entry.avg_fragment_size.data is not None else None
+            if isinstance(obj, models.Pool) and entry.avg_fragment_size.data is not None and obj.status == C.PoolStatus.ACCEPTED:
+                obj.status = C.PoolStatus.STORED
+            session.save(obj)
 
     # written last, so a failing database change leaves no file behind
     session.flush()

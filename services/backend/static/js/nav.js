@@ -1,6 +1,12 @@
+// shows a tab, or opens a popup that sits on the page instead of a tab (e.g. the overview graph)
 function open_tab(id) {
-    const tab = new bootstrap.Tab(document.querySelector(`button[data-bs-target="#${id}"]`));
-    tab.show();
+    const trigger = document.querySelector(`button[data-bs-target="#${id}"]`);
+    if (!trigger) return;
+    if (trigger.dataset.bsToggle === "modal") {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById(id)).show();
+    } else {
+        new bootstrap.Tab(trigger).show();
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -10,11 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
         hash = "#" + params.get("tab");
     }
     if (hash) {
-        const trigger = document.querySelector(`button[data-bs-target="${hash}"]`);
-        if (trigger) {
-            const tab = new bootstrap.Tab(trigger);
-            tab.show();
-        }
+        open_tab(hash.slice(1));
     }
 });
 

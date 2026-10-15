@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
+from opengsync_db.transitions import run_operation, sequencing as sequencing_ops
 
 from ...core import dependencies, exceptions as exc
 
@@ -39,23 +40,24 @@ def set_library_lane_reads(
                 f"Library with id '{body.library_id}' not found in experiment '{body.experiment_name}'."
             )
 
-    actions.set_library_seq_quality(
-        session,
-        library=library,
-        experiment=experiment,
-        lane=body.lane,
-        num_reads=body.num_reads,
-        qc=body.qc,
-    )
+    with run_operation(session, sequencing_ops.LANE_READS, subject=experiment):
+        actions.set_library_seq_quality(
+            session,
+            library=library,
+            experiment=experiment,
+            lane=body.lane,
+            num_reads=body.num_reads,
+            qc=body.qc,
+        )
 
-    all_libraries_demultiplexed = True
-    for exp_library in experiment.libraries:
-        if exp_library.status >= C.LibraryStatus.SEQUENCED and not exp_library.read_qualities and exp_library.id != body.library_id:
-            all_libraries_demultiplexed = False
-            break
+        all_libraries_demultiplexed = True
+        for exp_library in experiment.libraries:
+            if exp_library.status >= C.LibraryStatus.SEQUENCED and not exp_library.read_qualities and exp_library.id != body.library_id:
+                all_libraries_demultiplexed = False
+                break
 
-    if all_libraries_demultiplexed and experiment.status < C.ExperimentStatus.DEMULTIPLEXED:
-        experiment.status = C.ExperimentStatus.DEMULTIPLEXED
-        session.save(experiment, flush=True)
+        if all_libraries_demultiplexed and experiment.status < C.ExperimentStatus.DEMULTIPLEXED:
+            experiment.status = C.ExperimentStatus.DEMULTIPLEXED
+            session.save(experiment, flush=True)
 
     return {"status": "success"}

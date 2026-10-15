@@ -9,6 +9,7 @@ from sqlalchemy import orm
 from loguru import logger
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import exceptions as exc, responses, dependencies, config
 from ...components import inputs
@@ -184,87 +185,88 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
 
             size_bytes = len(form.spreadsheet.file_bytes)
 
-            form.lab_prep.plates.clear()
+            with run_operation(session, lab_ops.UPLOAD_TABLE, subject=form.lab_prep):
+                form.lab_prep.plates.clear()
 
-            # The user from the dependency is detached; the session may already hold it (e.g. as prep file uploader)
-            owner = session.get_one(Q.user.select(id=current_user.id))
+                # The user from the dependency is detached; the session may already hold it (e.g. as prep file uploader)
+                owner = session.get_one(Q.user.select(id=current_user.id))
 
-            # Only rows with a library are placed, so unused template rows create no plate
-            for plate_name, _df in prep_table[prep_table["library_id"].notna()].groupby("plate", dropna=False):
-                if pd.isna(plate_name) or not str(plate_name).strip():
-                    plate = session.save(
-                        Q.plate.create(
-                            name=f"P-{form.lab_prep.name}",
-                            num_cols=12, num_rows=8,
-                            owner=owner,
-                        ),
-                        flush=True,
-                    )
-                else:
-                    # Excel numbers read as floats when the column has blanks; legacy used int(plate)
-                    plate_name = re.sub(r"^(\d+)\.0$", r"\1", str(plate_name).strip())
-                    plate = session.save(
-                        Q.plate.create(
-                            name=f"P-{form.lab_prep.name}-{plate_name}",
-                            num_cols=12, num_rows=8,
-                            owner=owner,
-                        ),
-                        flush=True,
-                    )
-
-                for _, row in _df.iterrows():
-                    library_id = row.get("library_id")
-                    if pd.isna(library_id):
-                        continue
-
-                    library = session.get_one(Q.library.select(id=int(library_id)))
-
-                    # Mark as failed if pool == "x"
-                    pool_val = row.get("pool")
-                    pool_val = str(pool_val).strip().lower() if pd.notna(pool_val) else ""
-                    if pool_val == "x":
-                        library.status = C.LibraryStatus.FAILED
-                        session.save(library)
-
-                    # Update qubit concentration
-                    lib_conc = row.get("lib_conc_ng_ul")
-                    if pd.notna(lib_conc):
-                        library.qubit_concentration = float(lib_conc)
-                        session.save(library)
-
-                    # Add library to plate well
-                    plate_well = row.get("plate_well")
-                    if pd.notna(plate_well) and (plate_well := str(plate_well).strip()):
-                        well_idx = plate.get_well_idx(plate_well)
-                        plate.sample_links.append(
-                            models.links.SamplePlateLink(
-                                plate_id=plate.id,
-                                well_idx=well_idx,
-                                library_id=int(library_id),
-                            )
+                # Only rows with a library are placed, so unused template rows create no plate
+                for plate_name, _df in prep_table[prep_table["library_id"].notna()].groupby("plate", dropna=False):
+                    if pd.isna(plate_name) or not str(plate_name).strip():
+                        plate = session.save(
+                            Q.plate.create(
+                                name=f"P-{form.lab_prep.name}",
+                                num_cols=12, num_rows=8,
+                                owner=owner,
+                            ),
+                            flush=True,
+                        )
+                    else:
+                        # Excel numbers read as floats when the column has blanks; legacy used int(plate)
+                        plate_name = re.sub(r"^(\d+)\.0$", r"\1", str(plate_name).strip())
+                        plate = session.save(
+                            Q.plate.create(
+                                name=f"P-{form.lab_prep.name}-{plate_name}",
+                                num_cols=12, num_rows=8,
+                                owner=owner,
+                            ),
+                            flush=True,
                         )
 
-                form.lab_prep.plates.append(plate)
+                    for _, row in _df.iterrows():
+                        library_id = row.get("library_id")
+                        if pd.isna(library_id):
+                            continue
 
-            if (prep_file := form.lab_prep.prep_file) is not None:
-                prep_file.uuid = hash
-                prep_file.extension = f".{ext}"
-                prep_file.size_bytes = size_bytes
-                prep_file.timestamp_utc = datetime.now(timezone.utc)
-                session.save(prep_file)
-            else:
-                new_file = Q.media_file.create(
-                    name=f"{form.lab_prep.name}_prep",
-                    type=C.MediaFileType.LIBRARY_PREP_FILE,
-                    extension=f".{ext}",
-                    uploader_id=current_user.id,
-                    size_bytes=size_bytes,
-                    uuid=hash,
-                    lab_prep_id=form.lab_prep.id,
-                )
-                session.save(new_file)
+                        library = session.get_one(Q.library.select(id=int(library_id)))
 
-            session.save(form.lab_prep)
+                        # Mark as failed if pool == "x"
+                        pool_val = row.get("pool")
+                        pool_val = str(pool_val).strip().lower() if pd.notna(pool_val) else ""
+                        if pool_val == "x":
+                            library.status = C.LibraryStatus.FAILED
+                            session.save(library)
+
+                        # Update qubit concentration
+                        lib_conc = row.get("lib_conc_ng_ul")
+                        if pd.notna(lib_conc):
+                            library.qubit_concentration = float(lib_conc)
+                            session.save(library)
+
+                        # Add library to plate well
+                        plate_well = row.get("plate_well")
+                        if pd.notna(plate_well) and (plate_well := str(plate_well).strip()):
+                            well_idx = plate.get_well_idx(plate_well)
+                            plate.sample_links.append(
+                                models.links.SamplePlateLink(
+                                    plate_id=plate.id,
+                                    well_idx=well_idx,
+                                    library_id=int(library_id),
+                                )
+                            )
+
+                    form.lab_prep.plates.append(plate)
+
+                if (prep_file := form.lab_prep.prep_file) is not None:
+                    prep_file.uuid = hash
+                    prep_file.extension = f".{ext}"
+                    prep_file.size_bytes = size_bytes
+                    prep_file.timestamp_utc = datetime.now(timezone.utc)
+                    session.save(prep_file)
+                else:
+                    new_file = Q.media_file.create(
+                        name=f"{form.lab_prep.name}_prep",
+                        type=C.MediaFileType.LIBRARY_PREP_FILE,
+                        extension=f".{ext}",
+                        uploader_id=current_user.id,
+                        size_bytes=size_bytes,
+                        uuid=hash,
+                        lab_prep_id=form.lab_prep.id,
+                    )
+                    session.save(new_file)
+
+                session.save(form.lab_prep)
 
             # written last, so a failing database change leaves no file behind
             session.flush()

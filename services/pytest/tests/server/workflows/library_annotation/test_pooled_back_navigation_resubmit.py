@@ -46,8 +46,8 @@ def test_pooled_back_navigation_resubmit(
     wf.post("barcode-match", match, next_step="feature-annotation")
 
     wf.post("feature-annotation", spreadsheet(
-        ["Sample Name", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
-        [["Back_S1", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
+        ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
+        [["Back_S1 [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
     ), next_step="complete-s-a-s")
     wf.complete()
 

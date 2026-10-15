@@ -1,6 +1,7 @@
 from fastapi import Depends, Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -18,6 +19,10 @@ def _check_name(val: str) -> str | None:
 
 class LibraryForm(HTMXForm):
     template_path = "forms/library.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
 
     name = inputs.string.StringInputField("Name", max_length=models.Library.sample_name.type.length, min_length=3)
     library_type = inputs.selectable.SelectableInputField("Library Type", options=C.LibraryType.as_selectable())
@@ -66,6 +71,7 @@ class LibraryForm(HTMXForm):
             form.library_type.data = form.library.type.id
             form.genome.data = form.library.genome_ref.id
             form.status.data = form.library.status.id
+            form.status_comment.hidden = bool(form.status.read_only)
             form.mux_type.data = form.library.mux_type.id if form.library.mux_type is not None else -1
             form.protocol.data = form.library.protocol_id if form.library.protocol_id is not None else -1
             form.nuclei_isolation.data = form.library.nuclei_isolation
@@ -100,19 +106,20 @@ class LibraryForm(HTMXForm):
                 form.protocol.errors.append("Selected protocol does not exist.")
                 raise exc.FormValidationException(form)
 
-            form.library.sample_name = form.name.data
-            form.library.type = C.LibraryType.get(form.library_type.data)
-            form.library.name = f"{form.library.sample_name}_{form.library.type.identifier}"
-            form.library.genome_ref = C.GenomeRef.get(form.genome.data)
-            form.library.status = C.LibraryStatus.get(form.status.data)
-            form.library.mux_type = (
-                C.MUXType.get(form.mux_type.data)
-                if form.mux_type.data is not None and form.mux_type.data != -1
-                else None
-            )
-            form.library.protocol_id = protocol_id
-            form.library.nuclei_isolation = form.nuclei_isolation.data
-            session.save(form.library)
+            with run_operation(session, manual_ops.EDIT_LIBRARY, subject=form.library, comment=form.status_comment.data):
+                form.library.sample_name = form.name.data
+                form.library.type = C.LibraryType.get(form.library_type.data)
+                form.library.name = f"{form.library.sample_name}_{form.library.type.identifier}"
+                form.library.genome_ref = C.GenomeRef.get(form.genome.data)
+                form.library.status = C.LibraryStatus.get(form.status.data)
+                form.library.mux_type = (
+                    C.MUXType.get(form.mux_type.data)
+                    if form.mux_type.data is not None and form.mux_type.data != -1
+                    else None
+                )
+                form.library.protocol_id = protocol_id
+                form.library.nuclei_isolation = form.nuclei_isolation.data
+                session.save(form.library)
 
             return responses.htmx_response(
                 redirect=responses.url_for("library_page", library_id=form.library.id),

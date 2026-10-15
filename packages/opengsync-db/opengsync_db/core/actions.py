@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from .. import models, exceptions, categories as C, queries as Q, to_utc
+from ..transitions import run_operation, request as request_ops, create as create_ops, lab as lab_ops, release as release_ops
 
 def link_sample_library(
     session: Session, sample_id: int, library_id: int,
@@ -223,7 +224,21 @@ def link_feature_library(session: Session, feature_id: int, library_id: int):
     session.add(library)
 
 
+_PROCESS_OPERATIONS = {
+    C.SeqRequestStatus.ACCEPTED: request_ops.ACCEPT,
+    C.SeqRequestStatus.DRAFT: request_ops.RETURN,
+    C.SeqRequestStatus.REJECTED: request_ops.REJECT,
+}
+
+
 def process_seq_request(session: Session, seq_request: models.SeqRequest, status: C.SeqRequestStatus) -> models.SeqRequest:
+    if (operation := _PROCESS_OPERATIONS.get(status)) is None:
+        raise TypeError(f"Cannot process request to '{status}'.")
+    with run_operation(session, operation, subject=seq_request):
+        return _process_seq_request(session, seq_request, status)
+
+
+def _process_seq_request(session: Session, seq_request: models.SeqRequest, status: C.SeqRequestStatus) -> models.SeqRequest:
     seq_request.status = status
 
     if seq_request.status in [C.SeqRequestStatus.DRAFT, C.SeqRequestStatus.REJECTED]:
@@ -342,22 +357,35 @@ def merge_pool(session: Session, merged_pool_id: int, pool_ids: Sequence[int], f
     return merged_pool
 
 
+def add_libraries_to_prep(session: Session, lab_prep: models.LabPrep, libraries: Sequence[models.Library]) -> models.LabPrep:
+    """Adds libraries to a lab prep; libraries below PREPARING become PREPARING (as legacy LabPrepBP.add_library)."""
+    with run_operation(session, lab_ops.ADD_LIBRARIES, subject=lab_prep):
+        for library in libraries:
+            if library.status < C.LibraryStatus.PREPARING:
+                library.status = C.LibraryStatus.PREPARING
+            lab_prep.libraries.append(library)
+        session.add(lab_prep)
+    return lab_prep
+
+
 def remove_library_from_prep(
     session: Session, lab_prep_id: int, library_id: int, flush: bool = True
 ) -> models.LabPrep:
+    """Removes a library from a lab prep; a PREPARING library goes back to ACCEPTED (as legacy LabPrepBP.remove_library)."""
     if (lab_prep := session.get(models.LabPrep, lab_prep_id)) is None:
         raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
     
     if (library := session.get(models.Library, library_id)) is None:
         raise exceptions.NotFoundException(f"Library with id '{library_id}', not found.")
     
-    if library.status == C.LibraryStatus.PREPARING:
-        library.status = C.LibraryStatus.ACCEPTED
-    
-    lab_prep.libraries.remove(library)
-    session.add(lab_prep)
-    if flush:
-        session.flush()
+    with run_operation(session, lab_ops.REMOVE_LIBRARY, subject=lab_prep):
+        if library.status == C.LibraryStatus.PREPARING:
+            library.status = C.LibraryStatus.ACCEPTED
+        
+        lab_prep.libraries.remove(library)
+        session.add(lab_prep)
+        if flush:
+            session.flush()
     return lab_prep
 
 def set_library_seq_quality(
@@ -490,6 +518,11 @@ def merge_pools(session: Session, merged_pool: models.Pool, pools: Sequence[mode
     return merged_pool
 
 def merge_projects(session: Session, project_dst: models.Project, project_src: models.Project) -> models.Project:
+    with run_operation(session, release_ops.MERGE, subject=project_dst):
+        return _merge_projects(session, project_dst, project_src)
+
+
+def _merge_projects(session: Session, project_dst: models.Project, project_src: models.Project) -> models.Project:
     dst_sample_mapping = {sample.name: sample for sample in project_dst.samples}
 
     samples_to_delete = []
@@ -646,6 +679,11 @@ def split_project(
     return project_dst
 
 def submit_seq_request(session: Session, seq_request: models.SeqRequest) -> models.SeqRequest:
+    with run_operation(session, request_ops.SUBMIT, subject=seq_request):
+        return _submit_seq_request(session, seq_request)
+
+
+def _submit_seq_request(session: Session, seq_request: models.SeqRequest) -> models.SeqRequest:
     seq_request.status = C.SeqRequestStatus.SUBMITTED
     seq_request.review_checklist = None
     seq_request.timestamp_submitted_utc = to_utc(datetime.now())
@@ -666,6 +704,11 @@ def submit_seq_request(session: Session, seq_request: models.SeqRequest) -> mode
 
 
 def clone_seq_request(session: Session, seq_request: models.SeqRequest, method: Literal["pooled", "indexed", "raw"]) -> models.SeqRequest:
+    with run_operation(session, create_ops.REQUEST_CLONE, subject=seq_request):
+        return _clone_seq_request(session, seq_request, method)
+
+
+def _clone_seq_request(session: Session, seq_request: models.SeqRequest, method: Literal["pooled", "indexed", "raw"]) -> models.SeqRequest:
     if method not in {"pooled", "indexed", "raw"}:
         raise ValueError(f"Method should be one of: {', '.join(['pooled', 'indexed', 'raw'])}")
     
@@ -714,3 +757,42 @@ def clone_seq_request(session: Session, seq_request: models.SeqRequest, method: 
 
     session.add(cloned_request)
     return cloned_request
+
+
+def release_project_data(
+    session: Session,
+    project: models.Project,
+    seq_requests: Sequence[models.SeqRequest],
+    recipients: Sequence[str],
+    mark_project_delivered: bool | None,
+) -> models.Project:
+    """Statuses of a project data release, shared by the release API and the 'Share data' action.
+
+    - project: DELIVERED if ``mark_project_delivered`` is true, or (``None``) automatically once every
+      library of the requests is SEQUENCED or beyond; never moved back from a later status
+    - delivery emails of the requests that received the data: DISPATCHED
+    - libraries of the project: SEQUENCED → SHARED
+
+    The caller runs it inside its operation (``api.release_project`` or ``project.share_data``).
+    """
+    if mark_project_delivered is None:
+        mark_project_delivered = all(
+            library.status >= C.LibraryStatus.SEQUENCED
+            for seq_request in seq_requests
+            for library in seq_request.libraries
+        )
+    if mark_project_delivered and project.status < C.ProjectStatus.DELIVERED:
+        project.status = C.ProjectStatus.DELIVERED
+        session.add(project)
+
+    for seq_request in seq_requests:
+        for link in seq_request.delivery_email_links:
+            if link.email in recipients:
+                link.status = C.DeliveryStatus.DISPATCHED
+        session.add(seq_request)
+
+    for library in project.libraries:
+        if library.status == C.LibraryStatus.SEQUENCED:
+            library.status = C.LibraryStatus.SHARED
+            session.add(library)
+    return project

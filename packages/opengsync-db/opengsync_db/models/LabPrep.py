@@ -27,7 +27,7 @@ class LabPrep(Base):
     prep_number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     checklist_type: Mapped[LabChecklistType] = mapped_column(EnumColumn[LabChecklistType](LabChecklistType), nullable=False, name="checklist_type_id", key="checklist_type")
-    status: Mapped[PrepStatus] = mapped_column(EnumColumn[PrepStatus](PrepStatus), nullable=False, default=0, name="status_id", key="status")
+    status: Mapped[PrepStatus] = mapped_column(EnumColumn[PrepStatus](PrepStatus), nullable=False, default=0, name="status_id", key="status", active_history=True)
     service_type: Mapped[ServiceType] = mapped_column(EnumColumn[ServiceType](ServiceType), nullable=False, name="service_type_id", key="service_type")
 
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
