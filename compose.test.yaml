@@ -42,7 +42,8 @@ services:
         # Throwaway cluster: durability is traded for speed. These settings lose data
         # on a crash and must never be copied to dev/prod. Passed as -c flags rather
         # than a config_file so initdb's generated postgresql.conf (timezone, locale,
-        # shared_buffers) stays in effect.
+        # shared_buffers) stays in effect. timezone=UTC mirrors prod (postgresql.prod.conf), so
+        # timestamptz values come back in UTC and unlocalized rendering shows up in tests.
         command: >-
             postgres
             -c fsync=off
@@ -53,6 +54,7 @@ services:
             -c logging_collector=off
             -c log_min_messages=warning
             -c log_checkpoints=off
+            -c timezone=UTC
         # Keep PGDATA in RAM. Every test creates its own database, so the fixture must
         # drop it on teardown or this fills up (see tests/conftest.py).
         tmpfs:

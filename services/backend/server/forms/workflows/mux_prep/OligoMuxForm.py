@@ -12,10 +12,11 @@ from ....core import dependencies
 from ....utils import parsing
 from ....components import inputs
 from ....components.tables import (
-    TextColumn, DuplicateCellValue, InvalidCellValue, CategoricalDropDown,
+    TextColumn, DuplicateCellValue, InvalidCellValue,
     DropdownColumn, MissingCellValue,
 )
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
+from ...common import kit_columns
 from .MuxPrepWorkflow import MuxPrepWorkflow, MuxPrepWorkflowStep
 
 
@@ -34,7 +35,7 @@ class OligoMuxForm(MuxPrepWorkflowStep):
         columns=[
             TextColumn("sample_name", "Sample Name", 170, required=True, read_only=True),
             TextColumn("sample_pool", "Multiplexing Pool", 170, required=True, read_only=True),
-            CategoricalDropDown("kit", "Kit", 250, categories={}, required=False),
+            kit_columns.feature_kit_column("kit_id", "Kit", 250, types=[C.FeatureType.CMO]),
             TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, clean_up_fnc=lambda x: parsing.make_alpha_numeric(x)),
             TextColumn("barcode", "Sequence", 200, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: parsing.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
             TextColumn("pattern", "Pattern", 180, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
@@ -76,13 +77,6 @@ class OligoMuxForm(MuxPrepWorkflowStep):
 
     @classmethod
     def build(cls, workflow: MuxPrepWorkflow, session: SyncSession) -> Self:
-        kits_mapping = {
-            kit.identifier: f"[{kit.identifier}] {kit.name}"
-            for kit in session.get_all(
-                Q.feature_kit.select(type=C.FeatureType.CMO).order_by(models.FeatureKit.name.asc()),
-                limit=None,
-            )
-        }
         pooling_table = T.lab_prep_pooling_table(
             session.get_pandas(
                 Q.pd.lab_prep_pooling_table(workflow.lab_prep_id),
@@ -96,7 +90,6 @@ class OligoMuxForm(MuxPrepWorkflowStep):
         mux_table = cls.get_mux_table(pooling_table)
 
         form = cls(workflow=workflow)
-        form.spreadsheet.columns["kit"].set_categories(kits_mapping)
         form.spreadsheet.configure(
             csrf_token=form.csrf_token_value,
             post_url=form.post_url,
@@ -128,6 +121,8 @@ class OligoMuxForm(MuxPrepWorkflowStep):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             df = form.spreadsheet.data
+            # Kits are selected by id, identified by their identifier below
+            df["kit"] = kit_columns.identifiers_column(df, "kit_id")
             kit_feature = pd.notna(df["kit"]) & pd.notna(df["feature"])
             custom_feature = pd.notna(df["barcode"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
             invalid_feature = (
@@ -138,7 +133,6 @@ class OligoMuxForm(MuxPrepWorkflowStep):
             kit_identifiers = df["kit"].dropna().unique().tolist()
             kits: dict[str, tuple[models.FeatureKit, pd.DataFrame]] = {}
 
-            df["kit_id"] = None
             for identifier in kit_identifiers:
                 kit = session.get_one(Q.feature_kit.select(identifier=identifier))
                 kit_df = session.get_pandas(
@@ -146,7 +140,6 @@ class OligoMuxForm(MuxPrepWorkflowStep):
                     limit=None,
                 )
                 kits[identifier] = (kit, kit_df)
-                df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 
             duplicate_oligo = (
                 (df.duplicated(subset=["sample_pool", "barcode", "pattern", "read"], keep=False) & custom_feature)
@@ -154,13 +147,13 @@ class OligoMuxForm(MuxPrepWorkflowStep):
             )
 
             for identifier, (kit, kit_df) in kits.items():
-                view = df[df["kit"] == identifier]
+                view = df[df["kit"].eq(identifier).fillna(False)]
                 kit_df["barcode"] = kit_df["sequence"]
                 mask = kit_df["name"].isin(view["feature"])
 
                 for _, kit_row in kit_df[mask].iterrows():
                     df.loc[
-                        (df["kit"] == identifier) & (df["feature"] == kit_row["name"]),
+                        df["kit"].eq(identifier).fillna(False) & df["feature"].eq(kit_row["name"]).fillna(False),
                         ["barcode", "pattern", "read"],
                     ] = kit_row[["barcode", "pattern", "read"]].values
 
@@ -179,14 +172,14 @@ class OligoMuxForm(MuxPrepWorkflowStep):
                         continue
 
                 if not custom_feature.at[idx] and not kit_feature.at[idx]:
-                    for col in ("kit", "feature", "barcode", "pattern", "read"):
+                    for col in ("kit_id", "feature", "barcode", "pattern", "read"):
                         form.spreadsheet.add_error(idx, col, MissingCellValue(xor_message))
                 elif custom_feature.at[idx] and kit_feature.at[idx]:
-                    for col in ("kit", "feature", "barcode", "pattern", "read"):
+                    for col in ("kit_id", "feature", "barcode", "pattern", "read"):
                         form.spreadsheet.add_error(idx, col, InvalidCellValue(both_message))
                 elif invalid_feature.at[idx]:
                     if pd.notna(row["kit"]):
-                        form.spreadsheet.add_error(idx, "kit", InvalidCellValue(both_message))
+                        form.spreadsheet.add_error(idx, "kit_id", InvalidCellValue(both_message))
                     if pd.notna(row["feature"]):
                         form.spreadsheet.add_error(idx, "feature", InvalidCellValue(both_message))
                     if pd.notna(row["barcode"]):
@@ -197,7 +190,7 @@ class OligoMuxForm(MuxPrepWorkflowStep):
                         form.spreadsheet.add_error(idx, "read", InvalidCellValue(both_message))
 
                 if duplicate_oligo.at[idx]:
-                    for col in ("barcode", "pattern", "read", "kit", "feature"):
+                    for col in ("barcode", "pattern", "read", "kit_id", "feature"):
                         form.spreadsheet.add_error(idx, col, DuplicateCellValue("Definitions must be unique for each sample."))
 
             form.assert_valid()

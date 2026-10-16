@@ -17,10 +17,10 @@ class OptionalAssaysForm(SubHTMXForm):
     vdj_t_gd = inputs.boolean.CheckboxInputField("VDJ-T-GD")
     crispr_screening = inputs.boolean.CheckboxInputField("CRISPR Screening")
     antibody_capture = inputs.boolean.CheckboxInputField("Cell Surface Protein Quantification")
-    antibody_multiplexing = inputs.boolean.CheckboxInputField("+ Sample Multiplexing with Antibody-based Cell Hashing", description="Multiple samples per library with antibody-based cell tagging. Only available with cell surface protein capture.")
-    antibody_capture_kit = inputs.string.StringInputField("Antibody Capture Kit", description="Specify the antibody capture kit used for cell surface protein quantification.", max_length=64, required=False)
+    antibody_multiplexing = inputs.boolean.CheckboxInputField("Antibody-based Cell Hashing (in the Cell Surface Protein library)", description="Multiple samples per library with antibody-based cell tagging. Only available with cell surface protein capture.")
+    antibody_capture_kit = inputs.string.StringInputField("Antibody Capture Kit", description="Specify the antibody capture kit used for cell surface protein quantification.", max_length=64, required=False, placeholder="Required")
 
-    parse_mux = inputs.boolean.CheckboxInputField("Multiple Samples per Sub-Library (Multiplexing)", description="Multiple samples per library with Parse Biosciences multiplexing. Only available with Parse Biosciences assays.")
+    parse_mux = inputs.boolean.CheckboxInputField("Parse Biosciences Sample Multiplexing", description="Multiple samples per library with Parse Biosciences multiplexing. Only available with Parse Biosciences assays.")
     parse_tcr = inputs.boolean.CheckboxInputField(C.LibraryType.PARSE_EVERCODE_TCR.name)
     parse_bcr = inputs.boolean.CheckboxInputField(C.LibraryType.PARSE_EVERCODE_BCR.name)
     parse_crispr = inputs.boolean.CheckboxInputField(C.LibraryType.PARSE_SC_CRISPR.name)
@@ -32,9 +32,9 @@ class OptionalAssaysForm(SubHTMXForm):
     parse_chemistry = inputs.selectable.SelectableInputField("Parse Chemistry", Parse_chemistries, required=False)
 
 class AdditionalSerevicesForm(SubHTMXForm):
-    oligo_multiplexing = inputs.boolean.CheckboxInputField("Sample Multiplexing using Antibody/Oligo-based Cell Tagging for 10X Libraries", description="Multiple samples per library with oligo-based cell tagging, e.g. CMO/HTO/LMO/Antibodies..")
-    oligo_multiplexing_kit = inputs.string.StringInputField("Multiplexing Kit", description="Multiplexing Kit", max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, required=False)
-    ocm_multiplexing = inputs.boolean.CheckboxInputField("On-Chip Multiplexing for 10X GEM-X Libraries", description="Multiple samples per library using 10X On-Chip Multiplexing")
+    oligo_multiplexing = inputs.boolean.CheckboxInputField("Oligo-based Cell Tagging (CMO/HTO/LMO/Antibodies)", description="Multiple samples per library with oligo-based cell tagging, e.g. CMO/HTO/LMO/Antibodies..")
+    oligo_multiplexing_kit = inputs.string.StringInputField("Multiplexing Kit", description="Multiplexing Kit", max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, required=False, placeholder="Required")
+    ocm_multiplexing = inputs.boolean.CheckboxInputField("10X On-Chip Multiplexing (GEM-X)", description="Multiple samples per library using 10X On-Chip Multiplexing")
     nuclei_isolation = inputs.boolean.CheckboxInputField("Nuclei Isolation")
 
 

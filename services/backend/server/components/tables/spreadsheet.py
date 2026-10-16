@@ -267,7 +267,8 @@ class DBObjectColumn(CategoricalDropDown):
     """Render an object's id and name DataFrame columns as one selectable "name [id]" column.
 
     Objects that are not created yet (``new_names`` of ``set_categories``) are shown as "name [new]" and keep an
-    empty id.
+    empty id. The editor's options are ``{"id": "name [id]", "name": "name"}``: cells show the name and add the id only
+    where the same name stands for different objects (``disambiguate`` of the jspreadsheet dropdown).
     """
 
     NEW_ID = "new"
@@ -289,6 +290,15 @@ class DBObjectColumn(CategoricalDropDown):
         self.backend_columns = columns
         self.all_options_required = all_options_required
         self.new_values: list[str] = []
+        self.source = self._options()
+
+    @staticmethod
+    def option_name(value: str) -> str:
+        """The name of a "name [id]" / "name [new]" option."""
+        return value.rpartition(" [")[0].strip() or value
+
+    def _options(self) -> list[dict[str, str]]:
+        return [{"id": value, "name": self.option_name(value)} for value in [*self.categories.values(), *self.new_values]]
 
     def new_value(self, name: str) -> str:
         return f"{name} [{self.NEW_ID}]"
@@ -297,7 +307,7 @@ class DBObjectColumn(CategoricalDropDown):
         """Set the options, ``new_names`` are options of objects without id."""
         super().set_categories(categories)
         self.new_values = [self.new_value(name) for name in new_names]
-        self.source = self.source + self.new_values
+        self.source = self._options()
 
     def cast_backend_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Cast the id column to Int64 and the name column to string."""
@@ -335,6 +345,18 @@ class DBObjectColumn(CategoricalDropDown):
             return display_value
         return f"{object_name} [{object_id}]" if pd.notna(object_name) else f"[{object_id}]"
 
+    def resolve_name(self, value: Any) -> Any:
+        """The option a plain name (e.g. pasted or uploaded without "[id]") stands for, if it names exactly one."""
+        self._ensure_categories()
+        if not isinstance(value, str) or value in self.rev_categories or value in self.new_values:
+            return value
+        name = value.strip()
+        matches = [
+            option for option in [*self.rev_categories, *self.new_values]
+            if isinstance(option, str) and self.option_name(option) == name
+        ]
+        return matches[0] if len(matches) == 1 else value
+
     def expand(self, value: Any) -> dict[str, Any]:
         if pd.isna(value):
             return {column: None for column in self.backend_columns}
@@ -362,6 +384,8 @@ class QueryColumn(SpreadSheetColumn):
 
     ``name_column`` adds a DataFrame column with the name of each option. With ``allow_new`` a cell may also hold
     text that is none of the options: a new value, validated and cleaned up by ``name_column``, whose id is empty.
+    ``resolve`` returns the ids of submitted texts it recognizes (e.g. pasted or uploaded identifiers), the other
+    texts stay as they are.
     """
 
     def __init__(
@@ -370,6 +394,7 @@ class QueryColumn(SpreadSheetColumn):
         lookup: Callable[[Sequence[int]], dict[int, str]],
         required: bool = False, letter: str | None = None, optional_col: bool = False, unique: bool = False,
         read_only: bool = False, allow_new: bool = False, name_column: TextColumn | None = None,
+        resolve: Callable[[Sequence[str]], dict[str, int]] | None = None,
     ):
         if allow_new and name_column is None:
             raise ValueError("A QueryColumn with allow_new needs a name_column for the new values.")
@@ -379,6 +404,7 @@ class QueryColumn(SpreadSheetColumn):
         )
         self._url = url
         self.lookup = lookup
+        self.resolve = resolve
         self.allow_new = allow_new
         self.name_column = name_column
         self.labels: dict[int, str] = {}
@@ -430,6 +456,14 @@ class QueryColumn(SpreadSheetColumn):
             object_id if (object_id := self.to_id(value)) is not None else ("" if pd.isna(name) else name)
             for value, name in zip(ids, names)
         ]
+
+    def resolve_texts(self, values: Sequence[Any]) -> list[Any]:
+        """The values with the texts that ``resolve`` recognizes replaced by their ids."""
+        if self.resolve is None:
+            return list(values)
+        texts = sorted({value.strip() for value in values if isinstance(value, str) and value.strip()})
+        ids = self.resolve(texts) if texts else {}
+        return [ids.get(value.strip(), value) if isinstance(value, str) else value for value in values]
 
     def set_labels(self, values: Iterable[Any]) -> None:
         """Look up the names of the ids in the table."""

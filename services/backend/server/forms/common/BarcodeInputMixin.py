@@ -8,9 +8,18 @@ from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...components import inputs
 from ...components.tables import MissingCellValue, InvalidCellValue
-from ...components.tables.spreadsheet import CategoricalDropDown, SpreadSheetColumn, TextColumn
+from ...components.tables.spreadsheet import SpreadSheetColumn, TextColumn
 from ...core import context
 from ...utils import barcodes
+from . import kit_columns
+
+I7_KIT_TYPES = [C.IndexType.DUAL_INDEX, C.IndexType.SINGLE_INDEX_I7, C.IndexType.COMBINATORIAL_DUAL_INDEX]
+I5_KIT_TYPES = [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]
+
+
+def _eq(series: pd.Series, value) -> pd.Series:
+    """``series == value`` where missing values are not equal."""
+    return series.eq(value).fillna(False).astype(bool)
 
 
 class _BarcodeInputForm(Protocol):
@@ -20,7 +29,15 @@ class _BarcodeInputForm(Protocol):
         ...
 
 
-class BarcodeInputMixin:    
+class BarcodeInputMixin:
+    @staticmethod
+    def with_kit_ids(df: pd.DataFrame) -> pd.DataFrame:
+        """The barcode table with the ids of its kit identifiers, as the kit columns select kits by id."""
+        df = df.copy()
+        df["kit_i7_id"] = kit_columns.ids_column(df, "kit_i7")
+        df["kit_i5_id"] = kit_columns.ids_column(df, "kit_i5")
+        return df
+
     @staticmethod
     def make_spreadsheet(
         library_column: SpreadSheetColumn,
@@ -29,18 +46,7 @@ class BarcodeInputMixin:
             columns=[
                 library_column,
                 TextColumn("index_well", "Index Well", 100, max_length=8),
-                CategoricalDropDown("kit_i7", "i7 Kit", 200, categories=lambda: {
-                    kit.identifier: f"[{kit.identifier}] {kit.name}"
-                    for kit in context.ctx.session.get_all(
-                        Q.index_kit.select(type_in=[
-                            C.IndexType.DUAL_INDEX,
-                            C.IndexType.SINGLE_INDEX_I7,
-                            C.IndexType.COMBINATORIAL_DUAL_INDEX,
-                        ]),
-                        order_by=models.IndexKit.name.desc(),
-                        limit=None,
-                    )
-                }, required=False),
+                kit_columns.index_kit_column("kit_i7_id", "i7 Kit", 200, types=I7_KIT_TYPES),
                 TextColumn(
                     "name_i7",
                     "i7 Name",
@@ -48,17 +54,7 @@ class BarcodeInputMixin:
                     max_length=models.LibraryIndex.name_i7.type.length,
                 ),
                 TextColumn("sequence_i7", "i7 Sequence", 180, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
-                CategoricalDropDown("kit_i5", "i5 Kit", 200, categories=lambda: {
-                    kit.identifier: f"[{kit.identifier}] {kit.name}"
-                    for kit in context.ctx.session.get_all(
-                        Q.index_kit.select(type_in=[
-                            C.IndexType.DUAL_INDEX,
-                            C.IndexType.COMBINATORIAL_DUAL_INDEX,
-                        ]),
-                        order_by=models.IndexKit.name.desc(),
-                        limit=None,
-                    )
-                }, required=False),
+                kit_columns.index_kit_column("kit_i5_id", "i5 Kit", 200, types=I5_KIT_TYPES),
                 TextColumn(
                     "name_i5",
                     "i5 Name",
@@ -75,6 +71,9 @@ class BarcodeInputMixin:
         spreadsheet = self.spreadsheet
         session = context.ctx.session
         df = spreadsheet.data.copy()
+        # Kits are selected by id, identified by their identifier below
+        df["kit_i7"] = kit_columns.identifiers_column(df, "kit_i7_id")
+        df["kit_i5"] = kit_columns.identifiers_column(df, "kit_i5_id")
         
         df.loc[df["name_i7"].notna(), "name_i7"] = df.loc[df["name_i7"].notna(), "name_i7"].astype(str).str.strip()
         df.loc[df["name_i5"].notna(), "name_i5"] = df.loc[df["name_i5"].notna(), "name_i5"].astype(str).str.strip()
@@ -91,9 +90,9 @@ class BarcodeInputMixin:
         for identifier in kit_identifiers:
             kit = session.get_one(Q.index_kit.select(identifier=identifier))
             if kit.type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]:
-                df.loc[df["kit_i5"].isna() & (df["kit_i7"] == identifier), "kit_i5"] = identifier
+                df.loc[df["kit_i5"].isna() & _eq(df["kit_i7"], identifier), "kit_i5"] = identifier
             if kit.type == C.IndexType.DUAL_INDEX:
-                df.loc[df["name_i5"].isna() & (df["kit_i7"] == identifier), "name_i5"] = df.loc[df["name_i5"].isna() & (df["kit_i7"] == identifier), "name_i7"]
+                df.loc[df["name_i5"].isna() & _eq(df["kit_i7"], identifier), "name_i5"] = df.loc[df["name_i5"].isna() & _eq(df["kit_i7"], identifier), "name_i7"]
             kit_df = T.index_kit_barcodes(
                 session.get_pandas(Q.pd.index_kit_barcodes(kit.id), limit=None),
                 per_adapter=False,
@@ -103,11 +102,11 @@ class BarcodeInputMixin:
 
 
             kits[identifier] = (kit, kit_df)
-            df.loc[df["kit_i7"] == identifier, "kit_i7_id"] = kit.id
-            df.loc[df["kit_i5"] == identifier, "kit_i5_id"] = kit.id
+            df.loc[_eq(df["kit_i7"], identifier), "kit_i7_id"] = kit.id
+            df.loc[_eq(df["kit_i5"], identifier), "kit_i5_id"] = kit.id
 
         for kit_identifier, (kit, kit_df) in kits.items():
-            view = df[(df["kit_i7"] == kit_identifier) | (df["kit_i5"] == kit_identifier)]
+            view = df[_eq(df["kit_i7"], kit_identifier) | _eq(df["kit_i5"], kit_identifier)]
             
             match kit.type:
                 case C.IndexType.DUAL_INDEX:
@@ -121,16 +120,16 @@ class BarcodeInputMixin:
 
             for _, kit_row in kit_df[mask].iterrows():
                 if "well" in kit_row:
-                    row_mask = (df["kit_i7"] == kit_identifier) & (df["index_well"] == kit_row["well"])
+                    row_mask = _eq(df["kit_i7"], kit_identifier) & _eq(df["index_well"], kit_row["well"])
                     df.loc[row_mask, "name_i7"] = kit_row["name_i7"]
                     df.loc[row_mask, "sequence_i7"] = kit_row["sequence_i7"]
-                df.loc[(df["kit_i7"] == kit_identifier) & (df["name_i7"] == kit_row["name_i7"]), "sequence_i7"] = kit_row["sequence_i7"]
+                df.loc[_eq(df["kit_i7"], kit_identifier) & _eq(df["name_i7"], kit_row["name_i7"]), "sequence_i7"] = kit_row["sequence_i7"]
                 if kit.type in {C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX}:
                     if "well" in kit_row:
-                        row_mask = (df["kit_i5"] == kit_identifier) & (df["index_well"] == kit_row["well"])
+                        row_mask = _eq(df["kit_i5"], kit_identifier) & _eq(df["index_well"], kit_row["well"])
                         df.loc[row_mask, "name_i5"] = kit_row["name_i5"]
                         df.loc[row_mask, "sequence_i5"] = kit_row["sequence_i5"]
-                    df.loc[(df["kit_i5"] == kit_identifier) & (df["name_i5"] == kit_row["name_i5"]), "sequence_i5"] = kit_row["sequence_i5"]
+                    df.loc[_eq(df["kit_i5"], kit_identifier) & _eq(df["name_i5"], kit_row["name_i5"]), "sequence_i5"] = kit_row["sequence_i5"]
 
         for idx, row in df.iterrows():
             if pd.notna(row["index_well"]) and row["index_well"] == "del":
@@ -168,7 +167,7 @@ class BarcodeInputMixin:
                     continue
             else:
                 if pd.notna(row["kit_i7"]) or pd.notna(row["index_well"]) or pd.notna(row["name_i7"]) or pd.isna(row["sequence_i7"]):
-                    spreadsheet.add_error(idx, ["kit_i7", "name_i7"], MissingCellValue("missing kit/name or sequence_i7"))
+                    spreadsheet.add_error(idx, ["kit_i7_id", "name_i7"], MissingCellValue("missing kit/name or sequence_i7"))
                     continue
             if pd.isna(row["sequence_i7"]):
                 spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7'"))
@@ -180,7 +179,7 @@ class BarcodeInputMixin:
         df["orientation_i5_id"] = None
         df.loc[df["kit_i7_id"].notna(), "orientation_i7_id"] = C.BarcodeOrientation.FORWARD.id
         df.loc[df["kit_i5_id"].notna() & (df["index_type_id"] == C.IndexType.DUAL_INDEX.id), "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
-        spreadsheet.set_data(df)
+        # The submitted cells are shown again on errors, the filled in kit barcodes only in the returned table
         df["index_well"] = df["index_well"].astype(pd.StringDtype())
         df["name_i7"] = df["name_i7"].astype(pd.StringDtype())
         df["name_i5"] = df["name_i5"].astype(pd.StringDtype())

@@ -8,6 +8,9 @@
  * or pasted instead of picked is resolved to the option with exactly that name, otherwise it stays text and the
  * backend rejects it. With `allowNew` such text is a new value instead, which the list offers to create. Without
  * `url` there are no options.
+ *
+ * Cells show the name only; where cells of the column show the same name for different ids, they add the id
+ * ("name [id]"), and such text (e.g. copied from the table) is resolved to that id when pasted.
  */
 window.jssQueryColumn = (() => {
     const SEARCH_DELAY = 250;
@@ -36,22 +39,65 @@ window.jssQueryColumn = (() => {
         return result;
     };
 
-    // Id of the only known option with this name
+    // Id of the only known option with this name, or of "name [id]" as shown for options sharing a name
     const findByName = (name, options) => {
+        const shown = /^(.*) \[(\d+)\]$/.exec(String(name).trim());
+        if (shown && labels(options)[shown[2]] !== undefined && normalize(labels(options)[shown[2]]) === normalize(shown[1])) {
+            return Number(shown[2]);
+        }
         const matches = Object.keys(labels(options)).filter((id) => normalize(labels(options)[id]) === normalize(name));
         return matches.length === 1 ? Number(matches[0]) : null;
     };
 
+    const nameOf = (id, options) => labels(options)[id] ?? `[${id}]`;
+
     // Ids are numbers, anything else in a cell is text that is not (yet) an option
     const render = (cell, value, options) => {
         if (typeof value === "number") {
-            cell.textContent = labels(options)[value] ?? `[${value}]`;
+            cell.textContent = nameOf(value, options);
         } else {
             cell.textContent = value ?? "";
         }
         const text = typeof value === "string" && value !== "";
         cell.classList.toggle("jss_query_unresolved", text && !options.allowNew);
         cell.classList.toggle("jss_query_new", text && !!options.allowNew);
+    };
+
+    // Shows the names of the column's ids, with the id where different ids have the same name
+    const refreshColumn = (worksheet, x, options) => {
+        const ids = worksheet.options.data.map((row) => row[x]);
+        const idsByName = new Map();
+        for (const id of ids) {
+            if (typeof id === "number") {
+                const name = nameOf(id, options);
+                idsByName.set(name, (idsByName.get(name) || new Set()).add(id));
+            }
+        }
+        ids.forEach((id, y) => {
+            const cell = worksheet.records[y]?.[x]?.element;
+            if (!cell || typeof id !== "number" || cell.jssQuery) {
+                return;
+            }
+            const name = nameOf(id, options);
+            const text = idsByName.get(name).size > 1 ? `${name} [${id}]` : name;
+            if (cell.textContent !== text) {
+                cell.textContent = text;
+            }
+        });
+    };
+
+    // Refreshes the column once the current changes are done (e.g. after every cell of a paste is set)
+    const schedule = (worksheet, x, options) => {
+        const pending = options.refreshPending || (options.refreshPending = new Set());
+        if (pending.has(worksheet)) {
+            return;
+        }
+        pending.add(worksheet);
+        queueMicrotask(() => {
+            pending.delete(worksheet);
+            const column = worksheet.options.columns.indexOf(options);
+            refreshColumn(worksheet, column >= 0 ? column : x, options);
+        });
     };
 
     // Searches the backend for the name, once for all cells pasted with it
@@ -72,6 +118,7 @@ window.jssQueryColumn = (() => {
         }
         worksheet.options.data[y][x] = id;
         render(worksheet.records[y][x].element, id, options);
+        schedule(worksheet, x, options);
     };
 
     // The options, after an entry that creates the typed text when new values are allowed and it is none of them
@@ -211,6 +258,12 @@ window.jssQueryColumn = (() => {
         createCell(cell, value, x, y, worksheet, options) {
             cell.classList.add("jss_query");
             render(cell, value, options);
+            schedule(worksheet, x, options);
+        },
+
+        // Rows were added, removed, moved or sorted (jspreadsheet calls this then)
+        refreshColumn(worksheet, x, options) {
+            refreshColumn(worksheet, x, options);
         },
 
         // Values set by pasting, typing, undo or setValue: names become ids when the option is known
@@ -224,6 +277,7 @@ window.jssQueryColumn = (() => {
                 }
             }
             render(cell, value, options);
+            schedule(worksheet, x, options);
             return value;
         },
 

@@ -308,6 +308,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             # The column is replaced by its backend columns here, so it is validated here too
             # (the per-column validation below never sees it)
             column._ensure_categories()
+            df[column.label] = df[column.label].map(column.resolve_name)
             values = df[column.label].tolist()
             if column.all_options_required:
                 for option in column.categories.values():
@@ -361,7 +362,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 df[label] = df[label].astype(object)
             elif isinstance(column, QueryColumn):
                 # Names the submitted ids and drops the ones the user cannot select
-                df[label] = df[label].astype(object)
+                df[label] = pd.Series(column.resolve_texts(df[label].astype(object).tolist()), index=df.index, dtype=object)
                 column.set_labels(df[label].tolist())
             elif isinstance(column, TextColumn):
                 df[label] = df[label].astype(pd.StringDtype())

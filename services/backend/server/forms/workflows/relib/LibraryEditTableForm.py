@@ -1,24 +1,15 @@
-from typing import Sequence
-
 from fastapi import Depends, Response
 from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import dependencies, responses
-from ....core.context import ctx
 from ....utils import parsing
 from ....components import inputs
-from ....components.tables import IntegerColumn, TextColumn, CategoricalDropDown, DropdownColumn, QueryColumn
+from ....components.tables import IntegerColumn, TextColumn, CategoricalDropDown, DropdownColumn
 from ...HTMXForm import RouteFunc, htmx_route
+from ...common import protocol_columns
 from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow
-
-
-def _protocol_names(ids: Sequence[int]) -> dict[int, str]:
-    return {
-        protocol.id: protocol.name
-        for protocol in ctx.session.get_all(Q.protocol.select().where(models.Protocol.id.in_(ids)), limit=None)
-    }
 
 
 class LibraryEditTableForm(RelibWorkflowStep):
@@ -40,10 +31,7 @@ class LibraryEditTableForm(RelibWorkflowStep):
             CategoricalDropDown("genome_id", "Genome", 300, categories=dict(C.GenomeRef.as_selectable()), required=True),
             CategoricalDropDown("service_type_id", "Assay/Service Type", 300, categories=dict(C.ServiceType.as_selectable()), required=True),
             DropdownColumn("nuclei_isolation", "Nuclei", 100, choices=["Yes", "No"], required=True),
-            QueryColumn(
-                "protocol_id", "Protocol", 300, required=False,
-                url=lambda: responses.url_for("query_protocols"), lookup=_protocol_names,
-            ),
+            protocol_columns.protocol_column("protocol_id", "Protocol", 300),
         ],
         allow_new_rows=False,
     )

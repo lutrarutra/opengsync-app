@@ -145,6 +145,7 @@ class SeqRequestForm(HTMXForm):
         self.form_type = form_type
         self.seq_request = seq_request
         self.is_insider = is_insider
+        self.submitted_step: str | None = None  # step whose Next was pressed, if any
 
         if form_type == "create":
             if seq_request is not None:
@@ -171,7 +172,11 @@ class SeqRequestForm(HTMXForm):
 
     @property
     def step_names(self) -> list[str]:
-        return [name for name in self.STEPS if name != "user_selection" or self.is_insider]
+        # Requestor selection only exists to create a request on behalf of a customer.
+        return [
+            name for name in self.STEPS
+            if name != "user_selection" or (self.is_insider and self.form_type == "create")
+        ]
 
     @property
     def steps(self) -> list[tuple[str, SubHTMXForm]]:
@@ -179,13 +184,28 @@ class SeqRequestForm(HTMXForm):
 
     @property
     def active_step(self) -> str:
-        """First step with errors, else the first step not validated yet, else the last step."""
+        """Step the form opens at.
+
+        After Next: the first step up to the submitted one with errors, else the step after it
+        (later steps of an edit form are validated too, but only flagged in the timeline).
+        Otherwise: the first step with errors, else the first step not validated yet; an edit
+        form, whose steps are all pre-filled, opens at the first step after the disclaimer.
+        """
+        if self.submitted_step is not None:
+            index = self.step_names.index(self.submitted_step)
+            for name in self.step_names[: index + 1]:
+                if self.sub_form_dict[name].has_errors:
+                    return name
+            return self.step_names[min(index + 1, len(self.step_names) - 1)]
+
         for name, sub_form in self.steps:
             if sub_form.has_errors:
                 return name
         for name, sub_form in self.steps:
             if not sub_form.validated:
                 return name
+        if self.form_type == "edit":
+            return self.step_names[1]
         return self.step_names[-1]
 
     def validate_rules(self, session: SyncSession, step_names: list[str]) -> None:
@@ -219,19 +239,36 @@ class SeqRequestForm(HTMXForm):
             if self.bioinformatician.name.data and not self.bioinformatician.email.data:
                 self.bioinformatician.email.errors.append("Email is required when bioinformatician name is provided.")
 
+    def selected_group(self, session: SyncSession, requestor: models.User) -> models.Group | None:
+        """Group selected in the form; a non-insider requestor must be affiliated with it."""
+        if not self.basic_info.group_id.data:
+            return None
+        group = session.get_one(Q.group.select(id=self.basic_info.group_id.data))
+        if not requestor.is_insider and session.first(
+            Q.affiliation.select(user_id=requestor.id, group_id=group.id)
+        ) is None:
+            self.basic_info.group_id.errors.append("Requestor must be part of the selected group.")
+            raise exc.FormValidationException(self)
+        return group
+
     def validate_step(self, formdata: dict, csrf_token: str | None, session: SyncSession) -> Response:
         """Validate every step up to the submitted one and re-render the form at the next step.
 
-        On errors, the form is re-rendered at the first step with errors instead.
+        On errors, the form is re-rendered at the first step with errors instead. An edit form
+        validates all steps, since they are all pre-filled, so the timeline shows their state.
         """
         step = formdata.get("step")
         if step not in self.step_names:
             raise exc.BadRequestException(f"Unknown step '{step}'.")
 
+        self.submitted_step = step
         completed = self.step_names[: self.step_names.index(step) + 1]
-        self.validate_sub_forms(formdata, completed, csrf_token=csrf_token)
-        self.validate_rules(session, completed)
-        self.assert_valid()
+        checked = self.step_names if self.form_type == "edit" else completed
+        self.validate_sub_forms(formdata, checked, csrf_token=csrf_token)
+        self.validate_rules(session, checked)
+        # Errors in later steps of an edit form are only flagged; they don't block Next.
+        if any(self.sub_form_dict[name].has_errors for name in completed):
+            raise exc.FormValidationException(self)
         return self.make_response()
 
     @classmethod
@@ -302,11 +339,14 @@ class SeqRequestForm(HTMXForm):
             if form.seq_request is None:
                 raise exc.BadRequestException("SeqRequest ID must be provided for edit form.")
 
-            form.disclaimer.validated = True
+            # Every step is pre-filled from the request, so the timeline starts out all valid.
+            for _, sub_form in form.steps:
+                sub_form.validated = True
             form.disclaimer.accepted.data = True
-            
+
             form.basic_info.name.data = form.seq_request.name or ""
             form.basic_info.description.data = form.seq_request.description or ""
+            form.basic_info.group_id.data = form.seq_request.group_id
 
             # Technical info
             form.technical_info.read_type.data = form.seq_request.read_type
@@ -389,14 +429,7 @@ class SeqRequestForm(HTMXForm):
                         role=C.UserRole.DEACTIVATED,
                     ), flush=True)
 
-            group = None
-            if form.basic_info.group_id.data:
-                group = session.get_one(Q.group.select(id=form.basic_info.group_id.data))
-                if not requestor.is_insider and session.first(
-                    Q.affiliation.select(user_id=requestor.id, group_id=group.id)
-                ) is None:
-                    form.basic_info.group_id.errors.append("Requestor must be part of the selected group.")
-                    raise exc.FormValidationException(form)
+            group = form.selected_group(session, requestor)
 
             contact_person = Q.contact.create(
                 form.contact.name.data,
@@ -496,6 +529,7 @@ class SeqRequestForm(HTMXForm):
             # Update basic info
             seq_request.name = form.basic_info.name.data
             seq_request.description = form.basic_info.description.data
+            seq_request.group = form.selected_group(session, seq_request.requestor)
 
             # Update technical info
             seq_request.read_type = C.ReadType.get(form.technical_info.read_type.data)
@@ -513,6 +547,7 @@ class SeqRequestForm(HTMXForm):
                 form.technical_info.data_delivery_mode.data
             )
             seq_request.special_requirements = form.technical_info.special_requirements.data
+            seq_request.submission_type = C.SubmissionType.get(form.technical_info.submission_type.data)
             seq_request.billing_code = form.billing.code.data or None
 
             # Sync contacts

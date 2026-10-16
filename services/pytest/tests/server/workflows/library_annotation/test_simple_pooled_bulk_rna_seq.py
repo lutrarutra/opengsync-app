@@ -44,7 +44,7 @@ def test_simple_pooled_bulk_rna_seq_annotation(
 
     project_title = "BULK RNA-seq Project from pooled libraries test"
     post("project-select", {
-        "new_project": project_title,
+        "project": "new", "project-text": project_title,
         "project_description": "test project for pooled library submission, simple",
     })
 

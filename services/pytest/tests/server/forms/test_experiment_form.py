@@ -1,5 +1,7 @@
 """ExperimentForm: create/edit, insider gating, lane setup, and field validation."""
 
+import re
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -507,3 +509,130 @@ def test_edit_workflow_change_resizes_lanes(
 
     assert_htmx_redirect(response, f"/experiments/{experiment.id}")
     assert len(_lanes(session, experiment.id)) == initial_lanes
+
+
+def _input_value(html: str, name: str) -> str | None:
+    """Value attribute of the ``<input name=...>`` (exact name match)."""
+    for tag in re.findall(r"<input\b[^>]*>", html, flags=re.S):
+        if re.search(rf'\bname="{re.escape(name)}"', tag):
+            match = re.search(r'\bvalue="([^"]*)"', tag)
+            return match.group(1) if match else None
+    return None
+
+
+def _selected_option(html: str, name: str) -> str | None:
+    """Value of the selected ``<option>`` inside ``<select name=...>``."""
+    select = re.search(rf'<select\b[^>]*name="{re.escape(name)}"[^>]*>(.*?)</select>', html, flags=re.S)
+    if select is None:
+        return None
+    for value, attrs in re.findall(r'<option value="([^"]*)"([^>]*)>', select.group(1), flags=re.S):
+        if re.search(r"\bselected\b", attrs):
+            return value
+    return None
+
+
+def test_edit_persists_every_field(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    admin,
+    insider_token: str,
+):
+    """Every editable field (incl. operator, distinct cycles) is written to the DB."""
+    experiment = create_experiment(session, insider, WORKFLOW)
+    sequencer = create_sequencer(session)
+    session.commit()
+    assert experiment.operator_id != admin.id
+    assert experiment.sequencer_id != sequencer.id
+
+    new_workflow = C.ExperimentWorkFlow.NOVASEQ_6K_S4_XP
+    assert new_workflow != WORKFLOW
+    response = post_form(
+        client,
+        _edit_path(experiment.id),
+        _payload(
+            "EXP_EVERY_FIELD",
+            sequencer.id,
+            admin.id,
+            workflow=new_workflow.id,
+            status=C.ExperimentStatus.SEQUENCING.id,
+            r1_cycles="151",
+            r2_cycles="76",
+            i1_cycles="10",
+            i2_cycles="24",
+        ),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/experiments/{experiment.id}")
+
+    session.expire_all()
+    session.refresh(experiment)
+    assert experiment.name == "EXP_EVERY_FIELD"
+    assert experiment.workflow == new_workflow
+    assert experiment.status == C.ExperimentStatus.SEQUENCING
+    assert experiment.sequencer_id == sequencer.id
+    assert experiment.operator_id == admin.id
+    assert experiment.r1_cycles == 151
+    assert experiment.r2_cycles == 76
+    assert experiment.i1_cycles == 10
+    assert experiment.i2_cycles == 24
+
+
+def test_edit_clears_optional_cycles(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    insider_token: str,
+):
+    """Blank cycle inputs clear the column (legacy Optional() IntegerField -> None)."""
+    experiment = create_experiment(session, insider, WORKFLOW)
+    session.commit()
+
+    payload = _payload(experiment.name, experiment.sequencer_id, insider.id)
+    for key in ("r1_cycles", "r2_cycles", "i1_cycles", "i2_cycles"):
+        payload[key] = ""
+    response = post_form(client, _edit_path(experiment.id), payload, token=insider_token)
+
+    assert_htmx_redirect(response, f"/experiments/{experiment.id}")
+    session.expire_all()
+    session.refresh(experiment)
+    assert experiment.r1_cycles is None
+    assert experiment.r2_cycles is None
+    assert experiment.i1_cycles is None
+    assert experiment.i2_cycles is None
+
+
+def test_edit_form_prefills_every_field(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    admin,
+    insider_token: str,
+):
+    """The edit GET shows the current DB values for every field (legacy ``prepare``)."""
+    experiment = create_experiment(session, insider, WORKFLOW)
+    experiment.workflow = C.ExperimentWorkFlow.NOVASEQ_6K_S4_XP
+    experiment.status = C.ExperimentStatus.SEQUENCING
+    experiment.operator_id = admin.id
+    experiment.r1_cycles = 151
+    experiment.r2_cycles = 76
+    experiment.i1_cycles = 10
+    experiment.i2_cycles = 24
+    session.save(experiment)
+    session.commit()
+
+    response = get(client, _edit_path(experiment.id), insider_token)
+
+    assert response.status_code == 200
+    html = response.text
+    assert _input_value(html, "name") == experiment.name
+    assert _selected_option(html, "workflow") == str(C.ExperimentWorkFlow.NOVASEQ_6K_S4_XP.id)
+    assert _selected_option(html, "status") == str(C.ExperimentStatus.SEQUENCING.id)
+    assert _input_value(html, "sequencer") == str(experiment.sequencer_id)
+    assert _input_value(html, "operator") == str(admin.id)
+    assert _input_value(html, "r1_cycles") == "151"
+    assert _input_value(html, "r2_cycles") == "76"
+    assert _input_value(html, "i1_cycles") == "10"
+    assert _input_value(html, "i2_cycles") == "24"
+    assert f"/htmx/experiments/{experiment.id}/edit" in html

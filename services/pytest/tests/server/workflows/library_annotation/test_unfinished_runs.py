@@ -247,7 +247,7 @@ def test_clients_do_not_see_runs_insiders_started(client, session: SyncSession, 
     wf = AnnotationWorkflow(client, insider_token, seq_request.id)
     wf.begin()
     wf.post(PROJECT_SELECT, {
-        "new_project": "Insider started", "project_description": "d", "set_requestor_as_owner": "on",
+        "project": "new", "project-text": "Insider started", "project_description": "d", "set_requestor_as_owner": "on",
     }, next_step="sample-annotation")
 
     assert _shows_project_selection(_begin(client, user_token, seq_request.id))
@@ -341,7 +341,7 @@ def _resubmit_project_select(client, token: str, wf: AnnotationWorkflow, title: 
     back = get(client, f"{wf.prefix}/{PROJECT_SELECT}", token, params=wf.params)
     assert f'value="{wf.uuid}"' in back.text  # the run it was reached from
     return post_form(client, f"{wf.prefix}/{PROJECT_SELECT}", {
-        "new_project": title, "project_description": "d", "replaces_uuid": wf.uuid,
+        "project": "new", "project-text": title, "project_description": "d", "replaces_uuid": wf.uuid,
     }, token=token)
 
 

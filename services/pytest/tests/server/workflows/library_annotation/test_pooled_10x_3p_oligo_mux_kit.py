@@ -3,6 +3,7 @@
 from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ....db.create_units import create_seq_request
+from .._spreadsheet import query_labels
 from ._workflow import (
     AnnotationWorkflow, HUMAN, BARCODE_COLUMNS, pool_mapping,
     libraries_by_name, linked_samples, spreadsheet, spreadsheet_rows,
@@ -47,7 +48,7 @@ def test_pooled_10x_3p_oligo_mux_kit_annotation(
         ["Sample Name", "Multiplexing Pool"], [[s, "CMO_Pool"] for s in samples],
     ), next_step="oligo-mux-annotation")
     assert sorted(row[0] for row in spreadsheet_rows(oligo_step)) == samples
-    assert "[CMO-SET-A]" in oligo_step.text  # CMO kits are offered in the Kit dropdown
+    assert f"/htmx/feature_kits/query?type_in=%5B{C.FeatureType.CMO.id}%5D" in oligo_step.text  # CMO kits are searched
 
     kit_label = "[CMO-SET-A] 3' CellPlex Kit Set A"
     oligo_columns = ["Sample Name", "Multiplexing Pool", "Kit", "Feature", "Sequence", "Pattern", "Read"]
@@ -68,10 +69,13 @@ def test_pooled_10x_3p_oligo_mux_kit_annotation(
     ]
     wf.post("oligo-mux-annotation", spreadsheet(oligo_columns, valid_oligo_rows), next_step="pooled-library-annotation")
 
-    # 'Back' shows the oligos as they were entered.
+    # 'Back' shows the oligos as they were entered, the kit by its id (named for the editor)
     back = wf.back("oligo-mux-annotation")
-    assert [[cell or "" for cell in row[:7]] for row in spreadsheet_rows(back)] == valid_oligo_rows
-    wf.post("oligo-mux-annotation", spreadsheet(oligo_columns, valid_oligo_rows), next_step="pooled-library-annotation")
+    kit_id = session.get_one(Q.feature_kit.select(identifier="CMO-SET-A")).id
+    back_rows = [[cell if cell is not None else "" for cell in row[:7]] for row in spreadsheet_rows(back)]
+    assert back_rows == [[kit_id if cell == kit_label else cell for cell in row] for row in valid_oligo_rows]
+    assert query_labels(back, "Kit") == {kit_id: kit_label}
+    wf.post("oligo-mux-annotation", spreadsheet(oligo_columns, back_rows), next_step="pooled-library-annotation")
 
     gex = f"CMO_Pool_{L.TENX_SC_GEX_3PRIME.identifier}"
     mux = f"CMO_Pool_{L.TENX_MUX_OLIGO.identifier}"

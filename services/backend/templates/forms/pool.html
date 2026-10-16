@@ -19,7 +19,7 @@
             {% endif %}
             <div class="row">
                 {% if (form.form_type == "create" or form.form_type == "clone") and current_user.is_insider %}
-                {{ form.contact.render(url_for('search_users'), "name", "col-4") }}
+                {{ form.contact.render("col-4") }}
                 {{ form.contact_name.render("col-2") }}
                 {{ form.contact_email.render("col-3") }}
                 {{ form.contact_phone.render("col-3") }}

@@ -1,26 +1,19 @@
-import json
-from typing import Sequence, cast
+from typing import cast
 
 import pandas as pd
 from fastapi import Depends, Response
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
 
-from ....core import dependencies, exceptions as exc, responses
-from ....core.context import ctx
+from ....core import dependencies, exceptions as exc
 from .... import utils
 from ....components import inputs
-from ....components.tables import TextColumn, DropdownColumn, DBObjectColumn, QueryColumn, DuplicateCellValue, InvalidCellValue, MissingCellValue
+from ....components.tables import TextColumn, DropdownColumn, DBObjectColumn, DuplicateCellValue, InvalidCellValue, MissingCellValue
 from ...HTMXForm import RouteFunc, htmx_route
+from ...common import kit_columns
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 SAMPLE_COLUMN = "Sample"
-
-
-def _antibody_kit_names(ids: Sequence[int]) -> dict[int, str]:
-    """Names of the given feature kits that can be selected: antibody kits."""
-    stmt = Q.feature_kit.select(type=C.FeatureType.ANTIBODY).where(models.FeatureKit.id.in_(ids))
-    return {kit.id: f"[{kit.identifier}] {kit.name}" for kit in ctx.session.get_all(stmt, limit=None)}
 
 
 class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
@@ -29,10 +22,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         # Samples (or pools) of the antibody capture libraries, existing samples by "name [id]", others by "name [new]"
         DBObjectColumn(("sample_id", "sample_name"), SAMPLE_COLUMN, 170, categories={}, required=False),
-        QueryColumn(
-            "kit_id", "Kit", 250, required=False, lookup=_antibody_kit_names,
-            url=lambda: responses.url_for("query_feature_kits").include_query_params(type_in=json.dumps([C.FeatureType.ANTIBODY.id])),
-        ),
+        kit_columns.feature_kit_column("kit_id", "Kit", 250, types=[C.FeatureType.ANTIBODY]),
         TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False, clean_up_fnc=utils.parsing.normalize_to_ascii, validation_fnc=utils.parsing.check_string),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=utils.barcodes.clean_sequence, validation_fnc=utils.barcodes.check_sequence),
@@ -57,16 +47,7 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
         ]
         self.abc_samples = self.abc_libraries["sample_name"].unique().tolist()
         # Library sample names are samples, or pools of multiplexed samples (which are never existing samples)
-        sample_table = self.workflow.tables["sample_table"]
-        existing = sample_table.dropna(subset=["sample_id"])
-        self.sample_ids: dict[str, int] = {
-            name: int(sample_id) for name, sample_id in zip(existing["sample_name"], existing["sample_id"])
-            if name in self.abc_samples
-        }
-        cast(DBObjectColumn, self.spreadsheet.columns[SAMPLE_COLUMN]).set_categories(
-            {sample_id: f"{name} [{sample_id}]" for name, sample_id in self.sample_ids.items()},
-            new_names=[name for name in self.abc_samples if name not in self.sample_ids],
-        )
+        self.sample_ids = self.set_sample_options(cast(DBObjectColumn, self.spreadsheet.columns[SAMPLE_COLUMN]), self.abc_samples)
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:

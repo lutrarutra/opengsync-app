@@ -36,6 +36,10 @@
         const fieldId = "{{ field.id }}";
         const selectAll = {{ "true" if field.select_all else "false" }};
         const entity = "{{ entity }}";
+        // Document-level handlers are namespaced per field and unbound first, so a re-render of this
+        // field (e.g. navigating back in a workflow) replaces them instead of stacking another set
+        const ns = ".tableSelect-" + fieldId;
+        $(document).off(ns);
 
         // State
         let selected{{ uid }} = {{ field.data | tojson if field.data else "[]" }};
@@ -134,13 +138,13 @@
                 if (id !== null) remove{{ uid }}(id);
             });
 
-        $(document).on("mouseup", function(e) {
+        $(document).on("mouseup" + ns, function(e) {
             isMouseDown{{ uid }} = false;
             dragging{{ uid }} = false;
         });
 
         // Cmd+A / Ctrl+A to select all visible rows
-        $(document).on("keydown", function(e) {
+        $(document).on("keydown" + ns, function(e) {
             if ((e.metaKey || e.ctrlKey) && e.key === "a") {
                 const $focused = $(document.activeElement);
                 if ($focused.closest("#" + containerId + "-container").length) {
@@ -154,7 +158,7 @@
 
         // Select All button
         if (selectAll) {
-            $(document).on("click", "#" + fieldId + "-select-all", function(e) {
+            $(document).on("click" + ns, "#" + fieldId + "-select-all", function(e) {
                 $container{{ uid }}.find("." + entity + "-row").each(function() {
                     add{{ uid }}($(this).data("id"), this);
                 });
@@ -162,7 +166,7 @@
         }
 
         // Re-highlight selected rows after HTMX settles
-        $(document).on("htmx:afterSettle", function(e) {
+        $(document).on("htmx:afterSettle" + ns, function(e) {
             if ($(e.target).closest("#" + containerId + "-container").length) {
                 $container{{ uid }}.find("." + entity + "-row").each(function() {
                     const id = parseInt($(this).data("id"));

@@ -11,17 +11,18 @@ from ...core import dependencies, exceptions as exc, responses
 from ...utils import parsing
 from ...components import inputs
 from ...components.tables.spreadsheet import (
-    TextColumn, CategoricalDropDown, DropdownColumn,
+    TextColumn, DropdownColumn,
     DuplicateCellValue, InvalidCellValue, MissingCellValue,
 )
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ..common import kit_columns
 
 
 class LibraryFeaturesAction(HTMXForm):
     template_path = "forms/library-features-table.html"
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
-        CategoricalDropDown("kit", "Kit", 250, categories={}, required=False),
+        kit_columns.feature_kit_column("kit_id", "Kit", 250, types=[C.FeatureType.ANTIBODY]),
         TextColumn(
             "identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=True,
             clean_up_fnc=parsing.normalize_to_ascii, validation_fnc=parsing.check_string,
@@ -56,17 +57,6 @@ class LibraryFeaturesAction(HTMXForm):
                 raise exc.BadRequestException("Only 10x Antibody Capture and 10x SC ABC Flex libraries have features that can be edited.")
             form = LibraryFeaturesAction(library=library)
 
-            # Build kit dropdown
-            kit_mapping = {
-                kit.identifier: f"[{kit.identifier}] {kit.name}"
-                for kit in session.get_all(
-                    Q.feature_kit.select(type=C.FeatureType.ANTIBODY),
-                    order_by=models.FeatureKit.name.desc(),
-                    limit=None,
-                )
-            }
-            form.spreadsheet.columns["kit"].set_categories(kit_mapping)
-
             # Pre-fill with existing features
             df = T.library_features(
                 session.get_pandas(Q.pd.library_features(library.id), limit=None)
@@ -74,6 +64,7 @@ class LibraryFeaturesAction(HTMXForm):
                 "feature_name": "feature",
                 "kit_identifier": "kit",
             })
+            df["kit_id"] = kit_columns.ids_column(df, "kit")
 
             form.spreadsheet.configure(
                 csrf_token=form.csrf_token_value,
@@ -98,6 +89,8 @@ class LibraryFeaturesAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> responses.Response:
             df = form.spreadsheet.data
+            # Kits are selected by id, identified by their identifier below
+            df["kit"] = kit_columns.identifiers_column(df, "kit_id")
 
             kit_feature = pd.notna(df["kit"])
             custom_feature = pd.notna(df["feature"]) & pd.notna(df["sequence"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
@@ -108,7 +101,6 @@ class LibraryFeaturesAction(HTMXForm):
             kit_identifiers = df["kit"].dropna().unique().tolist()
             kits: dict[str, tuple[models.FeatureKit, pd.DataFrame]] = {}
 
-            df["kit_id"] = pd.Series([None] * len(df), dtype="Int64")
             df["feature_id"] = None
 
             for identifier in kit_identifiers:
@@ -118,18 +110,18 @@ class LibraryFeaturesAction(HTMXForm):
                     limit=None,
                 )
                 kits[identifier] = (kit, kit_df)
-                df.loc[df["kit"] == identifier, "kit_id"] = kit.id
 
             # Auto-fill sequence/pattern/read from kit features
             for identifier, (kit, kit_df) in kits.items():
-                mask = kit_df["name"].isin(df[df["kit"] == identifier]["feature"])
+                in_kit = df["kit"].eq(identifier).fillna(False)
+                mask = kit_df["name"].isin(df[in_kit]["feature"])
                 for _, kit_row in kit_df[mask].iterrows():
                     df.loc[
-                        (df["kit"] == identifier) & (df["feature"] == kit_row["name"]),
+                        in_kit & df["feature"].eq(kit_row["name"]).fillna(False),
                         ["sequence", "pattern", "read"]
                     ] = kit_row[["sequence", "pattern", "read"]].values
                     df.loc[
-                        (df["kit"] == identifier) & (df["identifier"] == kit_row["identifier"]),
+                        in_kit & df["identifier"].eq(kit_row["identifier"]).fillna(False),
                         ["sequence", "pattern", "read"]
                     ] = kit_row[["sequence", "pattern", "read"]].values
 
@@ -148,14 +140,14 @@ class LibraryFeaturesAction(HTMXForm):
                 if duplicate_name.at[idx]:
                     form.spreadsheet.add_error(idx, "feature", DuplicateCellValue("duplicate feature name"))
                 if duplicated.at[idx]:
-                    form.spreadsheet.add_error(idx, "kit", DuplicateCellValue("duplicate feature definition"))
+                    form.spreadsheet.add_error(idx, "kit_id", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "feature", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("duplicate feature definition"))
                     form.spreadsheet.add_error(idx, "read", DuplicateCellValue("duplicate feature definition"))
 
                 if custom_feature.at[idx] and kit_feature.at[idx]:
-                    for col in ["kit", "feature", "sequence", "pattern", "read"]:
+                    for col in ["kit_id", "feature", "sequence", "pattern", "read"]:
                         form.spreadsheet.add_error(idx, col, InvalidCellValue("must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
                 elif kit_feature.at[idx]:
@@ -186,7 +178,7 @@ class LibraryFeaturesAction(HTMXForm):
                         form.spreadsheet.add_error(idx, "read", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination."))
 
                 else:
-                    for col in ["kit", "feature", "sequence", "pattern", "read"]:
+                    for col in ["kit_id", "feature", "sequence", "pattern", "read"]:
                         form.spreadsheet.add_error(idx, col, MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
 
             # Two rows resolving to the same kit feature

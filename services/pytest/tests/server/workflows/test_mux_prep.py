@@ -29,6 +29,7 @@ from ...db.create_units import (
     create_feature, create_feature_kit, create_lab_prep, create_library, create_project, create_sample, create_seq_request,
 )
 from .._http import assert_flash, assert_form_invalid, assert_htmx_redirect, get, post_form, post_form_csrf_mismatch, spreadsheet_payload
+from .library_annotation._workflow import spreadsheet_records
 
 GEX = C.LibraryType.TENX_SC_GEX_FLEX
 ABC = C.LibraryType.TENX_SC_ABC_FLEX
@@ -385,12 +386,13 @@ def _kit_label(kit: models.FeatureKit) -> str:
     return f"[{kit.identifier}] {kit.name}"
 
 
-def test_oligo_begin_lists_samples_and_cmo_kits(client: TestClient, prep: Prep, oligo, cmo_kit, insider_token: str):
+def test_oligo_begin_lists_samples_and_queries_cmo_kits(client: TestClient, prep: Prep, oligo, cmo_kit, insider_token: str):
     response = get(client, _url(client, "Begin"), insider_token, params=prep.params(C.MUXType.TENX_OLIGO))
 
     assert response.status_code == 200, response.text
     assert "Smpl1" in response.text and "Smpl2" in response.text
-    assert _kit_label(cmo_kit) in response.text
+    # CMO kits are searched on the backend, not sent with the page
+    assert f"/htmx/feature_kits/query?type_in=%5B{C.FeatureType.CMO.id}%5D" in response.text
 
 
 def test_oligo_custom_sequences_are_saved(client: TestClient, prep: Prep, oligo, insider_token: str):
@@ -442,3 +444,26 @@ def test_oligo_duplicate_definition_in_pool_is_rejected(client: TestClient, prep
     ])
 
     assert_form_invalid(response, "Definitions must be unique for each sample.")
+
+
+def test_oligo_kit_by_id_fills_sequence(client: TestClient, prep: Prep, oligo, cmo_kit, insider_token: str):
+    """The kit column is a QueryColumn: its cells hold the kit id."""
+    response = _oligo(client, prep, insider_token, [[cmo_kit.id, "CMO301", "", "", ""], [cmo_kit.id, "CMO302", "", "", ""]])
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert prep.mux(oligo)["Smpl2"] == {"barcode": "CATGCCAATAGAGCG", "pattern": PATTERN, "read": "R2"}
+
+
+@pytest.mark.parametrize("kit_cell, feature, message", [
+    (999_999_999, "CMO301", "Unknown kit"),  # found by the spreadsheet validation
+    ("KIT", "CMO999", "not found in kit"),  # found by the route
+])
+def test_oligo_invalid_submission_is_rendered_unchanged(
+    client: TestClient, prep: Prep, oligo, cmo_kit, insider_token: str, kit_cell, feature: str, message: str,
+):
+    rows = [[cmo_kit.id if kit_cell == "KIT" else kit_cell, feature, "", "", ""], ["", "", "TTTTGGGGCCCC", PATTERN, "R1"]]
+    response = _oligo(client, prep, insider_token, rows)
+
+    assert_form_invalid(response, message)
+    submitted = [dict(zip(OLIGO_COLUMNS, [f"Smpl{i + 1}", "PoolA", *row])) for i, row in enumerate(rows)]
+    assert spreadsheet_records(response) == submitted

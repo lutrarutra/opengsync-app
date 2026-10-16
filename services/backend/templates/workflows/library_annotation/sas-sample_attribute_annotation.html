@@ -18,12 +18,6 @@
                 aria-controls="help-tab" aria-selected="false">
                 Help</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#visium-1-example-tab" type="button" role="tab"
-                aria-controls="visium-1-example-tab" aria-selected="true">
-                Example 1.</button>
-            </li>
         </ul>
         <div class="tab-content" id="sample_annotation_form">
             {{ form.csrf_token.render() }}
@@ -61,14 +55,9 @@
                         </li>
                         <li><b>Sex, Genotype, Cell Type, Condition, Age, Tissue, Disease</b> <span class="desc">optional</span>: common attributes.</li>
                     </ul>
+                    <h5>Example</h5>
                 </div>
-            </div>
-            <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="2">
-                {% if example_spreadsheet is defined %}
-                {{ example_spreadsheet.render(height="220px") }}
-                {% else %}
-                {% include "examples/sample_annotation.html" %}
-                {% endif %}
+                {% if example_spreadsheet is defined %}{{ example_spreadsheet.render(height="220px") }}{% endif %}
             </div>
         </div>
     </div>

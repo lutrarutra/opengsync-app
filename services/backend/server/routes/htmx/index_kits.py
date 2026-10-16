@@ -5,7 +5,7 @@ from opengsync_db import SyncSession, queries as Q, categories as C, utils, mode
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
 from ...forms.actions.edit_kit_actions import EditKitBarcodesForm
 from ...forms.models import IndexKitForm
@@ -95,17 +95,33 @@ def search_index_kits(
     word: str | None = Query(None, description="Search term for kit name or identifier"),
     type: C.IndexType | None = Depends(dependencies.parse_enum_id(C.IndexType, "type")),
     type_in: list[C.IndexType] | None = Depends(dependencies.parse_enum_ids(C.IndexType, "type_in")),
+    selected_id: int | None = Query(None, description="Currently selected kit"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     stmt = Q.index_kit.select(type=type, type_in=type_in)
-    if word:
+    if selected_id is not None and not word:
+        stmt = Q.index_kit.select(id=selected_id, statement=stmt)
+    elif word:
         stmt = Q.index_kit.search(name=word, identifier=word, statement=stmt)
     else:
         stmt = stmt.order_by(models.IndexKit.name.asc())
-    
-    kits, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/index_kit.html", results=kits)
+
+    return query_options.search_response(session, stmt, page=page, option=query_options.kit_option)
+
+
+@router.get("/query")
+def query_index_kits(
+    word: str | None = Query(None, description="Search word for kit name or identifier"),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    type_in: list[C.IndexType] | None = Depends(dependencies.parse_enum_ids(C.IndexType, "type_in")),
+    session: SyncSession = Depends(dependencies.db_session),
+) -> Response:
+    """Options for a spreadsheet QueryColumn. Index kits are visible to every user."""
+    return query_options.options_response(
+        session, Q.index_kit.select(type_in=type_in), columns=query_options.KIT_SEARCH_COLUMNS,
+        word=word, page=page, order_column=models.IndexKit.name, label=query_options.kit_label,
+    )
 
 
 router.include_router(EditKitBarcodesForm.Router())

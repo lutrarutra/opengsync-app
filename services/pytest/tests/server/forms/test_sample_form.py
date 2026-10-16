@@ -499,3 +499,104 @@ def test_edit_status_is_read_only_for_client(
 
     assert re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', client_view.text)
     assert not re.search(r'<select[^>]*\bdisabled\b[^>]*name="status"', insider_view.text)
+
+
+def _selected_option(html: str, name: str) -> str | None:
+    """Value of the ``selected`` <option> of the <select name=...>."""
+    select = re.search(rf'<select[^>]*name="{name}"[^>]*>(.*?)</select>', html, re.S)
+    assert select, f"select {name!r} not rendered"
+    option = re.search(r'<option value="([^"]*)"[^>]*\bselected\b', select.group(1))
+    return option.group(1) if option else None
+
+
+def test_edit_persists_every_field(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """Every editable field (name, status) posted by an insider lands in the DB."""
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    sample.status = C.SampleStatus.WAITING_DELIVERY
+    session.commit()
+
+    new_status = C.SampleStatus.STORED
+    response = post_form(
+        client,
+        _edit_path(sample.id),
+        _payload("Every_Field_Edited", new_status.id),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/samples/{sample.id}")
+    session.expire_all()
+    session.refresh(sample)
+    assert sample.name == "Every_Field_Edited"
+    assert sample.status == new_status
+    # untouched relations are not wiped
+    assert sample.project_id == project.id
+    assert sample.owner_id == user.id
+
+
+def test_edit_form_prefills_name_and_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    sample.name = "Prefilled_Sample"
+    sample.status = C.SampleStatus.STORED
+    session.commit()
+
+    for token in (insider_token, user_token):
+        html = get(client, _edit_path(sample.id), token).text
+        assert re.search(r'<input[^>]*value="Prefilled_Sample"[^>]*name="name"', html)
+        assert _selected_option(html, "status") == str(C.SampleStatus.STORED.id)
+
+    # read-only select for the client still carries the current status in a hidden input
+    client_html = get(client, _edit_path(sample.id), user_token).text
+    assert f'<input type="hidden" name="status" value="{C.SampleStatus.STORED.id}">' in client_html
+
+
+def test_edit_form_prefills_empty_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    session.commit()
+
+    html = get(client, _edit_path(sample.id), insider_token).text
+    assert _selected_option(html, "status") == ""
+
+
+def test_edit_client_rename_keeps_existing_status(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    """A client resubmitting the prefilled (unchanged) status can rename without wiping it."""
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    sample.status = C.SampleStatus.STORED
+    session.commit()
+
+    response = post_form(
+        client,
+        _edit_path(sample.id),
+        _payload("Client_Renamed", C.SampleStatus.STORED.id),
+        token=user_token,
+    )
+
+    assert_htmx_redirect(response, f"/samples/{sample.id}")
+    session.expire_all()
+    session.refresh(sample)
+    assert sample.name == "Client_Renamed"
+    assert sample.status == C.SampleStatus.STORED

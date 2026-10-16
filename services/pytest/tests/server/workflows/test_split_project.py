@@ -54,7 +54,7 @@ def test_split_project_workflow_moves_samples_to_existing_project(
     response = post_form(
         client,
         f"{prefix}/project-select",
-        {"existing_project": str(destination.id)},
+        {"project": str(destination.id)},
         token=insider_token,
         params=params,
     )
@@ -132,7 +132,7 @@ def test_split_project_creates_destination_with_source_owner_and_group(
         client,
         f"{prefix}/project-select",
         {
-            "new_project": "A New Split Project",
+            "project": "new", "project-text": "A New Split Project",
             "project_description": "Created by the project split workflow.",
         },
         token=insider_token,
@@ -183,7 +183,7 @@ def test_split_project_back_navigation_keeps_choices_and_can_change_destination(
     params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
 
     confirm = _to_confirm(client, insider_token, params, [sample.id], {
-        "new_project": "Split Back Project", "project_description": "Chosen first, then replaced.",
+        "project": "new", "project-text": "Split Back Project", "project_description": "Chosen first, then replaced.",
     })
     assert "project-select" in confirm.text  # back link to the destination step
 
@@ -197,7 +197,7 @@ def test_split_project_back_navigation_keeps_choices_and_can_change_destination(
 
     # Choose an existing project instead and finish
     assert post_form(
-        client, f"{PREFIX}/project-select", {"existing_project": str(destination.id)}, token=insider_token, params=params,
+        client, f"{PREFIX}/project-select", {"project": str(destination.id)}, token=insider_token, params=params,
     ).status_code == 200
     response = post_form(
         client, f"{PREFIX}/confirm-split", {"destination_status": str(C.ProjectStatus.DRAFT.id)}, token=insider_token, params=params,
@@ -223,7 +223,7 @@ def test_split_project_owner_without_insider_role_is_denied_on_every_step(
     params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
 
     assert post_form(client, f"{PREFIX}/select-samples", {"selected_sample_ids": json.dumps([sample.id])}, token=user_token, params=params).status_code == 403
-    assert post_form(client, f"{PREFIX}/project-select", {"existing_project": str(destination.id)}, token=user_token, params=params).status_code == 403
+    assert post_form(client, f"{PREFIX}/project-select", {"project": str(destination.id)}, token=user_token, params=params).status_code == 403
     assert post_form(client, f"{PREFIX}/confirm-split", {"destination_status": str(C.ProjectStatus.DRAFT.id)}, token=user_token, params=params).status_code == 403
     for path in ("select-samples", "project-select"):
         assert get(client, f"{PREFIX}/{path}", user_token, params=params).status_code == 403
@@ -248,7 +248,7 @@ def test_split_project_failure_after_creating_destination_rolls_back(
     session.commit()
     params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
     _to_confirm(client, insider_token, params, [sample.id, sample.id], {
-        "new_project": "Split Rollback Project", "project_description": "Must not survive the failed split.",
+        "project": "new", "project-text": "Split Rollback Project", "project_description": "Must not survive the failed split.",
     })
 
     response = post_form(
@@ -292,7 +292,7 @@ def test_split_project_confirm_twice_creates_one_project(
     sample = create_sample(session, user, source)
     session.commit()
     params = {"project_id": source.id, "uuid": str(uuid.uuid4())}
-    _to_confirm(client, insider_token, params, [sample.id], {"new_project": "Split Once", "project_description": "x"})
+    _to_confirm(client, insider_token, params, [sample.id], {"project": "new", "project-text": "Split Once", "project_description": "x"})
     payload = {"destination_status": str(C.ProjectStatus.DRAFT.id)}
 
     assert post_form(client, f"{PREFIX}/confirm-split", payload, token=insider_token, params=params).status_code == 204

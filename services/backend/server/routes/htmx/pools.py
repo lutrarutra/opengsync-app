@@ -4,7 +4,7 @@ from sqlalchemy import orm
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 from opengsync_db.transitions import run_operation, lab as lab_ops
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ...components.tables import HTMXTable, TableCol
 from ...forms.models import PoolForm
 
@@ -132,8 +132,7 @@ def search_pools(
     if not current_user.is_insider:
         stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
 
-    pools, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/pool.html", pools=pools)
+    return query_options.search_response(session, stmt, page=page, option=query_options.pool_option)
 
 
 @router.delete("/{pool_id}/remove-library/{library_id}")

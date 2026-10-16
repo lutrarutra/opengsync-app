@@ -3,7 +3,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ...components.tables import HTMXTable, TableCol
 from ... import forms
 
@@ -134,8 +134,7 @@ def search_users(
         else:    
             stmt = Q.user.select(viewer_id=current_user.id, statement=stmt)
 
-    users, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/user.html", users=users)
+    return query_options.search_response(session, stmt, page=page, option=query_options.user_option)
 
 
 router.include_router(forms.models.UserForm.Router())

@@ -5,11 +5,12 @@ from opengsync_db import models, queries as Q, categories as C, SyncSession
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ....core import context, dependencies
+from ....core import dependencies
 from ....utils import barcodes
 from ....components import inputs
-from ....components.tables.spreadsheet import DBObjectColumn, TextColumn, CategoricalDropDown, InvalidCellValue, MissingCellValue
+from ....components.tables.spreadsheet import DBObjectColumn, TextColumn, InvalidCellValue, MissingCellValue
 from ...HTMXForm import RouteFunc, htmx_route
+from ...common import kit_columns
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
 from .BarcodeInputForm import assert_libraries_listed
 
@@ -27,14 +28,7 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
                 required=True,
             ),
             TextColumn("index_well", "Index Well", 100, max_length=8, required=False),
-            CategoricalDropDown("kit", "Kit", 200, categories=lambda: {
-                kit.identifier: f"[{kit.identifier}] {kit.name}"
-                for kit in context.ctx.session.get_all(
-                    Q.index_kit.select(type=C.IndexType.TENX_ATAC_INDEX),
-                    order_by=models.IndexKit.name.desc(),
-                    limit=None,
-                )
-            }, required=False),
+            kit_columns.index_kit_column("kit_id", "Kit", 200, types=[C.IndexType.TENX_ATAC_INDEX]),
             TextColumn("name", "Name", 150, required=False, max_length=models.LibraryIndex.name_i7.type.length),
             # Optional: a kit + well/name fills them (as legacy CommonTENXATACBarcodeInputForm)
             *[
@@ -64,7 +58,14 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
             if row["library_type"] == C.LibraryType.TENX_SC_ATAC
         })
 
-        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url, df=self.barcode_table)
+        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url, df=self.with_kit_ids(self.barcode_table))
+
+    @staticmethod
+    def with_kit_ids(df: pd.DataFrame) -> pd.DataFrame:
+        """The table with the ids of its kit identifiers, as the kit column selects kits by id."""
+        df = df.copy()
+        df["kit_id"] = kit_columns.ids_column(df, "kit")
+        return df
 
     def resolve_kits(self, session: SyncSession, df: pd.DataFrame) -> pd.DataFrame:
         """Fill name and sequences from the kit (by well or name) and set ``kit_id``; add errors for
@@ -73,10 +74,11 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
             df.loc[df["index_well"].notna(), "index_well"].astype(str).str.strip().str.replace(r"(?<=[A-Z])0+(?=\d)", "", regex=True)
         )
         sequence_columns = [f"sequence_{i}" for i in range(1, 5)]
+        # Kits are selected by id, identified by their identifier below
+        df["kit"] = kit_columns.identifiers_column(df, "kit_id")
         kit_defined = df["kit"].notna() & (df["index_well"].notna() | df["name"].notna())
         manual_defined = df[sequence_columns].notna().all(axis=1)
 
-        df["kit_id"] = None
         for identifier in df["kit"].dropna().unique().tolist():
             kit = session.get_one(Q.index_kit.select(identifier=identifier))
             kit_df = T.index_kit_barcodes_per_index(
@@ -85,12 +87,11 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
             )
             # One row per well: name + sequence_1..4 (per_index yields four i7 rows per well)
             kit_df = kit_df.groupby(["well", "name_i7"], sort=False)["sequence_i7"].agg(list).reset_index().rename(columns={"name_i7": "name"})
-            df.loc[df["kit"] == identifier, "kit_id"] = kit.id
-            view = df["kit"] == identifier
+            view = df["kit"].eq(identifier).fillna(False)
             for _, kit_row in kit_df.iterrows():
-                df.loc[view & (df["index_well"] == kit_row["well"]), "name"] = kit_row["name"]
+                df.loc[view & df["index_well"].eq(kit_row["well"]).fillna(False), "name"] = kit_row["name"]
                 for i, sequence in enumerate(kit_row["sequence_i7"][:4], start=1):
-                    df.loc[view & (df["name"] == kit_row["name"]), f"sequence_{i}"] = sequence
+                    df.loc[view & df["name"].eq(kit_row["name"]).fillna(False), f"sequence_{i}"] = sequence
 
         for idx, row in df.iterrows():
             if pd.notna(row["index_well"]) and row["index_well"] == "del":
@@ -104,7 +105,7 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
                     self.spreadsheet.add_error(idx, ["index_well", "name"], MissingCellValue("'Index Well' or 'Name' must be defined when kit is defined"))
                 else:
                     self.spreadsheet.add_error(
-                        idx, ["kit", "name", *sequence_columns],
+                        idx, ["kit_id", "name", *sequence_columns],
                         MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"),
                     )
         return df
@@ -115,7 +116,7 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
             form: "TENXATACBarcodeInputForm" = Depends(TENXATACBarcodeInputForm.Init()),
         ) -> Response:
             barcode_table = form.workflow.tables["tenx_atac_barcode_table"]
-            form.spreadsheet.set_data(barcode_table)
+            form.spreadsheet.set_data(form.with_kit_ids(barcode_table))
             return form.make_response()
         return route
 

@@ -37,7 +37,7 @@ def _events_by_day(
     while it <= end_date:
         calendar[it] = []
         for event in events:
-            if event.timestamp_utc.date() == it.date():
+            if event.timestamp.date() == it.date():
                 calendar[it].append(event)
         it += timedelta(days=1)
     return calendar

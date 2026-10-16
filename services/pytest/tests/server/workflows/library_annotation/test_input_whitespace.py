@@ -15,7 +15,7 @@ def test_input_whitespace(
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
     wf.post("project-select", {
-        "new_project": "   Padded Project Title   ",
+        "project": "new", "project-text": "   Padded Project Title   ",
         "project_description": "\tPadded description \n",
     }, next_step="sample-annotation")
     wf.post("sample-annotation", spreadsheet(["Sample Name", "Organism"], [["  Pad_Sample  ", f" {HUMAN} "]]), next_step="sample-attribute-annotation")

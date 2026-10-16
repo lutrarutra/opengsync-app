@@ -159,7 +159,7 @@ def test_every_step_rejects_a_run_of_another_request(client, session: SyncSessio
         back = _get(other, step)
         _assert_rejected(back, FOREIGN)
         assert "State_1" not in back.text and "Run bound to A" not in back.text
-    _assert_rejected(other.post(step, {"new_project": "Hijack", "project_description": "x"}, status=None), FOREIGN)
+    _assert_rejected(other.post(step, {"project": "new", "project-text": "Hijack", "project_description": "x"}, status=None), FOREIGN)
 
     assert _snapshot(client, wf.uuid) == before
 

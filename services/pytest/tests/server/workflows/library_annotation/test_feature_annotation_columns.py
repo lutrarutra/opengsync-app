@@ -33,7 +33,7 @@ def test_feature_annotation_sample_and_kit_columns(client, session: SyncSession,
 
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
-    wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    wf.post("project-select", {"project": str(project.id)}, next_step="sample-annotation")
     wf.post("sample-annotation", spreadsheet(["Sample Name", "Organism"], [[existing.id, HUMAN], ["Feat_New", HUMAN]]), next_step="sample-attribute-annotation")
     wf.attributes(["Feat_Existing", "Feat_New"])
     step = wf.service(

@@ -615,3 +615,120 @@ def test_edit_client_keeps_existing_protocol(
 
     assert_htmx_redirect(response, f"/libraries/{library.id}")
     assert _reload(session, library).protocol_id == protocol.id
+
+
+def _selected_option(text: str, field_name: str) -> str | None:
+    select = re.search(rf'<select[^>]*\bname="{field_name}"[^>]*>(.*?)</select>', text, re.DOTALL)
+    assert select is not None, f"select '{field_name}' not rendered"
+    option = re.search(r'<option value="([^"]*)"[^>]*\bselected\b', select.group(1))
+    return option.group(1) if option else None
+
+
+def test_edit_persists_every_field(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """Regression: every editable field of the edit form is written to the DB."""
+    library = _library_for(session, user)
+    protocol = create_protocol(session)
+    session.commit()
+    assert library.nuclei_isolation is False
+    assert library.mux_type is None and library.protocol_id is None
+
+    response = post_form(
+        client,
+        _edit_path(library.id),
+        _payload(
+            "Every_Field_Library",
+            library_type=C.LibraryType.TENX_SC_ATAC.id,
+            genome=C.GenomeRef.MOUSE.id,
+            status=C.LibraryStatus.PREPARING.id,
+            mux_type=C.MUXType.TENX_FLEX_PROBE.id,
+            protocol=protocol.id,
+        ),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/libraries/{library.id}")
+    session.expire_all()
+    session.refresh(library)
+    assert library.sample_name == "Every_Field_Library"
+    assert library.name == _expected_name("Every_Field_Library", C.LibraryType.TENX_SC_ATAC)
+    assert library.type == C.LibraryType.TENX_SC_ATAC
+    assert library.genome_ref == C.GenomeRef.MOUSE
+    assert library.status == C.LibraryStatus.PREPARING
+    assert library.mux_type == C.MUXType.TENX_FLEX_PROBE
+    assert library.protocol_id == protocol.id
+    assert library.nuclei_isolation is True
+
+
+def _prefill_library(session: SyncSession, user: models.User) -> tuple[models.Library, models.Protocol]:
+    library = _library_for(session, user)
+    protocol = create_protocol(session)
+    library.sample_name = f"Prefill_{uuid.uuid4().hex[:6]}"
+    library.type = C.LibraryType.TENX_SC_ATAC
+    library.genome_ref = C.GenomeRef.MOUSE
+    library.status = C.LibraryStatus.PREPARING
+    library.mux_type = C.MUXType.TENX_FLEX_PROBE
+    library.protocol_id = protocol.id
+    library.nuclei_isolation = True
+    session.commit()
+    return library, protocol
+
+
+def test_edit_form_prefills_every_field(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """Regression: the edit GET prefills every field from the DB model (legacy __fill_form)."""
+    library, protocol = _prefill_library(session, user)
+
+    response = get(client, _edit_path(library.id), insider_token)
+
+    assert response.status_code == 200
+    text = response.text
+    assert re.search(rf'<input[^>]*\bvalue="{re.escape(library.sample_name)}"[^>]*\bname="name"', text)
+    assert _selected_option(text, "library_type") == str(C.LibraryType.TENX_SC_ATAC.id)
+    assert _selected_option(text, "genome") == str(C.GenomeRef.MOUSE.id)
+    assert _selected_option(text, "status") == str(C.LibraryStatus.PREPARING.id)
+    assert _selected_option(text, "mux_type") == str(C.MUXType.TENX_FLEX_PROBE.id)
+    assert _selected_option(text, "protocol") == str(protocol.id)
+    assert re.search(r'<input[^>]*\bname="nuclei_isolation"[^>]*\bchecked\b', text)
+
+
+def test_edit_form_prefills_empty_optionals_as_none(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    library = _library_for(session, user)
+
+    text = get(client, _edit_path(library.id), insider_token).text
+
+    assert _selected_option(text, "mux_type") == "-1"
+    assert _selected_option(text, "protocol") == "-1"
+    assert not re.search(r'<input[^>]*\bname="nuclei_isolation"[^>]*\bchecked\b', text)
+
+
+def test_edit_form_prefills_read_only_fields_for_client(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    """Read-only status/protocol are still prefilled and round-tripped via hidden inputs."""
+    library, protocol = _prefill_library(session, user)
+    library.status = C.LibraryStatus.DRAFT
+    session.commit()
+
+    text = get(client, _edit_path(library.id), user_token).text
+
+    assert _selected_option(text, "status") == str(C.LibraryStatus.DRAFT.id)
+    assert _selected_option(text, "protocol") == str(protocol.id)
+    assert f'<input type="hidden" name="status" value="{C.LibraryStatus.DRAFT.id}">' in text
+    assert f'<input type="hidden" name="protocol" value="{protocol.id}">' in text

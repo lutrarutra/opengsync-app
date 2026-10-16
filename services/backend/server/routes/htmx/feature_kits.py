@@ -1,10 +1,9 @@
-import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
 from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
 
-from ...core import dependencies, exceptions as exc, responses
+from ...core import dependencies, exceptions as exc, responses, query_options
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
 
 router = APIRouter(prefix="/feature_kits", tags=["feature-kits"])
@@ -57,9 +56,6 @@ def render_feature_kit_table(
     return table.make_response(feature_kits=feature_kits)
 
 
-QUERY_PAGE_SIZE = 20
-
-
 @router.get("/query")
 def query_feature_kits(
     word: str | None = Query(None, description="Search word for kit name or identifier"),
@@ -68,24 +64,9 @@ def query_feature_kits(
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     """Options for a spreadsheet QueryColumn. Feature kits are visible to every user."""
-    stmt = Q.feature_kit.select(type_in=type_in)
-    if word:
-        # Names or identifiers containing the word first, then similar names (typos)
-        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        contains = sa.or_(
-            models.FeatureKit.name.ilike(f"%{escaped}%", escape="\\"),
-            models.FeatureKit.identifier.ilike(f"%{escaped}%", escape="\\"),
-        )
-        similarity = sa.func.similarity(models.FeatureKit.name, word)
-        stmt = stmt.where(sa.or_(contains, utils.safe_trgm_search(models.FeatureKit.name, word))).order_by(
-            sa.case((contains, 0), else_=1), similarity.desc(), models.FeatureKit.name.asc(),
-        )
-    else:
-        stmt = stmt.order_by(models.FeatureKit.name.asc())
-    kits, count = session.page(stmt, page=page, limit=QUERY_PAGE_SIZE)
-    return responses.query_options_response(
-        ((kit.id, f"[{kit.identifier}] {kit.name}") for kit in kits),
-        has_more=(page + 1) * QUERY_PAGE_SIZE < count,
+    return query_options.options_response(
+        session, Q.feature_kit.select(type_in=type_in), columns=query_options.KIT_SEARCH_COLUMNS,
+        word=word, page=page, order_column=models.FeatureKit.name, label=query_options.kit_label,
     )
 
 

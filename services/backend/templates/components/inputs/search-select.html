@@ -1,41 +1,34 @@
-{% from 'components/tooltip.jinja2' import tooltip %}
-
+{# SearchableInputField (server/components/inputs/searchable.py), driven by static/js/search-select.js #}
 <div class="form-group {{ container_class }} {% if field.hidden %}d-none{% endif %}">
-    <div class="search-select{% if field.read_only %} read-only{% endif %}" id="{{ field.id }}-container">
+    <div class="search-select{% if field.read_only %} read-only{% endif %}{% if field.value %} has-value{% endif %}{% if field.is_new %} is-new{% endif %}"
+        id="{{ field.id }}-container" data-search-select data-url="{{ field.url() }}"
+        {% if field.allow_new %}data-allow-new data-new-label="{{ field.new_label }}"{% endif %}>
         {% if not hide_label %}
-        <a {% if field.description %}
-        {{ tooltip(field.description, "top") }}
-        {% endif %}>
-            {{ field.label }}
-        </a>
+        <a>{{ field.label }}</a>
         {% endif %}
-        <div class="input-group">
-            <input
-            class="input-group-text searchbar-data" type="number" id="{{ field.id }}"
-            value="{{ field.data or '' }}" autocomplete="off" name="{{ field.name }}"
-            readonly>
-            <input
-                type="search" autocomplete="off" placeholder="Search"
-                class="form-control searchbar-input {% if field.errors %} is-invalid{% endif %}"
-                {% if field.read_only %}readonly{% endif %}
-                style="display: {% if field.data %}none{% else %}block{% endif %};"
-                name="{{ field.name }}-selected" id="{{ field.id }}-selected">
-            <span class="form-control selected-bar" data-field="{{ field.id }}"></span>
-            <button class="btn btn-outline-secondary clear-btn" type="button" data-field="{{ field.id }}" {% if field.read_only %} disabled {% endif %}>Clear</button>
+        <div class="search-select-field">
+            <div class="search-select-control form-control{% if field.errors %} is-invalid{% endif %}">
+                <span class="search-select-badge" title="{% if field.is_new %}New{% else %}ID{% endif %}">{{ field.value or "—" }}</span>
+                <input type="text" class="search-select-input" id="{{ field.id }}-input"
+                    role="combobox" aria-label="{{ field.label }}" aria-autocomplete="list" aria-expanded="false"
+                    aria-controls="{{ field.id }}-listbox" autocomplete="off" spellcheck="false" value="{{ field.display_text }}"
+                    placeholder="{{ field.placeholder or ('Search or type a new name…' if field.allow_new else 'Search…') }}"
+                    {% if field.read_only %}readonly tabindex="-1"{% endif %}>
+                {% if not field.read_only %}
+                <button type="button" class="search-select-clear" aria-label="Clear" tabindex="-1"><i class="bi bi-x-lg"></i></button>
+                <span class="search-select-caret" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+                {% endif %}
+            </div>
+            <ul class="search-select-list minimal-scrollbar" id="{{ field.id }}-listbox" role="listbox" hidden></ul>
         </div>
-        <ul class="options-container minimal-scrollbar">
-        </ul>
+        <input type="hidden" class="search-select-value" id="{{ field.id }}" name="{{ field.name }}" value="{{ field.value }}">
+        <input type="hidden" class="search-select-text" name="{{ field.text_name }}" value="{{ field.display_text }}">
     </div>
-    {% if not field.read_only %}
-    <script>
-        $(document).ready(function() {
-            let search_select = new SearchSelect($(`#{{ field.id }}-container`), "{{ field.url() }}", "{{ field.id }}");
-        });
-    </script>
-    {% endif %}
+    {% if not hide_errors %}
     <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
         {% for error in field.errors %}
         <p>{{ error }}</p>
         {% endfor %}
     </div>
+    {% endif %}
 </div>

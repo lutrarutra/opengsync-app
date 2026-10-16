@@ -10,7 +10,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ...utils import parsing
 from ... import forms
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
@@ -212,12 +212,10 @@ def search_libraries(
     if not current_user.is_insider:
         stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
 
-    libraries, _ = session.page(
-        stmt,
-        page=page,
-        options=[orm.selectinload(models.Library.seq_request)],
+    return query_options.search_response(
+        session, stmt, page=page, option=query_options.library_option,
+        load=[orm.selectinload(models.Library.seq_request)],
     )
-    return responses.htmx_response(template="components/search/library.html", libraries=libraries)
 
 
 @router.get("/{library_id}/reads", dependencies=[Depends(dependencies.library_permissions)])

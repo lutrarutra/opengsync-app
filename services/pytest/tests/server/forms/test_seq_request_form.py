@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, queries as Q, categories as C
 
-from ...db.create_units import create_seq_request
-from .._http import assert_form_invalid, post_form
+from ...db.create_units import create_contact, create_group, create_seq_request
+from .._http import assert_form_invalid, get, post_form
 
 
 def _request_payload(name: str, **overrides: str | None) -> dict[str, str]:
@@ -244,6 +244,147 @@ def test_edit_persists_all_billing_contact_fields(
     assert request.billing_contact.email == "new-billing@example.com"
     assert request.billing_contact.phone == "new phone"
     assert request.billing_contact.address == "New address"
+
+
+def test_edit_persists_every_field(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user, submission_type=C.SubmissionType.POOLED_LIBRARIES)
+    request.billing_contact = create_contact(session)  # the fixture shares one contact for person and billing
+    session.commit()
+
+    new_name = f"edited-{uuid4().hex}"
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit",
+        _request_payload(
+            new_name,
+            **{
+                "basic_info-description": "Edited description",
+                "technical_info-submission_type": str(C.SubmissionType.RAW_SAMPLES.id),
+                "technical_info-read_type": str(C.ReadType.SINGLE_END.id),
+                "technical_info-read_length": "75",
+                "technical_info-num_lanes": "3",
+                "technical_info-data_delivery_mode": str(C.DataDeliveryMode.READS_ONLY.id),
+                "technical_info-special_requirements": "Edited requirements",
+                "contact-name": "Edited Contact",
+                "contact-email": "edited-contact@example.com",
+                "contact-phone": "+1 555 0300",
+                "bioinformatician-name": "Edited Bioinformatician",
+                "bioinformatician-email": "bioinf@example.com",
+                "bioinformatician-phone": "+1 555 0400",
+                "organization-name": "Edited Organization",
+                "organization-address": "3 Edited Street",
+                "billing-code": "EDITED-001",
+            },
+        ),
+        token=user_token,
+    )
+
+    assert response.status_code == 204
+    session.expire_all()
+    session.refresh(request)
+    assert request.name == new_name
+    assert request.description == "Edited description"
+    assert request.submission_type == C.SubmissionType.RAW_SAMPLES
+    assert request.read_type == C.ReadType.SINGLE_END
+    assert request.read_length == 75
+    assert request.num_lanes == 3
+    assert request.data_delivery_mode == C.DataDeliveryMode.READS_ONLY
+    assert request.special_requirements == "Edited requirements"
+    assert request.billing_code == "EDITED-001"
+    assert request.contact_person.name == "Edited Contact"
+    assert request.contact_person.email == "edited-contact@example.com"
+    assert request.contact_person.phone == "+1 555 0300"
+    assert request.bioinformatician_contact is not None
+    assert request.bioinformatician_contact.name == "Edited Bioinformatician"
+    assert request.bioinformatician_contact.email == "bioinf@example.com"
+    assert request.bioinformatician_contact.phone == "+1 555 0400"
+    assert request.organization_contact.name == "Edited Organization"
+    assert request.organization_contact.address == "3 Edited Street"
+    assert request.billing_contact.name == "Accounts Payable"
+
+
+def test_edit_persists_and_clears_group(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    group = create_group(session)
+    session.save(Q.affiliation.create(user=user, group=group, type=C.AffiliationType.MEMBER), flush=True)
+    session.commit()
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit",
+        _request_payload(request.name, **{"basic_info-group_id": str(group.id)}),
+        token=user_token,
+    )
+    assert response.status_code == 204
+    session.expire_all()
+    session.refresh(request)
+    assert request.group_id == group.id
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit",
+        _request_payload(request.name, **{"basic_info-group_id": ""}),
+        token=user_token,
+    )
+    assert response.status_code == 204
+    session.expire_all()
+    session.refresh(request)
+    assert request.group_id is None
+
+
+def test_edit_rejects_group_requestor_is_not_part_of(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    group = create_group(session)
+    session.commit()
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit",
+        _request_payload(request.name, **{"basic_info-group_id": str(group.id)}),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, "Requestor must be part of the selected group")
+    session.expire_all()
+    session.refresh(request)
+    assert request.group_id is None
+
+
+def test_edit_form_prefills_submission_type_and_group(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user, submission_type=C.SubmissionType.RAW_SAMPLES)
+    group = create_group(session)
+    request.group = group
+    session.commit()
+
+    response = get(client, f"/htmx/seq_requests/{request.id}/edit", token=user_token, htmx=True)
+
+    assert response.status_code == 200
+    assert re.search(
+        rf'<option value="{C.SubmissionType.RAW_SAMPLES.id}"\s*selected', response.text
+    ) or re.search(
+        rf'name="technical_info-submission_type" value="{C.SubmissionType.RAW_SAMPLES.id}"', response.text
+    )
+    assert re.search(rf'name="basic_info-group_id" value="{group.id}"', response.text)
 
 
 def test_edit_persists_pi_contact_fields(
@@ -483,3 +624,114 @@ def test_edit_step_advances_to_next_step(
 
     assert response.status_code == 200
     assert _active_step(response) == "bioinformatician"
+
+
+def test_edit_form_has_no_requestor_step_for_insider(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+
+    response = get(client, f"/htmx/seq_requests/{request.id}/edit", token=insider_token, htmx=True)
+
+    assert response.status_code == 200
+    assert "user_selection-user_id" not in response.text
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit/step",
+        _request_payload(request.name, step="user_selection"),
+        token=insider_token,
+    )
+    assert response.status_code == 400
+
+
+def test_edit_ignores_requestor_fields(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_2,
+    insider_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit",
+        _request_payload(request.name, **{"user_selection-user_id": str(user_2.id)}),
+        token=insider_token,
+    )
+
+    assert response.status_code == 204
+    session.expire_all()
+    session.refresh(request)
+    assert request.requestor_id == user.id
+
+
+def _timeline_states(response) -> list[str]:
+    return re.findall(r'class="step-timeline-item step-(\w+)', response.text)
+
+
+def test_edit_form_opens_with_all_steps_valid(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+
+    response = get(client, f"/htmx/seq_requests/{request.id}/edit", token=user_token, htmx=True)
+
+    assert response.status_code == 200
+    states = _timeline_states(response)
+    assert len(states) == 7
+    assert set(states) == {"ok"}
+    assert _active_step(response) == "basic_info"
+
+
+def test_edit_step_flags_later_step_errors_without_blocking(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit/step",
+        _request_payload(request.name, step="basic_info", **{"billing-name": ""}),
+        token=user_token,
+    )
+
+    assert response.status_code == 200
+    assert _active_step(response) == "contact"
+    states = _timeline_states(response)
+    assert states[-1] == "error"
+    assert set(states[:-1]) == {"ok"}
+
+
+def test_edit_step_stays_on_step_with_errors(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit/step",
+        _request_payload(request.name, step="contact", **{"basic_info-name": ""}),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, "Request Name is required")
+    assert _active_step(response) == "basic_info"

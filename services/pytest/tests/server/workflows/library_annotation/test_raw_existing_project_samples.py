@@ -24,7 +24,7 @@ def test_raw_existing_project_samples_annotation(
 
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
-    wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    wf.post("project-select", {"project": str(project.id)}, next_step="sample-annotation")
     attribute_step = wf.samples([["Existing_1", HUMAN], ["New_1", HUMAN]])
     # The existing sample is recognised and its attributes, including custom ones, are pre-filled in their own columns.
     assert '"Batch"' in attribute_step.text
@@ -66,7 +66,7 @@ def test_raw_existing_project_samples_annotation(
     # A second annotation of the same request may not add another 5' GEX library for Existing_1.
     wf2 = AnnotationWorkflow(client, user_token, seq_request.id)
     wf2.begin()
-    wf2.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    wf2.post("project-select", {"project": str(project.id)}, next_step="sample-annotation")
     wf2.samples([["Existing_1", HUMAN]])
     wf2.attributes(["Existing_1"])
     wf2.service(
@@ -90,7 +90,7 @@ def test_rejected_project_sample_cannot_be_reused(
 
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
-    wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    wf.post("project-select", {"project": str(project.id)}, next_step="sample-annotation")
     response = wf.post("sample-annotation", spreadsheet(["Sample Name", "Organism"], [["Failed_1", HUMAN], ["New_1", HUMAN]]), status=202)
     assert "Sample &#39;Failed_1&#39; is rejected, please specify another name." in response.text or \
         "Sample 'Failed_1' is rejected, please specify another name." in response.text

@@ -1,3 +1,5 @@
+from typing import cast
+
 import pandas as pd
 from fastapi import Depends, Response
 
@@ -8,17 +10,20 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from ....core import dependencies
 from .... import utils
 from ....components import inputs
-from ....components.tables import TextColumn, DropdownColumn, DuplicateCellValue, MissingCellValue, InvalidCellValue
+from ....components.tables import TextColumn, DBObjectColumn, DuplicateCellValue, MissingCellValue, InvalidCellValue
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
+
+SAMPLE_COLUMN = "Sample Name"
+
 
 class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-define_mux_samples.html"
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
-        DropdownColumn("sample_name", "Sample Name", 300, required=True, choices=[], read_only=False),
+        DBObjectColumn(("sample_id", "sample_name"), SAMPLE_COLUMN, 300, categories={}, required=True),
         TextColumn("pool", "Multiplexing Pool", 300, max_length=models.Library.name.type.length, min_length=1, validation_fnc=utils.parsing.check_string),
     ])
 
@@ -37,8 +42,10 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
 
         sample_names = workflow.tables["sample_table"]["sample_name"].tolist()
-        self.spreadsheet.columns["sample_name"].set_choices(sample_names)  # type: ignore
-        self.spreadsheet.set_data(pd.DataFrame({"sample_name": sample_names, "pool": None}))
+        self.sample_ids = self.set_sample_options(cast(DBObjectColumn, self.spreadsheet.columns[SAMPLE_COLUMN]), sample_names)
+        self.spreadsheet.set_data(pd.DataFrame({
+            "sample_id": [self.sample_ids.get(name) for name in sample_names], "sample_name": sample_names, "pool": None,
+        }))
 
     @classmethod
     def is_applicable(cls, workflow: LibraryAnnotationWorkflow) -> bool:
@@ -52,7 +59,8 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
             sample_pooling_table = form.workflow.tables["sample_pooling_table"].rename(
                 columns={"sample_pool": "pool"}
             )
-            sample_pooling_table = sample_pooling_table.drop_duplicates(subset=["sample_name", "pool"])
+            sample_pooling_table = sample_pooling_table.drop_duplicates(subset=["sample_name", "pool"]).copy()
+            sample_pooling_table["sample_id"] = sample_pooling_table["sample_name"].map(form.sample_ids)
             form.spreadsheet.set_data(sample_pooling_table)
             return form.make_response()
         return route
@@ -113,7 +121,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
                 duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
                 if (duplicate_library).any():
                     library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
-                    form.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue(f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request"))
+                    form.spreadsheet.add_error(idx, SAMPLE_COLUMN, DuplicateCellValue(f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request"))
 
                 if not df["pool"].isna().all():
                     if pd.isna(row["pool"]):

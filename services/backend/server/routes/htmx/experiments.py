@@ -8,7 +8,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import config, dependencies, overview, responses, exceptions as exc
+from ...core import config, dependencies, overview, responses, exceptions as exc, query_options
 from ...components.tables import HTMXTable, TableCol
 from ...components.tables import StaticSpreadsheet, TextColumn
 from ... import forms
@@ -108,8 +108,7 @@ def search_experiments(
     else:
         stmt = stmt.order_by(models.Experiment.name.asc())
 
-    experiments, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/experiment.html", experiments=experiments)
+    return query_options.search_response(session, stmt, page=page, option=query_options.experiment_option)
 
 @router.delete("/{experiment_id}/delete")
 def delete_experiment(

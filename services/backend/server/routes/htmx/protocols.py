@@ -4,9 +4,8 @@ from sqlalchemy import orm
 import sqlalchemy as sa
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
-from opengsync_db.core import utils as db_utils
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -50,9 +49,6 @@ def render_protocol_table(
     return table.make_response(protocols=protocols)
 
 
-QUERY_PAGE_SIZE = 20
-
-
 @router.get("/query")
 def query_protocols(
     word: str | None = Query(None, description="Search word for protocol name"),
@@ -61,21 +57,9 @@ def query_protocols(
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     """Options for a spreadsheet QueryColumn. Protocols are visible to every user."""
-    stmt = Q.protocol.select(service_type_in=service_type_in)
-    if word:
-        # Names containing the word first, then similar names (typos)
-        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        contains = models.Protocol.name.ilike(f"%{escaped}%", escape="\\")
-        similarity = sa.func.similarity(models.Protocol.name, word)
-        stmt = stmt.where(sa.or_(contains, db_utils.safe_trgm_search(models.Protocol.name, word))).order_by(
-            sa.case((contains, 0), else_=1), similarity.desc(), models.Protocol.name.asc(),
-        )
-    else:
-        stmt = stmt.order_by(models.Protocol.name.asc())
-    protocols, count = session.page(stmt, page=page, limit=QUERY_PAGE_SIZE)
-    return responses.query_options_response(
-        ((protocol.id, protocol.name) for protocol in protocols),
-        has_more=(page + 1) * QUERY_PAGE_SIZE < count,
+    return query_options.options_response(
+        session, Q.protocol.select(service_type_in=service_type_in), columns=query_options.PROTOCOL_SEARCH_COLUMNS,
+        word=word, page=page, order_column=models.Protocol.name, label=lambda protocol: protocol.name,
     )
 
 

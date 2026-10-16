@@ -80,7 +80,7 @@ class BarcodeInputForm(BarcodeInputMixin, ReindexWorkflowStep):
             if row["library_type"] != C.LibraryType.TENX_SC_ATAC
         })
 
-        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url, df=self.barcode_table)
+        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url, df=self.with_kit_ids(self.barcode_table))
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
@@ -88,7 +88,7 @@ class BarcodeInputForm(BarcodeInputMixin, ReindexWorkflowStep):
             form: "BarcodeInputForm" = Depends(BarcodeInputForm.Init()),
         ) -> Response:
             barcode_table = form.workflow.tables["barcode_table"]
-            form.spreadsheet.set_data(barcode_table)
+            form.spreadsheet.set_data(form.with_kit_ids(barcode_table))
             return form.make_response()
         return route
 

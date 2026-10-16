@@ -7,7 +7,7 @@ from opengsync_db import models, categories as C
 
 from ....core import exceptions as exc
 from ....components import inputs
-from ....components.tables import TextColumn, DBObjectColumn
+from ....components.tables import TextColumn, DBObjectColumn, StaticSpreadsheet
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from ...HTMXForm import RouteFunc, htmx_route
 from ....components.tables import MissingCellValue
@@ -48,6 +48,28 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
                 ))
         sample_table.columns = sample_table.columns.str.removeprefix("_attr_")
         self.spreadsheet.configure(df=sample_table, csrf_token=self.csrf_token_value, post_url=self.post_url)
+
+    def prepare_context(self) -> None:
+        # A used column is filled for every sample, "Treatment" is a custom column
+        self._context["example_spreadsheet"] = StaticSpreadsheet(
+            pd.DataFrame({
+                "sample": ["liver_ctrl_1 [12]", "liver_ctrl_2 [13]", "liver_treated_1 [new]", "organoid_day_7 [new]"],
+                "sex": ["female", "male", "female", "male"],
+                "age": ["52", "47", "61", "34"],
+                "tissue": ["liver", "liver", "liver", "intestine"],
+                "condition": ["control", "control", "treated", "day 7"],
+                "treatment": ["none", "none", "drug_a 10uM", "none"],
+            }),
+            columns=[
+                TextColumn("sample", "Sample", 300),
+                TextColumn("sex", "Sex", 100),
+                TextColumn("age", "Age", 100),
+                TextColumn("tissue", "Tissue", 100),
+                TextColumn("condition", "Condition", 100),
+                TextColumn("treatment", "Treatment", 100),
+            ],
+            id="sample-attribute-annotation-example",
+        )
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:

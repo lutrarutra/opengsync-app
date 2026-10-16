@@ -21,7 +21,8 @@ def test_raw_openst_annotation(
     wf.attributes(["Brain_Section_1", "Brain_Section_2"])
 
     openst_step = wf.service(C.ServiceType.OPENST, next_step="open-s-t-annotation")
-    assert sorted(row[0] for row in spreadsheet_rows(openst_step)) == ["Brain_Section_1", "Brain_Section_2"]
+    # New samples are offered as "name [new]"
+    assert sorted(row[0] for row in spreadsheet_rows(openst_step)) == ["Brain_Section_1 [new]", "Brain_Section_2 [new]"]
 
     columns = ["Sample Name", "Image"]
     instructions = "Download from https://example.org/openst (pw: openst)"

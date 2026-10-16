@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
+from .. import localize
 from .Base import Base
 from . import links
 from ..categories import PoolStatus, PoolType, LibraryType, MUXType
@@ -228,7 +229,7 @@ class Pool(Base):
     
     @property
     def timestamp_stored_str(self) -> str:
-        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
+        return localize(self.timestamp_stored_utc).strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
     
     def search_value(self) -> int:
         return self.id

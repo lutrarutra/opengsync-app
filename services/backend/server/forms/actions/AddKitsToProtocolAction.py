@@ -5,15 +5,16 @@ from opengsync_db import models, queries as Q, SyncSession
 
 from ...core import dependencies, responses
 from ...components import inputs
-from ...components.tables.spreadsheet import CategoricalDropDown, IntegerColumn, MissingCellValue, DuplicateCellValue
+from ...components.tables.spreadsheet import IntegerColumn, MissingCellValue, DuplicateCellValue
 from ..HTMXForm import RouteFunc, FormFunc, htmx_route, HTMXForm
+from ..common import kit_columns
 
 
 class AddKitsToProtocolAction(HTMXForm):
     template_path = "workflows/add_kits_to_protocol/add-kit-combinations.html"
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
-        CategoricalDropDown("kit_identifier", "Kit", 600, categories={}, required=True),
+        kit_columns.kit_column("kit_id", "Kit", 600, required=True),
         IntegerColumn("combination_num", "Combination", 200, required=False),
     ])
 
@@ -31,10 +32,8 @@ class AddKitsToProtocolAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "AddKitsToProtocolAction":
             protocol = session.get_one(Q.protocol.select(id=protocol_id))
-            kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.kit.select(), limit=None)}
 
             form = AddKitsToProtocolAction(protocol=protocol)
-            form.spreadsheet.columns["kit_identifier"].set_categories(kit_mapping)
 
             # Pre-fill with the protocol's current kit combinations
             df = session.get_pandas(Q.pd.protocol_kits(protocol_id=protocol.id), limit=None)
@@ -61,11 +60,11 @@ class AddKitsToProtocolAction(HTMXForm):
             if df["combination_num"].isna().all():
                 df["combination_num"] = 1
 
-            duplicate = df.duplicated(subset=["kit_identifier", "combination_num"], keep=False)
+            duplicate = df.duplicated(subset=["kit_id", "combination_num"], keep=False)
 
             for idx, row in df.iterrows():
                 if duplicate.at[idx]:
-                    form.spreadsheet.add_error(idx, "kit_identifier", DuplicateCellValue("Duplicate kit and combination number."))
+                    form.spreadsheet.add_error(idx, "kit_id", DuplicateCellValue("Duplicate kit and combination number."))
                 if pd.isna(row["combination_num"]):
                     form.spreadsheet.add_error(idx, "combination_num", MissingCellValue("Combination number is required."))
 
@@ -74,12 +73,10 @@ class AddKitsToProtocolAction(HTMXForm):
             form.protocol.kit_links = []
         
             for _, row in df.iterrows():
-                kit = session.get_one(Q.kit.select(identifier=row["kit_identifier"]))
-                
                 form.protocol.kit_links.append(
                     models.links.ProtocolKitLink(
                         protocol_id=form.protocol.id,
-                        kit_id=kit.id,
+                        kit_id=int(row["kit_id"]),
                         combination_num=int(row["combination_num"]),
                     )
                 )

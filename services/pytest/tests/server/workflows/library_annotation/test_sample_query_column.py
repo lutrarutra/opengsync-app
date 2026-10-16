@@ -19,7 +19,7 @@ def test_existing_samples_by_id_and_new_samples_by_name(client, session: SyncSes
 
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
-    step = wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    step = wf.post("project-select", {"project": str(project.id)}, next_step="sample-annotation")
     # The editor searches the samples of the project and offers to create new ones
     assert f"/htmx/samples/query?project_id={project.id}" in step.text
     assert "allowNew: true" in step.text

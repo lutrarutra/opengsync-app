@@ -5,6 +5,8 @@ Now uses the ``@htmx_route`` decorator pattern consistent with other model forms
 at the router level, so every endpoint is insider-only.
 """
 
+import re
+
 import sqlalchemy as sa
 
 from fastapi.testclient import TestClient
@@ -406,3 +408,81 @@ def test_edit_unknown_prep_is_404(
     )
 
     assert response.status_code == 404
+
+def _selected_option(html: str, field_name: str) -> str | None:
+    """Return the value of the ``selected`` option inside the ``<select name=field_name>``."""
+    select = re.search(rf'<select[^>]*name="{field_name}"[^>]*>(.*?)</select>', html, re.S)
+    assert select is not None, f"select {field_name!r} not rendered"
+    option = re.search(r'<option value="([^"]*)"\s*(?:disabled\s*)?selected', select.group(1))
+    return option.group(1) if option else None
+
+
+def test_edit_form_prefills_every_field(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    insider_token: str,
+):
+    """Regression: the edit GET prefills checklist_type, service_type and name from the
+    DB (use non-default values so a fallback to the first option cannot pass)."""
+    prep = session.save(
+        Q.lab_prep.create(
+            name="Prefill_Prep_042",
+            creator=insider,
+            number=42,
+            checklist_type=C.LabChecklistType.TENX,
+            service_type=C.ServiceType.WGS,
+        ),
+        flush=True,
+    )
+    session.commit()
+
+    response = get(client, _edit_path(prep.id), insider_token, htmx=True)
+
+    assert response.status_code == 200
+    assert _selected_option(response.text, "checklist_type") == str(C.LabChecklistType.TENX.id)
+    assert _selected_option(response.text, "service_type") == str(C.ServiceType.WGS.id)
+    assert re.search(r'value="Prefill_Prep_042"\s*name="name"', response.text)
+
+
+def test_edit_persists_every_field(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    insider_token: str,
+):
+    """Regression: every editable field (name, service_type) is written on the edit POST;
+    checklist_type (not editable in legacy) and the non-form columns are left untouched."""
+    prep = _create_lab_prep(session, insider)
+    original_number = prep.prep_number
+    original_creator_id = prep.creator_id
+    original_status = prep.status
+
+    response = post_form(
+        client,
+        _edit_path(prep.id),
+        _payload(
+            checklist_type=C.LabChecklistType.RNA_SEQ.id,
+            service_type=C.ServiceType.WGS.id,
+            name="  Every_Field_Prep  ",
+        ),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, "/lab_preps/")
+    assert_flash(response, "Changes saved!", category="success")
+
+    session.expire_all()
+    session.refresh(prep)
+    assert prep.name == "Every_Field_Prep"
+    assert prep.service_type == C.ServiceType.WGS
+    assert prep.checklist_type == C.LabChecklistType.RNA_SEQ
+    assert prep.prep_number == original_number
+    assert prep.creator_id == original_creator_id
+    assert prep.status == original_status
+
+    # The edit GET afterwards shows the saved values.
+    rendered = get(client, _edit_path(prep.id), insider_token, htmx=True)
+    assert rendered.status_code == 200
+    assert _selected_option(rendered.text, "service_type") == str(C.ServiceType.WGS.id)
+    assert re.search(r'value="Every_Field_Prep"\s*name="name"', rendered.text)

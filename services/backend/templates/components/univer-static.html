@@ -9,6 +9,8 @@
 </div>
 
 <script>
+// IIFE: htmx re-executes this script on every render, so top-level const would collide on the second one
+(function() {
     const $loader = $('#{{ uid }}-loader');
     const $container = $('#{{ uid }}');
     $loader.show();
@@ -67,4 +69,5 @@
             show_frontend_notification("Error loading Excel file: " + err.message, "error");
         }
     });
+})();
 </script>

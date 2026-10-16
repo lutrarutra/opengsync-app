@@ -54,12 +54,11 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
             _: models.User = Depends(dependencies.require_user),
         ) -> Response:
             form.replaces_uuid.data = form.workflow.uuid
-            project_id = form.workflow.metadata.get("project_id")
-            if project_id is not None:
-                form.existing_project.data = project_id
-            else:
-                form.new_project.data = form.workflow.metadata.get("project_title")
-                form.project_description.data = form.workflow.metadata.get("project_description")
+            form.prefill_project_selection(
+                form.workflow.metadata.get("project_id"),
+                form.workflow.metadata.get("project_title"),
+                form.workflow.metadata.get("project_description"),
+            )
             return form.make_response()
         return route
         
@@ -77,7 +76,7 @@ class ProjectSelectForm(ProjectSelectionMixin, LibraryAnnotationWorkflowStep):
                 form.workflow.metadata["project_id"] = project.id
                 form.workflow.metadata["project_title"] = project.title
             else:
-                form.workflow.metadata["project_title"] = form.new_project.data
+                form.workflow.metadata["project_title"] = form.new_project_title
                 form.workflow.metadata["project_description"] = form.project_description.data
 
             form.workflow.metadata["seq_request_id"] = form.seq_request.id

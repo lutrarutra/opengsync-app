@@ -67,9 +67,10 @@
     --jss-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
     --jss-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-width='2'%3E%3Ccircle cx='6.5' cy='6.5' r='4.5'/%3E%3Cpath d='m10 10 4.5 4.5'/%3E%3C/g%3E%3C/svg%3E");
 
-    /* Rounded frame around the grid; the outer cell borders are dropped so they don't double up with it */
+    /* Rounded frame around the grid; the outer cell borders are dropped so they don't double up with it.
+       Right/bottom padding leaves room for the selection corner so the scrollbar doesn't cover it */
     .jss_content {
-        padding: 0;
+        padding: 0 6px 6px 0;
         border: 1px solid var(--color-gray-300);
         border-radius: var(--bs-border-radius);
         scrollbar-width: thin;

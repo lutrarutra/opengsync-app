@@ -1,3 +1,5 @@
+from typing import cast
+
 import pandas as pd
 from fastapi import Depends, Response
 
@@ -5,16 +7,18 @@ from opengsync_db import categories as C
 
 from ....core import responses, exceptions as exc
 from ....components import inputs
-from ....components.tables import TextColumn, DropdownColumn, DuplicateCellValue
+from ....components.tables import TextColumn, DBObjectColumn
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
+
+SAMPLE_COLUMN = "Sample Name"
 
 
 class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-openst_annotation.html"
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
-        DropdownColumn("sample_name", "Sample Name", 250, choices=[], required=True),
+        DBObjectColumn(("sample_id", "sample_name"), SAMPLE_COLUMN, 250, categories={}, required=True, unique=True),
         TextColumn("image", "Image", 170, max_length=512, required=True),
     ])
     instructions = inputs.string.TextAreaInputField(
@@ -32,28 +36,31 @@ class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
         self.library_table = workflow.tables["library_table"]
         self.openst_libraries = self.library_table[self.library_table["library_type_id"].isin([C.LibraryType.OPENST.id])]
         self.openst_samples = self.openst_libraries["sample_name"].unique().tolist()
+        self.sample_ids = self.set_sample_options(cast(DBObjectColumn, self.spreadsheet.columns[SAMPLE_COLUMN]), self.openst_samples)
 
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
         def get_template() -> pd.DataFrame:
             data = {
+                "sample_id": [],
                 "sample_name": [],
                 "image": [],
             }
 
             for _, row in self.openst_libraries.iterrows():
+                data["sample_id"].append(self.sample_ids.get(row["sample_name"]))
                 data["sample_name"].append(row["sample_name"])
                 data["image"].append(None)
 
             return pd.DataFrame(data)
         self.spreadsheet.set_data(get_template())
-        self.spreadsheet.columns["sample_name"].set_choices(self.openst_samples)
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
             form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.Init()),
         ) -> Response:
-            library_properties_table = form.workflow.tables["library_properties_table"]
+            library_properties_table = form.workflow.tables["library_properties_table"].copy()
+            library_properties_table["sample_id"] = library_properties_table["sample_name"].map(form.sample_ids)
             form.spreadsheet.set_data(library_properties_table)
             form.instructions.data = form.workflow.metadata["visium_annotation_instructions"]
             return form.make_response()
@@ -65,12 +72,6 @@ class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
             form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.Validate()),
         ) -> Response:
             df = form.spreadsheet.data
-            for idx, row in df.iterrows():
-                # TODO: check if using 'unique=True' in the spreadsheet input field would be better than this validation
-                if (df["sample_name"] == row["sample_name"]).sum() > 1:
-                    form.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("'Sample Name' is a duplicate."))
-                
-            form.assert_valid()
             
             library_sample_map = form.openst_libraries.set_index("sample_name").to_dict()["library_name"]
             df["library_name"] = df["sample_name"].map(library_sample_map)

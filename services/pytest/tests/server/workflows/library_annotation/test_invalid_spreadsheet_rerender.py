@@ -21,7 +21,7 @@ def _workflow(client, session: SyncSession, user, user_token):
 
     wf = AnnotationWorkflow(client, user_token, seq_request.id)
     wf.begin()
-    wf.post("project-select", {"existing_project": str(project.id)}, next_step="sample-annotation")
+    wf.post("project-select", {"project": str(project.id)}, next_step="sample-annotation")
     return wf, existing.id
 
 

@@ -7,6 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from opengsync_db import models
 
+from .. import localize
+
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -55,7 +57,7 @@ class PoolDilution(Base):
     
     @property
     def timestamp(self) -> datetime:
-        return self.timestamp_utc
+        return localize(self.timestamp_utc)
 
     def timestamp_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         return self.timestamp.strftime(fmt)

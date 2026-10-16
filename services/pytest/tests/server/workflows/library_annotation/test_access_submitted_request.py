@@ -14,7 +14,7 @@ def test_annotation_steps_require_write_access(
 
     # Stranger: no access at all.
     stranger = AnnotationWorkflow(client, user_2_token, seq_request.id)
-    stranger.post("project-select", {"new_project": "Stranger Project", "project_description": "x"}, status=403)
+    stranger.post("project-select", {"project": "new", "project-text": "Stranger Project", "project_description": "x"}, status=403)
 
     # Owner fills in a few steps while the request is still a draft...
     wf = AnnotationWorkflow(client, user_token, seq_request.id)

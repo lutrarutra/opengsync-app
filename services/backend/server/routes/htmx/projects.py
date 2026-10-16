@@ -12,7 +12,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, release as release_ops
 
-from ...core import config, dependencies, overview, responses, exceptions as exc, redis as rds
+from ...core import config, dependencies, overview, responses, exceptions as exc, redis as rds, query_options
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
 from ...utils.file_browser import PROJECT_SERVABLE_EXTENSIONS, is_servable
@@ -185,8 +185,7 @@ def search_projects(
         else:    
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
-    projects, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/project.html", projects=projects)
+    return query_options.search_response(session, stmt, page=page, option=query_options.project_option)
 
 @router.get("/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)])
 def export_project_data(

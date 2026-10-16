@@ -1,9 +1,8 @@
 """ProjectForm: create/edit, permissions, uniqueness, and relationship validation.
 
-Note: the ``group`` field exists on the form but is not rendered by
-``forms/project.html`` (same as the legacy Flask template), so group validation
-is only reachable through a direct POST.  Those tests therefore assert rejection
-and non-persistence instead of rendered error text.
+Note: ``forms/project.html`` renders the ``group`` search-select next to the
+owner (as the legacy Flask template did), so the edit GET prefills it and a
+round-tripped edit POST keeps it instead of wiping ``group_id``.
 """
 
 import re
@@ -693,3 +692,129 @@ def test_status_is_read_only_for_client(
     for path in (_edit_path(project.id), CREATE):
         assert re.search(read_only, get(client, path, user_token).text), path
         assert not re.search(read_only, get(client, path, insider_token).text), path
+
+
+def test_edit_persists_every_field(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_2,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    group = create_group(session)
+    _affiliate(session, user_2, group)  # the new owner must belong to the new group
+
+    response = post_form(
+        client,
+        _edit_path(project.id),
+        _payload(
+            "Every Field Edited",
+            description="Every field description",
+            identifier="BSA_4242",
+            status=C.ProjectStatus.PROCESSING.id,
+            owner=user_2.id,
+            group=group.id,
+        ),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    session.expire_all()
+    session.refresh(project)
+    assert project.title == "Every Field Edited"
+    assert project.description == "Every field description"
+    assert project.identifier == "BSA_4242"
+    assert project.status == C.ProjectStatus.PROCESSING
+    assert project.owner_id == user_2.id
+    assert project.group_id == group.id
+
+
+def test_edit_client_persists_and_clears_group(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    project = create_project(session, user)
+    group = create_group(session)
+    _affiliate(session, user, group)
+
+    response = post_form(
+        client,
+        _edit_path(project.id),
+        _payload(project.title, owner=user.id, group=group.id, description="Client edited"),
+        token=user_token,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    session.expire_all()
+    session.refresh(project)
+    assert project.group_id == group.id
+    assert project.description == "Client edited"
+
+    response = post_form(
+        client,
+        _edit_path(project.id),
+        _payload(project.title, owner=user.id, description="Client edited", group=""),
+        token=user_token,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    session.expire_all()
+    session.refresh(project)
+    assert project.group_id is None
+
+
+def test_edit_form_prefills_every_field(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    project = create_project(session, user)
+    group = create_group(session)
+    project.identifier = "BSA_3131"
+    project.description = "Prefilled project description"
+    project.status = C.ProjectStatus.PROCESSING
+    project.group_id = group.id
+    session.commit()
+
+    response = get(client, _edit_path(project.id), insider_token, htmx=True)
+
+    assert response.status_code == 200
+    assert re.search(rf'value="{re.escape(project.title)}" name="title"', response.text)
+    assert 'value="BSA_3131" name="identifier"' in response.text
+    assert ">Prefilled project description</textarea>" in response.text
+    assert re.search(rf'<option value="{C.ProjectStatus.PROCESSING.id}"\s*selected', response.text)
+    assert re.search(rf'name="owner" value="{user.id}"', response.text)
+    assert re.search(rf'name="group" value="{group.id}"', response.text)
+
+
+def test_edit_form_round_trip_keeps_group(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    """Re-submitting the rendered form unchanged must not wipe the project's group."""
+    project = create_project(session, user)
+    group = create_group(session)
+    project.group_id = group.id
+    _affiliate(session, user, group)
+
+    rendered = get(client, _edit_path(project.id), user_token, htmx=True).text
+    match = re.search(r'name="group" value="(\d*)"', rendered)
+    assert match is not None and match.group(1) == str(group.id)
+
+    response = post_form(
+        client,
+        _edit_path(project.id),
+        _payload(project.title, owner=user.id, description=project.description, group=match.group(1)),
+        token=user_token,
+    )
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    session.expire_all()
+    session.refresh(project)
+    assert project.group_id == group.id

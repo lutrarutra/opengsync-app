@@ -1,6 +1,7 @@
 """Shared driver for LibraryAnnotationWorkflow HTTP tests."""
 
 import ast
+import html
 import json
 import re
 import uuid
@@ -86,7 +87,7 @@ class AnnotationWorkflow:
 
     def project(self, title: str, description: str = "test project", next_step: str = "sample-annotation"):
         return self.post("project-select", {
-            "new_project": title,
+            "project": "new", "project-text": title,
             "project_description": description,
         }, next_step=next_step)
 
@@ -145,7 +146,7 @@ def spreadsheet_records(response) -> list[dict[str, Any]]:
     """Rows the server pre-filled into the rendered spreadsheet, by column title (every cell under its column)."""
     match = re.search(r"data: (\[\[[^\n]*?\]\]),\n\s*columns: \[(.*?)\n\s*\],", response.text, re.DOTALL)
     assert match is not None, "no spreadsheet in response"
-    titles = [json.loads(title) for title in re.findall(r'title: ("(?:[^"\\]|\\.)*")', match.group(2))]
+    titles = [html.unescape(json.loads(title)) for title in re.findall(r'title: ("(?:[^"\\]|\\.)*")', match.group(2))]
     return [dict(zip(titles, row, strict=True)) for row in ast.literal_eval(match.group(1))]
 
 

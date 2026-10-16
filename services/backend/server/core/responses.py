@@ -2,7 +2,7 @@ import json
 import io
 import re
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Any, Iterable, Literal, NotRequired, TypedDict
 from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
@@ -20,10 +20,19 @@ class FlashMessage(BaseModel):
 def flash(message: str, category: Literal["info", "success", "warning", "error"] = "info") -> FlashMessage:
     return FlashMessage(message=message, category=category)
 
-def query_options_response(options: Iterable[tuple[int, str]], *, has_more: bool) -> JSONResponse:
-    """A page of options for a spreadsheet QueryColumn: ``{"options": [{"id", "name"}], "has_more"}``."""
+class QueryOption(TypedDict):
+    id: int
+    name: str
+    header: NotRequired[str]
+    description: NotRequired[str]
+    data: NotRequired[dict[str, Any]]
+
+def query_options_response(options: Iterable[tuple[int, str] | QueryOption], *, has_more: bool) -> JSONResponse:
+    """A page of options for a spreadsheet QueryColumn or a SearchableInputField:
+    ``{"options": [{"id", "name", "header"?, "description"?, "data"?}], "has_more"}``. QueryColumns show only the
+    name; ``data`` holds values for scripts of the page (e.g. a user's email)."""
     return JSONResponse({
-        "options": [{"id": option_id, "name": name} for option_id, name in options],
+        "options": [option if isinstance(option, dict) else {"id": option[0], "name": option[1]} for option in options],
         "has_more": has_more,
     })
 

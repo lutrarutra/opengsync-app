@@ -22,7 +22,7 @@
                     {%- if col.type == "text" or col.type == "numeric" -%}
                     { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true{% endif %} },
                     {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true{% if col.read_only %},  readOnly: true {% endif %}{% if col.backend_columns is defined %}, sortings: jssObjectSortings{% endif %} },
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true{% if col.read_only %},  readOnly: true {% endif %}{% if col.backend_columns is defined %}, sortings: jssObjectSortings, disambiguate: true{% endif %} },
                     {%- elif col.type == "query" -%}
                     { type: jssQueryColumn, title: "{{col.name}}", width: {{ col.width }}, url: {{ col.url | string | tojson if col.url else "null" }}, labels: {{ col.labels | tojson }}{% if col.allow_new %}, allowNew: true{% endif %}{% if col.read_only %}, readOnly: true{% endif %} },
                     {%- endif -%}

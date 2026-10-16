@@ -42,34 +42,34 @@ def test_simple_raw_bulk_rna_seq_annotation(
     assert begun.status_code == 200
 
     post("project-select", {}, status=202)  # neither existing nor new project
-    post("project-select", {"new_project": "A Valid Project Title"}, status=202)  # new project without description
+    post("project-select", {"project": "new", "project-text": "A Valid Project Title"}, status=202)  # new project without description
     post("project-select", {
-        "new_project": "A Valid Project Title",
+        "project": "new", "project-text": "A Valid Project Title",
         "project_description": "   ",
     }, status=202)  # whitespace-only description
     post("project-select", {
-        "new_project": "Short",
+        "project": "new", "project-text": "Short",
         "project_description": "A brief description of the project.",
     }, status=202)  # title shorter than 6 characters
     post("project-select", {
-        "new_project": "T" * (models.Project.title.type.length + 1),
+        "project": "new", "project-text": "T" * (models.Project.title.type.length + 1),
         "project_description": "A brief description of the project.",
     }, status=202)  # title longer than max length
     post("project-select", {
-        "new_project": "AAAAAA",
+        "project": "new", "project-text": "AAAAAA",
         "project_description": "D" * 2049,
     }, status=202)  # description longer than 2048 characters
     post("project-select", {
-        "new_project": duplicate_title,
+        "project": "new", "project-text": duplicate_title,
         "project_description": "A brief description of the project.",
     }, status=202)  # owner already has a project with this title
-    post("project-select", {"existing_project": "999999"}, status=404)  # existing project id does not exist
-    post("project-select", {"existing_project": str(stranger_draft.id)}, status=202)  # no write access to another user's project
-    post("project-select", {"existing_project": str(own_processing.id)}, status=202)  # no write access once project is not DRAFT
+    post("project-select", {"project": "999999"}, status=404)  # existing project id does not exist
+    post("project-select", {"project": str(stranger_draft.id)}, status=202)  # no write access to another user's project
+    post("project-select", {"project": str(own_processing.id)}, status=202)  # no write access once project is not DRAFT
 
     project_title = "BULK RNA-seq Project from raw samples test"
     post("project-select", {
-        "new_project": project_title,
+        "project": "new", "project-text": project_title,
         "project_description": "test project for raw sample submission, simple",
     })
     assert session.first(Q.project.select(title=project_title)) is None

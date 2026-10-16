@@ -26,6 +26,8 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...db.create_units import create_feature, create_feature_kit, create_library, create_seq_request
+from ..workflows._spreadsheet import query_labels
+from ..workflows.library_annotation._workflow import spreadsheet_records
 from .._http import (
     assert_flash,
     assert_form_invalid,
@@ -55,7 +57,7 @@ def _custom(identifier: str, feature: str, sequence: str, read: str = "R2", patt
 
 
 def _kit_label(kit: models.FeatureKit) -> str:
-    """The dropdown submits the category label, not the identifier."""
+    """The name the kit column shows for a kit id; pasted labels are resolved to the kit too."""
     return f"[{kit.identifier}] {kit.name}"
 
 
@@ -111,14 +113,16 @@ def test_render_prefills_existing_features(client: TestClient, library: models.L
         assert text in response.text
 
 
-def test_render_lists_antibody_feature_kits(
+def test_render_searches_antibody_feature_kits(
     client: TestClient, session: SyncSession, library: models.Library, kit_feature: models.Feature, insider_token: str,
 ):
+    """Kits are not sent with the page: the column queries the antibody kits on the backend."""
     session.commit()
     response = get(client, _path(library.id), insider_token)
 
     assert response.status_code == 200
-    assert _kit_label(kit_feature.feature_kit) in response.text
+    assert f"/htmx/feature_kits/query?type_in=%5B{C.FeatureType.ANTIBODY.id}%5D" in response.text
+    assert _kit_label(kit_feature.feature_kit) not in response.text
 
 
 def test_render_does_not_change_features(
@@ -401,7 +405,7 @@ def test_unknown_kit_is_rejected(
         {"Kit": "[NOPE] No such kit", "Identifier": "KIT_CD3", "Feature": "CD3"},
     ]), token=insider_token)
 
-    _assert_rejected(session, library, response, "Invalid category")
+    _assert_rejected(session, library, response, "Unknown kit")
 
 
 def test_feature_not_in_kit_is_rejected(
@@ -476,3 +480,53 @@ def test_identifier_and_feature_of_different_kit_features_is_rejected(
     ]), token=insider_token)
 
     _assert_rejected(session, library, response, "refer to different features")
+
+
+# ── Kit column (QueryColumn: cells hold kit ids) ────────────────────────────
+
+
+def test_kit_feature_by_kit_id(
+    client: TestClient, session: SyncSession, library: models.Library, kit_feature: models.Feature, insider_token: str,
+):
+    session.commit()
+    response = post_form(client, _path(library.id), _payload([
+        {"Kit": kit_feature.feature_kit_id, "Identifier": "KIT_CD3"},
+    ]), token=insider_token)
+
+    assert_htmx_redirect(response, f"/libraries/{library.id}")
+    assert [f.id for f in _features(session, library)] == [kit_feature.id]
+
+
+def test_render_prefills_kit_features_by_kit_id(
+    client: TestClient, session: SyncSession, library: models.Library, kit_feature: models.Feature, insider_token: str,
+):
+    """Reopening the form shows the kit of a kit feature by its id, named for the editor."""
+    library.features.append(kit_feature)
+    session.save(library, flush=True)
+    session.commit()
+
+    response = get(client, _path(library.id), insider_token)
+
+    assert response.status_code == 200, response.text
+    kit_rows = [record for record in spreadsheet_records(response) if record["Identifier"] == "KIT_CD3"]
+    assert [record["Kit"] for record in kit_rows] == [kit_feature.feature_kit_id]
+    assert query_labels(response, "Kit") == {kit_feature.feature_kit_id: _kit_label(kit_feature.feature_kit)}
+
+
+@pytest.mark.parametrize("kit, identifier, message", [
+    (999_999_999, "KIT_CD3", "Unknown kit"),  # found by the spreadsheet validation
+    ("KIT", "NOT_IN_KIT", "not found in kit"),  # found by the route
+])
+def test_invalid_submission_is_rendered_unchanged(
+    client: TestClient, session: SyncSession, library: models.Library, kit_feature: models.Feature, insider_token: str,
+    kit, identifier: str, message: str,
+):
+    session.commit()
+    rows = [
+        {"Kit": kit_feature.feature_kit_id if kit == "KIT" else kit, "Identifier": identifier},
+        _custom("CUST_CD4", "CD4", "ACGTACGTAC"),
+    ]
+    response = post_form(client, _path(library.id), _payload(rows), token=insider_token)
+
+    _assert_rejected(session, library, response, message)
+    assert spreadsheet_records(response) == [{col: row.get(col, "") for col in COLUMNS} for row in rows]

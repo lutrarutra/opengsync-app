@@ -9,8 +9,9 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from ....core import dependencies, exceptions as exc
 from ....utils import barcodes
 from ....components import inputs
-from ....components.tables import TextColumn, CategoricalDropDown, InvalidCellValue, MissingCellValue
+from ....components.tables import TextColumn, InvalidCellValue, MissingCellValue
 from ...HTMXForm import RouteFunc, htmx_route
+from ...common import kit_columns
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
@@ -21,7 +22,7 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
         TextColumn("index_well", "Index Well", 100, max_length=8),
-        CategoricalDropDown("kit", "Kit", 200, categories={}, required=False),
+        kit_columns.index_kit_column("kit_id", "Kit", 200, types=[C.IndexType.TENX_ATAC_INDEX]),
         TextColumn("name", "Barcode Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
         TextColumn("sequence_1", "Sequence 1", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
         TextColumn("sequence_2", "Sequence 2", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=barcodes.clean_sequence, validation_fnc=barcodes.check_sequence),
@@ -39,15 +40,6 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
         super().__init__(workflow)
         self.library_table = workflow.tables["library_table"]
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
-        from ....core.context import ctx
-        kit_mapping = {
-            kit.identifier: f"[{kit.identifier}] {kit.name}"
-            for kit in ctx.session.get_all(
-                Q.index_kit.select(type=C.IndexType.TENX_ATAC_INDEX).order_by(models.IndexKit.name.asc()),
-                limit=None,
-            )
-        }
-        self.spreadsheet.columns["kit"].set_categories(kit_mapping)
 
         barcode_table = self.library_table[
             self.library_table["library_type_id"] == C.LibraryType.TENX_SC_ATAC.id
@@ -77,6 +69,7 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                     data[f"sequence_{i + 1}"].append(seqs[i] if i < len(seqs) else None)
 
             barcode_table = pd.DataFrame(data)
+            barcode_table["kit_id"] = kit_columns.ids_column(barcode_table, "kit")
 
         self.spreadsheet.set_data(barcode_table)
 
@@ -183,7 +176,8 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
         ) -> Response:
             df = form.spreadsheet.data
 
-            df.loc[df["kit"].notna(), "kit"] = df.loc[df["kit"].notna(), "kit"].astype(str)
+            # Kits are selected by id, identified by their identifier below
+            df["kit"] = kit_columns.identifiers_column(df, "kit_id")
             df.loc[df["index_well"].notna(), "index_well"] = df.loc[df["index_well"].notna(), "index_well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
             kit_defined = df["kit"].notna() & (df["index_well"].notna() | df["name"].notna())
@@ -195,7 +189,6 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
             )
 
             kit_identifiers = df["kit"].dropna().unique().tolist()
-            df["kit_id"] = None
             kits: dict[str, tuple[models.IndexKit, pd.DataFrame]] = {}
             for identifier in kit_identifiers:
                 kit = session.get_one(Q.index_kit.select(identifier=identifier))
@@ -215,12 +208,10 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                 for i in range(4):
                     kit_df[f"sequence_{i + 1}"] = kit_df["sequence_i7"].str[i]
                 kits[identifier] = (kit, kit_df)
-                df.loc[df["kit"] == identifier, "kit_id"] = kit.id
-
-            df.loc[df["kit_id"].notna(), "kit_id"] = df.loc[df["kit_id"].notna(), "kit_id"].astype(int)
 
             for kit_identifier, (kit, kit_df) in kits.items():
-                view = df[df["kit"] == kit_identifier]
+                in_kit = df["kit"].eq(kit_identifier).fillna(False)
+                view = df[in_kit]
                 mask = (
                     kit_df["well"].isin(view["index_well"].values) |
                     kit_df["name"].isin(view["name"].values)
@@ -228,13 +219,11 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
 
                 for _, kit_row in kit_df[mask].iterrows():
                     df.loc[
-                        (df["kit"] == kit_identifier) &
-                        (df["index_well"] == kit_row["well"]), "name"
+                        in_kit & df["index_well"].eq(kit_row["well"]).fillna(False), "name"
                     ] = kit_row["name"]
                     for i in range(1, 5):
                         df.loc[
-                            (df["kit"] == kit_identifier) &
-                            (df["name"] == kit_row["name"]), f"sequence_{i}"
+                            in_kit & df["name"].eq(kit_row["name"]).fillna(False), f"sequence_{i}"
                         ] = kit_row[f"sequence_{i}"]
 
             for idx, row in df.iterrows():
@@ -248,15 +237,15 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                         if pd.isna(row["index_well"]) and pd.isna(row["name"]):
                             form.spreadsheet.add_error(idx, ["index_well", "name"], MissingCellValue("'Index Well' or 'Name' must be defined when kit is defined"))
                     elif pd.notna(row["index_well"]) or pd.notna(row["name"]):
-                        form.spreadsheet.add_error(idx, "kit", MissingCellValue("missing 'Sequence 1/2/3/4' or 'Kit' + 'Name' or 'Index Well' + 'Kit'"))
+                        form.spreadsheet.add_error(idx, "kit_id", MissingCellValue("missing 'Sequence 1/2/3/4' or 'Kit' + 'Name' or 'Index Well' + 'Kit'"))
                     elif pd.isna(row["sequence_1"]):
-                        form.spreadsheet.add_error(idx, ["kit", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
+                        form.spreadsheet.add_error(idx, ["kit_id", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
                     elif pd.isna(row["sequence_2"]):
-                        form.spreadsheet.add_error(idx, ["kit", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
+                        form.spreadsheet.add_error(idx, ["kit_id", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
                     elif pd.isna(row["sequence_3"]):
-                        form.spreadsheet.add_error(idx, ["kit", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
+                        form.spreadsheet.add_error(idx, ["kit_id", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
                     elif pd.isna(row["sequence_4"]):
-                        form.spreadsheet.add_error(idx, ["kit", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
+                        form.spreadsheet.add_error(idx, ["kit_id", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
 
             form.assert_valid()
 

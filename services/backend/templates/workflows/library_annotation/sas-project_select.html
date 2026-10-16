@@ -7,7 +7,7 @@
         <div class="input-help">
             <h5>Instructions</h5>
             <ul>
-                <li>Select an existing project or create a new project.</li>
+                <li>Search for an existing project, or type the title of a new project and choose 'Create New Project'.</li>
                 <li>Samples associated to a same project are processed together.</li>
                 <li>Samples from different sequencing requests can be associated to a same project.</li>
                 {% if form.seq_request.group_id %}
@@ -17,13 +17,11 @@
         </div>
         <div id="project-select-form">
             <div class="row">
-                {{ form.existing_project.render("col-5") }}
-                <div class="col-2 mapping-or">
-                    or
-                </div>
-                {{ form.new_project.render("col-5") }}
+                {{ form.project.render("col-12 col-lg-6") }}
             </div>
-            {{ form.project_description.render() }}
+            <div data-search-select-new-only="{{ form.project.id }}"{% if not form.project.is_new %} class="d-none"{% endif %}>
+                {{ form.project_description.render() }}
+            </div>
             {% if current_user.is_insider %}
             <div class="row">
                 <div class="px-2">{{ form.set_requestor_as_owner.render() }} <label for="{{ form.set_requestor_as_owner.id }}">Set the Requestor ({{ form.seq_request.requestor.name }}) as Project Owner when creating a new project.</label></div>
@@ -44,15 +42,4 @@
             </button>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            $("#{{ form.new_project.name }}").on("input", function() {
-                $("#{{ form.existing_project.name }}-search").val(null);
-                $("#{{ form.existing_project.name }}").val(null);
-            });
-            $("#{{ form.existing_project.name }}").on("change", function() {
-                $("#{{ form.new_project.name }}").val(null);
-            });
-        });
-    </script>
 </div>

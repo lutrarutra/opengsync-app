@@ -28,9 +28,12 @@ def format_timestamp(value: float, format: str = "%Y-%m-%d %H:%M"):
     return datetime.fromtimestamp(value).strftime(format)
 
 def format_datetime(value: datetime | None, format: str = "%Y-%m-%d %H:%M"):
-    """Convert datetime to readable string. Empty when the value is missing."""
+    """Convert datetime to readable string. Empty when the value is missing.
+    Naive values (e.g. seq run times parsed from instrument files) are already local time."""
     if value is None:
         return ""
+    if value.tzinfo is None:
+        return value.strftime(format)
     return value.astimezone(settings.TIMEZONE).strftime(format)
 
 def weekday_name(value: int):

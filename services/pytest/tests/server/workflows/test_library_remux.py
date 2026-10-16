@@ -17,6 +17,7 @@ from opengsync_db import SyncSession, models, queries as Q, categories as C, act
 
 from ...db.create_units import create_feature, create_feature_kit, create_library, create_project, create_sample, create_seq_request
 from .._http import assert_flash, assert_form_invalid, assert_htmx_redirect, get, post_form, post_form_csrf_mismatch, spreadsheet_payload
+from .library_annotation._workflow import spreadsheet_records
 
 FLEX_COLUMNS = ["Sample ID", "Library ID", "Demultiplexed Name", "Barcode ID"]
 OLIGO_COLUMNS = ["Sample Name", "Multiplexing Pool", "Kit", "Feature", "Sequence", "Pattern", "Read"]
@@ -220,4 +221,46 @@ def test_oligo_invalid_definitions_are_rejected(client: TestClient, setup: Setup
     response = _oligo(client, cmo, user_token, rows, apply_to_pool=False)
 
     assert_form_invalid(response)
+    assert setup.mux(cmo)["Smpl1"]["barcode"] == "AAAA"
+
+
+def _cmo_kit(session: SyncSession) -> models.FeatureKit:
+    kit = create_feature_kit(session)
+    kit.type = C.FeatureType.CMO
+    session.save(kit, flush=True)
+    for name, sequence in (("CMO301", "ATGAGGAATTCCTGC"), ("CMO302", "CATGCCAATAGAGCG")):
+        feature = create_feature(session, kit)
+        feature.name, feature.sequence, feature.pattern, feature.read = name, sequence, PATTERN, "R2"
+        session.save(feature, flush=True)
+    session.commit()
+    return kit
+
+
+def test_oligo_kit_by_id_fills_sequence(client: TestClient, session: SyncSession, setup: Setup, oligo, user_token: str):
+    """The kit column is a QueryColumn searched on the backend: its cells hold the kit id."""
+    cmo, _ = oligo
+    kit = _cmo_kit(session)
+    response = get(client, _url(client, "Begin"), user_token, params=_params(cmo))
+    assert f"/htmx/feature_kits/query?type_in=%5B{C.FeatureType.CMO.id}%5D" in response.text
+
+    _oligo(client, cmo, user_token, [[kit.id, "CMO301", "", "", ""], [kit.id, "CMO302", "", "", ""]], apply_to_pool=False)
+
+    assert setup.mux(cmo)["Smpl2"] == {"barcode": "CATGCCAATAGAGCG", "pattern": PATTERN, "read": "R2"}
+
+
+@pytest.mark.parametrize("kit_cell, feature, message", [
+    (999_999_999, "CMO301", "Unknown kit"),  # found by the spreadsheet validation
+    ("KIT", "CMO999", "not found in kit"),  # found by the route
+])
+def test_oligo_invalid_submission_is_rendered_unchanged(
+    client: TestClient, session: SyncSession, setup: Setup, oligo, user_token: str, kit_cell, feature: str, message: str,
+):
+    cmo, _ = oligo
+    kit = _cmo_kit(session)
+    rows = [[kit.id if kit_cell == "KIT" else kit_cell, feature, "", "", ""], ["", "", "TTTT", PATTERN, "R1"]]
+    response = _oligo(client, cmo, user_token, rows, apply_to_pool=False)
+
+    assert_form_invalid(response, message)
+    submitted = [dict(zip(OLIGO_COLUMNS, [f"Smpl{i + 1}", "PoolA", *row])) for i, row in enumerate(rows)]
+    assert spreadsheet_records(response) == submitted
     assert setup.mux(cmo)["Smpl1"]["barcode"] == "AAAA"

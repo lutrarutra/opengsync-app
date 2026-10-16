@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import Depends, Response, Query
 from loguru import logger
@@ -96,7 +96,7 @@ class StoreSamplesAction(HTMXForm):
                 check_request_ids: set[int] = set()
                 for sample in form.selected_sample_ids.get_selected_samples(session=session):
                     sample.status = C.SampleStatus.STORED
-                    sample.timestamp_stored_utc = datetime.now()
+                    sample.timestamp_stored_utc = datetime.now(timezone.utc)
                     for library_link in sample.library_links:
                         if library_link.library.seq_request.status == C.SeqRequestStatus.ACCEPTED:
                             check_request_ids.add(library_link.library.seq_request.id)
@@ -111,7 +111,7 @@ class StoreSamplesAction(HTMXForm):
                     else:
                         library.status = C.LibraryStatus.STORED
                 
-                    library.timestamp_stored_utc = datetime.now()
+                    library.timestamp_stored_utc = datetime.now(timezone.utc)
                     session.save(library)
 
                 for pool in form.selected_pool_ids.get_selected_pools(session=session):
@@ -119,7 +119,7 @@ class StoreSamplesAction(HTMXForm):
                         check_request_ids.add(pool.seq_request_id)
 
                     pool.status = C.PoolStatus.STORED
-                    pool.timestamp_stored_utc = datetime.now()
+                    pool.timestamp_stored_utc = datetime.now(timezone.utc)
                     session.save(pool)
 
                 for _srid in check_request_ids:

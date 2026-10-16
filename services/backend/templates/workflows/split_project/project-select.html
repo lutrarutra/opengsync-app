@@ -10,12 +10,10 @@
             to an existing project or a new project.
         </p>
         <div id="split-project-destination-form">
-            <div class="row">
-                {{ form.existing_project.render("col-5") }}
-                <div class="col-2 mapping-or">or</div>
-                {{ form.new_project.render("col-5") }}
+            {{ form.project.render() }}
+            <div data-search-select-new-only="{{ form.project.id }}"{% if not form.project.is_new %} class="d-none"{% endif %}>
+                {{ form.project_description.render() }}
             </div>
-            {{ form.project_description.render() }}
             {{ form.csrf_token.render() }}
         </div>
     </div>
@@ -36,15 +34,4 @@
             </button>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            $("#{{ form.new_project.name }}").on("input", function() {
-                $("#{{ form.existing_project.name }}-search").val(null);
-                $("#{{ form.existing_project.name }}").val(null);
-            });
-            $("#{{ form.existing_project.name }}").on("change", function() {
-                $("#{{ form.new_project.name }}").val(null);
-            });
-        });
-    </script>
 </div>

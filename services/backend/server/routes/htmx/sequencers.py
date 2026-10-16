@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
 
-from ...core import dependencies, responses
+from ...core import dependencies, responses, query_options
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -46,8 +46,7 @@ def search_sequencers(
     else:
         stmt = stmt.order_by(models.Sequencer.name.asc())
 
-    sequencers, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/sequencer.html", sequencers=sequencers)
+    return query_options.search_response(session, stmt, page=page, option=query_options.sequencer_option)
 
 @router.delete("/{sequencer_id}/delete", dependencies=[Depends(dependencies.require_insider)])
 def delete_sequencer(

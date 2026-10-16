@@ -15,6 +15,13 @@ class ProjectSelectForm(ProjectSelectionMixin, SplitProjectWorkflowStep):
         super().__init__(workflow)
         self.source_project = source_project
 
+    def prefill_destination(self) -> None:
+        self.prefill_project_selection(
+            self.workflow.metadata.get("destination_project_id"),
+            self.workflow.metadata.get("destination_project_title"),
+            self.workflow.metadata.get("destination_project_description"),
+        )
+
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(
@@ -23,11 +30,7 @@ class ProjectSelectForm(ProjectSelectionMixin, SplitProjectWorkflowStep):
         ) -> "ProjectSelectForm":
             source_project = session.first(Q.project.select(id=workflow.project_id))
             form = cls(workflow=workflow, source_project=source_project)
-            if "destination_project_id" in workflow.metadata:
-                form.existing_project.data = workflow.metadata["destination_project_id"]
-            else:
-                form.new_project.data = workflow.metadata.get("destination_project_title")
-                form.project_description.data = workflow.metadata.get("destination_project_description")
+            form.prefill_destination()
             return form
         return dependency
 
@@ -36,12 +39,7 @@ class ProjectSelectForm(ProjectSelectionMixin, SplitProjectWorkflowStep):
         def route(
             form: "ProjectSelectForm" = Depends(ProjectSelectForm.Init()),
         ) -> Response:
-            destination_project_id = form.workflow.metadata.get("destination_project_id")
-            if destination_project_id is not None:
-                form.existing_project.data = destination_project_id
-            else:
-                form.new_project.data = form.workflow.metadata.get("destination_project_title")
-                form.project_description.data = form.workflow.metadata.get("destination_project_description")
+            form.prefill_destination()
             return form.make_response()
         return route
 
@@ -67,7 +65,7 @@ class ProjectSelectForm(ProjectSelectionMixin, SplitProjectWorkflowStep):
             if destination_project is not None:
                 if destination_project.id == source_project.id:
                     message = "Source and destination projects cannot be the same."
-                    form.existing_project.errors.append(message)
+                    form.project.errors.append(message)
                     raise exc.FormValidationException(form)
                 selected_sample_ids = form.workflow.metadata.get("selected_sample_ids", [])
                 form.workflow.metadata.clear()
@@ -80,7 +78,7 @@ class ProjectSelectForm(ProjectSelectionMixin, SplitProjectWorkflowStep):
                 form.workflow.metadata.clear()
                 form.workflow.metadata.update({
                     "selected_sample_ids": selected_sample_ids,
-                    "destination_project_title": form.new_project.data,
+                    "destination_project_title": form.new_project_title,
                     "destination_project_description": form.project_description.data,
                 })
 

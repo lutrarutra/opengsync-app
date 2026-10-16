@@ -34,7 +34,8 @@ from .._http import (
     post_form_csrf_mismatch,
     spreadsheet_payload,
 )
-from .library_annotation._workflow import spreadsheet_rows
+from .library_annotation._workflow import spreadsheet_records, spreadsheet_rows
+from ._spreadsheet import object_name, query_labels
 
 COLUMNS = ["Library", "Protocol"]
 MULTIPLE = "Multiple protocols found for this kit combination"
@@ -163,8 +164,12 @@ def _mapping_payload(selection: dict[str, int]) -> dict[str, str]:
 
 
 def _table(response) -> dict[str, str]:
-    """Spreadsheet rows as library name -> protocol name ('' if none)."""
-    return {row[0]: row[1] or "" for row in spreadsheet_rows(response)}
+    """Spreadsheet rows as library name -> protocol name ('' if none).
+
+    Libraries are "name [id]" options, protocols are ids named by the protocol column's labels.
+    """
+    labels = query_labels(response, "Protocol")
+    return {object_name(row[0]): labels[row[1]] if row[1] != "" else "" for row in spreadsheet_rows(response)}
 
 
 def _submit_table(client: TestClient, setup: Setup, token: str, params: dict, rows: list[tuple[models.Library, models.Protocol | None]]):
@@ -351,7 +356,8 @@ def test_prep_file_with_one_row_per_index_repeats_libraries(client: TestClient, 
     )
 
     assert response.status_code == 200, response.text
-    assert [(row[0], row[1]) for row in spreadsheet_rows(response)] == [
+    labels = query_labels(response, "Protocol")
+    assert [(object_name(row[0]), labels[row[1]]) for row in spreadsheet_rows(response)] == [
         (setup.l1.name, setup.p_ab.name), (setup.l1.name, setup.p_ab.name),
         (setup.l2.name, setup.p_c2.name), (setup.l2.name, setup.p_c2.name),
     ]
@@ -463,3 +469,59 @@ def test_csrf_mismatch_changes_nothing(client: TestClient, setup: Setup, insider
 
     assert response.status_code != 200 or "HX-Redirect" not in response.headers
     assert setup.protocols()[setup.l1.id] is None
+
+
+# ── Library (DBObjectColumn) and protocol (QueryColumn) cells ───────────────
+
+
+def test_protocols_are_searched_and_submitted_by_id(client: TestClient, setup: Setup, insider_token: str):
+    """Libraries are "name [id]" options, protocols ids searched on the backend."""
+    setup.set_protocol(setup.l1, setup.p_other)
+    begin = _begin(client, setup, insider_token)
+    params = _params(setup, begin)
+    assert "/htmx/protocols/query" in begin.text
+    rows = spreadsheet_rows(begin)
+    assert [row[0] for row in rows] == [f"{library.name} [{library.id}]" for library in (setup.l1, setup.l2, setup.l3)]
+    assert query_labels(begin, "Protocol") == {setup.p_other.id: setup.p_other.name}
+
+    payload = spreadsheet_payload(COLUMNS, [
+        [f"{setup.l1.name} [{setup.l1.id}]", setup.p_c1.id],
+        [f"{setup.l2.name} [{setup.l2.id}]", setup.p_ab.id],
+        [f"{setup.l3.name} [{setup.l3.id}]", ""],
+    ])
+    response = post_form(client, _url(client, "LibraryProtocolSelectForm.Submit"), payload, token=insider_token, params=params)
+
+    assert_htmx_redirect(response, f"/lab_preps/{setup.lab_prep.id}")
+    assert setup.protocols() == {setup.l1.id: setup.p_c1.id, setup.l2.id: setup.p_ab.id, setup.l3.id: None}
+
+
+def test_previous_refills_the_spreadsheet(client: TestClient, setup: Setup, insider_token: str):
+    setup.set_protocol(setup.l2, setup.p_c2)
+    begin = _begin(client, setup, insider_token)
+    params = _params(setup, begin)
+
+    response = get(client, _url(client, "LibraryProtocolSelectForm.Previous"), insider_token, params=params)
+
+    assert response.status_code == 200, response.text
+    assert spreadsheet_rows(response) == spreadsheet_rows(begin)
+    assert _table(response) == {setup.l1.name: "", setup.l2.name: setup.p_c2.name, setup.l3.name: ""}
+
+
+@pytest.mark.parametrize("cells, message", [
+    (lambda setup: ["L1", 999_999_999], "Unknown protocol"),
+    (lambda setup: ["Outsider [999999999]", "C1"], "Invalid value"),
+])
+def test_invalid_submission_is_rendered_unchanged(client: TestClient, setup: Setup, insider_token: str, cells, message: str):
+    params = _params(setup, _begin(client, setup, insider_token))
+    library, protocol = cells(setup)
+    row = [
+        f"{setup.l1.name} [{setup.l1.id}]" if library == "L1" else library,
+        setup.p_c1.id if protocol == "C1" else protocol,
+    ]
+    rows = [row, [f"{setup.l2.name} [{setup.l2.id}]", setup.p_ab.id]]
+
+    response = post_form(client, _url(client, "LibraryProtocolSelectForm.Submit"), spreadsheet_payload(COLUMNS, rows), token=insider_token, params=params)
+
+    assert_form_invalid(response, message)
+    assert spreadsheet_records(response) == [dict(zip(COLUMNS, r)) for r in rows]
+    assert setup.protocols() == {setup.l1.id: None, setup.l2.id: None, setup.l3.id: None}

@@ -20,7 +20,7 @@ from opengsync_db import (
 from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, request as request_ops, create as create_ops
 
-from ...core import dependencies, overview, responses, exceptions as exc, config
+from ...core import dependencies, overview, responses, exceptions as exc, config, query_options
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -193,8 +193,7 @@ def search_seq_requests(
     if not current_user.is_insider:
         stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
 
-    seq_requests, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/seq_request.html", seq_requests=seq_requests)
+    return query_options.search_response(session, stmt, page=page, option=query_options.seq_request_option)
 
 
 @router.get("/render-feed")

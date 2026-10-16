@@ -17,7 +17,8 @@
             </div>
             {% endif %}
             <div class="row">
-                {{ form.owner.render() }}
+                {{ form.owner.render("col-6") }}
+                {{ form.group.render("col-6") }}
             </div>
             {{ form.description.render() }}
         </div>

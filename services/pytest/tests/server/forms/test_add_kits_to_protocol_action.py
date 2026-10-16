@@ -14,6 +14,8 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, models, queries as Q
 
 from ...db.create_units import create_kit, create_protocol
+from ..workflows._spreadsheet import query_labels
+from ..workflows.library_annotation._workflow import spreadsheet_records, spreadsheet_rows
 from .._http import (
     assert_form_invalid,
     assert_htmx_redirect,
@@ -32,7 +34,7 @@ def _path(protocol_id: int) -> str:
 
 
 def _label(kit: models.Kit) -> str:
-    """The dropdown submits the category label, not the identifier."""
+    """The name the kit column shows for a kit id; pasted labels are resolved to the kit too."""
     return f"[{kit.identifier}] {kit.name}"
 
 
@@ -68,13 +70,16 @@ def protocol(session: SyncSession, kits: list[models.Kit]) -> models.Protocol:
 # ── Render (GET) ────────────────────────────────────────────────────────────
 
 
-def test_render_lists_kits(client: TestClient, protocol: models.Protocol, kits: list[models.Kit], insider_token: str):
+def test_render_searches_kits_on_the_backend(client: TestClient, protocol: models.Protocol, kits: list[models.Kit], insider_token: str):
+    """Kits are not sent with the page: the column queries them, only the kits in the table are named."""
     response = get(client, _path(protocol.id), insider_token)
 
     assert response.status_code == 200, response.text
     assert "csrf_token" in response.text
-    for kit in kits:
-        assert _label(kit) in response.text
+    assert "/htmx/kits/query" in response.text
+    assert query_labels(response, "Kit") == {kits[0].id: _label(kits[0])}
+    for kit in kits[1:]:
+        assert _label(kit) not in response.text
 
 
 def test_render_prefills_existing_kit_links(
@@ -89,9 +94,8 @@ def test_render_prefills_existing_kit_links(
     response = get(client, _path(protocol.id), insider_token)
 
     assert response.status_code == 200, response.text
-    # The spreadsheet data is embedded as JSON; the linked kit's label is in a data row, not only in the dropdown source.
-    assert response.text.count(_label(kits[1])) >= 2
-    assert '7' in response.text
+    assert spreadsheet_rows(response) == [[kits[1].id, 7]]
+    assert query_labels(response, "Kit") == {kits[1].id: _label(kits[1])}
 
 
 def test_render_does_not_change_links(
@@ -275,4 +279,33 @@ def test_empty_spreadsheet_is_rejected(
     response = post_form(client, _path(protocol.id), spreadsheet_payload(COLUMNS, [["", ""]]), token=insider_token)
 
     assert_form_invalid(response)
+    assert _links(session, protocol) == [(kits[0].id, 1)]
+
+
+# ── Kit column (QueryColumn: cells hold kit ids) ────────────────────────────
+
+
+def test_kits_are_submitted_by_id(
+    client: TestClient, session: SyncSession, protocol: models.Protocol, kits: list[models.Kit], insider_token: str,
+):
+    payload = spreadsheet_payload(COLUMNS, [[kits[1].id, 1], [kits[2].identifier, 2]])  # an identifier is resolved too
+
+    response = post_form(client, _path(protocol.id), payload, token=insider_token)
+
+    assert_htmx_redirect(response, f"/protocols/{protocol.id}")
+    assert _links(session, protocol) == sorted([(kits[1].id, 1), (kits[2].id, 2)])
+
+
+@pytest.mark.parametrize("rows, message", [
+    (lambda kits: [[999_999_999, 1], [kits[1].id, 1]], "Unknown kit"),  # found by the spreadsheet validation
+    (lambda kits: [[kits[1].id, 1], [kits[1].id, 1]], "Duplicate kit and combination number."),  # found by the route
+])
+def test_invalid_submission_is_rendered_unchanged(
+    client: TestClient, session: SyncSession, protocol: models.Protocol, kits: list[models.Kit], insider_token: str, rows, message: str,
+):
+    rows = rows(kits)
+    response = post_form(client, _path(protocol.id), spreadsheet_payload(COLUMNS, rows), token=insider_token)
+
+    assert_form_invalid(response, message)
+    assert spreadsheet_records(response) == [dict(zip(COLUMNS, row)) for row in rows]
     assert _links(session, protocol) == [(kits[0].id, 1)]

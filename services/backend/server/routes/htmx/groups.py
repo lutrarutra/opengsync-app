@@ -3,7 +3,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -85,8 +85,7 @@ def search_groups(
     if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
 
-    groups, _ = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/group.html", groups=groups)
+    return query_options.search_response(session, stmt, page=page, option=query_options.group_option)
 
 
 @router.delete("/{group_id}/remove-user/{user_id}")

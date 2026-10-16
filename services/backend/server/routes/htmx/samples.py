@@ -1,4 +1,3 @@
-import sqlalchemy as sa
 from sqlalchemy import orm
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
@@ -7,7 +6,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, exceptions as exc, responses
+from ...core import dependencies, exceptions as exc, responses, query_options
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
 from ... import forms
 
@@ -150,9 +149,6 @@ def render_sample_attribute_spreadsheet(
     return responses.htmx_response(content=spreadsheet.render())
 
 
-QUERY_PAGE_SIZE = 20
-
-
 @router.get("/query")
 def query_samples(
     project_id: int = Query(..., description="Project of the samples"),
@@ -166,21 +162,11 @@ def query_samples(
         raise exc.NoPermissionsException("You do not have permission to view samples for this project.")
 
     stmt = Q.sample.select(project_id=project_id).where(models.Sample.status.is_distinct_from(C.SampleStatus.REJECTED))
-    if word:
-        # Names containing the word first, then similar names (typos)
-        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        contains = models.Sample.name.ilike(f"%{escaped}%", escape="\\")
-        similarity = sa.func.similarity(models.Sample.name, word)
-        stmt = stmt.where(sa.or_(contains, utils.safe_trgm_search(models.Sample.name, word))).order_by(
-            sa.case((contains, 0), else_=1), similarity.desc(), models.Sample.name.asc(),
-        )
-    else:
-        stmt = stmt.order_by(models.Sample.name.asc())
-    samples, count = session.page(stmt, page=page, limit=QUERY_PAGE_SIZE)
-    return responses.query_options_response(
-        ((sample.id, sample.name) for sample in samples),
-        has_more=(page + 1) * QUERY_PAGE_SIZE < count,
+    return query_options.options_response(
+        session, stmt, columns=query_options.SAMPLE_SEARCH_COLUMNS,
+        word=word, page=page, order_column=models.Sample.name, label=lambda sample: sample.name,
     )
+
 
 router.include_router(
     forms.models.SampleForm.Router(),

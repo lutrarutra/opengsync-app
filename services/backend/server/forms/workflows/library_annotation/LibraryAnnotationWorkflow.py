@@ -1,12 +1,13 @@
 import time
 import datetime as dt
-from typing import Self
+from typing import Self, Sequence
 
 from fastapi import Query, Depends, APIRouter, Request, Response
 
 from opengsync_db import categories as C, models, queries as Q, SyncSession
 
 from ....core import dependencies, exceptions as exc, redis, responses
+from ....components.tables import DBObjectColumn
 from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc, WorkflowRun, StepMode
 from ...HTMXForm import RouteFunc, FormFunc
 from ..HTMXWorkflowStep import HTMXWorkflowStep
@@ -42,6 +43,21 @@ class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
         ) -> Self:
             return form
         return dependency
+
+    def set_sample_options(self, column: DBObjectColumn, names: Sequence[str]) -> dict[str, int]:
+        """Offer the samples (or pools) ``names`` in ``column``: existing samples as "name [id]", the others as
+        "name [new]". Returns the ids of the existing samples by name."""
+        sample_table = self.workflow.tables["sample_table"]
+        existing = sample_table.dropna(subset=["sample_id"])
+        sample_ids: dict[str, int] = {
+            name: int(sample_id) for name, sample_id in zip(existing["sample_name"], existing["sample_id"])
+            if name in names
+        }
+        column.set_categories(
+            {sample_id: f"{name} [{sample_id}]" for name, sample_id in sample_ids.items()},
+            new_names=[name for name in names if name not in sample_ids],
+        )
+        return sample_ids
 
     def make_response(self, status_code: int = 200, **kwargs) -> Response:
         # Showing a step is activity on the run; a fresh render (not a re-render with

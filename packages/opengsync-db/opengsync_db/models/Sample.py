@@ -11,6 +11,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from ..categories import SampleStatus, SampleStatus, AttributeType, AttributeType
 from ..core.EnumColumn import EnumColumn
+from .. import localize
 from .Base import Base
 from . import links
 
@@ -116,7 +117,7 @@ class Sample(Base):
 
     @property
     def timestamp_stored_str(self) -> str:
-        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
+        return localize(self.timestamp_stored_utc).strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name})"

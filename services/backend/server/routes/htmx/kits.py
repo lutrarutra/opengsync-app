@@ -6,7 +6,7 @@ from opengsync_db import queries as Q
 
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
-from ...core import dependencies, responses
+from ...core import dependencies, responses, query_options
 from ...core import exceptions as exc
 
 router = APIRouter(prefix="/kits", tags=["kits"])
@@ -82,17 +82,33 @@ def search_kits(
     word: str | None = Query(None, description="Search term for kit name or identifier"),
     kit_type: C.KitType | None = Depends(dependencies.parse_enum_id(C.KitType, "kit_type")),
     kit_type_in: list[C.KitType] | None = Depends(dependencies.parse_enum_ids(C.KitType, "kit_type_in")),
+    selected_id: int | None = Query(None, description="Currently selected kit"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     stmt = Q.kit.select(type=kit_type, type_in=kit_type_in)
-    if word:
+    if selected_id is not None and not word:
+        stmt = Q.kit.select(id=selected_id, statement=stmt)
+    elif word:
         stmt = Q.kit.search(name=word, identifier=word, statement=stmt)
     else:
         stmt = stmt.order_by(models.Kit.name.asc())
 
-    kits, count = session.page(stmt, page=page)
-    return responses.htmx_response(template="components/search/kit.html", results=kits)
+    return query_options.search_response(session, stmt, page=page, option=query_options.kit_option)
+
+
+@router.get("/query")
+def query_kits(
+    word: str | None = Query(None, description="Search word for kit name or identifier"),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    type_in: list[C.KitType] | None = Depends(dependencies.parse_enum_ids(C.KitType, "type_in")),
+    session: SyncSession = Depends(dependencies.db_session),
+) -> Response:
+    """Options for a spreadsheet QueryColumn: kits of every type. Kits are visible to every user."""
+    return query_options.options_response(
+        session, Q.kit.select(type_in=type_in), columns=query_options.KIT_SEARCH_COLUMNS,
+        word=word, page=page, order_column=models.Kit.name, label=query_options.kit_label,
+    )
 
 
 @router.delete("/delete", dependencies=[Depends(dependencies.require_admin)])

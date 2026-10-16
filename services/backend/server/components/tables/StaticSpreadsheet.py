@@ -1,6 +1,7 @@
 from uuid6 import uuid7
 
 import pandas as pd
+from markupsafe import Markup
 
 
 from .spreadsheet import SpreadSheetColumn
@@ -29,5 +30,5 @@ class StaticSpreadsheet():
 
         self._data = self.__df[[col.label for col in self.columns]].astype(object).replace(pd.NA, "").values.tolist()
 
-    def render(self, **kwargs) -> str:
-        return render_template("components/static-spreadsheet.html", spreadsheet=self, **kwargs)
+    def render(self, **kwargs) -> Markup:
+        return Markup(render_template("components/static-spreadsheet.html", spreadsheet=self, **kwargs))
