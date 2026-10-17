@@ -153,7 +153,10 @@ services:
                 condition: service_completed_successfully
         environment:
             TZ: ${TIMEZONE}
-        command: /bin/bash -c "nginx -g 'daemon off;'"
+            # Group that owns ${MEDIA_DIR}; the app writes media as PUID:PGID.
+            MEDIA_GID: ${PGID:-1000}
+        # Must start with `nginx` so the image entrypoint runs /docker-entrypoint.d/ (media GID).
+        command: ["nginx", "-g", "daemon off;"]
 
     redis-cache:
         platform: linux/amd64
