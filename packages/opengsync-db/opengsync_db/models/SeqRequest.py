@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .MediaFile import MediaFile
     from .Comment import Comment
+    from .ChecklistLog import ChecklistLog
     from .Sample import Sample
     from .Event import Event
     from .Group import Group
@@ -84,6 +85,7 @@ class SeqRequest(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+    checklist_logs: Mapped[list["ChecklistLog"]] = relationship("ChecklistLog", lazy="select", cascade="all, delete-orphan", passive_deletes=True, order_by="ChecklistLog.timestamp_utc.desc()")
     delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="all, save-update, delete, merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
         "Sample", viewonly=True,
@@ -106,6 +108,12 @@ class SeqRequest(Base):
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="seq_request", lazy="select")
 
     review_checklist: Mapped[dict[str, bool] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+
+    MANUAL_REVIEW_STEPS = (
+        "technical_requirements", "check_libraries", "check_multiplexing", "check_overview", "check_contacts",
+        "check_comments", "samples_checked", "check_submission_date", "auth_form_checked",
+    )
+    """Review steps checked by hand (stored in `review_checklist`, logged in `checklist_logs`)."""
 
     def get_submit_checklist(self) -> dict:
         if orm.object_session(self) is None:
@@ -131,14 +139,9 @@ class SeqRequest(Base):
         if self.review_checklist is not None:
             checklist.update(self.review_checklist)
 
-        checklist["technical_requirements"] = checklist.get("technical_requirements", False)
-        checklist["check_libraries"] = checklist.get("check_libraries", False)
-        checklist["check_multiplexing"] = checklist.get("check_multiplexing", False)
-        checklist["check_overview"] = checklist.get("check_overview", False)
-        checklist["check_contacts"] = checklist.get("check_contacts", False)
-        checklist["check_comments"] = checklist.get("check_comments", False)
-        checklist["samples_checked"] = checklist.get("samples_checked", False)
-        checklist["check_submission_date"] = checklist.get("check_submission_date", False)
+        for step in SeqRequest.MANUAL_REVIEW_STEPS:
+            if step != "auth_form_checked":
+                checklist[step] = checklist.get(step, False)
         checklist["check_barcodes"] = self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] or self.all_indices_validated()
         checklist["index_check"] = None if self.submission_type in [SubmissionType.RAW_SAMPLES, SubmissionType.QC_ONLY] else self.all_indices_validated()
         checklist["auth_form_checked"] = checklist.get("auth_form_checked", None if self.seq_auth_form_file is None else False)

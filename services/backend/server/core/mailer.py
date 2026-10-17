@@ -59,7 +59,7 @@ class Mailer:
             mime_type="html"
         )
 
-    def send_share_directory(
+    def send_share_paths(
         self,
         recipients: Sequence[str],
         share_token,
@@ -74,7 +74,7 @@ class Mailer:
         wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
 
         body = templates.render_template(
-            "email/share-directory.html",
+            "email/share-paths.html",
             style=style,
             browse_link=browse_link,
             author=author,
@@ -87,7 +87,7 @@ class Mailer:
 
         self.__send_email(
             recipients=list(set(recipients)),
-            subject=f"{settings.app_config.personalization.organization} Shared a Directory",
+            subject=f"{settings.app_config.personalization.organization} Shared Data with You",
             body=body,
             mime_type="html",
         )

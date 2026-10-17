@@ -15,7 +15,7 @@ from .RejectSamplesAction import RejectSamplesAction
 from .AddKitsToProtocolAction import AddKitsToProtocolAction
 from .AddUserToGroupAction import AddUserToGroupAction
 from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
-from .ShareDirectoryAction import ShareDirectoryAction
+from .SharePathAction import SharePathAction
 from .ShareProjectDataAction import ShareProjectDataAction
 from .AssociatePathAction import AssociatePathAction
 from .DilutePoolsAction import DilutePoolsAction
@@ -47,7 +47,7 @@ __all__ = [
     "RejectSamplesAction",
     "AddKitsToProtocolAction",
     "AddUserToGroupAction",
-    "ShareDirectoryAction",
+    "SharePathAction",
     "ShareProjectDataAction",
     "AssociatePathAction",
     "SelectExperimentPoolsAction",

@@ -15,6 +15,7 @@ from .FeatureKit import FeatureKit
 from .MediaFile import MediaFile
 from .SeqQuality import SeqQuality
 from .Comment import Comment
+from .ChecklistLog import ChecklistLog
 from .SeqRun import SeqRun
 from .Lane import Lane
 from .PoolDilution import PoolDilution
@@ -57,6 +58,7 @@ __all__ = [
     "MediaFile",
     "SeqQuality",
     "Comment",
+    "ChecklistLog",
     "SeqRun",
     "Lane",
     "PoolDilution",

@@ -20,7 +20,7 @@ from opengsync_db import (
 from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, request as request_ops, create as create_ops
 
-from ...core import dependencies, overview, responses, exceptions as exc, config, query_options
+from ...core import dependencies, overview, responses, exceptions as exc, config, query_options, checklists
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -544,7 +544,8 @@ def get_seq_request_review_checklist(
             orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.indices),
             orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.library),
             orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.sample),
-            orm.selectinload(models.SeqRequest.seq_auth_form_file)
+            orm.selectinload(models.SeqRequest.seq_auth_form_file),
+            orm.selectinload(models.SeqRequest.checklist_logs).selectinload(models.ChecklistLog.actor),
         ],
     )
 
@@ -555,6 +556,7 @@ def get_seq_request_review_checklist(
         template="components/checklists/seq_request-review.html",
         seq_request=seq_request,
         contains_mux_samples=contains_mux_samples,
+        review_history=checklists.history(seq_request),
         **checklist,
     )
 
@@ -565,6 +567,7 @@ def check_seq_request_review_step(
     step: str,
     request: Request,
     session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.INSIDER:
@@ -574,13 +577,12 @@ def check_seq_request_review_step(
         raise exc.BadRequestException("Index orientations are checked automatically once all indices are validated or from a kit.")
     if step == "check_barcodes":
         raise exc.BadRequestException("Barcodes are checked automatically once all indices are in forward orientation or from a kit.")
+    if step not in models.SeqRequest.MANUAL_REVIEW_STEPS:
+        raise exc.BadRequestException(f"Unknown review step '{step}'.")
 
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.review_checklist is None:
-        seq_request.review_checklist = {}
-    seq_request.review_checklist[step] = True
-    session.save(seq_request)
+    checklists.set_step(session, seq_request, step, checked=True, actor_id=current_user.id)
 
     return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-review-tab"),
@@ -593,6 +595,7 @@ def uncheck_seq_request_review_step(
     step: str,
     request: Request,
     session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.INSIDER:
@@ -600,20 +603,21 @@ def uncheck_seq_request_review_step(
 
     if step == "check_barcodes":
         raise exc.BadRequestException("Barcodes are checked automatically once all indices are in forward orientation or from a kit.")
+    if step != "index_check" and step not in models.SeqRequest.MANUAL_REVIEW_STEPS:
+        raise exc.BadRequestException(f"Unknown review step '{step}'.")
 
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if step == "index_check":
         # The step is derived from the indices: orientations have to be validated again through the Index Check workflow
+        if seq_request.all_indices_validated():
+            checklists.log_step(session, seq_request, step, checked=False, actor_id=current_user.id)
         for index in session.execute(
             sa.select(models.LibraryIndex).join(models.LibraryIndex.library).where(models.Library.seq_request_id == seq_request.id)
         ).scalars():
             index.orientation = C.BarcodeOrientation.FORWARD_NOT_VALIDATED
     else:
-        if seq_request.review_checklist is None:
-            seq_request.review_checklist = {}
-        seq_request.review_checklist[step] = False
-        session.save(seq_request)
+        checklists.set_step(session, seq_request, step, checked=False, actor_id=current_user.id)
 
     return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-review-tab"),

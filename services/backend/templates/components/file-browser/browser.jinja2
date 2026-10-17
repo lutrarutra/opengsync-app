@@ -97,13 +97,16 @@ function toggleBrowserDirectory(toggle) {
     }
 }
 
-// Sent by AssociatePathAction: re-render the association badges of that path without reloading the tree.
+// Sent by AssociatePathAction: re-render the association badges of those paths without reloading the tree.
 if (!window.fileBrowserAssociationsBound) {
     window.fileBrowserAssociationsBound = true;
     document.addEventListener('dataPathAssociationsUpdated', function(event) {
-        const { path, associations } = event.detail;
+        const associationsByPath = new Map(event.detail.paths.map(function(entry) {
+            return [entry.path, entry.associations];
+        }));
         document.querySelectorAll('.browser-entry-row[data-path]').forEach(function(row) {
-            if (row.dataset.path !== path) return;
+            const associations = associationsByPath.get(row.dataset.path);
+            if (!associations) return;
             const container = row.querySelector('.browser-entry-associations');
             if (!container) return;
             container.replaceChildren(...associations.map(function(association) {

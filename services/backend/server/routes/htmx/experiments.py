@@ -1,14 +1,14 @@
 import os
 
 import pandas as pd
-from fastapi import APIRouter, Depends, Query, Path
+from fastapi import APIRouter, Depends, Query, Path, Request
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, units, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import config, dependencies, overview, responses, exceptions as exc, query_options
+from ...core import config, dependencies, overview, responses, exceptions as exc, query_options, checklists
 from ...components.tables import HTMXTable, TableCol
 from ...components.tables import StaticSpreadsheet, TextColumn
 from ... import forms
@@ -132,7 +132,9 @@ def experiment_checklist(
     session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider)
 ):
-    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
+        orm.selectinload(models.Experiment.checklist_logs).selectinload(models.ChecklistLog.actor),
+    ))
     checklist = experiment.get_checklist()
     can_be_edited = (experiment.status < C.ExperimentStatus.SEQUENCING) or current_user.is_admin
     
@@ -140,7 +142,47 @@ def experiment_checklist(
         template="components/checklists/experiment.html",
         experiment=experiment,
         can_be_edited=can_be_edited,
+        checklist_history=checklists.history(experiment),
         **checklist,
+    )
+
+
+@router.post("/{experiment_id}/checklist-check/{step}")
+def check_experiment_checklist_step(
+    experiment_id: int,
+    step: str,
+    request: Request,
+    session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+):
+    if step not in models.Experiment.MANUAL_CHECKLIST_STEPS:
+        raise exc.BadRequestException(f"Unknown checklist step '{step}'.")
+
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    if not experiment.pools:
+        raise exc.BadRequestException("Add pools to the experiment first.")
+
+    checklists.set_step(session, experiment, step, checked=True, actor_id=current_user.id)
+    return responses.htmx_response(
+        redirect=request.url_for("experiment_page", experiment_id=experiment.id).include_query_params(tab="checklist-tab"),
+    )
+
+
+@router.post("/{experiment_id}/checklist-uncheck/{step}")
+def uncheck_experiment_checklist_step(
+    experiment_id: int,
+    step: str,
+    request: Request,
+    session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+):
+    if step not in models.Experiment.MANUAL_CHECKLIST_STEPS:
+        raise exc.BadRequestException(f"Unknown checklist step '{step}'.")
+
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    checklists.set_step(session, experiment, step, checked=False, actor_id=current_user.id)
+    return responses.htmx_response(
+        redirect=request.url_for("experiment_page", experiment_id=experiment.id).include_query_params(tab="checklist-tab"),
     )
 
 @router.get("/{experiment_id}/overview", dependencies=[Depends(dependencies.require_insider)])

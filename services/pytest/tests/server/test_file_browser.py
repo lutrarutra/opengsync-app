@@ -26,6 +26,10 @@ def test_file_browser_renders_list_and_lazy_directory_fragments(
         assert 'id="file-browser-root"' in page.text
         assert "hx-trigger=\"load\"" in page.text
         assert "<table" not in page.text
+        # selection panel for Associate/Share, hidden until something is selected
+        assert 'id="path-selection-panel"' in page.text
+        assert 'data-max-paths="50"' in page.text
+        assert "js/path-selection.js" in page.text
 
         root = get(client, "/htmx/files/", insider_token)
         assert root.status_code == 200

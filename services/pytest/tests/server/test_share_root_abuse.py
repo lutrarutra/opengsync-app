@@ -8,7 +8,7 @@ Every entry point that turns user input into a filesystem path under
 - a sibling directory whose name starts with the share root's name (``share-evil``),
 - a file symlink and a directory symlink inside the share root pointing outside.
 
-Staff side: ``AssociatePathAction``, ``serve_data_file``, ``ShareDirectoryAction``,
+Staff side: ``AssociatePathAction``, ``serve_data_file``, ``SharePathAction``,
 the insider file browser, and the ``add-data_path`` API.
 Public side (share-link token, no login): browse, rclone, WebDAV, and the shared
 browser page/entries — these must also hide files inside the root that are not shared.
@@ -186,9 +186,15 @@ def _data_path_count(session: SyncSession, project: models.Project) -> int:
     return session.count(Q.data_path.select(project_id=project.id))
 
 
+def _associate(client: TestClient, token: str, project: models.Project, *paths: str):
+    return post_form(client, "/htmx/files/associate-path", {
+        "project": project.id,
+        **{f"paths-{i}-path": path for i, path in enumerate(paths)},
+    }, token=token)
+
+
 def test_associate_path_control(client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout):
-    response = post_form(client, "/htmx/files/associate-path", {"project": project.id},
-                         token=insider_token, params={"path": "shared/report.txt"})
+    response = _associate(client, insider_token, project, "shared/report.txt")
     assert response.status_code == 204
     assert _data_path_count(session, project) == 1
 
@@ -197,9 +203,8 @@ def test_associate_path_control(client: TestClient, session: SyncSession, projec
 def test_associate_path_rejects_escape(
     client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout, path: str,
 ):
-    response = post_form(client, "/htmx/files/associate-path", {"project": project.id},
-                         token=insider_token, params={"path": _fill(path, layout)})
-    assert response.status_code == 400
+    response = _associate(client, insider_token, project, _fill(path, layout))
+    assert_form_invalid(response, "outside of share root")
     assert _data_path_count(session, project) == 0
 
 
@@ -241,8 +246,7 @@ def test_serve_data_file_rejects_symlink_retargeted_after_association(
     """A symlink that was safe when associated is re-checked when served."""
     link = layout.root / "shared" / "latest"
     link.symlink_to(layout.root / "shared" / "report.txt")
-    response = post_form(client, "/htmx/files/associate-path", {"project": project.id},
-                         token=insider_token, params={"path": "shared/latest"})
+    response = _associate(client, insider_token, project, "shared/latest")
     assert response.status_code == 204
     [data_path] = session.get_all(Q.data_path.select(project_id=project.id), limit=None)
     assert get(client, f"/htmx/files/serve-data-file/{data_path.id}", user_token).text == SHARED
@@ -255,42 +259,42 @@ def test_serve_data_file_rejects_symlink_retargeted_after_association(
     assert_no_leak(response)
 
 
-# ── Staff: ShareDirectoryAction ─────────────────────────────────────────────
+# ── Staff: SharePathAction ─────────────────────────────────────────────────
 
 
-def _share_directory(client: TestClient, token: str, directory_path: str, recipients: tuple[str, ...] = ("someone@example.com",)):
-    return post_form(client, "/htmx/files/share-directory", {
-        "directory_path": directory_path,
+def _share_paths(client: TestClient, token: str, *paths: str, recipients: tuple[str, ...] = ("someone@example.com",)):
+    return post_form(client, "/htmx/files/share-path", {
+        **{f"paths-{i}-path": path for i, path in enumerate(paths)},
         **{f"recipients-{i}-email": email for i, email in enumerate(recipients)},
         "time_valid_min": str(60 * 24),
     }, token=token)
 
 
-def test_share_directory_control(
+def test_share_paths_control(
     client: TestClient, session: SyncSession, insider: models.User, insider_token: str, fake_mailer, layout: Layout,
 ):
-    response = _share_directory(client, insider_token, "shared")
+    response = _share_paths(client, insider_token, "shared")
     assert response.status_code in (200, 204), response.text
     [share_token] = session.get_all(Q.share_token.select(owner_id=insider.id), limit=None)
     assert [p.path for p in share_token.paths] == ["shared"]
     assert len(fake_mailer.sent) == 1
 
 
-def test_share_directory_sends_to_every_recipient(
+def test_share_paths_sends_to_every_recipient(
     client: TestClient, insider_token: str, fake_mailer, layout: Layout,
 ):
-    response = _share_directory(client, insider_token, "shared", ("a@example.com", "b@example.com"))
+    response = _share_paths(client, insider_token, "shared", recipients=("a@example.com", "b@example.com"))
     assert response.status_code in (200, 204), response.text
     [sent] = fake_mailer.sent
     assert sorted(sent["kwargs"]["recipients"]) == ["a@example.com", "b@example.com"]
 
 
 @pytest.mark.parametrize("recipients", [(), ("a@example.com", "not-an-email"), ("a@example.com", "")])
-def test_share_directory_rejects_bad_recipients(
+def test_share_paths_rejects_bad_recipients(
     client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
     fake_mailer, layout: Layout, recipients: tuple[str, ...],
 ):
-    response = _share_directory(client, insider_token, "shared", recipients)
+    response = _share_paths(client, insider_token, "shared", recipients=recipients)
 
     assert_form_invalid(response)
     session.expire_all()
@@ -298,17 +302,40 @@ def test_share_directory_rejects_bad_recipients(
     assert fake_mailer.sent == []
 
 
-@pytest.mark.parametrize("path", DIR_ESCAPES)
-def test_share_directory_rejects_escape(
+@pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
+def test_share_paths_rejects_escape(
     client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
     fake_mailer, layout: Layout, path: str,
 ):
-    response = _share_directory(client, insider_token, _fill(path, layout))
+    response = _share_paths(client, insider_token, _fill(path, layout))
 
     assert_form_invalid(response)
     session.expire_all()
     assert session.count(Q.share_token.select(owner_id=insider.id)) == 0
     assert fake_mailer.sent == []
+
+
+@pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
+def test_share_paths_rejects_escape_next_to_a_valid_path(
+    client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
+    fake_mailer, layout: Layout, path: str,
+):
+    """One escaping path rejects the whole share: the valid path is not shared on its own."""
+    response = _share_paths(client, insider_token, "shared/report.txt", _fill(path, layout))
+
+    assert_form_invalid(response)
+    session.expire_all()
+    assert session.count(Q.share_token.select(owner_id=insider.id)) == 0
+    assert fake_mailer.sent == []
+
+
+@pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
+def test_associate_path_rejects_escape_next_to_a_valid_path(
+    client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout, path: str,
+):
+    response = _associate(client, insider_token, project, "shared/report.txt", _fill(path, layout))
+    assert_form_invalid(response, "outside of share root")
+    assert _data_path_count(session, project) == 0
 
 
 # ── Staff: insider file browser ─────────────────────────────────────────────

@@ -34,10 +34,12 @@
 {% set entry_name = relative_path if is_root_listing else browser_path.path.name %}
 {% set is_data_path = highlight_data_paths and browser_path.data_paths %}
 {% set is_linked_file = file_route and (servable_extensions is none or browser_path.path.suffix | lower in servable_extensions) %}
-{% if admin_browser and is_directory %}
+{% if admin_browser %}
+    {# "select" adds the path to the selection panel (static/js/path-selection.js); its label is set when the menu opens #}
     {% set entry_actions = [
+        {"type": "select", "label": "Select", "config": {"path": relative_path}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
-        {"type": "hxget", "show_modal": "#xl-modal", "label": "Share Directory", "config": {"url": url_for('ShareDirectoryAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {"url": url_for('SharePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
     ] %}
 {% elif remove_from_project_id is not none and is_data_path %}
     {% set entry_actions = [

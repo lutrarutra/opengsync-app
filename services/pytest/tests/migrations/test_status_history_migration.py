@@ -219,7 +219,8 @@ def test_downgrade_and_upgrade_again(migrated_db):
         assert not sa.inspect(conn).has_table("operation_run")
         assert "route_override" not in {c["name"] for c in sa.inspect(conn).get_columns("seq_request")}
         assert conn.execute(sa.text("SELECT count(*) FROM pg_trigger WHERE tgname LIKE 'trg_%_status_history'")).scalar_one() == 0
-        command.upgrade(_config(conn), "head")
+        # Not "head": the database comes from create_all, so later migrations' tables already exist
+        command.upgrade(_config(conn), RESTORE_PREPARING)
         conn.commit()
         assert _schema_objects(conn) == expected
 

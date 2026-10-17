@@ -4,6 +4,8 @@ from typing import Optional, TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
     from .User import User
     from .MediaFile import MediaFile
     from .Comment import Comment
+    from .ChecklistLog import ChecklistLog
     from .SeqQuality import SeqQuality
     from .SeqRun import SeqRun
     from .Lane import Lane
@@ -64,9 +67,15 @@ class Experiment(Base):
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="all, delete, delete-orphan")
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan", order_by="MediaFile.id.desc()")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+    checklist_logs: Mapped[list["ChecklistLog"]] = relationship("ChecklistLog", lazy="select", cascade="all, delete-orphan", passive_deletes=True, order_by="ChecklistLog.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="merge, save-update, delete, delete-orphan")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="experiment", lazy="select")
+
+    manual_checklist: Mapped[dict[str, bool] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+
+    MANUAL_CHECKLIST_STEPS = ("check_barcode_clashes",)
+    """Checklist steps checked by hand (stored in `manual_checklist`, logged in `checklist_logs`)."""
 
     def get_checklist(self) -> dict:
         if (session := orm.object_session(self)) is None:
@@ -95,6 +104,8 @@ class Experiment(Base):
                 if pool_link.num_m_reads is None:
                     reads_assigned = False if pools_added else None
                     missing_pool_reads.add(pool_link.pool.name)
+
+        barcode_clashes_checked = bool((self.manual_checklist or {}).get("check_barcode_clashes")) if pools_added else None
 
         pool_qubits_measured = all(pool.qubit_concentration is not None for pool in self.pools) if pools_added else None
         pool_fragment_sizes_measured = all(pool.avg_fragment_size is not None for pool in self.pools) if pools_added else None
@@ -153,6 +164,7 @@ class Experiment(Base):
             "pools_added": pools_added,
             "lanes_assigned": lanes_assigned,
             "reads_assigned": reads_assigned,
+            "barcode_clashes_checked": barcode_clashes_checked,
             "missing_pool_reads": missing_pool_reads,
             "pool_qubits_measured": pool_qubits_measured,
             "pool_fragment_sizes_measured": pool_fragment_sizes_measured,

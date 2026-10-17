@@ -1,6 +1,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/button.jinja2" import confirm_action_button, modal_button %}
+{% from "components/checklists/history.jinja2" import checklist_history_button, checklist_last_change %}
 
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
@@ -57,7 +58,7 @@
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
-                <b>{% if lanes_assigned is none %}❗{% else %}🔘{% endif %} Check Barcode Clashes</b>
+                <b>{% if barcode_clashes_checked is none %}❗{% elif barcode_clashes_checked %}✅{% else %}⚠️{% endif %} Check Barcode Clashes</b> {{ checklist_last_change(checklist_history.get("check_barcode_clashes", []), barcode_clashes_checked) }}
             </button>
         </h2>
         <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
@@ -70,11 +71,25 @@
                                 "Check Clashes", 
                                 url_for('CheckBarcodeClashesAction.Render', experiment_id=experiment.id), 
                                 size="fullscreen",
-                                disabled=lanes_assigned is none
+                                disabled=barcode_clashes_checked is none
                             )
                         }}
                     </li>
+                    <li>Resolve clashes, then mark the step as checked.</li>
                 </ol>
+                <hr>
+                {% if not barcode_clashes_checked %}
+                <button type="button" class="btn btn-success" {% if barcode_clashes_checked is none %}disabled{% endif %}
+                    hx-post="{{ url_for('check_experiment_checklist_step', experiment_id=experiment.id, step='check_barcode_clashes') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning"
+                    hx-post="{{ url_for('uncheck_experiment_checklist_step', experiment_id=experiment.id, step='check_barcode_clashes') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+                {{ checklist_history_button("experiment-check_barcode_clashes", checklist_history.get("check_barcode_clashes", [])) }}
             </div>
         </div>
     </div>

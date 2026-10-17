@@ -94,6 +94,7 @@ def test_shared_browser_page_and_entries(
     assert page.status_code == 200
     assert 'id="file-browser-root"' in page.text
     assert "Shared Files" in page.text
+    assert "path-selection" not in page.text  # the selection panel is for the insider browser only
 
     entries = client.get(f"/files/share/browse/{token}/entries/shared")
     assert entries.status_code == 200
@@ -193,6 +194,52 @@ def test_webdav_rejects_invalid_junk_and_unshared_paths(
     assert client.get("/api/webdav/not-a-token").status_code == 404
     assert client.get(f"/api/webdav/{token}/shared/.DS_Store").status_code == 404
     assert client.get(f"/api/webdav/{token}/unshared.txt").status_code == 404
+
+
+def test_token_sharing_a_file_and_a_folder(
+    client: TestClient,
+    session: SyncSession,
+    user: models.User,
+    share_fixture: ShareFixture,
+):
+    """As the file browser's selection creates: a single file and a folder next to it, without their siblings."""
+    (share_fixture.root / "shared" / "sibling.txt").write_text("not shared")
+    token = session.save(Q.share_token.create(
+        owner=user,
+        time_valid_min=60,
+        paths=["shared/nested", "shared/root.txt"],
+    ), flush=True)
+    session.commit()
+    uuid = token.uuid
+
+    # parents are navigation only
+    root = client.get(f"/api/shares/browse/{uuid}")
+    assert "shared/" in root.text
+    assert "unshared.txt" not in root.text
+
+    for listing in (
+        client.get(f"/api/shares/browse/{uuid}/shared"),
+        client.get(f"/api/shares/rclone/{uuid}/shared"),
+        client.get(f"/files/share/browse/{uuid}/entries/shared"),
+        client.request("PROPFIND", f"/api/webdav/{uuid}/shared", headers={"Depth": "1"}),
+    ):
+        assert listing.status_code in (200, 207), listing.text
+        assert "root.txt" in listing.text
+        assert "nested/" in listing.text
+        assert "sibling.txt" not in listing.text
+
+    for url in (
+        f"/api/shares/browse/{uuid}/shared/root.txt",
+        f"/files/share/browse/{uuid}/shared/root.txt",
+        f"/api/webdav/{uuid}/shared/root.txt",
+    ):
+        response = client.get(url)
+        assert response.status_code == 200, url
+        assert response.content == b"root"
+
+    assert client.get(f"/api/webdav/{uuid}/shared/nested/child.txt").content == b"child"
+    assert client.get(f"/api/webdav/{uuid}/shared/sibling.txt").status_code == 404
+    assert "not shared" not in client.get(f"/api/shares/browse/{uuid}/shared/sibling.txt").text
 
 
 def test_share_and_webdav_listing_cache_returns_identical_response(

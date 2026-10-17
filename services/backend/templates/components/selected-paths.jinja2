@@ -1,0 +1,73 @@
+{#
+  The paths a Share/Associate form acts on (forms/common/SelectedPathsMixin.py): one removable row per path,
+  posted as hidden {list}-{index}-path inputs. Removing a row drops the path from this form only, not from the
+  file browser's selection. `covered_paths` is how many selected paths were left out because a listed folder covers them.
+#}
+{% macro selected_paths(form, covered_paths=0, hint=none) %}
+{% set container_id = "selected-paths-" ~ uuid4() %}
+<div class="form-group selected-paths" id="{{ container_id }}">
+    <a>Paths <span class="selected-paths-count text-muted">({{ form.paths | length }})</span></a>
+    <ul class="selected-path-list">
+        {% for entry in form.paths %}
+        {% set path = entry.path.data or "" %}
+        {% set is_directory = form.is_directory(path) %}
+        <li class="selected-path-row{% if entry.path.errors %} is-invalid{% endif %}">
+            <input type="hidden" id="{{ entry.path.id }}" name="{{ entry.path.name }}" value="{{ path }}">
+            <i class="bi {{ 'bi-folder' if is_directory else 'bi-file-earmark' }} selected-path-icon" aria-hidden="true"></i>
+            {# rtl + <bdi>: a long path is truncated at its start, keeping the file name visible #}
+            <span class="selected-path-text" title="{{ path }}"><bdi>{{ path }}{% if is_directory %}/{% endif %}</bdi></span>
+            <button type="button" class="selected-path-remove" title="Remove from this form" aria-label="Remove {{ path }}">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            {% for error in entry.path.errors %}
+            <div class="selected-path-error" role="alert">{{ error }}</div>
+            {% endfor %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% for error in form.paths.errors.get(None, []) %}
+    <div class="invalid-feedback d-block">{{ error }}</div>
+    {% endfor %}
+    {% if covered_paths %}
+    <small class="text-muted d-block">
+        {{ covered_paths }} selected path{{ "s are" if covered_paths > 1 else " is" }} not listed: already included in a listed folder.
+    </small>
+    {% endif %}
+    {% if hint %}
+    <small class="text-muted d-block">{{ hint }}</small>
+    {% endif %}
+</div>
+
+<script>
+(function() {
+    const container = document.getElementById('{{ container_id }}');
+    const list = container.querySelector('.selected-path-list');
+    const count = container.querySelector('.selected-paths-count');
+    const prefix = '{{ form.paths.name }}';
+    const pattern = new RegExp('^' + prefix + '-\\d+-');
+
+    // The server rebuilds the list from {prefix}-0-path, {prefix}-1-path, ... so indices must stay contiguous.
+    // The last row can't be removed: the form needs at least one path.
+    function refresh() {
+        const rows = list.querySelectorAll('.selected-path-row');
+        rows.forEach(function(row, index) {
+            const input = row.querySelector('input[type="hidden"]');
+            ['name', 'id'].forEach(function(attr) {
+                input.setAttribute(attr, input.getAttribute(attr).replace(pattern, prefix + '-' + index + '-'));
+            });
+            row.querySelector('.selected-path-remove').disabled = rows.length === 1;
+        });
+        count.textContent = '(' + rows.length + ')';
+    }
+
+    list.addEventListener('click', function(event) {
+        const button = event.target.closest('.selected-path-remove');
+        if (!button || button.disabled) return;
+        button.closest('.selected-path-row').remove();
+        refresh();
+    });
+
+    refresh();
+})();
+</script>
+{% endmacro %}

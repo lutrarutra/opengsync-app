@@ -1,6 +1,11 @@
 {% extends "email/base.html" %}
 {% block content %}
-<p>BSF has shared directory with you.</p>
+<p>BSF has shared the following with you:</p>
+<ul>
+    {% for share_path in share_token.paths %}
+    <li><code>{{ share_path.path }}</code></li>
+    {% endfor %}
+</ul>
 <p>
     <b>You can copy the data with one of the following commands:</b>
     <ul>

@@ -24,6 +24,7 @@ from .AttributeType import AttributeType
 from .IndexType import IndexType
 from .SubmissionType import SubmissionType
 from .LabChecklistType import LabChecklistType
+from .ChecklistType import ChecklistType
 from .EventType import EventType
 from .AffiliationType import AffiliationType
 from .AccessType import AccessType
@@ -66,6 +67,7 @@ __all__ = [
     "IndexType",
     "SubmissionType",
     "LabChecklistType",
+    "ChecklistType",
     "EventType",
     "AffiliationType",
     "AccessType",

@@ -99,9 +99,14 @@ function init_context_menu_callbacks() {
 
 function createMenuItem(action, $contextElement) {
     const li = $('<li>');
+    let label = action.label || formatActionLabel(action);
+    // Menus are built on every right-click, so the label follows the current selection
+    if (action.type === 'select' && window.pathSelection) {
+        label = window.pathSelection.has(action.config.path) ? 'Deselect' : 'Select';
+    }
     const link = $('<button>', {
         class: 'dropdown-item' + (action.active ? ' active' : ''),
-        text: action.label || formatActionLabel(action),
+        text: label,
     });
 
     if (action.disabled) {
@@ -151,6 +156,9 @@ function handleContextMenuAction(action, $contextElement) {
     const handlers = {
         copy: (action) => {
             copy_to_clipboard(action.value);
+        },
+        select: (action) => {
+            window.pathSelection?.toggle(action.config.path);
         },
         mailto: (action) => {
             const config = action.config;

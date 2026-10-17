@@ -413,10 +413,18 @@ def test_prod_caches_lookups_and_listings(
     assert get(client, _file(project, "other/private.pdf"), user_token).status_code == 200
 
 
-def test_admin_browser_directories_have_context_menu(
+def test_admin_browser_entries_have_context_menu(
     client: TestClient, project_data: ProjectData, insider_token: str,
 ):
+    """Files and folders alike: Select (for the selection panel), Assign and Share."""
+    from html import unescape
+
     root = get(client, "/htmx/files/", insider_token)
     assert root.status_code == 200
-    assert "cm-callback" in root.text
-    assert "Share Directory" in root.text
+    assert root.text.count("cm-callback") == 3  # other/, proj/, single.pdf
+    menus = unescape(root.text)
+    assert '"type": "select"' in menus
+    assert '"path": "single.pdf"' in menus
+    assert '"label": "Assign"' in menus
+    assert '"label": "Share"' in menus
+    assert "Share Directory" not in menus

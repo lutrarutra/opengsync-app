@@ -1,16 +1,17 @@
-<div id="share-directory-form-container" class="modal-content">
+{% from "components/selected-paths.jinja2" import selected_paths %}
+
+<div id="share-path-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Share Directory</h1>
+        <h1 class="modal-title fs-5">Share</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        <div id="share-directory-form">
+        <div id="share-path-form">
             {{ form.csrf_token.render() }}
-            <div class="row">
-                {{ form.directory_path.render("col-6") }}
-                {{ form.time_valid_min.render("col-6") }}
-            </div>
-            <div class="form-group" id="share-directory-recipients">
+            {{ form.render_general_errors() }}
+            {{ selected_paths(form, covered_paths=covered_paths | default(0), hint="Folders are shared with everything below them.") }}
+            {{ form.time_valid_min.render() }}
+            <div class="form-group" id="share-path-recipients">
                 <a>Recipients</a>
                 <div class="recipient-list d-flex flex-column">
                     {% for entry in form.recipients %}
@@ -45,8 +46,9 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-                hx-target="#share-directory-form-container" hx-swap="outerHTML" hx-include="#share-directory-form"
-                hx-post="{{ form.post_url }}">
+                hx-target="#share-path-form-container" hx-swap="outerHTML" hx-include="#share-path-form"
+                hx-post="{{ form.post_url }}"
+                hx-on::after-request="if (event.detail.xhr.status === 204) { $('#xl-modal').modal('hide');{% if form.from_selection %} window.pathSelection?.clear();{% endif %} }">
                 Submit
             </button>
         </div>
@@ -55,7 +57,7 @@
 
 <script>
 (function() {
-    const container = document.getElementById('share-directory-recipients');
+    const container = document.getElementById('share-path-recipients');
     const list = container.querySelector('.recipient-list');
     const prefix = '{{ form.recipients.name }}';
     const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

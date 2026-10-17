@@ -1,6 +1,6 @@
 import os
 
-from fastapi import Depends
+from fastapi import Depends, Query
 
 from opengsync_db import queries as Q, SyncSession, models
 
@@ -9,6 +9,7 @@ from ...core import dependencies, exceptions as exc, responses, config
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..SubHTMXForm import SubHTMXForm
+from ..common import SelectedPathsMixin, SelectedPathSubForm
 
 
 TIME_VALID_CHOICES = [
@@ -19,19 +20,35 @@ TIME_VALID_CHOICES = [
     (60 * 24 * 30, "1 Month"),
 ]
 
+# SharePath.path is a String(512)
+MAX_SHARE_PATH_LENGTH = 512
+
 
 class RecipientSubForm(SubHTMXForm):
     email = inputs.string.EmailInputField("Recipient", placeholder="name@example.com")
 
 
-class ShareDirectoryAction(HTMXForm):
-    template_path = "actions/share-directory.html"
+def _resolve_share_path(share_root: str, path: str) -> str:
+    """The real path of `path`, relative to the share root. Raises ValueError with the field's error message."""
+    p = os.path.join(share_root, path)
+    if not os.path.exists(p):
+        raise ValueError("Path does not exist on server.")
 
-    directory_path = inputs.string.StringInputField(
-        "Directory Path",
-        required=True,
-        read_only=True,
-    )
+    relative = os.path.relpath(os.path.realpath(p), os.path.realpath(share_root))
+    if relative == os.pardir or relative.startswith(os.pardir + os.sep) or os.path.isabs(relative):
+        raise ValueError("Path is outside of share root.")
+    if relative == os.curdir:
+        raise ValueError("The share root itself cannot be shared.")
+    if len(relative) > MAX_SHARE_PATH_LENGTH:
+        raise ValueError(f"Path is longer than {MAX_SHARE_PATH_LENGTH} characters.")
+    return relative
+
+
+class SharePathAction(HTMXForm, SelectedPathsMixin):
+    """Shares files and folders under the share root by email: one token holding all paths."""
+    template_path = "actions/share-path.html"
+
+    paths = inputs.dynamic.SubFormList[SelectedPathSubForm](min_elements=1)
     time_valid_min = inputs.selectable.SelectableInputField(
         "Link Validity Period",
         TIME_VALID_CHOICES,
@@ -40,10 +57,14 @@ class ShareDirectoryAction(HTMXForm):
     recipients = inputs.dynamic.SubFormList[RecipientSubForm](min_elements=1)
     anonymous_send = inputs.boolean.CheckboxInputField("Anonymous Send")
 
-    def __init__(self, path: str | None = None) -> None:
+    def __init__(self, initial_paths: list[str] | None = None, from_selection: bool = False) -> None:
         super().__init__()
-        self.path = path
+        self.initial_paths = initial_paths or []
+        # Opened from the file browser's selection panel: a successful share clears that selection
+        self.from_selection = from_selection
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit")
+        if from_selection:
+            self.post_url = self.post_url.include_query_params(from_selection="true")
         # Blank row the + button clones (private, so it is not validated as a sub-form).
         self._recipient_template = RecipientSubForm(prefix=f"{self.recipients.name}-__INDEX__")
 
@@ -54,28 +75,29 @@ class ShareDirectoryAction(HTMXForm):
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(
-            path: str | None = None,
-        ) -> "ShareDirectoryAction":
-            return ShareDirectoryAction(path=path)
+            path: list[str] = Query(default=[]),
+            from_selection: bool = False,
+        ) -> "SharePathAction":
+            return SharePathAction(initial_paths=path, from_selection=from_selection)
         return dependency
 
-    @htmx_route("GET", "/share-directory")
+    def prepare(self) -> None:
+        self.prefill_paths(self.initial_paths)
+        self.recipients.append_entry()
+
+    @htmx_route("GET", "/share-path")
     def Begin(cls) -> RouteFunc:
         def route(
-            form: "ShareDirectoryAction" = Depends(ShareDirectoryAction.Init()),
+            form: "SharePathAction" = Depends(SharePathAction.Init()),
             _=Depends(dependencies.require_insider),
-            path: str | None = None,
         ):
-            if path is not None:
-                form.directory_path.data = path
-            form.recipients.append_entry()
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/share-directory")
+    @htmx_route("POST", "/share-path")
     def Submit(cls) -> RouteFunc:
         def route(
-            form: "ShareDirectoryAction" = Depends(ShareDirectoryAction.Validate()),
+            form: "SharePathAction" = Depends(SharePathAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_insider),
             mailer: Mailer = Depends(dependencies.mail_client),
@@ -88,48 +110,34 @@ class ShareDirectoryAction(HTMXForm):
                 form.time_valid_min.errors.append("Not a valid choice.")
                 raise exc.FormValidationException(form)
 
+            form.assert_path_count()
+
             # Each address is validated by its EmailInputField, and min_elements requires at least one.
             recipients = [entry.email.data for entry in form.recipients]
 
-            # Validate directory path exists under share_root
+            # Any invalid path rejects the whole share, so nothing is half-shared
             share_root = config.settings.app_config.share_root
-            directory_path = form.directory_path.data
-            if not directory_path:
-                form.directory_path.errors.append("Directory path is required.")
+            share_paths: list[str] = []
+            for entry in form.paths:
+                try:
+                    share_paths.append(_resolve_share_path(share_root, entry.path.data))
+                except ValueError as e:
+                    entry.path.errors.append(str(e))
+            if form.paths.has_errors:
                 raise exc.FormValidationException(form)
 
-            p = os.path.join(share_root, directory_path)
-            if not os.path.exists(p):
-                form.directory_path.errors.append("Directory path does not exist on server.")
-                raise exc.FormValidationException(form)
+            # A folder already shares everything below it
+            share_paths = form.collapse_paths(share_paths)
 
-            try:
-                resolved = os.path.realpath(p)
-                share_root_resolved = os.path.realpath(share_root)
-                relative = os.path.relpath(resolved, share_root_resolved)
-                if relative.startswith(".."):
-                    form.directory_path.errors.append("Directory path is outside of share root.")
-                    raise exc.FormValidationException(form)
-            except ValueError:
-                form.directory_path.errors.append("Directory path is outside of share root.")
-                raise exc.FormValidationException(form)
-
-            if not os.path.isdir(p):
-                form.directory_path.errors.append("Directory path must be a directory, not a file.")
-                raise exc.FormValidationException(form)
-
-            share_path = relative
-
-            # Create share token
             share_token = session.save(Q.share_token.create(
                 owner=current_user,
                 time_valid_min=form.time_valid_min.data,
-                paths=[share_path],
+                paths=share_paths,
             ), flush=True)
 
             # Send email
             browse_link = str(responses.external_url_for("file_share.browse", token=share_token.uuid))
-            mailer.send_share_directory(
+            mailer.send_share_paths(
                 recipients=list(set(recipients)),
                 share_token=share_token,
                 author=None if form.anonymous_send.data else current_user,

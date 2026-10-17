@@ -1,0 +1,28 @@
+{# History of manual checks of checklist steps (models.ChecklistLog), newest first. #}
+
+{% macro checklist_last_change(entries, checked) -%}
+{%- if checked and entries and entries[0].checked -%}
+<small class="text-muted fw-normal ms-2">· checked by {{ entries[0].actor.name if entries[0].actor else "deleted user" }}, {{ entries[0].timestamp_str() }}</small>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro checklist_history_button(id, entries) -%}
+<button type="button" class="btn btn-sm btn-outline-secondary" title="History" aria-label="History"
+    data-bs-toggle="collapse" data-bs-target="#{{ id }}-history" aria-expanded="false" aria-controls="{{ id }}-history">
+    <i class="bi bi-clock-history"></i>
+</button>
+<div class="collapse mt-2" id="{{ id }}-history">
+    {% if not entries %}
+    <p class="text-muted small mb-0">No manual checks recorded.</p>
+    {% else %}
+    <ul class="list-unstyled small mb-0">
+        {% for entry in entries %}
+        <li class="border-start ps-3 pb-1">
+            <span class="fw-semibold">{% if entry.checked %}✔ checked{% else %}✘ unchecked{% endif %}</span>
+            <span class="text-muted">{{ entry.timestamp_str() }} · {{ entry.actor.name if entry.actor else "deleted user" }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{%- endmacro %}

@@ -3,6 +3,7 @@
 How opengsync shares files from the share mount with external collaborators through share links: what a link exposes, how to hide files with `.ngsignore`, how downloads are served, and where caching makes things look out of date.
 
 - [Overview](#overview)
+- [Selecting paths in the file browser](#selecting-paths-in-the-file-browser)
 - [Access routes](#access-routes)
 - [Setting up the share mount](#setting-up-the-share-mount)
 - [What a share link exposes](#what-a-share-link-exposes)
@@ -23,10 +24,30 @@ Insiders create share tokens in three ways:
 | How | What gets shared | Notes |
 |---|---|---|
 | Project page → **Share Data** | All data paths linked to the project | Emails the recipients. Expires the project's previous token. |
-| Insider file browser → **Share directory** | One folder | Emails a browse link. Valid for 24 hours to 1 month (default 2 weeks). Not tied to a project. |
+| Insider file browser → **Share** | Any files and folders, picked one at a time or [selected](#selecting-paths-in-the-file-browser) | Emails a browse link. Valid for 24 hours to 1 month (default 2 weeks). Not tied to a project. |
 | API `release_project_data` | All data paths linked to the project | Same as **Share Data**. See [Sharing with the OpeNGSyncAPI](#sharing-with-the-opengsyncapi). |
 
 A token's paths are fixed when it is created. Linking more data paths to a project later does not change an existing token; share the project again to get a new one.
+
+## Selecting paths in the file browser
+
+The insider file browser (**Files**) can share or associate several files and folders at once:
+
+1. **Select paths.** Right-click a file or folder and choose **Select**, or Ctrl+click (Cmd+click on macOS) the row. Selected rows are highlighted. Right-click a selected row and choose **Deselect**, or Ctrl/Cmd+click it again, to remove it.
+2. **Review them.** A panel in the bottom-right corner lists the selection. Remove single paths with their **×**, or empty the whole selection with **Clear selection** (the circled × in the panel's header, available while the panel is collapsed too).
+3. **Act on them.**
+   - **Share** opens the share form with all selected paths and creates **one** token holding them. After the email is sent, the selection is cleared.
+   - **Associate** links every selected path to the chosen project, experiment, request or library. The selection is kept, so the same paths can be associated with something else next.
+
+   Both forms list the paths the same way: one row per path, with a folder or file icon and a **×** to remove it. Removing a row drops the path from that form only; it stays selected in the browser. The last row can't be removed.
+
+Details:
+
+- **At most 50 paths** per selection, share and association.
+- **The selection is stored in the browser** (`localStorage`), not on the server or in the account. It survives reloads, is shared by all tabs of that browser, and is not available in another browser or on another computer.
+- **Paths inside a selected folder are left out.** Selecting `run_42/` and `run_42/report.html` lists, shares or associates only `run_42/`, which already covers the file; the form says how many paths it left out. To give a file inside an associated folder its own row on the project's data paths, associate the file on its own.
+- **One bad path rejects the whole request.** If any path no longer exists or resolves outside the share root, nothing is shared or associated, and the share form marks the path in question.
+- **Single paths work as before.** Right-click → **Share** or **Assign** on a row acts on that row only and leaves the selection alone.
 
 ## Access routes
 
@@ -106,7 +127,7 @@ Collaborators browse from the share root, so the folders above a share path are 
 
 ### One token can share unrelated paths
 
-A token can hold any number of paths, from different mounts. When a project is shared, all of its data paths go into one token. Paths nested inside another shared path are dropped, because the outer path already covers them.
+A token can hold any number of paths, from different mounts. When a project is shared, all of its data paths go into one token, and sharing a [selection](#selecting-paths-in-the-file-browser) from the file browser does the same with the selected paths. Paths nested inside another shared path are dropped, because the outer path already covers them.
 
 For example, a token with the paths `BSF_PROJECTS/P123_Smith/fastq` and `BSF_SEQUENCES/run_42/P123_multiqc.html` shows collaborators:
 
@@ -382,6 +403,8 @@ Notes on `release_project_data`:
 | Token loading and caching, rate limits, audit | `services/backend/server/core/dependencies.py` |
 | `X-Accel-Redirect` | `services/backend/server/core/responses.py` |
 | Share routes | `services/backend/server/routes/api/shares.py`, `routes/api/webdav.py`, `routes/pages/shared_browser.py` |
+| File browser Share and Associate forms | `services/backend/server/forms/actions/SharePathAction.py`, `forms/actions/AssociatePathAction.py`, shared path list in `forms/common/SelectedPathsMixin.py` and `templates/components/selected-paths.jinja2` |
+| File browser selection panel | `services/backend/static/js/path-selection.js`, `templates/files_page.html` |
 | Project Data tab (listing and file routes, allowed file types) | `services/backend/server/routes/htmx/projects.py`, `utils/file_browser.py` |
 | nginx | `services/nginx/nginx.template.conf` |
 
@@ -449,7 +472,9 @@ Paths that insiders provide are checked before anything is stored:
   - The host path is resolved, following symlinks and `..`.
   - It must lie below a `share_path_mapping` prefix, exist on the server, and still resolve inside the share root.
   - A mapping root itself, such as `/nobackup/lab_bsf/projects`, is refused.
-- **File browser Assign and Share directory:** the path must resolve inside the share root, and Share directory also requires a folder.
+- **File browser Assign and Share:** every path must resolve inside the share root, and Share also requires it to exist. A request with any invalid path saves nothing.
+  - Share accepts files and folders, stores each path's resolved location (symlinks followed), and refuses the share root itself and paths longer than 512 characters.
+  - Both drop paths inside another submitted path, and take at most 50 paths.
 
 Share tokens store paths relative to the share root, never host paths.
 

@@ -78,7 +78,7 @@ The following functionality has a FastAPI action. The old workflow shell is reta
 | 26 | **MergeProjectsAction** | `actions/MergeProjectsAction.py` | `workflows/merge_projects/` | Project merge. SOPs start `Begin`. Rejects same-name samples with incompatible attribute types or values. |
 | 27 | **QueryBarcodeSequencesAction** | `actions/QueryBarcodeSequencesAction.py` | `QueryBarcodeSequencesForm.py` | Barcode sequence query |
 | 28 | **SampleAttributeTableAction** | `actions/SampleAttributeTableAction.py` | `SampleAttributeTableForm.py` | Sample attribute table editing |
-| 29 | **ShareDirectoryAction** | `actions/ShareDirectoryAction.py` | `DirectoryShareForm.py` | Directory sharing |
+| 29 | **SharePathAction** | `actions/SharePathAction.py` | `DirectoryShareForm.py` | Directory sharing |
 | 36 | **EditKitBarcodes** | `actions/edit_kit_actions/` | `workflows/edit_kit_barcodes/` | Four separate index-kit barcode actions selected by the index-kits route |
 | 37 | **AssociatePathAction** | `actions/AssociatePathAction.py` | `workflows/share/AssociatePathForm.py` | File-browser Assign; search-select project/experiment/seq request/library |
 
@@ -112,7 +112,7 @@ These are in `packages/opengsync-server/opengsync_server/forms/` (not in workflo
 | # | Legacy Form | Type | Recommendation |
 |---|------------|------|----------------|
 | 1 | `AddProjectAssigneeForm.py` | `actions/AddProjectAssigneeAction.py` | ✅ Migrated as action |
-| 2 | `DirectoryShareForm.py` | `actions/ShareDirectoryAction.py` | ✅ Migrated as action |
+| 2 | `DirectoryShareForm.py` | `actions/SharePathAction.py` | ✅ Migrated as action |
 | 3 | `EditKitFeaturesForm.py` | `actions/EditKitFeaturesAction.py` | ✅ Migrated as action |
 | 4 | `LibraryFeaturesForm.py` | `actions/LibraryFeaturesAction.py` | ✅ Migrated as action |
 | 5 | `QueryBarcodeSequencesForm.py` | `actions/QueryBarcodeSequencesAction.py` | ✅ Migrated as action |

@@ -66,7 +66,7 @@ SPECS = [
     Spec("ProcessSeqRequestAction", "insider", (("seq_request_id", "seq_request"),)),
     Spec("AddSeqRequestAssigneeAction", "insider", (("seq_request_id", "seq_request"),)),
     Spec("AddProjectAssigneeAction", "insider", (("project_id", "project"),)),
-    Spec("ShareDirectoryAction", "insider"),
+    Spec("SharePathAction", "insider"),
     Spec("AssociatePathAction", "insider", query=(("path", "some/file.txt"),)),
     Spec("LanePoolsCombinedAction", "insider", (("experiment_id", "combined_experiment"),)),
     Spec("LanePoolsSeparateAction", "insider", (("experiment_id", "separate_experiment"),)),

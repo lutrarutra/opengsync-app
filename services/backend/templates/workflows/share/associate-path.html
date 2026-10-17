@@ -1,14 +1,15 @@
-{% from 'components/metadata_group.jinja2' import metadata_group %}
+{% from "components/selected-paths.jinja2" import selected_paths %}
 
 <div id="associate-path-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Associate Path</h1>
+        <h1 class="modal-title fs-5">Associate</h1>
         <button type="button" class="btn-close" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body">
         <div id="associate-path-form">
             {{ form.csrf_token.render() }}
-            {{ metadata_group("Path", form.path.as_posix()) }}
+            {{ form.render_general_errors() }}
+            {{ selected_paths(form, covered_paths=covered_paths | default(0)) }}
             {{ form.project.render() }}
             {{ form.experiment.render() }}
             {{ form.seq_request.render() }}

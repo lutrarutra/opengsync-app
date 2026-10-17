@@ -40,6 +40,7 @@ def experiment_page(
     steps = [
         checklist["pools_added"],
         checklist["lanes_assigned"],
+        checklist["barcode_clashes_checked"],
         checklist["reads_assigned"],
         checklist["pool_qubits_measured"],
         checklist["pool_fragment_sizes_measured"],

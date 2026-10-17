@@ -1189,6 +1189,7 @@ class TestReviewChecklist:
         checklist = sr.get_review_checklist()
         assert checklist["index_check"] is False
         assert checklist["check_barcodes"] is False
+        assert [(log.step, log.checked, log.actor_id) for log in sr.checklist_logs] == [("index_check", False, insider.id)]
         assert "index_check" not in (sr.review_checklist or {})
 
     def test_check_barcodes_unvalidated_custom_index(

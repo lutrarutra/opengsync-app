@@ -17,7 +17,7 @@ from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
 from ...utils.file_browser import FileBrowser, is_within_root
 from ...utils.io import is_browser_friendly, render_markdown
-from ...forms.actions import ShareDirectoryAction, AssociatePathAction
+from ...forms.actions import SharePathAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
     ".pdf",
@@ -46,7 +46,7 @@ router = APIRouter(prefix="/files", tags=["files"])
 # matches routes in declaration order, so otherwise GET /upload is consumed by
 # /{subpath:path} and renders the file browser instead of the upload form.
 router.include_router(MediaFileForm.Router())
-router.include_router(ShareDirectoryAction.Router())
+router.include_router(SharePathAction.Router())
 router.include_router(AssociatePathAction.Router())
 
 _CANARY_TIMEOUT_S = 2.0

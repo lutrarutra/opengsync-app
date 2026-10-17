@@ -28,6 +28,10 @@ def is_servable(path: Path, extensions: frozenset[str] = PROJECT_SERVABLE_EXTENS
         return False
 
 
+# Paths one Share or Associate may take from the insider browser's selection; keeps the GET that opens the form short.
+MAX_SELECTED_PATHS = 50
+
+
 def is_within_root(root_dir: Path, subpath: str | Path) -> bool:
     """True if `root_dir / subpath` resolves inside `root_dir`. Rejects `..` escapes, absolute paths, and symlinks pointing outside."""
     try:

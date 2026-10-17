@@ -3,13 +3,14 @@
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+{% from "components/checklists/history.jinja2" import checklist_history_button, checklist_last_change %}
 
 
 <div class="accordion p-1" id="request-review-accordion">
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-technical_requirements" aria-expanded="false" aria-controls="request-review-accordion-technical_requirements">
-                <b>{% if technical_requirements %}✅{% else %}⚠️{% endif %} Check Technical Requirements</b>
+                <b>{% if technical_requirements %}✅{% else %}⚠️{% endif %} Check Technical Requirements</b> {{ checklist_last_change(review_history.get("technical_requirements", []), technical_requirements) }}
             </button>
         </h2>
         <div id="request-review-accordion-technical_requirements" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -47,13 +48,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-technical_requirements", review_history.get("technical_requirements", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_contacts" aria-expanded="false" aria-controls="request-review-accordion-check_contacts">
-                <b>{% if check_contacts %}✅{% else %}⚠️{% endif %} Check Submission Contacts</b>
+                <b>{% if check_contacts %}✅{% else %}⚠️{% endif %} Check Submission Contacts</b> {{ checklist_last_change(review_history.get("check_contacts", []), check_contacts) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_contacts" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -146,13 +148,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-check_contacts", review_history.get("check_contacts", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-auth_form_checked" aria-expanded="false" aria-controls="request-review-accordion-auth_form_checked">
-                <b>{% if auth_form_checked %}✅{% if seq_request.seq_auth_form_file is none %}❗{% endif %}{% else %}{% if seq_request.seq_auth_form_file is not none %}⚠️{% else %}❗{% endif %}{% endif %} Check Sequencing Authorization Form</b>
+                <b>{% if auth_form_checked %}✅{% if seq_request.seq_auth_form_file is none %}❗{% endif %}{% else %}{% if seq_request.seq_auth_form_file is not none %}⚠️{% else %}❗{% endif %}{% endif %} Check Sequencing Authorization Form</b> {{ checklist_last_change(review_history.get("auth_form_checked", []), auth_form_checked) }}
             </button>
         </h2>
         <div id="request-review-accordion-auth_form_checked" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -177,13 +180,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-auth_form_checked", review_history.get("auth_form_checked", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_comments" aria-expanded="false" aria-controls="request-review-accordion-check_comments">
-                <b>{% if check_comments %}✅{% else %}⚠️{% endif %} Check Comments</b>
+                <b>{% if check_comments %}✅{% else %}⚠️{% endif %} Check Comments</b> {{ checklist_last_change(review_history.get("check_comments", []), check_comments) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_comments" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -208,13 +212,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-check_comments", review_history.get("check_comments", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_submission_date" aria-expanded="false" aria-controls="request-review-accordion-check_submission_date">
-                <b>{% if check_submission_date %}✅{% else %}⚠️{% endif %} Check Specified Submission Date</b>
+                <b>{% if check_submission_date %}✅{% else %}⚠️{% endif %} Check Specified Submission Date</b> {{ checklist_last_change(review_history.get("check_submission_date", []), check_submission_date) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_submission_date" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -244,13 +249,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-check_submission_date", review_history.get("check_submission_date", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_overview" aria-expanded="false" aria-controls="request-review-accordion-check_overview">
-                <b>{% if check_overview %}✅{% else %}⚠️{% endif %} Check Overview</b>
+                <b>{% if check_overview %}✅{% else %}⚠️{% endif %} Check Overview</b> {{ checklist_last_change(review_history.get("check_overview", []), check_overview) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_overview" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -259,7 +265,7 @@
                 <ul>
                     <li>Check overall relationship structure of the submitted samples, libraries, pooling, and projects.</li>
                 </ul>
-                <a class="btn btn-primary" href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, tab='request-overview') }}" target="_blank">Open Overview</a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#request-overview">Open Overview</button>
                 <hr>
                 {% if not check_overview %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
@@ -272,13 +278,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-check_overview", review_history.get("check_overview", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_sample_names" aria-expanded="false" aria-controls="request-review-accordion-check_sample_names">
-                <b>{% if samples_checked %}✅{% else %}⚠️{% endif %} Check Sample Names and Annotations</b>
+                <b>{% if samples_checked %}✅{% else %}⚠️{% endif %} Check Sample Names and Annotations</b> {{ checklist_last_change(review_history.get("samples_checked", []), samples_checked) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_sample_names" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -302,13 +309,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-samples_checked", review_history.get("samples_checked", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_libraries" aria-expanded="false" aria-controls="request-review-accordion-check_libraries">
-                <b>{% if check_libraries %}✅{% else %}⚠️{% endif %} Check Libraries</b>
+                <b>{% if check_libraries %}✅{% else %}⚠️{% endif %} Check Libraries</b> {{ checklist_last_change(review_history.get("check_libraries", []), check_libraries) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_libraries" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -359,13 +367,14 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-check_libraries", review_history.get("check_libraries", [])) }}
             </div>
         </div>
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_multiplexing" aria-expanded="false" aria-controls="request-review-accordion-check_multiplexing">
-                <b>{% if check_multiplexing %}✅{% else %}{% if contains_mux_samples %}⚠️{% else %}🚫{% endif %}{% endif %} Check Multiplexing</b>
+                <b>{% if check_multiplexing %}✅{% else %}{% if contains_mux_samples %}⚠️{% else %}🚫{% endif %}{% endif %} Check Multiplexing</b> {{ checklist_last_change(review_history.get("check_multiplexing", []), check_multiplexing) }}
             </button>
         </h2>
         <div id="request-review-accordion-check_multiplexing" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
@@ -418,6 +427,7 @@
                     Uncheck
                 </button>
                 {% endif %}
+                {{ checklist_history_button("request-review-check_multiplexing", review_history.get("check_multiplexing", [])) }}
             </div>
         </div>
     </div>
@@ -481,6 +491,7 @@
                 {% elif index_check is not none %}
                 <i>This step is checked automatically once all indices are validated or from a kit.</i>
                 {% endif %}
+                {{ checklist_history_button("request-review-index_check", review_history.get("index_check", [])) }}
             </div>
         </div>
     </div>

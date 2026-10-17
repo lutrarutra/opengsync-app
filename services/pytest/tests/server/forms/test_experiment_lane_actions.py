@@ -100,8 +100,8 @@ def test_distribute_reads_on_non_draft_experiment_is_admin_only(
 # ── File browser forms (previously shadowed by the /{subpath:path} catch-all) ──
 
 
-def test_share_directory_form_renders(client: TestClient, insider_token: str):
-    response = get(client, "/htmx/files/share-directory", insider_token, params={"path": "some/dir"})
+def test_share_paths_form_renders(client: TestClient, insider_token: str):
+    response = get(client, "/htmx/files/share-path", insider_token, params={"path": "some/dir"})
     assert response.status_code == 200
     assert 'name="recipients-0-email"' in response.text
 

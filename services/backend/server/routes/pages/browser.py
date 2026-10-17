@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 
 from ...core import responses
+from ...utils.file_browser import MAX_SELECTED_PATHS
 
 router = APIRouter(prefix="/browser", tags=["browser"])
 
@@ -22,5 +23,6 @@ def browser_page(request: Request, subpath: str = ""):
         sort_by=sort_by,
         sort_order=sort_order,
         share_token=None,
+        max_selected_paths=MAX_SELECTED_PATHS,
         title="OpeNGSync - Files",
     )

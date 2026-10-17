@@ -188,7 +188,7 @@ Intermediate steps (select samples, parse/upload a table, barcode input and matc
 | Action | Route |
 |---|---|
 | Share project data | `POST /htmx/projects/{project_id}/share-data` (creates `share_token`, `share_path`) |
-| Share directory | `POST /htmx/files/share-directory` |
+| Share files and folders (file browser) | `POST /htmx/files/share-path` (creates `share_token`, `share_path`) |
 | Merge projects | `POST /htmx/projects/merge-projects` |
 | Edit sample attributes | `POST /htmx/projects/{project_id}/edit-sample-attributes` |
 | Add project assignee | `POST /htmx/projects/add-assignee/{project_id}`, `POST /htmx/projects/{project_id}/add-assignee` |
