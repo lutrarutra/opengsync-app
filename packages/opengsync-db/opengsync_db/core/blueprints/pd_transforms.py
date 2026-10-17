@@ -188,6 +188,7 @@ def project_libraries(libraries: pd.DataFrame, lanes: pd.DataFrame, collapse_lan
         order = [
             "sample_name", "library_name", "sample_pool",
             "library_type", "genome_ref", "experiment_name", "lanes",
+            "pool_id", "pool_name",
             "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id",
         ]
         lanes = lanes.sort_values("lane").groupby(
@@ -197,6 +198,7 @@ def project_libraries(libraries: pd.DataFrame, lanes: pd.DataFrame, collapse_lan
         order = [
             "sample_name", "library_name", "sample_pool",
             "library_type", "genome_ref", "experiment_name", "lane",
+            "pool_id", "pool_name",
             "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id",
         ]
 
