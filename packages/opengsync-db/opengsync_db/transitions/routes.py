@@ -38,7 +38,7 @@ POOL = Step(
 )
 SEQUENCE = Step(
     "sequence", "Sequencing",
-    ("experiment.load_flowcell", "worker.rf_new_run", "worker.rf_run_finished", "api.lane_reads", "worker.request_data_processing"),
+    ("experiment.load_flowcell", "worker.rf_new_run", "worker.rf_run_running", "worker.rf_run_finished", "api.lane_reads", "worker.request_data_processing"),
     _request_reached(RQ.DATA_PROCESSING),
 )
 RELEASE = Step(

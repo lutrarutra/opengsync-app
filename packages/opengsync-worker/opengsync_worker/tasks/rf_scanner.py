@@ -116,7 +116,7 @@ def parse_quantitities(run_folder: Path, quantities: list[UnitParse]) -> dict[st
     if len(df) > 1:
         logger.warning(f"{run_folder}: Expected 1 row in metrics DataFrame, found {len(df)}. Using the first row.")
     elif len(df) == 0:
-        logger.error(f"{run_folder}: Metrics DataFrame is empty. Cannot parse quantities.")
+        logger.warning(f"{run_folder}: Metrics DataFrame is empty. Cannot parse quantities.")
         return {}
 
     variables = df.iloc[0].to_dict()
@@ -226,17 +226,6 @@ def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
             if started is not None and isinstance(started, datetime):
                 run.set_timestamp("started", started)
             
-            if run.status == RunStatus.FINISHED:
-                if run.experiment is not None:
-                    with run_operation(db.session, ops.RF_RUN_FINISHED, subject=run, run=run.run_folder, folder=run_folder):
-                        run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
-                        for pool in run.experiment.pools:
-                            if pool.status < PoolStatus.SEQUENCED:
-                                pool.status = PoolStatus.SEQUENCED
-                            for library in pool.libraries:
-                                if library.status < LibraryStatus.SEQUENCED:
-                                    library.status = LibraryStatus.SEQUENCED
-            
             # if run folder was removed and then added back, e.g. maintenance.
             if run.status == RunStatus.ARCHIVED:
                 logger.info(f"Run folder '{run.run_folder}' was unarchived!")
@@ -253,8 +242,6 @@ def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
                     db.session.save(run)
                 continue
             
-            metrics = parse_metrics(run_folder)
-            
             with run_operation(db.session, ops.RF_RUN_STATUS, subject=run, folder=run_folder, marker=marker):
                 run.status = status
                 run.instrument_name = parsed_data["instrument"]
@@ -265,16 +252,9 @@ def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
                 run.r2_cycles = parsed_data["r2_cycles"]
                 run.i1_cycles = parsed_data["i1_cycles"]
                 run.i2_cycles = parsed_data["i2_cycles"]
-
-                for key, value in metrics.items():
-                    run.set_quantity(key, value)
-
                 db.session.save(run)
-            active_runs[experiment_name] = run
             logger.info("Updated!")
         else:
-            metrics = parse_metrics(run_folder)
-
             with run_operation(db.session, ops.RF_NEW_RUN, folder=run_folder, marker=marker):
                 run = db.session.save(Q.seq_run.create(
                     experiment_name=experiment_name,
@@ -288,28 +268,54 @@ def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
                     r2_cycles=parsed_data.get("r2_cycles"),
                     i1_cycles=parsed_data.get("i1_cycles"),
                     i2_cycles=parsed_data.get("i2_cycles"),
-                    quantities=metrics,
                 ))
                 if completed is not None:
                     run.set_timestamp("completed", completed)
                 if started is not None and isinstance(started, datetime):
                     run.set_timestamp("started", started)
+                db.session.save(run)
+            # the experiment is joined by name, load it for the new run
+            db.session.refresh(run)
+            logger.info("Added!")
 
-                if run.status == RunStatus.FINISHED:
-                    if run.experiment is not None:
-                        run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
-                        for pool in run.experiment.pools:
-                            if pool.status < PoolStatus.SEQUENCED:
-                                pool.status = PoolStatus.SEQUENCED
-                            for library in pool.libraries:
-                                if library.status < LibraryStatus.SEQUENCED:
-                                    library.status = LibraryStatus.SEQUENCED
-                            
-                elif run.status == RunStatus.RUNNING:
-                    if run.experiment is not None:
-                        run.experiment.status = ExperimentStatus.SEQUENCING
-            
+        active_runs[experiment_name] = run
+        update_experiment_status(db, run, run_folder)
+        push_metrics(db, run, run_folder)
+
+
+def update_experiment_status(db: SyncDBHandler, run, run_folder: Path):
+    if run.experiment is None:
+        return
+
+    if run.status == RunStatus.RUNNING:
+        if run.experiment.status < ExperimentStatus.SEQUENCING:
+            with run_operation(db.session, ops.RF_RUN_RUNNING, subject=run, run=run.run_folder, folder=run_folder):
+                run.experiment.status = ExperimentStatus.SEQUENCING
                 db.session.save(run)
 
-            active_runs[experiment_name] = run
-            logger.info("Added!")
+    elif run.status == RunStatus.FINISHED:
+        with run_operation(db.session, ops.RF_RUN_FINISHED, subject=run, run=run.run_folder, folder=run_folder):
+            run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
+            for pool in run.experiment.pools:
+                if pool.status < PoolStatus.SEQUENCED:
+                    pool.status = PoolStatus.SEQUENCED
+                for library in pool.libraries:
+                    if library.status < LibraryStatus.SEQUENCED:
+                        library.status = LibraryStatus.SEQUENCED
+            db.session.save(run)
+
+
+def push_metrics(db: SyncDBHandler, run, run_folder: Path):
+    """Metrics are optional: a failure here must not block the status update of the run."""
+    try:
+        metrics = parse_metrics(run_folder)
+    except Exception as e:
+        logger.warning(f"Failed to parse metrics of run folder '{run_folder}': \n{e}")
+        return
+
+    for key, value in metrics.items():
+        try:
+            run.set_quantity(key, value)
+        except Exception as e:
+            logger.warning(f"{run_folder}: Failed to set quantity '{key}': {e}")
+    db.session.save(run)

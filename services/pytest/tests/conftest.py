@@ -1,4 +1,5 @@
 import functools
+import os
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -190,7 +191,9 @@ def client(_db_handler: SyncDBHandler):
     async def test_lifespan(app_):
         app_.state.db_handler = _db_handler
         app_.state.mailer = FakeMailer()
-        app_.state.redis_pool = redis.create_pool(config.settings.REDIS_URL)
+        # Tests flush Redis, so each xdist worker (gw0, gw1, ...) gets its own Redis database.
+        worker = int(os.environ.get("PYTEST_XDIST_WORKER", "gw0").removeprefix("gw"))
+        app_.state.redis_pool = redis.create_pool(f"{config.settings.REDIS_URL}/{worker}")
         app_.state.bcrypt = secrets.BcryptCompat(rounds=BCRYPT_ROUNDS)
         templates.j2.env.globals["contact_email"] = config.settings.app_config.personalization.email
         templates.j2.env.globals["organization_name"] = config.settings.app_config.personalization.organization

@@ -71,6 +71,6 @@ def test_spec_str():
 
 def test_gaps_are_collected():
     gaps = dict(registry().gaps())
-    assert "worker.rf_new_run" in gaps
+    assert "receipt.store_samples" in gaps
     assert "Request FAILED" in gaps
     assert any(where.startswith("request.accept (") for where in gaps)

@@ -77,21 +77,64 @@ def test_new_finished_run(_db_handler: SyncDBHandler, scanner, monkeypatch: pyte
     session.commit()
 
     session.refresh(experiment)
-    # legacy: the new run's experiment is not loaded yet, so it only cascades on the next scan
-    assert experiment.status == ExperimentStatus.DRAFT
+    assert experiment.status == ExperimentStatus.SEQUENCED
     [op] = _runs(session, "worker.rf_new_run")
     assert op.reason == f"new run folder {folder} detected (RTAComplete.txt found)"
     assert [(c.entity_type, c.from_status, c.to_status, c.declared) for c in op.changes] == [
         ("seq_run", None, RunStatus.FINISHED.id, True),
     ]
+    [cascade] = _runs(session, "worker.rf_run_finished")
+    assert cascade.reason == f"run {folder.name} is FINISHED (RTAComplete.txt found in {folder})"
+
+
+def test_new_running_run(_db_handler: SyncDBHandler, scanner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    session = _db_handler.session
+    experiment = create_experiment(session, create_user(session), ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
+    session.commit()
+    folder = _run_folder(tmp_path, "run_5", complete=False)
+    _fake_parse(monkeypatch, scanner, experiment.name)
 
     _db_handler.session.info["transitions.mode"] = "strict"  # the worker declares every change
     scanner.process_run_folder(tmp_path, _db_handler)
     session.commit()
+
     session.refresh(experiment)
-    assert experiment.status == ExperimentStatus.SEQUENCED
-    [cascade] = _runs(session, "worker.rf_run_finished")
-    assert cascade.reason == f"run {folder.name} is FINISHED (RTAComplete.txt found in {folder})"
+    assert experiment.status == ExperimentStatus.SEQUENCING
+    [cascade] = _runs(session, "worker.rf_run_running")
+    assert cascade.reason == f"run {folder.name} is RUNNING (no RTAComplete.txt in {folder})"
+
+
+def test_existing_running_run_sets_sequencing(_db_handler: SyncDBHandler, scanner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    session = _db_handler.session
+    experiment, run = _experiment_with_run(session, RunStatus.RUNNING, "run_6")
+    _run_folder(tmp_path, "run_6", complete=False)
+    _fake_parse(monkeypatch, scanner, experiment.name)
+
+    _db_handler.session.info["transitions.mode"] = "strict"  # the worker declares every change
+    scanner.process_run_folder(tmp_path, _db_handler)
+    session.commit()
+
+    session.refresh(experiment)
+    assert run.status == RunStatus.RUNNING and experiment.status == ExperimentStatus.SEQUENCING
+
+
+def test_metrics_failure_does_not_block_status(_db_handler: SyncDBHandler, scanner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    session = _db_handler.session
+    experiment = create_experiment(session, create_user(session), ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
+    session.commit()
+    _run_folder(tmp_path, "run_7", complete=False)
+    _fake_parse(monkeypatch, scanner, experiment.name)
+
+    def _fail(run_folder):
+        raise RuntimeError("no InterOp yet")
+    monkeypatch.setattr(scanner, "parse_metrics", _fail)
+
+    scanner.process_run_folder(tmp_path, _db_handler)
+    session.commit()
+
+    session.refresh(experiment)
+    assert experiment.seq_run is not None and experiment.seq_run.status == RunStatus.RUNNING
+    assert experiment.status == ExperimentStatus.SEQUENCING
 
 
 def test_running_run_finishes(_db_handler: SyncDBHandler, scanner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
@@ -131,7 +174,7 @@ def test_rescan_writes_nothing(_db_handler: SyncDBHandler, scanner, monkeypatch:
     _run_folder(tmp_path, "run_4", complete=True)
     _fake_parse(monkeypatch, scanner, experiment.name)
 
-    for _ in range(2):  # the second scan cascades to the experiment
+    for _ in range(2):
         _db_handler.session.info["transitions.mode"] = "strict"  # the worker declares every change
         scanner.process_run_folder(tmp_path, _db_handler)
         session.commit()

@@ -39,6 +39,12 @@ RF_RUN_FINISHED = operation(
     reason="run {run} is FINISHED (RTAComplete.txt found in {folder})", where=_RF,
 )
 
+RF_RUN_RUNNING = operation(
+    "worker.rf_run_running", "Running run cascade", K.WORKER, E.SEQ_RUN,
+    effect(E.EXPERIMENT, below(EX.SEQUENCING), EX.SEQUENCING, via="experiment"),
+    reason="run {run} is RUNNING (no RTAComplete.txt in {folder})", where=_RF,
+)
+
 RF_FOLDER_BACK = operation(
     "worker.rf_folder_back", "Run folder reappeared", K.WORKER, E.SEQ_RUN,
     effect(E.SEQ_RUN, RN.ARCHIVED, RN.FINISHED),
@@ -51,16 +57,12 @@ RF_RUN_STATUS = operation(
     "worker.rf_run_status", "Run status from run folder", K.WORKER, E.SEQ_RUN,
     effect(E.SEQ_RUN, ANY, [RN.RUNNING, RN.FINISHED], when="FINISHED if RTAComplete.txt exists; a renamed folder only moves forward"),
     reason="status read from run folder {folder} ({marker})", where=_RF,
-    gap="the cascade of a RUNNING → FINISHED run happens one scan later",
 )
 
 RF_NEW_RUN = operation(
     "worker.rf_new_run", "New run folder", K.WORKER, E.SEQ_RUN,
     effect(E.SEQ_RUN, NEW, [RN.RUNNING, RN.FINISHED]),
-    effect(E.EXPERIMENT, ANY, [EX.SEQUENCING, EX.SEQUENCED, EX.DEMULTIPLEXED], via="experiment"),
-    *_SEQUENCED_CASCADE,
     reason="new run folder {folder} detected ({marker})", where=_RF,
-    gap="the new run's experiment is not loaded yet, so the experiment is only updated on the next scan (or by the status worker)",
 )
 
 ALL = collect(globals())

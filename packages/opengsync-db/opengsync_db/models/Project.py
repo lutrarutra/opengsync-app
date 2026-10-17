@@ -14,6 +14,7 @@ from .Base import Base
 from ..categories import ProjectStatus, LibraryType, LibraryStatus
 from ..core.EnumColumn import EnumColumn
 from . import links
+from .. import models
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -48,9 +49,10 @@ class Project(Base):
     )
     libraries: Mapped[list["Library"]] = relationship(
         "Library",
-        secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id)",
-        primaryjoin="Project.id == Sample.project_id",
-        secondaryjoin="SampleLibraryLink.library_id == Library.id",
+        # Distinct (project, library) pairs: a library linked to several samples of the project is listed once.
+        secondary=lambda: sa.select(models.Sample.project_id, links.SampleLibraryLink.library_id)
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.sample_id == models.Sample.id)
+            .distinct().subquery(),
         order_by="Library.id",
         viewonly=True,
         lazy="select",

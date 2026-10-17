@@ -5,7 +5,9 @@ services:
             context: .
             dockerfile: ./services/backend/Dockerfile
             target: pytest
-        command: "pytest tests/ -W always"
+        # One xdist worker per CPU. Capped at 16 because each worker gets its own Redis database
+        # (tests/conftest.py) and Redis has 16 by default.
+        command: "pytest tests/ -W always -n auto --maxprocesses=16"
         volumes:
             # Host tests overlay the image copy so local edits are picked up without a stale cache.
             - ./services/pytest/tests:/app/tests

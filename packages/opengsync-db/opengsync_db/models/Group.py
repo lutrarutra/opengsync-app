@@ -28,7 +28,7 @@ class Group(Base):
 
     owner: Mapped["User"] = relationship(
         "User",
-        secondary="join(links.UserAffiliation, User, links.UserAffiliation.user_id == User.id)",
+        secondary="user_affiliation",
         primaryjoin=f"and_(Group.id == links.UserAffiliation.group_id, links.UserAffiliation.affiliation_type == {AffiliationType.OWNER.id})",
         secondaryjoin="User.id == links.UserAffiliation.user_id",
         uselist=False,

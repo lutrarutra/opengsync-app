@@ -40,7 +40,6 @@ dev = [
     "alembic",
     "matplotlib",
     "seaborn",
-    "strix-agent>=1.7.0",
 ]
 
 

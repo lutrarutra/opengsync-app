@@ -341,7 +341,7 @@ Table `library`, enum `LibraryStatus`.
 | PREPARING | 3 | Library is being prepared for sequencing | `library.reseq_single`, `prep.add_libraries` |
 | STORED | 4 | Library is received and stored | `request.clone`, `library.reseq`, `receipt.store_samples`, `pool.remove_libraries` |
 | POOLED | 5 | Library is prepared and pooled and ready for sequencing | `pool.clone`, `request.clone`, `request.accept`, `receipt.store_samples`, `prep.pool_libraries` |
-| SEQUENCED | 6 | Sequencing is finished | `api.lane_reads`, `worker.rf_folder_missing`, `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.rf_new_run`, `worker.library_sequenced` |
+| SEQUENCED | 6 | Sequencing is finished | `api.lane_reads`, `worker.rf_folder_missing`, `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.library_sequenced` |
 | SHARED | 7 | Sequencing data is shared with the customer(s) | `project.share_data`, `api.release_project` |
 | FAILED | 10 | Sequencing of the library could not be completed | `prep.upload_table`, `prep.pool_libraries` |
 | REJECTED | 11 | Library was not accepted to be sequenced by staff | `request.reject` |
@@ -354,17 +354,17 @@ Table `library`, enum `LibraryStatus`.
 stateDiagram-v2
     state "any status" as any
     ACCEPTED --> PREPARING : prep.add_libraries
-    ACCEPTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.library_sequenced
+    ACCEPTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
     ARCHIVED --> QC_PENDING : receipt.store_samples
     DRAFT --> PREPARING : prep.add_libraries
-    DRAFT --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.library_sequenced
+    DRAFT --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
     DRAFT --> SUBMITTED : request.submit
     FAILED --> QC_PENDING : receipt.store_samples
     POOLED --> QC_PENDING : receipt.store_samples
-    POOLED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.library_sequenced
+    POOLED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
     POOLED --> STORED : pool.remove_libraries
     PREPARING --> ACCEPTED : prep.remove_library
-    PREPARING --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.library_sequenced
+    PREPARING --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
     QC_COMPLETED --> QC_PENDING : receipt.store_samples
     REJECTED --> QC_PENDING : receipt.store_samples
     REMOVED --> QC_PENDING : receipt.store_samples
@@ -372,12 +372,12 @@ stateDiagram-v2
     SEQUENCED --> SHARED : project.share_data, api.release_project
     SHARED --> QC_PENDING : receipt.store_samples
     STORED --> QC_PENDING : receipt.store_samples
-    STORED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.library_sequenced
+    STORED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
     SUBMITTED --> ACCEPTED : request.accept
     SUBMITTED --> DRAFT : request.return
     SUBMITTED --> PREPARING : prep.add_libraries
     SUBMITTED --> REJECTED : request.reject
-    SUBMITTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.library_sequenced
+    SUBMITTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
     [*] --> ACCEPTED : request.clone, library.reseq
     [*] --> DRAFT : request.complete_sas
     [*] --> POOLED : pool.clone, request.clone
@@ -398,7 +398,7 @@ Table `pool`, enum `PoolStatus`.
 | SUBMITTED | 1 | Pool is submitted for review by a customer | `request.submit` |
 | ACCEPTED | 2 | Pool is accepted and waiting to be handed over for sequencing | `request.accept` |
 | STORED | 3 | Pool is stored and ready for sequencing | `request.clone`, `receipt.store_samples`, `prep.complete`, `qc.qubit`, `qc.ba_report` |
-| SEQUENCED | 4 | Pool is sequenced | `api.lane_reads`, `worker.rf_folder_missing`, `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.rf_new_run`, `worker.pool_sequenced` |
+| SEQUENCED | 4 | Pool is sequenced | `api.lane_reads`, `worker.rf_folder_missing`, `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.pool_sequenced` |
 | REJECTED | 10 | Pool was not accepted to be sequenced by staff | `request.reject` |
 | ARCHIVED | 11 | Pool is sequenced and the data is archived | by hand only (edit form or chosen status) |
 | REPOOLED | 12 | Pool is combined with other pool(s) | `pool.merge` |
@@ -406,16 +406,16 @@ Table `pool`, enum `PoolStatus`.
 ```mermaid
 stateDiagram-v2
     state "any status" as any
-    ACCEPTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.pool_sequenced
+    ACCEPTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.pool_sequenced
     ACCEPTED --> STORED : prep.complete, qc.qubit, qc.ba_report
-    DRAFT --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run
+    DRAFT --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back
     DRAFT --> STORED : prep.complete
     DRAFT --> SUBMITTED : request.submit
-    STORED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run, worker.pool_sequenced
+    STORED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.pool_sequenced
     SUBMITTED --> ACCEPTED : request.accept
     SUBMITTED --> DRAFT : request.return
     SUBMITTED --> REJECTED : request.reject
-    SUBMITTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run
+    SUBMITTED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back
     SUBMITTED --> STORED : prep.complete
     [*] --> DRAFT : request.complete_sas, prep.pool_libraries
     [*] --> STORED : request.clone
@@ -449,9 +449,9 @@ Table `experiment`, enum `ExperimentStatus`.
 |---|---|---|---|
 | DRAFT | 0 | Draft plan of the experiment | by hand only (edit form or chosen status) |
 | LOADED | 1 | Libraries are loaded on the flowcell | `experiment.load_flowcell` |
-| SEQUENCING | 2 | Sequencing | `worker.rf_new_run`, `worker.experiment_sequencing` |
-| SEQUENCED | 3 | Sequencing is finished | `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.rf_new_run`, `worker.experiment_run_finished` |
-| DEMULTIPLEXED | 4 | Data is demultiplexed and ready for analysis | `api.lane_reads`, `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.rf_new_run` |
+| SEQUENCING | 2 | Sequencing | `worker.rf_run_running`, `worker.experiment_sequencing` |
+| SEQUENCED | 3 | Sequencing is finished | `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.experiment_run_finished` |
+| DEMULTIPLEXED | 4 | Data is demultiplexed and ready for analysis | `api.lane_reads`, `worker.rf_run_finished`, `worker.rf_folder_back` |
 | ARCHIVED | 10 | Data is archived | `worker.rf_folder_missing`, `worker.experiment_run_finished` |
 | FAILED | 11 | Experiment failed | by hand only (edit form or chosen status) |
 | CANCELED | 12 | Experiment was canceled | by hand only (edit form or chosen status) |
@@ -462,18 +462,20 @@ stateDiagram-v2
     DRAFT --> ARCHIVED : worker.experiment_run_finished
     DRAFT --> DEMULTIPLEXED : api.lane_reads
     DRAFT --> SEQUENCED : worker.experiment_run_finished
+    DRAFT --> SEQUENCING : worker.rf_run_running
     LOADED --> ARCHIVED : worker.experiment_run_finished
     LOADED --> DEMULTIPLEXED : api.lane_reads
     LOADED --> SEQUENCED : worker.experiment_run_finished
+    LOADED --> SEQUENCING : worker.rf_run_running
     SEQUENCED --> DEMULTIPLEXED : api.lane_reads
     SEQUENCING --> ARCHIVED : worker.experiment_run_finished
     SEQUENCING --> DEMULTIPLEXED : api.lane_reads
     SEQUENCING --> SEQUENCED : worker.experiment_run_finished
     any --> ARCHIVED : worker.rf_folder_missing
-    any --> DEMULTIPLEXED : worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run
+    any --> DEMULTIPLEXED : worker.rf_run_finished, worker.rf_folder_back
     any --> LOADED : experiment.load_flowcell
-    any --> SEQUENCED : worker.rf_run_finished, worker.rf_folder_back, worker.rf_new_run
-    any --> SEQUENCING : worker.rf_new_run, worker.experiment_sequencing
+    any --> SEQUENCED : worker.rf_run_finished, worker.rf_folder_back
+    any --> SEQUENCING : worker.experiment_sequencing
 ```
 
 ### Seq run
@@ -608,9 +610,10 @@ stateDiagram-v2
 |---|---|---|---|---|
 | `worker.rf_folder_missing`<br>Run folder removed | Worker | Seq run: RUNNING, FINISHED → ARCHIVED<br>Experiment: any → ARCHIVED <sub>via `experiment`</sub><br>Pool: < SEQUENCED → SEQUENCED <sub>via `experiment.pools`</sub><br>Library: < SEQUENCED → SEQUENCED <sub>via `experiment.pools.libraries`</sub> | reason: “run folder {folder} no longer exists” | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
 | `worker.rf_run_finished`<br>Finished run cascade | Worker | Experiment: any → SEQUENCED, DEMULTIPLEXED <sub>via `experiment`</sub> — DEMULTIPLEXED if it has read qualities ⚠️ runs on every scan and overwrites manual experiment statuses (FAILED, ARCHIVED)<br>Pool: < SEQUENCED → SEQUENCED <sub>via `experiment.pools`</sub><br>Library: < SEQUENCED → SEQUENCED <sub>via `experiment.pools.libraries`</sub> | reason: “run {run} is FINISHED (RTAComplete.txt found in {folder})” | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
+| `worker.rf_run_running`<br>Running run cascade | Worker | Experiment: < SEQUENCING → SEQUENCING <sub>via `experiment`</sub> | reason: “run {run} is RUNNING (no RTAComplete.txt in {folder})” | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
 | `worker.rf_folder_back`<br>Run folder reappeared | Worker | Seq run: ARCHIVED → FINISHED<br>Experiment: any → SEQUENCED, DEMULTIPLEXED <sub>via `experiment`</sub><br>Pool: < SEQUENCED → SEQUENCED <sub>via `experiment.pools`</sub><br>Library: < SEQUENCED → SEQUENCED <sub>via `experiment.pools.libraries`</sub> | reason: “run folder {folder} reappeared” | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
-| `worker.rf_run_status`<br>Run status from run folder | Worker | Seq run: any → RUNNING, FINISHED — FINISHED if RTAComplete.txt exists; a renamed folder only moves forward | reason: “status read from run folder {folder} ({marker})”<br>⚠️ the cascade of a RUNNING → FINISHED run happens one scan later | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
-| `worker.rf_new_run`<br>New run folder | Worker | Seq run: new → RUNNING, FINISHED<br>Experiment: any → SEQUENCING, SEQUENCED, DEMULTIPLEXED <sub>via `experiment`</sub><br>Pool: < SEQUENCED → SEQUENCED <sub>via `experiment.pools`</sub><br>Library: < SEQUENCED → SEQUENCED <sub>via `experiment.pools.libraries`</sub> | reason: “new run folder {folder} detected ({marker})”<br>⚠️ the new run's experiment is not loaded yet, so the experiment is only updated on the next scan (or by the status worker) | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
+| `worker.rf_run_status`<br>Run status from run folder | Worker | Seq run: any → RUNNING, FINISHED — FINISHED if RTAComplete.txt exists; a renamed folder only moves forward | reason: “status read from run folder {folder} ({marker})” | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
+| `worker.rf_new_run`<br>New run folder | Worker | Seq run: new → RUNNING, FINISHED | reason: “new run folder {folder} detected ({marker})” | `packages/opengsync-worker/opengsync_worker/tasks/rf_scanner.py:process_run_folder` |
 | `worker.experiment_sequencing`<br>Experiment is sequencing | Worker | Experiment: any → SEQUENCING ⚠️ overrides manual FAILED / CANCELED on every run | reason: “seq run of the experiment is RUNNING” | `packages/opengsync-worker/opengsync_worker/tasks/status_updater.py:update_statuses` |
 | `worker.experiment_run_finished`<br>Experiment run finished | Worker | Experiment: < SEQUENCED → SEQUENCED, ARCHIVED — SEQUENCED for a FINISHED run, ARCHIVED for an ARCHIVED run | guard: status is < SEQUENCED<br>reason: “seq run of the experiment is FINISHED or ARCHIVED” | `packages/opengsync-worker/opengsync_worker/tasks/status_updater.py:update_statuses` |
 | `worker.library_sequenced`<br>Library sequenced | Worker | Library: < SEQUENCED → SEQUENCED | reason: “experiment of the library is SEQUENCED, DEMULTIPLEXED or ARCHIVED” | `packages/opengsync-worker/opengsync_worker/tasks/status_updater.py:update_statuses` |
@@ -665,7 +668,7 @@ Applies when: submission type is RAW_SAMPLES.
 | 4 | Library prep | no libraries of the request is < PREPARING or status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.add_libraries`, `prep.upload_table` |
 | 5 | Sample multiplexing *(optional)* | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `mux.sample_pooling` |
 | 6 | Pool libraries | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.pool_libraries`, `prep.complete`, `worker.request_prepared` |
-| 7 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
+| 7 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
 | 8 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
 | 9 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
@@ -678,7 +681,7 @@ Applies when: submission type is POOLED_LIBRARIES.
 | 1 | Submit | status is SUBMITTED, ACCEPTED, SAMPLES_RECEIVED, PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `request.submit` |
 | 2 | Review | status is ACCEPTED, SAMPLES_RECEIVED, PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `request.accept`, `request.return`, `request.reject` |
 | 3 | Receive pools | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `receipt.store_samples` |
-| 4 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
+| 4 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
 | 5 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
 | 6 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
@@ -692,7 +695,7 @@ Applies when: submission type is UNPOOLED_LIBRARIES.
 | 2 | Review | status is ACCEPTED, SAMPLES_RECEIVED, PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `request.accept`, `request.return`, `request.reject` |
 | 3 | Receive libraries | status is SAMPLES_RECEIVED, PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `receipt.store_samples` |
 | 4 | Pool libraries | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.pool_libraries`, `prep.complete`, `worker.request_prepared` |
-| 5 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
+| 5 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
 | 6 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
 | 7 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
@@ -721,7 +724,7 @@ Inferred when the request has re-sequenced libraries (`original_library_id`) wit
 | 1 | Re-sequence libraries | request has open re-sequenced libraries next to sequenced ones | `library.reseq`, `library.reseq_single`, `worker.request_reopen` |
 | 2 | Library prep | no libraries of the request is < PREPARING or status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.add_libraries`, `prep.upload_table` |
 | 3 | Pool libraries | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.pool_libraries`, `prep.complete`, `worker.request_prepared` |
-| 4 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
+| 4 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
 | 5 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
 | 6 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
@@ -743,8 +746,6 @@ Behaviour that the registry documents as it is, and that looks wrong. Fixing one
 | prep.complete (Request: any → PREPARED (via libraries.seq_request)) | no status check: can move DATA_PROCESSING, FINISHED or ARCHIVED requests back |
 | experiment.load_flowcell (Experiment: any → LOADED) | no status check: re-submitting can move a SEQUENCED or DEMULTIPLEXED experiment back to LOADED |
 | worker.rf_run_finished (Experiment: any → SEQUENCED, DEMULTIPLEXED (via experiment)) | runs on every scan and overwrites manual experiment statuses (FAILED, ARCHIVED) |
-| worker.rf_run_status | the cascade of a RUNNING → FINISHED run happens one scan later |
-| worker.rf_new_run | the new run's experiment is not loaded yet, so the experiment is only updated on the next scan (or by the status worker) |
 | worker.experiment_sequencing (Experiment: any → SEQUENCING) | overrides manual FAILED / CANCELED on every run |
 | worker.request_reopen (Request: DATA_PROCESSING, FINISHED, ARCHIVED → SAMPLES_RECEIVED) | also re-opens requests that were archived by hand |
 

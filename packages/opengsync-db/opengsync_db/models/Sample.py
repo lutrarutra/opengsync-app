@@ -9,11 +9,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
-from ..categories import SampleStatus, SampleStatus, AttributeType, AttributeType
+from ..categories import SampleStatus, AttributeType
 from ..core.EnumColumn import EnumColumn
 from .. import localize
 from .Base import Base
 from . import links
+from .. import models
 
 if TYPE_CHECKING:
     from .Project import Project
@@ -65,8 +66,10 @@ class Sample(Base):
 
     seq_requests: Mapped[list["SeqRequest"]] = relationship(
         "SeqRequest", back_populates="samples", lazy="select",
-        secondary="join(SeqRequest, Library, SeqRequest.id == Library.seq_request_id).join(SampleLibraryLink, Library.id == SampleLibraryLink.library_id)",
-        primaryjoin="SampleLibraryLink.sample_id == Sample.id",
+        # Distinct (seq_request, sample) pairs: a sample with several libraries in a request is listed once.
+        secondary=lambda: sa.select(models.Library.seq_request_id, links.SampleLibraryLink.sample_id)
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.library_id == models.Library.id)
+            .distinct().subquery(),
         viewonly=True
     )
 

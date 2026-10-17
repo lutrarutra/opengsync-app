@@ -13,6 +13,7 @@ from .Base import Base
 from ..core.EnumColumn import EnumColumn
 from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType, BarcodeOrientation
 from . import links
+from .. import models
 
 if TYPE_CHECKING:
     from .Library import Library
@@ -86,12 +87,14 @@ class SeqRequest(Base):
     delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="all, save-update, delete, merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
         "Sample", viewonly=True,
-        secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
-        primaryjoin="SeqRequest.id == Library.seq_request_id",
+        # Distinct (seq_request, sample) pairs: a sample with several libraries in the request is listed once.
+        secondary=lambda: sa.select(models.Library.seq_request_id, links.SampleLibraryLink.sample_id)
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.library_id == models.Library.id)
+            .distinct().subquery(),
     )
     sample_library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
         "links.SampleLibraryLink", viewonly=True,
-        secondary="join(Library, SampleLibraryLink, Library.id == SampleLibraryLink.library_id)",
+        secondary="library",
         primaryjoin="SeqRequest.id == Library.seq_request_id",
     )
     assignees: Mapped[list["User"]] = relationship(
