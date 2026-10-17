@@ -1,4 +1,5 @@
 from typing import Literal
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from wtforms import StringField, SelectField, FloatField, FormField
@@ -53,7 +54,7 @@ class PoolForm(HTMXFlaskForm):
             if self.form_type == "clone":
                 self.status.data = PoolStatus.STORED.id
             else:
-                self.status.data = self.pool.status_id
+                self.status.data = self.pool.status.id
             self.num_m_reads_requested.data = self.pool.num_m_reads_requested
             if self.pool.contact is not None:
                 self.contact_name.data = self.pool.contact.name
@@ -111,19 +112,19 @@ class PoolForm(HTMXFlaskForm):
         self.pool.contact.email = self.contact_email.data  # type: ignore
         self.pool.contact.phone = self.contact_phone.data  # type: ignore
 
-        db.pools.update(self.pool)
+        db.session.save(self.pool)
 
         return self.pool
 
     def __create_new_pool(self) -> models.Pool:
         if (contact_id := self.contact.selected.data) is not None:
-            if (contact := db.users.get(contact_id)) is None:
+            if (contact := db.session.first(Q.user.select(id=contact_id))) is None:
                 logger.error(f"Contact {contact_id} not found")
                 raise ValueError(f"Contact {contact_id} not found")
             
         pool_type = PoolType.get(self.pool_type.data)
             
-        pool = db.pools.create(
+        pool = db.session.save(Q.pool.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -132,7 +133,7 @@ class PoolForm(HTMXFlaskForm):
             contact_name=self.contact_name.data if contact is None else contact.name,  # type: ignore
             contact_email=self.contact_email.data if contact is None else contact.email,  # type: ignore
             contact_phone=self.contact_phone.data  # type: ignore
-        )
+        ))
         return pool
     
     def __clone_pool(self) -> models.Pool:
@@ -140,7 +141,7 @@ class PoolForm(HTMXFlaskForm):
             logger.error("Pool not passed as argument for clone form")
             raise ValueError("Pool not passed as argument for clone form")
         
-        pool = db.pools.create(
+        pool = db.session.save(Q.pool.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -151,7 +152,7 @@ class PoolForm(HTMXFlaskForm):
             contact_phone=self.pool.contact.phone,
             seq_request_id=self.pool.seq_request_id,
             original_pool_id=self.pool.original_pool_id if self.pool.original_pool_id is not None else self.pool.id,
-        )
+        ))
 
         pool.ba_report_id = self.pool.ba_report_id
         pool.avg_fragment_size = self.pool.avg_fragment_size
@@ -167,15 +168,14 @@ class PoolForm(HTMXFlaskForm):
                 timestamp_utc=dilution.timestamp_utc
             ))
 
-        db.pools.update(pool)
-        db.flush()
-        db.refresh(pool)
+        db.session.save(pool)
+        db.session.flush()
+        db.session.refresh(pool)
 
         for library in self.pool.libraries:
-            clone_library = db.libraries.clone(
-                library.id, seq_request_id=library.seq_request_id, indexed=True, status=LibraryStatus.POOLED
-            )
-            clone_library = db.libraries.add_to_pool(library_id=clone_library.id, pool_id=pool.id)
+            clone_library = db.actions.clone_library(library.id, seq_request_id=library.seq_request_id, indexed=True, status=LibraryStatus.POOLED)
+            clone_library.pool_id = pool.id
+            db.session.save(clone_library)
             
         return pool
     
@@ -196,5 +196,5 @@ class PoolForm(HTMXFlaskForm):
             logger.error(f"Unknown form type {self.form_type}")
             raise ValueError(f"Unknown form type {self.form_type}")
         
-        return make_response(redirect=url_for("pools_page.pool", pool_id=pool.id))
+        return make_response(redirect=url_for("pool_page", pool_id=pool.id))
         

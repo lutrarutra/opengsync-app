@@ -1,0 +1,62 @@
+{% extends "email/base.html" %}
+{% block content %}
+<br>
+<hr>
+{%- if comment is defined and comment %}
+<b>Attached Comment:</b>
+<p>{{ comment }}</p>
+<br>
+<hr>
+{%- endif %}
+<p>
+    <b>You can copy the data with one of the following commands:</b>
+    <ul>
+        <li>
+            WebDAV <span class="desc">(Rclone, recommended, fastest, downloads only modified/missing files, might not work for older rclone < 1.6)</span>:
+            <div class="code">{{ sync_command | highlight_sh | safe }}</div>
+            <br>
+        </li>
+        <li>
+            HTTP <span class="desc">(Rclone)</span>:
+            <div class="code">{{ http_command | highlight_sh | safe }}</div>
+            <br>
+        </li>
+        <li>
+            wget <span class="desc">(Use only if rclone is not available)</span>
+            <div class="code">{{ wget_command | highlight_sh | safe }}</div>
+            <br>
+        </li>
+    </ul>
+    <b>You can also browse the files at:</b>
+    <ul>
+        <li>🔗 <a href="{{ browse_link }}">{{ browse_link }}</a></li>
+    </ul>
+</p>
+<hr>
+
+<p>
+    This project consists of samples defined in following sequencing requests:
+    <ol>
+        {% for seq_request in seq_requests %}
+        <li><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, _external=True) }}"><b>{{ seq_request.identifier }}: </b></a><i>{{ seq_request.name }}</i> {% if seq_request.timestamp_submitted %}<span class="desc">(Submitted {{ seq_request.timestamp_submitted | format_datetime("%Y-%m-%d") }}){% endif %}</span></li>
+        {% endfor %}
+    </ol>
+</p>
+
+<p>
+    Libraries were sequenced as part of following experiments:
+    <ol>
+        {% for experiment in experiments %}
+        {% if experiment.seq_run %}
+        {% set completed = experiment.seq_run.get_timestamp("completed") %}
+        {% else %}
+        {% set completed = None %}
+        {% endif %}
+        <li>{{ experiment.name }} {% if completed %}<span class="desc">{{ completed | format_datetime("%Y-%m-%d") }}</span>{% endif %}</li>
+        {% endfor %}
+    </ol>
+</p>
+<hr>
+
+<p>Please note that the links are only available for a limited time (until {{ share_token.expiration | format_datetime }}). After the token expires, you will need to request new one.</p>
+{% endblock %}

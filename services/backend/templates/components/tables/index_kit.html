@@ -1,0 +1,41 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+
+<div id="index_kit-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("index_kit-table", table, "id") }}
+                {{ table_col("index_kit-table", table, "identifier") }}
+                {{ table_col("index_kit-table", table, "name") }}
+                {{ table_col("index_kit-table", table, "type") }}
+                {{ table_col("index_kit-table", table, "protocols") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for index_kit in index_kits %}
+            <tr>
+                <th scope="row">{{ index_kit.id }}</th>
+                <td  class="cm-callback" {{ context_menu([{"type": "copy", "value": index_kit.identifier, "label": "Copy Identifier",}]) }}><a href="{{ url_for('index_kit_page', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
+                <td  class="cm-callback" {{ context_menu([{"type": "copy", "value": index_kit.name, "label": "Copy Name",}]) }}><a href="{{ url_for('index_kit_page', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
+                <td>{{ index_kit.type.label }}</td>
+                <td>
+                    {% for protocol in index_kit.supported_protocols %}
+                    <span class="badge" {{ tooltip(protocol.name) }}>{{ protocol.abbreviation }}</span>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("index_kit-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#index_kit-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>
+

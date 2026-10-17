@@ -1,0 +1,54 @@
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/legends.jinja2" import color_legend %}
+
+<div class="calendar-container" id="calendar-week-container">
+    <div class="header" style="z-index: 2;">
+        <a hx-get="{{ url_for('events_week', year=prev_year, week=prev_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar()">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <h5>Week <span {% if week == today.isocalendar().week %}style="color: #0d6efd;"{% endif %}>{{ week }}</span> <span class="desc">{{ year }} {{ month_name}}</span></h5>
+        <a hx-get="{{ url_for('events_week', year=next_year, week=next_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar();">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+    <div class="calendar">
+        <div class="week">
+            {% for day, events in calendar.items() %}
+            <div class="day {% if day.weekday() > 4 %}weekend{% endif %} {% if day.year == today.year and day.month == today.month and day.day == today.day %} today {% endif %}{% if events | length %} eventful{% endif %}"
+            {% if events | length %}hx-get="{{ url_for('events_day', year=day.year, month=day.month, day=day.day) }}"
+            hx-target="#calendar-day-modal-content" hx-swap="innerHTML" data-bs-target="#calendar-day-modal" data-bs-toggle="modal"{% endif %}>
+                <div class="header">
+                    {{ day.strftime("%A") }}
+                    <p class="day-number">{{ day.day }}.{{ day.month }}.</p>
+                </div>
+                <ul>
+                    {% for event in events %}
+                    <li>
+                        <a style="color: {{ event.type.color }};">{{ event.timestamp_str("%H:%M") }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div style="width: 100%;" class="d-flex justify-content-center">
+        {{ color_legend(event_type_legend) }}
+    </div>
+    <div style="position: relative;">
+        <div style="position: absolute; width: 100%;">
+            {{ spinner(id="calendar-week-spinner") }}
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="calendar-day-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="true">
+    <div class="modal-dialog modal-calendar-day modal-dialog-centered" id="calendar-day-modal-content">
+        {{ spinner() }}
+    </div>
+</div>
+
+<script type="text/javascript">
+    function hide_calendar() {
+        $(".calendar").remove();
+    }
+</script>

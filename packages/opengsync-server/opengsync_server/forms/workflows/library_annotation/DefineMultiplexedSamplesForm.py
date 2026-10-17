@@ -2,8 +2,9 @@ import pandas as pd
 
 from flask import Response, url_for
 
-from opengsync_db import models
-from opengsync_db.categories import ServiceType, LibraryType, LibraryType, MUXType
+from opengsync_db import models, queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
+from opengsync_db.categories import ServiceType, LibraryType, MUXType
 
 from .... import logger, db
 from ....tools import utils
@@ -64,7 +65,11 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflow):
         
         df = self.spreadsheet.df
 
-        seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
+        seq_request_samples = T.seq_request_samples(
+            db.session.get_pandas(
+                Q.pd.seq_request_samples(self.seq_request.id), limit=None
+            )
+        )
 
         selected_library_types = [t.abbreviation for t in self.service_type.library_types]
         if self.antibody_capture:

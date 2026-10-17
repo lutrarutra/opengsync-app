@@ -1,0 +1,31 @@
+<div class="modal-content" id="protocol-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Protocol</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body" id="protocol-form">
+        {{ form.csrf_token.render() }}
+        <div class="row">
+            {{ form.name.render("col-6") }}
+            {{ form.service_type.render("col-3") }}
+            {{ form.read_structure.render("col-3") }}
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if form.form_type == "edit" %}
+            <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('ProtocolForm.Edit', protocol_id=form.protocol.id) }}">Submit</button>
+            {% elif form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('ProtocolForm.Create') }}">Create</button>
+            {% endif %}
+        </div>
+    </div>
+</div>

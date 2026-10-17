@@ -1,0 +1,30 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="sequencer-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("sequencer-table", table, "id") }}
+                {{ table_col("sequencer-table", table, "name") }}
+                {{ table_col("sequencer-table", table, "model") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for sequencer in sequencers %}
+            <tr>
+                <th scope="row">{{ sequencer.id }}</th>
+                <td><a href="{{ url_for('sequencer_page', sequencer_id=sequencer.id) }}">{{ sequencer.name }}</a></td>
+                <td>{{ sequencer.model.display_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("sequencer-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#sequencer-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

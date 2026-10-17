@@ -1,0 +1,714 @@
+import json
+import datetime as dt
+import time
+from typing import TypeVar
+from collections.abc import Callable
+import hashlib
+import hmac
+
+from fastapi import Depends, Request, Header, Cookie, Query
+from pydantic_ai import Agent
+from loguru import logger
+from redis.exceptions import RedisError
+
+from sqlalchemy import orm
+from sqlalchemy.orm import make_transient_to_detached
+
+from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, models, categories as C, utils
+from opengsync_db.transitions import tracking
+
+from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache, responses, redis as rds
+from .context import ctx
+from ..utils import share_fs_cache
+
+_USER_CACHE_TTL = 300
+
+
+def _user_to_cache_dict(user: models.User) -> dict:
+    return {
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "password": user.password,
+        "pw_set_datetime": (
+            user.pw_set_datetime.isoformat()
+            if user.pw_set_datetime is not None else None
+        ),
+        "role_id": user.role.id,
+    }
+
+
+def _decode_redis_value(value: bytes | str | int) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+def get_runtime_request(request: Request) -> runtime.Request:
+    return request  # type: ignore
+
+def db_session(request: runtime.Request = Depends(get_runtime_request)):
+    if (session := getattr(request.state, "db_session", None)) is None:
+        session = request.app.state.db_handler.get_session()
+        request.state.db_session = session
+    return session
+
+def authenticate(token: str = Depends(auth.oauth2_scheme)):
+    payload = secrets.validate_login_token(token)
+    return payload
+
+def redis(request: runtime.Request):
+    with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
+        yield redis
+
+
+_RATE_LIMIT_PERIODS = {
+    "second": 1,
+    "minute": 60,
+    "hour": 3600,
+}
+
+
+def _parse_rate_limit(value: str) -> tuple[int, int]:
+    try:
+        amount_text, period_name = value.strip().lower().split("/", maxsplit=1)
+        amount = int(amount_text)
+        period = _RATE_LIMIT_PERIODS[period_name]
+    except (AttributeError, KeyError, TypeError, ValueError):
+        raise ValueError(f"Invalid rate limit: {value!r}. Expected '<number>/<second|minute|hour>'.")
+
+    if amount <= 0:
+        raise ValueError("Rate limit amount must be positive.")
+    return amount, period
+
+
+def rate_limit(*limits: str):
+    parsed_limits = tuple(_parse_rate_limit(limit) for limit in limits)
+    if not parsed_limits:
+        raise ValueError("At least one rate limit is required.")
+
+    def dependency(
+        request: runtime.Request,
+        r: rds.RedisClient = Depends(redis),
+    ):
+        route_path = audit.route_path(request)
+        ip = request.headers.get("x-real-ip") or (
+            request.client.host if request.client else "1.1.1.1"
+        )
+        keys: list[str] = []
+
+        try:
+            try:
+                current_window = int(time.time())
+                for maximum, period in parsed_limits:
+                    window = current_window // period
+                    key = f"ratelimit:{ip}:{route_path}:{period}:{window}"
+                    count = int(str(r.incr(key)))
+                    keys.append(key)
+                    if count == 1:
+                        r.expire(key, period)
+                    if count > maximum:
+                        raise exc.TooManyRequestsException()
+            except (RedisError, TypeError, ValueError):
+                logger.exception("Rate limiter unavailable; allowing request for {}", route_path)
+
+            request.state.rate_limit_keys.extend(keys)
+            yield
+        finally:
+            if request.state.clear_rate_limit:
+                for key in keys:
+                    try:
+                        r.delete(key)
+                    except (RedisError, TypeError, ValueError):
+                        logger.exception("Failed to clear rate limit key {}", key)
+
+    return dependency
+
+
+def _share_token_cache_key(uuid: str) -> str:
+    return f"share-token:{uuid}"
+
+
+def _share_token_to_cache_dict(share_token: models.ShareToken) -> dict:
+    return {
+        "uuid": share_token.uuid,
+        "time_valid_min": share_token.time_valid_min,
+        "created_utc": share_token.created_utc.isoformat(),
+        "_expired": share_token._expired,
+        "owner_id": share_token.owner_id,
+        "paths": [
+            {"id": share_path.id, "uuid": share_path.uuid, "path": share_path.path}
+            for share_path in share_token.paths
+        ],
+    }
+
+
+def _cached_share_token(uuid: str, r: rds.RedisClient) -> models.ShareToken | None:
+    try:
+        value = r.get(_share_token_cache_key(uuid))
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+        if not isinstance(value, str):
+            return None
+        data = json.loads(value)
+        share_token = models.ShareToken(
+            uuid=data["uuid"],
+            time_valid_min=int(data["time_valid_min"]),
+            created_utc=dt.datetime.fromisoformat(data["created_utc"]),
+            _expired=bool(data.get("_expired", data.get("expired", False))),
+            owner_id=int(data["owner_id"]),
+        )
+        share_token.paths = [
+            models.SharePath(
+                id=int(path["id"]),
+                uuid=path["uuid"],
+                path=path["path"],
+            )
+            for path in data["paths"]
+        ]
+        make_transient_to_detached(share_token)
+        return share_token
+    except (RedisError, TypeError, ValueError, KeyError, UnicodeError):
+        logger.exception("Failed to read cached share token {}", uuid)
+        return None
+
+
+def _cache_share_token(share_token: models.ShareToken, r: rds.RedisClient) -> None:
+    try:
+        r.set(
+            _share_token_cache_key(share_token.uuid),
+            json.dumps(_share_token_to_cache_dict(share_token)),
+            ex=share_fs_cache.SHARE_TOKEN_TTL,
+        )
+    except (RedisError, TypeError, ValueError):
+        logger.exception("Failed to cache share token {}", share_token.uuid)
+
+
+def load_share_token(
+    token: str,
+    request: runtime.Request,
+    r: rds.RedisClient = Depends(redis),
+) -> models.ShareToken:
+    if (share_token := _cached_share_token(token, r)) is None:
+        share_token = ctx.session.first(
+            Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths))
+        )
+        if share_token is None:
+            raise exc.NotFoundException("Token Not Found")
+        if share_token.is_expired:
+            raise exc.NoPermissionsException("Token expired")
+        _cache_share_token(share_token, r)
+
+    if share_token.is_expired:
+        raise exc.NoPermissionsException("Token expired")
+    request.state.clear_rate_limit = True
+    return share_token
+
+
+def __get_cached_user(key: str, r: rds.RedisClient) -> models.User | None:
+    if (cached_user_str := r.get(key)) is None:
+        return None
+    user_data = json.loads(cached_user_str)  # type: ignore
+    if "pw_set_datetime" not in user_data:
+        return None
+    pw_set_datetime = user_data["pw_set_datetime"]
+    user = models.User(
+        id=int(user_data["id"]),
+        first_name=user_data["first_name"],
+        last_name=user_data["last_name"],
+        email=user_data["email"],
+        password=user_data.get("password", ""),
+        pw_set_datetime=(
+            dt.datetime.fromisoformat(pw_set_datetime)
+            if pw_set_datetime is not None else None
+        ),
+        role=C.UserRole.get(int(user_data["role_id"])),
+    )
+    make_transient_to_detached(user)
+    return user
+
+
+def __cache_current_user(user_data: dict, r: rds.RedisClient) -> None:
+    r.set(f"user:{user_data['id']}", json.dumps(user_data), ex=_USER_CACHE_TTL)
+
+
+def _resolve_user(
+    user_id: int,
+    session: SyncSession,
+    r: rds.RedisClient,
+) -> models.User | None:
+    """Shared helper to fetch user from cache or DB and schedule cache updates."""
+    if (user := __get_cached_user(f"user:{user_id}", r)) is not None:
+        # Attach the cached copy to the request session (no DB query); if the session already
+        # holds this user (e.g. as a comment author), merge returns that instance instead,
+        # avoiding "another instance with key ... is already present" on cascade.
+        return session.merge(user, load=False)
+
+    if (user := session.first(Q.user.select(id=user_id))) is None:
+        return None
+
+    __cache_current_user(_user_to_cache_dict(user), r)
+    return user
+
+def _resolve_user_id_by_api_token(
+    token: str,
+    session: SyncSession,
+    r: rds.RedisClient,
+) -> int | None:
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    cache_key = f"api_token:{token_hash}"
+
+    if (cached_user_id := r.get(cache_key)) is not None:
+        user_id = int(_decode_redis_value(cached_user_id))  # type: ignore
+        if session.exists(Q.user.select(id=user_id, role=C.UserRole.DEACTIVATED)):
+            raise exc.UserAccountSuspendedException()
+        return user_id
+
+    db_token = session.first(Q.api_token.select(token=token))
+    if db_token is None or db_token.is_expired:
+        return None
+
+    if session.exists(Q.user.select(id=db_token.owner_id, role=C.UserRole.DEACTIVATED)):
+        raise exc.UserAccountSuspendedException()
+
+    r.set(cache_key, str(db_token.owner_id), ex=_USER_CACHE_TTL)
+    return db_token.owner_id
+
+def get_user_id(
+    request: runtime.Request,
+    access_token: str | None = Cookie(None),
+    api_token: str | None = Header(None, alias="X-API-Token"),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+) -> int | None:
+    """Return the authenticated user's ID without loading the user ORM object.
+
+    Browser requests authenticate with the login cookie; API clients authenticate
+    with the X-API-Token header. The ID is also kept on ``request.state.user_id``
+    so the audit log can attribute requests that never load the user.
+    """
+
+    if access_token:
+        try:
+            payload = secrets.validate_login_token(access_token)
+            auth_response = auth.AuthResponse.model_validate(payload)
+        except (exc.UserNotAuthenticatedException, ValueError, TypeError):
+            pass
+        else:
+            user = _resolve_user(auth_response.id, session, r)
+            if user is None or not secrets.is_login_token_valid_after_password_change(payload, user.pw_set_datetime):
+                pass
+            elif auth_response.role == C.UserRole.DEACTIVATED:
+                raise exc.UserAccountSuspendedException()
+            else:
+                request.state.user_id = auth_response.id
+                tracking.set_actor(session, auth_response.id)
+                return auth_response.id
+
+    if api_token:
+        user_id = _resolve_user_id_by_api_token(api_token, session, r)
+        request.state.user_id = user_id
+        tracking.set_actor(session, user_id)
+        return user_id
+
+    return None
+
+
+def get_user(
+    request: runtime.Request,
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+    user_id: int | None = Depends(get_user_id),
+) -> models.User | None:
+    """Returns the current user if authenticated, or None otherwise."""
+
+    if getattr(request.state, "current_user", runtime.NOT_CHECKED) != runtime.NOT_CHECKED:
+        return request.state.current_user  # type: ignore
+    
+    if user_id is not None:
+        user = _resolve_user(user_id, session, r)
+    else:
+        user = None
+
+    if not user:
+        request.state.current_user = None
+        return None
+    
+    if user.role == C.UserRole.DEACTIVATED:
+        raise exc.UserAccountSuspendedException()
+    
+    request.state.current_user = user
+    return user
+
+
+def require_user_id(user_id: int | None = Depends(get_user_id)) -> int:
+    """Require authentication while avoiding user ORM instantiation."""
+
+    if user_id is None:
+        raise exc.UserNotAuthenticatedException()
+    return user_id
+
+
+def require_user(user: models.User | None = Depends(get_user)) -> models.User:
+    if not user:
+        raise exc.UserNotAuthenticatedException()
+    return user
+
+def require_admin(user: models.User = Depends(require_user)) -> models.User:
+    if user.role != C.UserRole.ADMIN:
+        raise exc.NoPermissionsException(detail="Admin privileges required")
+    return user
+
+def require_insider(user: models.User = Depends(require_user)) -> models.User:
+    if not user.is_insider:
+        raise exc.NoPermissionsException()
+    return user
+
+def mail_client(request: runtime.Request) -> mailer.Mailer:
+    return request.app.state.mailer
+
+def chat_agent(request: runtime.Request) -> Agent:
+    if (agent := getattr(request.app.state, "chat_agent", None)) is None:
+        raise exc.NotFoundException()
+    return agent
+
+def get_bcrypt(request: runtime.Request):
+    return request.app.state.bcrypt
+
+def verify_csrf_header(
+    csrf_cookie: str | None = Cookie(None, alias="csrf_token"),
+    csrf_header: str | None = Header(None, alias="X-CSRF-Token"),
+) -> None:
+    """Double-submit CSRF check for JSON (fetch) endpoints, which send the token as a header."""
+    if not csrf_cookie or not csrf_header or not hmac.compare_digest(csrf_cookie, csrf_header):
+        raise exc.NoPermissionsException("Security token invalid or missing. Please reload the page.")
+
+_MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+_checks_csrf_itself_cache: dict[int, bool] = {}
+
+
+def _checks_csrf_itself(route) -> bool:
+    """Whether the route checks the CSRF token itself: HTMXForm validation (re-renders the form)
+    or ``verify_csrf_header`` (chat, passkeys; audit their rejections)."""
+    key = id(route)
+    if key not in _checks_csrf_itself_cache:
+        def calls(dependant):
+            for dependency in dependant.dependencies:
+                yield getattr(dependency.call, "__qualname__", "")
+                yield from calls(dependency)
+        _checks_csrf_itself_cache[key] = any(
+            "HTMXForm.Validate" in name or name == "verify_csrf_header" for name in calls(route.dependant)
+        )
+    return _checks_csrf_itself_cache[key]
+
+
+def csrf_protect(request: runtime.Request) -> None:
+    """Double-submit CSRF check for every state-changing request made with the login cookie.
+
+    The token is the ``csrf_token`` cookie, sent back as the ``X-CSRF-Token`` header (htmx adds it
+    to every request, see base.html) or as the ``csrf_token`` form field. Requests without the
+    login cookie (anonymous, API tokens) carry no ambient credentials and are not checked.
+    """
+    if request.method not in _MUTATING_METHODS or "access_token" not in request.cookies:
+        return
+    route = request.scope.get("route")
+    if route is not None and _checks_csrf_itself(route):
+        return
+    cookie = request.cookies.get("csrf_token")
+    sent = request.headers.get("X-CSRF-Token") or (getattr(request.state, "form_data", None) or {}).get("csrf_token")
+    if not cookie or not isinstance(sent, str) or not hmac.compare_digest(cookie, sent):
+        raise exc.NoPermissionsException("Security token invalid or missing. Please reload the page.")
+
+
+def audit_log(request: runtime.Request):
+    request.state.audit = audit.AuditLogger(request)
+    return request.state.audit
+
+
+def audit_share_access(
+    request: runtime.Request,
+    share_token: models.ShareToken = Depends(load_share_token),
+):
+    """Attach an audit logger for share-link access.
+
+    Recursive listing/download traffic is debounced in the audit middleware:
+    one success line per token and client IP until the share expires.
+    """
+    ip = request.headers.get("x-real-ip") or (request.client.host if request.client else "1.1.1.1")
+    remaining = share_token.expiration - dt.datetime.now(dt.timezone.utc)
+    audit_logger = audit_log(request)
+    audit_logger.resource_id = share_token.uuid
+    audit_logger.metadata = {
+        "owner_id": share_token.owner_id,
+        "path": request.url.path,
+    }
+    request.state.share_audit_key = f"share-audit:{share_token.uuid}:{ip}"
+    request.state.share_audit_ttl = max(60, int(remaining.total_seconds()))
+    return audit_logger
+
+def invalidate_cache(request: runtime.Request):
+    substrings: list[str] = []
+    yield substrings
+
+    if not substrings:
+        return
+
+    # FastAPICache.init is disabled (lifespan), so get_prefix() would raise; same prefix as the init there
+    for substring in substrings:
+        pattern = f"{cache.PREFIX}:*:{substring}:*"
+        cache.scan_and_delete(pattern=pattern, redis_pool=request.app.state.redis_pool)
+
+
+def project_permissions(
+    project_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:project:{project_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this project.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Project not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def seq_request_permissions(
+    seq_request_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:seq_request:{seq_request_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this sequencing request.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Sequencing request not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def sample_permissions(
+    sample_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:sample:{sample_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this sample.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Sample not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def library_permissions(
+    library_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:library:{library_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.library.permissions(library_id=library_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this library.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Library not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def pool_permissions(
+    pool_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:pool:{pool_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this pool.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Pool not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def media_file_permissions(
+    media_file_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:media_file:{media_file_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this media file.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Media file not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def user_permissions(
+    user_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:user:{user_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this user.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("User not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def group_permissions(
+    group_id: int,
+    viewer_id: int = Depends(require_user_id),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:group:{group_id}:user:{viewer_id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=viewer_id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this group.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Group not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+    
+E = TypeVar("E", bound=C.ExtendedEnum)
+
+def parse_enum_ids(
+    enum_type: type[E], query_param: str,        
+) -> Callable[[], list[E] | None]:
+    def dependency(
+        ids_in: str | None = Query(None, alias=query_param, description=f"JSON list of {enum_type.__name__} IDs to filter by")
+    ) -> list[E] | None:
+        if ids_in is None:
+            return None
+        
+        try:
+            enum_ids = json.loads(ids_in)
+            return [enum_type.get(int(enum_id)) for enum_id in enum_ids] or None
+        except ValueError:
+            raise exc.BadRequestException()
+    
+    return dependency
+
+def parse_opt_enum_ids(
+    enum_type: type[E], query_param: str,        
+) -> Callable[[], list[E | None] | None]:
+    def dependency(
+        ids_in: str | None = Query(None, alias=query_param, description=f"JSON list of {enum_type.__name__} IDs to filter by")
+    ) -> list[E | None] | None:
+        if ids_in is None:
+            return None
+        
+        try:
+            enum_ids = json.loads(ids_in)
+            return [enum_type.get(int(enum_id)) if enum_id is not None else None for enum_id in enum_ids] or None
+        except ValueError:
+            raise exc.BadRequestException()
+    
+    return dependency
+
+def parse_enum_id(
+    enum_type: type[E], query_param: str,        
+) -> Callable[[], E | None]:
+    def dependency(
+        id_in: int | None = Query(None, alias=query_param, description=f"{enum_type.__name__} ID to filter by")
+    ) -> E | None:
+        if id_in is None:
+            return None
+        
+        try:
+            return enum_type.get(int(id_in))
+        except ValueError:
+            raise exc.BadRequestException()
+    
+    return dependency
+    
+def parse_order_by(
+    model: type[utils.Base],
+    default: utils.OrderBy | None = None,
+):
+    def dependency(
+        order_by: str | None = Query(None, description="Field and direction to order by, in the format 'field:asc|desc' e.g. 'created_at:desc'"),
+    ) -> utils.OrderBy | None:
+        if order_by is None:
+            return default
+        
+        try:
+            attr, order = order_by.split(":")
+            model_attr = getattr(model, attr)
+            direction = "desc" if order == "desc" else "asc"
+            order_by_expr = getattr(model_attr, direction)()
+            # hybrid expressions (e.g. count subqueries) lose their name, label them so HTMXTable can recover the sort column
+            if getattr(order_by_expr.element, "key", None) is None and getattr(order_by_expr.element, "name", None) is None:
+                order_by_expr = getattr(model_attr.label(attr), direction)()
+            return order_by_expr
+        except (AttributeError, ValueError):
+            raise exc.BadRequestException()
+            
+    return dependency
+
+def parse_from_page(
+    from_page: str | None = Query(None, alias="from", description="The page the user came from, in the format 'page_name@id'."),
+) -> list[tuple[str, responses.URL]] | None:
+    # a malformed value (no "@" or a non-numeric id) is ignored, as an unknown page is
+    page, _, id = (from_page or "").partition("@")
+    if not id.isdigit():
+        return None
+
+    path_list = []
+    if page == "user":
+        path_list = [
+            ("Users", responses.url_for("users_page")),
+            (f"User {id}", responses.url_for("user_page", user_id=id)),
+        ]
+    elif page == "seq_request":
+        path_list = [
+            ("Requests", responses.url_for("seq_requests_page")),
+            (f"Request {id}", responses.url_for("seq_request_page", seq_request_id=id)),
+        ]
+    elif page == "project":
+        path_list = [
+            ("Projects", responses.url_for("projects_page")),
+            (f"Project {id}", responses.url_for("project_page", project_id=id)),
+        ]
+    elif page == "sample":
+        path_list = [
+            ("Samples", responses.url_for("samples_page")),
+            (f"Sample {id}", responses.url_for("sample_page", sample_id=id)),
+        ]
+
+    return path_list

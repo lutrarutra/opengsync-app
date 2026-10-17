@@ -25,17 +25,17 @@ class MediaFileBP(DBBlueprint):
             if lab_prep_id is not None:
                 raise Exception("Cannot have both seq_request_id and lab_prep_id.")
             if self.db.session.get(models.SeqRequest, seq_request_id) is None:
-                raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+                raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
             
         elif experiment_id is not None:
             if lab_prep_id is not None:
                 raise Exception("Cannot have both experiment_id and lab_prep_id.")
             if self.db.session.get(models.Experiment, experiment_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+                raise exceptions.NotFoundException(f"Experiment with id '{experiment_id}', not found.")
             
         elif lab_prep_id is not None:
             if self.db.session.get(models.LabPrep, lab_prep_id) is None:
-                raise exceptions.ElementDoesNotExist(f"LabPrep with id '{lab_prep_id}', not found.")
+                raise exceptions.NotFoundException(f"LabPrep with id '{lab_prep_id}', not found.")
         
         if uuid is None:
             uuid = uuid7().__str__()
@@ -44,7 +44,7 @@ class MediaFileBP(DBBlueprint):
 
         file = models.MediaFile(
             name=name,
-            type_id=type.id,
+            type=type,
             extension=extension.lower().strip(),
             uuid=uuid,
             uploader_id=uploader_id,
@@ -71,7 +71,7 @@ class MediaFileBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, file_id: int, flush: bool = True):
         if (file := self.db.session.get(models.MediaFile, file_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+            raise exceptions.NotFoundException(f"File with id '{file_id}', not found.")
 
         # BA reports are referenced from several tables without a reverse
         # relationship, so the ORM delete would hit a ForeignKeyViolation.
@@ -122,9 +122,9 @@ class MediaFileBP(DBBlueprint):
     def get_access_type(self, file: models.MediaFile, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
-        if user.is_admin():
+        if user.is_admin:
             return AccessType.ADMIN
-        if user.is_insider():
+        if user.is_insider:
             return AccessType.INSIDER
         if user == file.uploader:
             return AccessType.OWNER
@@ -139,5 +139,5 @@ class MediaFileBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, file_id: int) -> models.MediaFile:
         if (file := self.db.session.get(models.MediaFile, file_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+            raise exceptions.NotFoundException(f"File with id '{file_id}', not found.")
         return file

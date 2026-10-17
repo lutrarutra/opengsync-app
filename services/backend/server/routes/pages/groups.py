@@ -1,0 +1,33 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy import orm
+
+from opengsync_db import models, SyncSession, queries as Q, categories as C
+
+from ...core import dependencies, responses
+
+router = APIRouter(prefix="/groups", tags=["groups"])
+
+
+@router.get("/")
+def groups_page():
+    return responses.html_response(template="groups_page.html", title="Groups")
+
+
+@router.get("/{group_id}")
+def group_page(
+    group_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.group_permissions),
+):
+    group = session.get_one(Q.group.select(id=group_id).options(
+        orm.with_expression(models.Group._num_users, models.Group.num_users.expression),
+        orm.with_expression(models.Group._num_seq_requests, models.Group.num_seq_requests.expression),
+        orm.with_expression(models.Group._num_projects, models.Group.num_projects.expression),
+    ))
+
+    return responses.html_response(
+        template="group_page.html",
+        group=group,
+        title=f"Group {group_id}",
+        access_level=access_level,
+    )

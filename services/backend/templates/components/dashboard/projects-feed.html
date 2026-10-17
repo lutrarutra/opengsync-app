@@ -1,0 +1,38 @@
+{% from "components/status_bar.jinja2" import project_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+
+{# first page: fill the count badge in the dashboard header #}
+{% if current_page == 0 %}<span id="dash-count-projects" hx-swap-oob="true">{{ tab_count(total) }}</span>{% endif %}
+{% for project in projects %}
+<div class="element-banner"
+{% if loop.last and limit == loop.index %}
+hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-feed-indicator" hx-swap="outerHTML" hx-indicator="#projects-feed-indicator" hx-disinherit="*"
+{% endif %}>
+    <div class="feed-head">
+        <div class="feed-title">
+            <a href="{{ url_for('project_page', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a>
+            <span class="feed-subtitle"><b>{{ project.owner.name }}</b>: <i>{{ project.title }}</i></span>
+        </div>
+        {% include "components/dashboard/project-assignees.html" %}
+    </div>
+    <div class="feed-meta">
+        <span><i class="bi bi-calendar3"></i>{{ project.timestamp_created_str("%-d. %b. %Y") }}</span>
+        <span><i class="bi bi-eyedropper"></i>{{ project.num_samples }} samples</span>
+        {% if project.group %}<span>{{ project.group.type.icon }} {{ project.group.name }}</span>{% endif %}
+    </div>
+    {% if project.library_status_counts %}
+    <div class="feed-chips">
+        {% for status, count in project.library_status_counts.items() %}
+        <span class="feed-chip">{{ status.icon }} {{ status.label }} <b>{{ count }}</b></span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="status-row">
+        {{ project_status_bar(project) }}
+        <span class="status-label">{{ project.status.label }} {{ project.status.icon | safe }}</span>
+    </div>
+</div>
+{% endfor %}
+{{ spinner(id="projects-feed-indicator") }}

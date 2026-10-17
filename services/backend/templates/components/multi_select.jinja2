@@ -1,0 +1,61 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{% macro multi_select(choices, field_name, url, table_container_id, selected=none, placeholder="Select...") %}
+{% if selected %}
+{% set ns = namespace(names=[]) %}
+{% for t in selected %}
+  {% set _ = ns.names.append("[" + t.id | string + "] " + t.display_name) %}
+{% endfor %}
+{% endif %}
+<div class="dropdown multi-select" field="{{ field_name }}" {% if selected %}{{ tooltip('<br>'.join(ns.names), position="left") }}{% endif %}>
+    <button class="dropdown-toggle multi-select-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" placeholder="{{ placeholder }}">
+        {% if selected %}
+        {% for choice in selected %}
+        {{ choice.select_name }}
+        {% endfor %}
+        {% else %}
+            {{ placeholder }}
+        {% endif %}
+    </button>
+    <ul class="dropdown-menu">
+        {% for status in choices %}
+        <li>
+            <input type="checkbox" class="multi-select-check btn-check" id="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}"
+            autocomplete="off" icon="{{ status.select_name }}" value="{{ status.id }}" field="{{ field_name }}"
+            onclick="table_filter('{{ url }}', '{{ table_container_id }}');"
+            {% if selected and status in selected %}checked{% endif %}>
+            <label class="btn" for="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}">{{ status.label }} <span class="desc">{{ status.select_name }}</span></label>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endmacro %}
+
+{% macro multi_select2(choices, field_name, placeholder="Select...", class="") %}
+<div class="multiple-select {{ class }}" id="{{ field_name }}-multiselect-container" data-field_name="{{ field_name }}" data-placeholder="{{ placeholder }}">
+    <div class="input-group">
+        <span class="form-select dropdown-toggle text-muted selected-container minimal-scrollbar">{{ placeholder }}</span>
+    </div>
+    <ul class="options-container minimal-scrollbar">
+        <li>
+            <input class="form-control option-search" autocomplete="off" type="text" value="" placeholder="Filter...">
+            <div class="form-group form-check select-all-container">
+                <input type="checkbox" class="form-check-input select-all" id="{{ field_name }}-select-all">
+                <label class="btn" for="{{ field_name }}-select-all">Select All</label>
+            </div>
+            <button type="button" class="btn btn-success apply-btn">Apply</button>
+        </li>
+        {% for (id, label) in choices %}
+        {# None is rendered as 'null' so jQuery's .data() reads it back as null #}
+        <li class="option" data-value="{{ 'null' if id is none else id }}" data-label="{{ label }}">
+            <input type="checkbox" class="form-check-input" id="{{ field_name }}-select-{{ id }}">
+            <label class="btn" for="{{ field_name }}-select-{{ id }}"><span class="label-name">{{ label }}</span><span class="label-id text-muted">{{ '' if id is none else id }}</span></label>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endmacro %}
+
+{% macro multi_select_field(field, class="") %}
+{{ multi_select2(field.choices, field.name, placeholder=field.label.text, class=class)}}
+{% endmacro %}

@@ -1,0 +1,22 @@
+<div id="sample-attribute-table-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Sample Attributes</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="sample-attribute-table-form">
+            {{ form.csrf_token.render() }}
+            {{ form.spreadsheet.render(submit_btn_id="submit-sample-attribute-btn", target_element_id="sample-attribute-table-form-container") }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+            {{ form.project.title }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-sample-attribute-btn" class="btn btn-success">Save</button>
+        </div>
+    </div>
+</div>

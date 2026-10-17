@@ -1,0 +1,52 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+
+<div id="seq_request-assignee-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("seq_request-assignee-table", table, "id") }}
+                {{ table_col("seq_request-assignee-table", table, "name") }}
+                {{ table_col("seq_request-assignee-table", table, "email") }}
+                {{ table_col("seq_request-assignee-table", table, "role") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <th scope="row">{{ user.id }}</th>
+                <td class="user-cell cm-callback" id="user-cell-{{ user.id }}" data-id="{{ user.id }}"
+                {{
+                    context_menu([
+                        {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider else true, "config": {
+                            "url": url_for('remove_seq_request_assignee', seq_request_id=seq_request.id, assignee_id=user.id).__str__(),
+                            "target": "#seq_request-assignee-table",
+                            "title": "Remove {user.name} from {seq_request.name}?".format(user=user, seq_request=seq_request)
+                        },},
+                    ])
+                }}>
+                    <a href="{{ url_for('user_page', user_id=user.id, from='seq_request@' + seq_request.id | string) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a>
+                </td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": user.email, "label": "Copy Email Address"},
+                        {"type": "mailto", "label": "Send Email", "config": {
+                            "subject": "BSR_%04d: Inquiry" % seq_request.id,
+                            "recipient": user.email,
+                        },},
+                    ])
+                }}>{{ user.email }}</td>
+                <td>{{ user.role.icon }} {{ user.role.label }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("seq_request-assignee-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_request-assignee-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

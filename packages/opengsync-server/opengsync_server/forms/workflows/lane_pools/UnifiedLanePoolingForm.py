@@ -3,13 +3,14 @@ from uuid6 import uuid7
 
 import pandas as pd
 
+import sqlalchemy as sa
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import MediaFileType
 
 from .... import db, logger
@@ -46,7 +47,9 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.pd.get_experiment_laned_pools(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_laned_pools(self.experiment.id), limit=None
+        )
         df["original_qubit_concentration"] = df["qubit_concentration"]
         df["dilutions"] = None
 
@@ -60,7 +63,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             sample_sub_form.pool_id.data = row["pool_id"]
             sample_sub_form.m_reads.data = row["num_m_reads"] * self.experiment.num_lanes if pd.notna(row["num_m_reads"]) else None
 
-            if (pool := db.pools.get(row["pool_id"])) is None:
+            if (pool := db.session.first(Q.pool.select(id=row["pool_id"]))) is None:
                 logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
                 raise ValueError(f"Pool with id {row['pool_id']} does not exist")
             
@@ -105,13 +108,13 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         for lane in self.experiment.lanes:
             lane.target_molarity = self.target_molarity.data
             lane.total_volume_ul = self.target_total_volume.data
-            db.lanes.update(lane)
+            db.session.save(lane)
             for pool_reads_form in self.sample_sub_forms:
-                if (link := db.links.get_laned_pool_link(
-                    experiment_id=self.experiment.id,
-                    lane_num=lane.number,
-                    pool_id=pool_reads_form.pool_id.data
-                )) is None:
+                if (link := db.session.first(sa.select(models.links.LanePoolLink).where(
+                    models.links.LanePoolLink.experiment_id == self.experiment.id,
+                    models.links.LanePoolLink.lane_num == lane.number,
+                    models.links.LanePoolLink.pool_id == pool_reads_form.pool_id.data
+                ))) is None:
                     logger.error(f"lane_pools_workflow: Link between lane {lane.number} and pool {pool_reads_form.pool_id.data} does not exist")
                     raise ValueError(f"Link between lane {lane.number} and pool {pool_reads_form.pool_id.data} does not exist")
                 
@@ -120,11 +123,11 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                     pool_reads_form.dilution.data = "Orig."
                     link.dilution_id = None
                 else:
-                    if (dilution := db.pools.get_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:
+                    if (dilution := db.session.first(Q.pool_dilution.select(pool_id=link.pool.id, identifier=pool_reads_form.dilution.data))) is None:
                         logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")
                         raise ValueError(f"PoolDilution with pool_id '{link.pool_id}' and identifier '{pool_reads_form.dilution.data}' does not exist")
                     link.dilution_id = dilution.id
-                db.links.update_laned_pool_link(link)
+                db.session.save(link)
 
                 data["lane"].append(lane.number)
                 data["pool"].append(link.pool.name)
@@ -154,7 +157,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.media_files.create(
+        db_file = db.session.save(Q.media_file.create(
             name=filename,
             uuid=_uuid,
             size_bytes=size_bytes,
@@ -162,13 +165,13 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             extension=extension,
             uploader_id=user.id,
             experiment_id=self.experiment.id
-        )
-        _ = db.comments.create(
-            author_id=user.id,
-            file_id=db_file.id,
+        ))
+        _ = db.session.save(Q.comment.create(
+            author=user,
+            file=db_file,
             text="Added file for pooling ratios",
-            experiment_id=self.experiment.id
-        )
+            experiment=self.experiment
+        ))
 
         flash("Laning Completed!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

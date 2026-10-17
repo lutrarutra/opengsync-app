@@ -23,8 +23,8 @@ class IndexKitBP(DBBlueprint):
         seq_kit = models.IndexKit(
             identifier=identifier.strip(),
             name=name.strip(),
-            type_id=type.id,
-            kit_type_id=KitType.INDEX_KIT.id,
+            type=type,
+            kit_type=KitType.INDEX_KIT,
             supported_protocol_ids=[p.id for p in supported_protocols]
         )
         self.db.session.add(seq_kit)
@@ -57,13 +57,13 @@ class IndexKitBP(DBBlueprint):
         index_type_in: Optional[list[IndexType]] = None
     ) -> list[models.IndexKit]:
         query = self.db.session.query(models.IndexKit)
-        query = query.where(models.IndexKit.kit_type_id == KitType.INDEX_KIT.id)
+        query = query.where(models.IndexKit.kit_type == KitType.INDEX_KIT)
 
         if index_type is not None:
-            query = query.where(models.IndexKit.type_id == index_type.id)
+            query = query.where(models.IndexKit.type == index_type)
 
         if index_type_in is not None:
-            query = query.where(models.IndexKit.type_id.in_([t.id for t in index_type_in]))
+            query = query.where(models.IndexKit.type.in_(index_type_in))
 
         query = query.order_by(
             sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
@@ -80,7 +80,7 @@ class IndexKitBP(DBBlueprint):
         self, index_kit_id: int, flush: bool = True
     ) -> models.IndexKit:
         if (index_kit := self.db.session.get(models.IndexKit, index_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"IndexKit with id '{index_kit_id}' not found.")
+            raise exceptions.NotFoundException(f"IndexKit with id '{index_kit_id}' not found.")
         
         for adapter in index_kit.adapters:
             for barcode in adapter.barcodes_i7:
@@ -109,7 +109,7 @@ class IndexKitBP(DBBlueprint):
         query = self.db.session.query(models.IndexKit)
 
         if type_in is not None:
-            query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
+            query = query.where(models.IndexKit.type.in_(type_in))
 
         if sort_by is not None:
             attr = getattr(models.IndexKit, sort_by)
@@ -155,8 +155,8 @@ class IndexKitBP(DBBlueprint):
     def __getitem__(self, id: int | str) -> models.IndexKit:
         if isinstance(id, str):
             if (index_kit := self.get_with_identifier(id)) is None:
-                raise exceptions.ElementDoesNotExist(f"IndexKit with identifier '{id}' not found.")
+                raise exceptions.NotFoundException(f"IndexKit with identifier '{id}' not found.")
         else:
             if (index_kit := self.get(id)) is None:
-                raise exceptions.ElementDoesNotExist(f"IndexKit with id '{id}' not found.")
+                raise exceptions.NotFoundException(f"IndexKit with id '{id}' not found.")
         return index_kit

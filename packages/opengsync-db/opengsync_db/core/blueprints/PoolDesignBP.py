@@ -41,14 +41,14 @@ class PoolDesignBP(DBBlueprint):
                 query = query.where(
                     sa.exists(
                         models.PoolDesign.flow_cell_design_id == models.FlowCellDesign.id &
-                        models.FlowCellDesign.task_status_id >= TaskStatus.COMPLETED.id
+                        models.FlowCellDesign.task_status >= TaskStatus.COMPLETED
                     )
                 )
             else:
                 query = query.where(
                     sa.exists(
                         models.PoolDesign.flow_cell_design_id == models.FlowCellDesign.id &
-                        models.FlowCellDesign.task_status_id < TaskStatus.COMPLETED.id
+                        models.FlowCellDesign.task_status < TaskStatus.COMPLETED
                     )
                 )
 
@@ -151,5 +151,5 @@ class PoolDesignBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.PoolDesign:
         if (pool_design := self.get(id)) is None:
-            raise exceptions.ElementDoesNotExist(f"PoolDesign with ID {id} does not exist")
+            raise exceptions.NotFoundException(f"PoolDesign with ID {id} does not exist")
         return pool_design

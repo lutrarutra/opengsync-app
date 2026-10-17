@@ -1,0 +1,21 @@
+from fastapi import APIRouter, Depends
+
+from ...core import dependencies
+from ...forms import workflows as wf
+
+router = APIRouter(prefix="/workflows", tags=["workflows"], dependencies=[Depends(dependencies.require_user_id)])
+
+router.include_router(wf.library_annotation.LibraryAnnotationWorkflow.Router())
+router.include_router(wf.ba_report.BAReportWorkflow.Router(), dependencies=[Depends(dependencies.require_insider)])
+router.include_router(wf.lane_qc.LaneQCWorkflow.Router())
+router.include_router(wf.library_pooling.LibraryPoolingWorkflow.Router())
+router.include_router(wf.mux_prep.MuxPrepWorkflow.Router())
+router.include_router(wf.reindex.ReindexWorkflow.Router())
+router.include_router(wf.merge_pools.MergePoolsWorkflow.Router())
+router.include_router(wf.library_remux.LibraryRemuxWorkflow.Router())
+router.include_router(wf.relib.RelibWorkflow.Router())
+router.include_router(wf.select_library_protocols.SelectLibraryProtocolsWorkflow.Router())
+router.include_router(wf.qubit_measure.QubitMeasureWorkflow.Router(), dependencies=[Depends(dependencies.require_insider)])
+router.include_router(wf.split_project.SplitProjectWorkflow.Router())
+router.include_router(wf.index_check.IndexCheckWorkflow.Router())
+

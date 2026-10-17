@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, ClassVar, Any
+from typing import TYPE_CHECKING, Any
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -10,11 +10,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableDict
 
 from . import links
+from ..core.EnumColumn import EnumColumn
+from .. import localize
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
-    LibraryType, LibraryType, LibraryStatus, LibraryStatus, GenomeRef,
-    GenomeRef, ServiceType, ServiceType, MUXType, MUXType, IndexType, IndexType
+    LibraryType, LibraryStatus, GenomeRef,
+    ServiceType, MUXType, IndexType
 )
 
 if TYPE_CHECKING:
@@ -50,33 +52,33 @@ class Library(Base):
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
-    index_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
+    type: Mapped[LibraryType] = mapped_column(EnumColumn[LibraryType](LibraryType), nullable=False, name="type_id", key="type")
+    status: Mapped[LibraryStatus] = mapped_column(EnumColumn[LibraryStatus](LibraryStatus), nullable=False, name="status_id", key="status", active_history=True)
+    genome_ref: Mapped[GenomeRef] = mapped_column(EnumColumn[GenomeRef](GenomeRef), nullable=False, name="genome_ref_id", key="genome_ref")
+    service_type: Mapped[ServiceType] = mapped_column(EnumColumn[ServiceType](ServiceType), nullable=False, name="service_type_id", key="service_type")
+    mux_type: Mapped[MUXType | None] = mapped_column(EnumColumn[MUXType](MUXType), nullable=True, name="mux_type_id", key="mux_type")
+    index_type: Mapped[IndexType | None] = mapped_column(EnumColumn[IndexType](IndexType), nullable=True, name="index_type_id", key="index_type")
 
-    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
 
     nuclei_isolation: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
-    seq_depth_requested: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
-    volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    seq_depth_requested: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
+    avg_fragment_size: Mapped[int | None] = mapped_column(sa.Float, nullable=True, default=None)
+    volume: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
+    qubit_concentration: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
 
-    properties: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+    properties: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
-    ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select")
+    ba_report_id: Mapped[int | None] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
+    ba_report: Mapped["MediaFile | None"] = relationship("MediaFile", lazy="select")
 
-    pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
-    pool: Mapped[Optional["Pool"]] = relationship(
+    pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
+    pool: Mapped["Pool | None"] = relationship(
         "Pool", back_populates="libraries", lazy="select", cascade="save-update, merge"
     )
 
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
-    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="libraries")
+    experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
+    experiment: Mapped["Experiment | None"] = relationship("Experiment", lazy="select", back_populates="libraries")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="select")
@@ -84,14 +86,14 @@ class Library(Base):
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
     
-    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
-    lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
+    lab_prep_id: Mapped[int | None] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep: Mapped["LabPrep | None"] = relationship("LabPrep", back_populates="libraries", lazy="select")
 
-    protocol_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("protocol.id", ondelete="SET NULL"), nullable=True)
-    protocol: Mapped[Optional["Protocol"]] = relationship("Protocol", lazy="select")
+    protocol_id: Mapped[int | None] = mapped_column(sa.ForeignKey("protocol.id", ondelete="SET NULL"), nullable=True)
+    protocol: Mapped["Protocol | None"] = relationship("Protocol", lazy="select")
 
-    original_library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
-    original_library: Mapped[Optional["Library"]] = relationship("Library", remote_side=[id], lazy="select")
+    original_library_id: Mapped[int | None] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
+    original_library: Mapped["Library | None"] = relationship("Library", remote_side=[id], lazy="select")
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
@@ -102,9 +104,26 @@ class Library(Base):
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan", order_by="SeqQuality.lane")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
-    qc: Mapped[dict[str, Any] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None) 
+    qc: Mapped[dict[str, Any] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "service_type_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
+    def set_qc(self, qc: dict[str, Any]) -> None:
+        if self.qc is None:
+            self.qc = {}
+        self.qc.update(qc)
+
+    def delete_qc(self, keys: list[str]) -> None:
+        if self.qc is None:
+            raise KeyError(keys[0])
+
+        missing_key = next((key for key in keys if key not in self.qc), None)
+        if missing_key is not None:
+            raise KeyError(missing_key)
+
+        for key in keys:
+            del self.qc[key]
+
+        if not self.qc:
+            self.qc = None
 
     def get_num_sequenced_reads(self) -> int:
         if orm.object_session(self) is None:
@@ -116,144 +135,109 @@ class Library(Base):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
+        if self._num_samples is not None:
+            return self._num_samples
+
         if "sample_links" not in orm.attributes.instance_state(self).unloaded:
             return len(self.sample_links)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_samples' attribute.")
         
-        from .Sample import Sample
-        return session.query(sa.func.count(Sample.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.id == links.SampleLibraryLink.sample_id,
-                    links.SampleLibraryLink.library_id == self.id
-                )
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_samples was not populated via with_expression. "
+                "Use orm.with_expression(Library._num_samples, Library.num_samples.expression) "
+                "in your query options."
             )
-        ).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.sample.select(library_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.id == links.SampleLibraryLink.sample_id,
-                    links.SampleLibraryLink.library_id == cls.id
-                )
-            )
+            *Q.sample.where_clauses(library_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_samples: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_features(self) -> int:  # type: ignore[override]
+        if self._num_features is not None:
+            return self._num_features
+
         if "features" not in orm.attributes.instance_state(self).unloaded:
             return len(self.features)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_features' attribute.")
-        from .Feature import Feature
-        return session.query(sa.func.count(Feature.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Feature.id == links.LibraryFeatureLink.feature_id,
-                    links.LibraryFeatureLink.library_id == self.id
-                )
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_features was not populated via with_expression. "
+                "Use orm.with_expression(Library._num_features, Library.num_features.expression) "
+                "in your query options."
             )
-        ).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.feature.select(library_id=self.id).subquery()
+        ))  # type: ignore[return-value]
 
     @num_features.expression
     def num_features(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Feature import Feature
         return sa.select(
             sa.func.count(Feature.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Feature.id == links.LibraryFeatureLink.feature_id,
-                    links.LibraryFeatureLink.library_id == cls.id
-                )
-            )
+            *Q.feature.where_clauses(library_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_features: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]
+        if self._num_data_paths is not None:
+            return self._num_data_paths
+
         if "data_paths" not in orm.attributes.instance_state(self).unloaded:
             return len(self.data_paths)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_data_paths' attribute.")
-        from .DataPath import DataPath
-        return session.query(sa.func.count(DataPath.id)).filter(DataPath.library_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_data_paths was not populated via with_expression. "
+                "Use orm.with_expression(Library._num_data_paths, Library.num_data_paths.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.data_path.select(library_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_data_paths.expression
     def num_data_paths(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .DataPath import DataPath
         return sa.select(
             sa.func.count(DataPath.id)
         ).where(
-            DataPath.library_id == cls.id
+            *Q.data_path.where_clauses(library_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    @property
-    def status(self) -> LibraryStatus:
-        return LibraryStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: LibraryStatus):
-        self.status_id = value.id
+    _num_data_paths: Mapped[int | None] = orm.query_expression()
 
-    @property
-    def type(self) -> LibraryType:
-        return LibraryType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: LibraryType):
-        self.type_id = value.id
-    
-    @property
-    def genome_ref(self) -> GenomeRef:
-        return GenomeRef.get(self.genome_ref_id)
-    
-    @genome_ref.setter
-    def genome_ref(self, value: GenomeRef):
-        self.genome_ref_id = value.id
-
-    @property
-    def service_type(self) -> ServiceType:
-        return ServiceType.get(self.service_type_id)
-    
-    @service_type.setter
-    def service_type(self, value: ServiceType):
-        self.service_type_id = value.id
-
-    @property
-    def mux_type(self) -> MUXType | None:
-        if self.mux_type_id is None:
-            return None
-        return MUXType.get(self.mux_type_id)
-    
-    @mux_type.setter
-    def mux_type(self, value: MUXType | None):
-        if value is None:
-            self.mux_type_id = None
-        else:
-            self.mux_type_id = value.id
-
-    @property
-    def index_type(self) -> IndexType | None:
-        if self.index_type_id is None:
-            return None
-        return IndexType.get(self.index_type_id)
-    
-    @index_type.setter
-    def index_type(self, value: IndexType | None):
-        if value is None:
-            self.index_type_id = None
-        else:
-            self.index_type_id = value.id
-    
     @property
     def qubit_concentration_str(self) -> str:
         if (q := self.qubit_concentration) is None:
@@ -262,7 +246,7 @@ class Library(Base):
     
     @property
     def molarity(self) -> float | None:
-        if self.avg_fragment_size is None or self.qubit_concentration is None:
+        if not self.avg_fragment_size or self.qubit_concentration is None:
             return None
         return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
@@ -274,19 +258,78 @@ class Library(Base):
     
     @property
     def timestamp_stored_str(self) -> str:
-        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
+        return localize(self.timestamp_stored_utc).strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
     
-    def is_multiplexed(self) -> bool:
-        return self.mux_type_id is not None
-    
-    def is_editable(self) -> bool:
+    @hybrid_property
+    def is_multiplexed(self) -> bool:  # type: ignore[override]
+        if self._is_multiplexed is not None:
+            return self._is_multiplexed
+        return self.mux_type is not None
+
+    @is_multiplexed.expression
+    def is_multiplexed(cls) -> sa.ColumnElement[bool]:
+        return cls.mux_type.isnot(None)  # type: ignore[union-attr]
+
+    _is_multiplexed: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def is_editable(self) -> bool:  # type: ignore[override]
+        if self._is_editable is not None:
+            return self._is_editable
         return self.status == LibraryStatus.DRAFT
-    
-    def is_indexed(self) -> bool:
-        return len(self.indices) > 0
-    
-    def is_pooled(self) -> bool:
+
+    @is_editable.expression
+    def is_editable(cls) -> sa.ColumnElement[bool]:
+        return cls.status == LibraryStatus.DRAFT  # type: ignore[return-value]
+
+    _is_editable: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def is_indexed(self) -> bool:  # type: ignore[override]
+        if self._is_indexed is not None:
+            return self._is_indexed
+
+        if "indices" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.indices) > 0
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'is_indexed' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_is_indexed was not populated via with_expression. "
+                "Use orm.with_expression(Library._is_indexed, Library.is_indexed.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        result = session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library_index.select(library_id=self.id).subquery()
+        ))
+        return result is not None and result > 0
+
+    @is_indexed.expression
+    def is_indexed(cls) -> sa.ScalarSelect[bool]:
+        from .LibraryIndex import LibraryIndex
+        return sa.select(
+            sa.func.count(LibraryIndex.id) > 0
+        ).where(
+            LibraryIndex.library_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _is_indexed: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def is_pooled(self) -> bool:  # type: ignore[override]
+        if self._is_pooled is not None:
+            return self._is_pooled
         return self.status == LibraryStatus.POOLED
+
+    @is_pooled.expression
+    def is_pooled(cls) -> sa.ColumnElement[bool]:
+        return cls.status == LibraryStatus.POOLED  # type: ignore[return-value]
+
+    _is_pooled: Mapped[bool | None] = orm.query_expression()
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"
@@ -389,6 +432,16 @@ class Library(Base):
         sa.Index(
             "trgm_library_sample_name_idx",
             sa.text("lower(sample_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_library_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_library_sample_name_compact_idx",
+            sa.text("regexp_replace(lower(sample_name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
             postgresql_using="gin",
         ),
     )

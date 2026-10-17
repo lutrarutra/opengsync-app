@@ -4,7 +4,8 @@ import pandas as pd
 from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.core import units
 from opengsync_db.categories import ExperimentStatus
 
@@ -25,7 +26,7 @@ def get(current_user: models.User):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
@@ -35,10 +36,10 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(experiments_htmx, methods=["GET", "POST"], db=db)
 def edit(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -49,10 +50,10 @@ def edit(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, methods=["GET", "POST"], db=db)
 def set_cycles(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -63,16 +64,16 @@ def set_cycles(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, methods=["DELETE"], db=db)
 def delete(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if not experiment.is_deleteable():
         raise exceptions.NoPermissionsException()
 
-    db.experiments.delete(experiment_id)
+    db.session.delete(experiment)
 
     logger.debug(f"Deleted experiment on flowcell '{experiment.name}'")
     flash(f"Deleted experiment on flowcell '{experiment.name}'.", "success")
@@ -84,7 +85,7 @@ def delete(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def search(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     return make_response(render_template(**logic.experiment.get_search_context(current_user=current_user, request=request)))
@@ -92,13 +93,13 @@ def search(current_user: models.User):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: int, file_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
         
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
         
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
     if not os.path.exists(filepath := os.path.join(runtime.app.media_folder, file.path)):
@@ -128,28 +129,22 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
     if lane_num > experiment.num_lanes or lane_num < 1:
         raise exceptions.BadRequestException()
     
-    if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (lane := db.session.first(Q.lane.select(experiment_id=experiment_id, number=lane_num))) is None:
         raise exceptions.NotFoundException()
     
-    db.links.add_pool_to_lane(
-        experiment=experiment,
-        pool=pool,
-        lane_num=lane_num
-    )
-    
-    db.refresh(pool)
+    db.actions.add_pool_to_lane(experiment=experiment, pool=pool, lane=lane)
 
     flash("Added pool to Lane!'.", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
@@ -157,37 +152,32 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
     if lane_num > experiment.num_lanes or lane_num < 1:
         raise exceptions.BadRequestException()
     
-    if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (lane := db.session.first(Q.lane.select(experiment_id=experiment_id, number=lane_num))) is None:
         raise exceptions.NotFoundException()
     
-    db.links.remove_pool_from_lane(
-        experiment=experiment,
-        pool=pool,
-        lane_num=lane_num,
-    )
-    db.refresh(pool)
+    db.actions.remove_pool_from_lane(experiment=experiment, pool=pool, lane=lane)
     flash("Removed pool from Lane!", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -202,10 +192,10 @@ def comment_form(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -220,13 +210,13 @@ def file_form(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, experiment_id: int, file_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
     if file not in experiment.media_files:
@@ -235,19 +225,19 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.media_files.delete(file_id=file.id)
+    db.session.delete(file)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
-    flash(f"File Deleted!", "success")
+    flash("File Deleted!", "success")
     return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def add_comment(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     return forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form).process_request(user=current_user)
@@ -255,31 +245,44 @@ def add_comment(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"], arg_params=["pool_id"])
 def remove_pool(current_user: models.User, experiment_id: int, pool_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (_ := db.pools.get(pool_id)) is None:
+    if (_ := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
 
-    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+    db.actions.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
     logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
     flash("Pool Removed!", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def overview(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (_ := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     LINK_WIDTH_UNIT = 1
     
-    df = db.pd.get_experiment_libraries(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
+    df = T.experiment_libraries(
+        db.session.get_pandas(
+            Q.pd.experiment_libraries(
+                experiment_id,
+                include_indices=False,
+                include_seq_request=True,
+            ),
+            limit=None,
+        ),
+        include_indices=False,
+        collapse_indicies=True,
+        drop_empty_columns=True,
+        collapse_lanes_=False,
+    )
 
     if df.empty:
         return make_response(
@@ -366,10 +369,10 @@ def overview(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_comments(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
 
     return make_response(
@@ -382,10 +385,10 @@ def get_comments(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_files(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
 
     return make_response(
@@ -400,17 +403,19 @@ def get_files(current_user: models.User, experiment_id: int):
 def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (sort_by := request.args.get("sort_by", "name")) is not None:
         if sort_by not in ["name", "id", "timestamp_created_utc"]:
             raise exceptions.BadRequestException()
 
-    experiments, _ = db.experiments.find(
-        sort_by=sort_by, descending=True,
+    experiments = db.session.get_all(
+        Q.experiment.select(
+            status_in=[ExperimentStatus.DRAFT, ExperimentStatus.LOADED, ExperimentStatus.SEQUENCING, ExperimentStatus.SEQUENCED]
+        ),
         limit=PAGE_LIMIT, offset=page * PAGE_LIMIT,
-        status_in=[ExperimentStatus.DRAFT, ExperimentStatus.LOADED, ExperimentStatus.SEQUENCING, ExperimentStatus.SEQUENCED]
+        order_by=models.Experiment.name.desc()
     )
 
     return make_response(render_template(
@@ -420,13 +425,18 @@ def get_recent(current_user: models.User, page: int = 0):
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_stats_tab(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
-    library_stats_df = db.pd.get_experiment_stats(experiment.id, per_lane=False).drop(columns=["library_id"])
+    library_stats_df = T.experiment_stats(
+        db.session.get_pandas(Q.pd.experiment_stats(experiment.id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    ).drop(columns=["library_id"])
     library_stats_df.loc[library_stats_df["library_name"].isna(), "library_name"] = "Undetermined"
     library_stats_df = library_stats_df.drop(columns=["pool_id", "pool_name"])
     library_stats_df = library_stats_df.sort_values(by="num_reads", ascending=False)
@@ -441,7 +451,13 @@ def render_stats_tab(current_user: models.User, experiment_id: int):
 
     library_stats = StaticSpreadSheet(df=library_stats_df, columns=columns, id=f"experiment-{experiment_id}-stats")
 
-    pool_stats_df = db.pd.get_pool_num_reads_stats(experiment.id)
+    sequenced_df = db.session.get_pandas(
+        Q.pd.pool_num_reads_stats_sequenced(experiment.id), limit=None
+    )
+    planned_df = db.session.get_pandas(
+        Q.pd.pool_num_reads_stats_planned(experiment.id), limit=None
+    )
+    pool_stats_df = T.pool_num_reads_stats(sequenced_df, planned_df)
     pool_stats_df.loc[pool_stats_df["pool_id"].isna(), "pool_name"] = "Undetermined"
     pool_stats_df = pool_stats_df[["pool_name", "num_reads", "num_planned_reads", "sequenced_vs_planned", "num_reads_requested"]]
     pool_stats_df = pool_stats_df.sort_values(by="num_reads", ascending=False)
@@ -467,14 +483,14 @@ def render_stats_tab(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def checklist(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     checklist = experiment.get_checklist()
-    can_be_edited = (experiment.status < ExperimentStatus.SEQUENCING) or current_user.is_admin()
+    can_be_edited = (experiment.status < ExperimentStatus.SEQUENCING) or current_user.is_admin
     
     return make_response(
         render_template(
@@ -491,10 +507,10 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def sequencer_loading_checklist(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -504,6 +520,6 @@ def sequencer_loading_checklist(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_dilutions(current_user: models.User, experiment_id: int):
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     return make_response(render_template(**logic.dilution.get_table_context(current_user, request, experiment=experiment)))

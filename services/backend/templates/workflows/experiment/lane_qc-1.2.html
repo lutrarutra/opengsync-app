@@ -1,0 +1,29 @@
+<div id="lane_qc-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1. QC Sequencing Pools <span class="desc">Combined Lanes</span></h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
+        <div id="lane_qc-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.phi_x.render("col-4") }}
+                {{ form.avg_fragment_size.render("col-4") }}
+                {{ form.qubit_concentration.render("col-4") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ form.post_url }}"
+            hx-target="#lane_qc-form-container" hx-swap="outerHTML" hx-include="#lane_qc-form">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

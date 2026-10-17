@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired
 from markupsafe import Markup
 from wtforms import FloatField, HiddenField, StringField, FieldList, FormField
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C, queries as Q
 
 from ..core.RunTime import runtime
 from ..tools import utils
@@ -75,7 +75,9 @@ class SequencerLoadingChecklistForm(HTMXFlaskForm):
             var_value = subform.param_value.data
             template_context[var_key] = var_value
             
-        df = db.pd.get_experiment_laned_pools(self.experiment.id)[["lane", "pool_name"]]
+        df = db.session.get_pandas(
+            Q.pd.experiment_laned_pools(self.experiment.id), limit=None
+        )[["lane", "pool_name"]]
         df["lane"] = df["lane"].astype(str)
         df = df.groupby("lane", sort=True).agg(lambda x: ";".join(sorted(x))).reset_index()
         df = df.groupby("pool_name", sort=False).agg(lambda x: ",".join(sorted(x))).reset_index()
@@ -103,16 +105,16 @@ class SequencerLoadingChecklistForm(HTMXFlaskForm):
         )
         final_markdown_text = render_template_string(self.template_md, **template_context)
 
-        file = db.media_files.create(
+        file = db.session.save(Q.media_file.create(
             name="sequencer_loading_checklist",
-            type=cats.MediaFileType.SEQUENCER_LOADING_CHECKLIST,
+            type=C.MediaFileType.SEQUENCER_LOADING_CHECKLIST,
             uploader_id=self.current_user.id,
             extension=".md",
             size_bytes=len(final_markdown_text.encode("utf-8")),
             experiment_id=self.experiment.id
-        )
+        ), flush=True)
 
-        with open(os.path.join(runtime.app.media_folder, cats.MediaFileType.SEQUENCER_LOADING_CHECKLIST.dir, f"{file.uuid}.md"), "w") as f:
+        with open(os.path.join(runtime.app.media_folder, C.MediaFileType.SEQUENCER_LOADING_CHECKLIST.dir, f"{file.uuid}.md"), "w") as f:
             f.write(final_markdown_text)
         
         flash("Checklist Generated!", "success")

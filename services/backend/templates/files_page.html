@@ -1,0 +1,59 @@
+{% from "components/file-browser/browser.jinja2" import file_browser with context %}
+{% extends "base.html" %}
+{% set active_page = "browser-page" %}
+{% block content %}
+{% set entries_route = 'shared_browser_entries' if share_token else 'render_file_browser_page' %}
+{% set route_params = {'token': share_token} if share_token else {} %}
+{% call file_browser(entries_route, route_params, sort_by=sort_by, sort_order=sort_order) %}
+    <div class="file-browser-storage-status">
+        <span>Storage status:</span>
+        <strong id="mount-status-badge">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span class="visually-hidden">Loading...</span>
+        </strong>
+        <small id="mount-status-details"></small>
+    </div>
+{% endcall %}
+
+<script>
+$(document).ready(function() {
+    function renderStatus(data) {
+        const badge = $("#mount-status-badge");
+        const details = $("#mount-status-details");
+        details.text("");
+
+        if (data.status === "online") {
+            badge.text("🟢 Online");
+        } else if (data.status === "degraded") {
+            badge.text("🟠 Degraded");
+            const offlineMounts = [];
+            for (const [name, statusMessage] of Object.entries(data.details)) {
+                if (statusMessage !== "online") offlineMounts.push(name);
+            }
+            details.text("Missing: " + offlineMounts.join(", "));
+        } else if (data.status === "offline") {
+            badge.text("🔴 Offline");
+            details.text("Cannot connect to cluster storage.");
+        } else {
+            badge.text("⚫ Unknown");
+            details.text("Share status is not configured.");
+        }
+    }
+
+    $.ajax({
+        url: "{{ url_for('share_status_check') }}",
+        type: "GET",
+        dataType: "json",
+        success: renderStatus,
+        error: function(jqXHR) {
+            if (jqXHR.responseJSON) {
+                renderStatus(jqXHR.responseJSON);
+            } else {
+                $("#mount-status-badge").text("⚫ Unknown Error");
+                $("#mount-status-details").text("Failed to reach server API.");
+            }
+        }
+    });
+});
+</script>
+{% endblock content %}

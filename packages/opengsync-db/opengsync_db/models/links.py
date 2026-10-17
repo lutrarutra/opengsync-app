@@ -8,6 +8,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from .Base import Base
 
 from opengsync_db.categories import AffiliationType, AffiliationType, DeliveryStatus, DeliveryStatus
+from opengsync_db.core.EnumColumn import EnumColumn
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -19,8 +20,7 @@ if TYPE_CHECKING:
     from .Lane import Lane
     from . import PoolDilution
     from .SeqRequest import SeqRequest
-    from .PoolDesign import PoolDesign
-    from .FlowCellDesign import FlowCellDesign
+    from .Experiment import Experiment
 
 class ProjectAssigneeLink(Base):
     __tablename__ = "project_assignee_link"
@@ -51,17 +51,7 @@ class UserAffiliation(Base):
     user: Mapped["User"] = relationship("User", back_populates="affiliations", lazy="select")
     group: Mapped["Group"] = relationship("Group", back_populates="user_links", lazy="select")
 
-    affiliation_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-
-    sortable_fields: ClassVar[list[str]] = ["affiliation_type_id"]
-
-    @property
-    def affiliation_type(self) -> AffiliationType:
-        return AffiliationType.get(self.affiliation_type_id)
-    
-    @affiliation_type.setter
-    def affiliation_type(self, value: AffiliationType) -> None:
-        self.affiliation_type_id = value.id
+    affiliation_type: Mapped[AffiliationType] = mapped_column(EnumColumn[AffiliationType](AffiliationType), nullable=False, name="affiliation_type_id", key="affiliation_type")
     
     def __str__(self) -> str:
         return f"UserAffiliation(user_id: {self.user_id}, group_id: {self.group_id}, affiliation_type: {self.affiliation_type})"
@@ -100,13 +90,14 @@ class SampleLibraryLink(Base):
 
 class LanePoolLink(Base):
     __tablename__ = "lane_pool_link"
-    lane_id: Mapped[int] = mapped_column(sa.ForeignKey("lane.id"), primary_key=True)
+    lane_id: Mapped[int] = mapped_column(sa.ForeignKey("lane.id", ondelete="CASCADE"), primary_key=True)
     lane: Mapped["Lane"] = relationship("Lane", lazy="select", back_populates="pool_links")
     
-    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id"), primary_key=True)
+    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id", ondelete="CASCADE"), primary_key=True)
     pool: Mapped["Pool"] = relationship("Pool", lazy="select", back_populates="lane_links")
     
-    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
+    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id", ondelete="CASCADE"), nullable=False)
+    experiment: Mapped["Experiment"] = relationship("Experiment", lazy="select", back_populates="laned_pool_links")
 
     dilution_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool_dilution.id"), nullable=True, default=None)
     dilution: Mapped[Optional["PoolDilution"]] = relationship("PoolDilution", lazy="select")
@@ -136,16 +127,8 @@ class SeqRequestDeliveryEmailLink(Base):
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
     
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=DeliveryStatus.PENDING.id)
+    status: Mapped[DeliveryStatus] = mapped_column(EnumColumn[DeliveryStatus](DeliveryStatus), nullable=False, default=DeliveryStatus.PENDING.id, name="status_id", key="status", active_history=True)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="delivery_email_links")
-
-    @property
-    def status(self) -> DeliveryStatus:
-        return DeliveryStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: DeliveryStatus) -> None:
-        self.status_id = value.id
 
     def __str__(self) -> str:
         return f"SeqRequestDeliveryEmail(email: {self.email}, seq_request: {self.seq_request_id}, status: {self.status.display_name})"

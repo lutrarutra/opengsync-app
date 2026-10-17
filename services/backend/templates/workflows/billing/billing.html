@@ -1,0 +1,42 @@
+<form class="modal-content" id="billing-form-container" method="post" action="{{ url_for('BillingAction.Submit') }}">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Select Experiments for Billing</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body tab-body" id="billing-form">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#billing-browse-tab"
+                    type="button" role="tab" aria-controls="billing-browse-tab" aria-selected="true">
+                    Browse Experiments
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.experiment_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#billing-selected-tab"
+                    type="button" role="tab" aria-controls="billing-selected-tab" aria-selected="false">
+                    Selected Experiments {{ tab_count(form.experiment_ids.data | length) }}
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="billing-browse-tab" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                {{ form.render_general_errors() }}
+                {{ form.experiment_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="billing-selected-tab" role="tabpanel" tabindex="1">
+                {{ form.experiment_ids.render_selected_table() }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="submit" id="submit-billing-btn" class="btn btn-success">
+                Submit
+            </button>
+        </div>
+    </div>
+</form>

@@ -6,6 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, FieldList, FormField
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 
 from .... import db, logger
 from ....tools import utils
@@ -31,7 +32,7 @@ class ProtocolMappingForm(MultiStepForm):
 
         self.post_url = url_for("select_library_protocols_workflow.map_protocols", uuid=self.uuid, lab_prep_id=lab_prep.id)
         
-        protocols = db.pd.get_protocol_kits()
+        protocols = db.session.get_pandas(Q.pd.protocol_kits(), limit=None)
         self.protocols = (
             protocols.groupby(['protocol_id', 'combination_num'])
             .agg(identifiers=('kit_identifier', lambda x: ';'.join(sorted(x))))
@@ -64,7 +65,7 @@ class ProtocolMappingForm(MultiStepForm):
             self.kit_combinations.add(combination)
 
         self.kit_combinations = sorted(list(self.kit_combinations))
-        protocols = [(p.id, p.name) for p in db.protocols.find(limit=None, sort_by="name")[0]]
+        protocols = [(p.id, p.name) for p in db.session.get_all(Q.protocol.select(), order_by=models.Protocol.name.desc(), limit=None)]
         protocol_mapping = dict(protocols)
     
         for i, combination in enumerate(self.kit_combinations):
@@ -76,7 +77,7 @@ class ProtocolMappingForm(MultiStepForm):
             choices = [(-1, "Unknown")]
 
             for _, row in self.protocols[self.protocols["identifiers"] == combination].iterrows():
-                protocol = db.protocols[int(row["protocol_id"])]
+                protocol = db.session.get_one(Q.protocol.select(id=int(row["protocol_id"])))
                 protocol_id = row["protocol_id"]
                 choices.append((protocol_id, f"{protocol.name}"))
 

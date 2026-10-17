@@ -1,4 +1,5 @@
 from flask import Response, url_for, flash
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 from wtforms import SelectField
 
@@ -47,10 +48,10 @@ class ReseqLibrariesForm(MultiStepForm):
             return self.make_response()
         
         for _, row in self.library_table.iterrows():
-            if (library := db.libraries.get(row["library_id"])) is None:
+            if (library := db.session.first(Q.library.select(id=row["library_id"]))) is None:
                 logger.error(f"{self.uuid}: Library with ID {row['library_id']} not found")
-                raise exceptions.ElementDoesNotExist(f"{self.uuid}: Library with ID {row['library_id']} not found")
-            db.libraries.clone(
+                raise exceptions.NotFoundException(f"{self.uuid}: Library with ID {row['library_id']} not found")
+            db.actions.clone_library(
                 library_id=library.id,
                 indexed=True if self.reprep_type.data == "indexed" else False,
                 seq_request_id=library.seq_request_id,
@@ -60,13 +61,13 @@ class ReseqLibrariesForm(MultiStepForm):
         flash("Libraries Cloned!", "success")
         
         if (seq_request_id := self.metadata.get("seq_request_id")) is not None:
-            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+            if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
                 logger.error(f"{self.uuid}: SeqRequest not found")
                 raise ValueError(f"{self.uuid}: SeqRequest not found")
-            return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
+            return make_response(redirect=url_for("seq_request_page", seq_request_id=seq_request.id))
             
         if (lab_prep_id := self.metadata.get("lab_prep_id")) is not None:
-            if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+            if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
                 logger.error(f"{self.uuid}: LabPrep not found")
                 raise ValueError(f"{self.uuid}: LabPrep not found")
             return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep.id))

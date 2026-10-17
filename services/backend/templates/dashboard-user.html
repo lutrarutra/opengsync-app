@@ -1,0 +1,51 @@
+
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/workflow_tile.jinja2" import workflow_tile with context %}
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+
+{% extends "base.html" %}
+{% set active_page = "dashboard-page" %}
+{% block content %}
+<div class="page-content dash-container">
+    <div class="dash">
+        <div class="dash-left">
+            <div class="dash-top dash-component-container">
+                <div class="dash-component-header">
+                    <div class="dash-component-title-container">
+                        <h4>Recent Sequencing Requests<span id="dash-count-seq-requests"></span></h4>
+                    </div>
+                </div>
+                <div class="dash-component-content">
+                    <div class="banner-container" hx-get="{{ url_for('render_seq_request_feed') }}" hx-trigger="load once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-right">
+            <div class="dash-top dash-component-container">
+                <div class="dash-component-header">
+                    <div class="dash-component-title-container">
+                        <h4>Recent Projects<span id="dash-count-projects"></span></h4>
+                    </div>
+                </div>
+                <div class="dash-component-content">
+                    <div class="banner-container" hx-get="{{ url_for('render_project_feed') }}" hx-trigger="load once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+            </div>
+            <div class="dash-bottom dash-component-container">
+                <div class="dash-component-header">
+                    <h4>Workflows</h4>
+                </div>
+                <div class="dash-component-content">
+                    <div class="workflow-tiles">
+                        {{ workflow_tile("Create Sequencing Request", "Create a new sequencing request.", url_for('SeqRequestForm.Create'), modal="xl", img="select.svg") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

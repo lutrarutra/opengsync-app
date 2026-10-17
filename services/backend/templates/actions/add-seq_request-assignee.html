@@ -1,0 +1,20 @@
+<div class="modal-content" id="add-seq_request-assignee-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Add Assignee</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id="add-seq_request-assignee-form">
+        {{ form.user_id.render() }}
+        {{ form.csrf_token.render() }}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#add-seq_request-assignee-form" hx-target="#add-seq_request-assignee-form-container" hx-swap="outerHTML"
+                hx-post="{{ form.post_url }}">Process</button>
+        </div>
+    </div>
+</div>

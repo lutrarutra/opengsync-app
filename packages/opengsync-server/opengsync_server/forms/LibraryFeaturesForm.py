@@ -1,10 +1,12 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import FeatureType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .. import logger, db, tools
 from ..tools.spread_sheet_components import TextColumn, CategoricalDropDown, DropdownColumn, DuplicateCellValue, InvalidCellValue, MissingCellValue
@@ -20,7 +22,7 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.library = library
         self._context["library"] = library
 
-        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.ANTIBODY)[0]}
+        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.feature_kit.select(type=FeatureType.ANTIBODY), order_by=models.FeatureKit.name.desc(), limit=None)}
 
         columns = [
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
@@ -31,7 +33,9 @@ class LibraryFeaturesForm(HTMXFlaskForm):
             DropdownColumn("read", "Read", 100, choices=["R2", "R1"]),
         ]
 
-        df = db.pd.get_library_features(library.id).rename(columns={
+        df = T.library_features(
+            db.session.get_pandas(Q.pd.library_features(library.id), limit=None)
+        ).rename(columns={
             "feature_name": "feature",
             "kit_identifier": "kit",
         })
@@ -63,8 +67,10 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.df["kit_id"] = pd.Series([None] * len(self.df), dtype="Int64")
         self.df["feature_id"] = None
         for identifier in kit_identifiers:
-            kit = db.feature_kits[identifier]
-            kit_df = db.pd.get_feature_kit_features(kit.id)
+            kit = db.session.get_one(Q.feature_kit.select(identifier=identifier))
+            kit_df = db.session.get_pandas(
+                Q.pd.feature_kit_features(kit.id), limit=None
+            )
             self.kits[identifier] = (kit, kit_df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
 
@@ -166,21 +172,18 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.library.features = []
         for _, row in self.df.iterrows():
             if pd.notna(row["feature_id"]):
-                if (feature := db.features.get(int(row["feature_id"]))) is None:
+                if (feature := db.session.first(Q.feature.select(id=int(row["feature_id"])))) is None:
                     raise Exception(f"Feature '{row['feature']}' not found in kit '{row['kit_id']}'")
                 self.library.features.append(feature)
             else:
-                feature = db.features.create(
+                self.library.features.append(Q.feature.create(
                     identifier=row["identifier"],
                     name=row["feature"],
                     sequence=row["sequence"],
                     pattern=row["pattern"],
                     read=row["read"],
                     type=FeatureType.ANTIBODY
-                )
-                self.library.features.append(feature)
-
-        db.libraries.update(self.library)
+                ))
 
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("libraries_page.library", library_id=self.library.id))

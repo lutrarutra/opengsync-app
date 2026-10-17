@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db, logger
 from ...core import wrappers, exceptions
@@ -16,15 +16,15 @@ def projects():
 
 @wrappers.page_route(projects_page_bp, "projects", db=db, cache_timeout_seconds=360)
 def project(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_level = db.session.get_access_level(Q.project.permissions(project.id, current_user.id))
+    if access_level < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Projects", url_for("projects_page.projects")),
+        ("Projects", url_for("project_pages")),
         (f"Project {project_id}", ""),
     ]
 
@@ -32,14 +32,14 @@ def project(current_user: models.User, project_id: int):
         page, id = _from.split("@")
         if page == "user":
             path_list = [
-                ("Users", url_for("users_page.users")),
-                (f"User {id}", url_for("users_page.user", user_id=id)),
+                ("Users", url_for("user_pages")),
+                (f"User {id}", url_for("user_page", user_id=id)),
                 (f"Project {project_id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"Project {project_id}", ""),
             ]
 

@@ -1,0 +1,145 @@
+{% from "components/spinner.jinja2" import spinner %}
+
+{% macro way_note(way) %}
+{%- if way.automatic -%}
+⚙ automatic: {{ way.operation.label | lower }}
+{%- elif not way.started_here -%}
+↗ on the {{ way.operation.subject.label | lower if way.operation.subject else "related" }} page: {{ way.operation.label }}
+{%- elif not way.available -%}
+{{ way.operation.label }} (not possible yet)
+{%- else -%}
+{{ way.operation.label }}
+{%- endif -%}
+{% endmacro %}
+
+<div class="status-tab py-2" id="status-tab-{{ entity_name }}-{{ obj.id }}">
+
+    {# ── Where it is and what's next (read only: actions are started from the page itself) ── #}
+    <section class="status-now position-relative border rounded-3 bg-body-tertiary px-3 py-3 mb-4" aria-label="Current status">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="status-current badge rounded-pill text-bg-primary fs-6 fw-semibold px-3 py-2">{{ report.status.display_name if report.status is not none else "No status" }}</span>
+            {% if report.next_title %}
+            <span class="text-muted fs-5" aria-hidden="true">→</span>
+            <span class="status-next-title badge rounded-pill bg-body text-primary border border-primary fs-6 fw-normal px-3 py-2" style="border-style: dashed !important;" title="Next">{{ report.next_title }}</span>
+            {% else %}
+            <span class="text-success ms-1">✓ nothing left to do{% if report.route %} on this route{% endif %}</span>
+            {% endif %}
+        </div>
+
+        {% if report.route %}
+        <div class="dropdown status-route position-absolute top-0 end-0 mt-2 me-2">
+            <a class="status-route-toggle link-secondary" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false"
+                title="Route: {{ report.route.label }} ({{ 'inferred' if report.route_inferred else 'pinned' }})"><i class="bi bi-gear"></i><span class="visually-hidden">Route</span></a>
+            <ul class="dropdown-menu dropdown-menu-end small">
+                <li><h6 class="dropdown-header">Route</h6></li>
+                {% set choices = [("", "Infer from submission type", report.route_inferred)] %}
+                {% for route in routes %}{% set _ = choices.append((route.id, route.label, not report.route_inferred and route.id == report.route.id)) %}{% endfor %}
+                {% for value, label, active in choices %}
+                {% if loop.index == 2 %}<li><hr class="dropdown-divider"></li>{% endif %}
+                <li>
+                    <form hx-post="{{ url_for('set_route', obj_id=obj.id) }}">
+                        <input type="hidden" name="route" value="{{ value }}">
+                        <button type="submit" class="dropdown-item d-flex gap-2 {{ 'active' if active }}" {% if active %}aria-current="true"{% endif %}>
+                            <span style="width: 1em;">{{ "✓" if active }}</span>{{ label }}{% if not value and report.route_inferred %} <span class="text-muted">({{ report.route.label }})</span>{% endif %}
+                        </button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <ol class="status-steps list-unstyled d-flex gap-1 mt-3 mb-0" aria-label="Steps">
+            {% for step in report.steps %}
+            {% set color = {"done": "bg-success", "current": "bg-primary", "skipped": "bg-secondary opacity-25"}.get(step.state, "bg-secondary-subtle") %}
+            <li class="status-step status-step-{{ step.state }} flex-fill" style="min-width: 0;" title="{{ step.step.label }}{% if step.step.optional %} (optional){% endif %}: {{ step.state }}">
+                <div class="rounded-pill {{ color }}" style="height: 6px;"></div>
+                <div class="small text-truncate mt-1 {{ {'done': 'text-success', 'current': 'text-primary fw-semibold', 'skipped': 'text-muted text-decoration-line-through'}.get(step.state, 'text-muted') }}">
+                    {%- if step.state == "done" %}✓ {% endif %}{{ step.step.label }}</div>
+            </li>
+            {% endfor %}
+        </ol>
+        {% endif %}
+
+        {# what the next step waits for: counts as progress bars, other conditions as one line each #}
+        {# ways started on this page are not listed: the tab only shows where the record is, the page starts the action #}
+        {% set notes = (report.next_ways | selectattr("automatic") | list) + (report.next_ways | rejectattr("automatic") | rejectattr("started_here") | list) %}
+        {% if report.next_blockers or notes %}
+        <div class="status-waiting mt-3 d-flex flex-column gap-1 small">
+            {% for blocker in report.next_blockers %}
+            {% if blocker.of %}
+            <div class="status-blocker d-flex align-items-center gap-2">
+                <span class="text-nowrap" style="width: 6.5rem;">{{ blocker.relation.child.label_plural }}</span>
+                <div class="progress flex-grow-1" style="height: 8px; max-width: 280px;" role="progressbar" aria-valuenow="{{ blocker.done }}" aria-valuemin="0" aria-valuemax="{{ blocker.of }}">
+                    <div class="progress-bar bg-success" style="width: {{ (100 * blocker.done / blocker.of) | round(1) }}%"></div>
+                </div>
+                <span class="text-nowrap">{{ blocker.done }}/{{ blocker.of }}</span>
+                <span class="text-muted text-truncate" title="{{ blocker.text }}">· {{ blocker.breakdown }} still</span>
+                {% if blocker.sample_ids %}
+                <a class="text-nowrap" data-bs-toggle="collapse" href="#blocker-{{ obj.id }}-{{ loop.index }}" role="button">ids</a>
+                {% endif %}
+            </div>
+            {% if blocker.sample_ids %}
+            <div class="collapse text-muted" id="blocker-{{ obj.id }}-{{ loop.index }}">{{ blocker.sample_ids | join(", ") }}{% if blocker.count > blocker.sample_ids | length %}, …{% endif %}</div>
+            {% endif %}
+            {% else %}
+            <div class="status-blocker"><span class="text-muted">⏳</span> {{ blocker.text }}</div>
+            {% endif %}
+            {% endfor %}
+            {% for way in notes %}
+            <div class="text-muted" {% if way.automatic and way.operation.reason %}title="once {{ way.operation.reason_hint }}"{% endif %}>{{ way_note(way) }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    {% if board %}
+    {# ── Kanban of the contents (requests of a project, pools of an experiment, libraries of a lab prep) ── #}
+    {% include "components/status/kanban.html" %}
+    {% else %}
+    {# ── State chart: statuses as cards, actions as edges (React Flow) ── #}
+    <section class="mb-3" aria-label="Status chart">
+        <div class="status-chart border rounded" id="status-chart-{{ entity_name }}-{{ obj.id }}" style="min-height: 120px;">
+            <div class="p-3 small text-muted">Loading the status chart…</div>
+        </div>
+        <div class="status-chart-legend d-flex flex-wrap gap-3 small text-muted mt-1">
+            <span><span class="badge text-bg-primary">&nbsp;</span> current status</span>
+            <span><span style="display:inline-block;width:22px;border-top:3px solid #495057;vertical-align:middle"></span> path taken</span>
+            <span><span style="display:inline-block;width:22px;border-top:3px solid #198754;vertical-align:middle"></span> possible now</span>
+            <span><span style="display:inline-block;width:22px;border-top:2px dashed #0d6efd;vertical-align:middle"></span> automatic</span>
+            <span><span style="display:inline-block;width:22px;border-top:2px dotted #dc3545;vertical-align:middle"></span> blocked</span>
+            <span><span style="display:inline-block;width:22px;border-top:2px solid #6c757d;vertical-align:middle"></span> from another page</span>
+            <span>hover an action for details</span>
+        </div>
+        <script type="module">
+            import { mountStatusGraph } from "{{ url_for('static', filename='js/status-graph.js') }}";
+            const container = document.getElementById("status-chart-{{ entity_name }}-{{ obj.id }}");
+            mountStatusGraph(container, "{{ url_for('render_statechart', entity=entity_name, obj_id=obj.id) }}")
+                .catch((err) => {
+                    console.warn("Status chart not available:", err);
+                    container.innerHTML = '<div class="p-3 small text-muted">The status chart could not be loaded.</div>';
+                });
+        </script>
+    </section>
+    {% endif %}
+
+    {# ── More ────────────────────────────────────────────────────────────────── #}
+    {% if report.other_ways %}
+    <details class="mb-2">
+        <summary class="text-muted small">Other status changes ({{ report.other_ways | length }})</summary>
+        <ul class="list-unstyled small mt-2 mb-0">
+            {% for way in report.other_ways %}
+            <li class="status-way d-flex align-items-center gap-2 py-1" data-operation="{{ way.operation.id }}">
+                <span class="text-muted text-nowrap">→ {{ way.destinations | map(attribute="display_name") | join(" / ") }}</span>
+                <span class="text-muted">{{ way_note(way) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </details>
+    {% endif %}
+
+    <details>
+        <summary class="text-muted small">History</summary>
+        <div class="mt-2" hx-get="{{ url_for('render_history', entity=entity_name, obj_id=obj.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            {{ spinner() }}
+        </div>
+    </details>
+</div>

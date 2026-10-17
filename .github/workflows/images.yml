@@ -1,0 +1,332 @@
+name: Container images
+
+# PRs into main: run tests and build changed images, push nothing.
+# Push to main: test, then publish changed images as :main and :sha-<short>.
+# Tag v*.*.*: test, then publish every image as :<tag> and :latest.
+# Production deploys :latest, so only a release tag reaches it.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      worker: ${{ steps.filter.outputs.worker }}
+      postgres: ${{ steps.filter.outputs.postgres }}
+      migrator: ${{ steps.filter.outputs.migrator }}
+      nginx: ${{ steps.filter.outputs.nginx }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      # PEP 440 version baked into the images: `2.0.0` on the v2.0.0 tag,
+      # `2.0.0.post3+gabc1234` three commits after it.
+      - name: Version
+        id: version
+        run: |
+          desc=$(git describe --tags --match 'v*' 2>/dev/null || echo "v0.0.0-0-g${GITHUB_SHA::7}")
+          if [[ "$desc" =~ ^v(.+)-([0-9]+)-g([0-9a-f]+)$ ]]; then
+            version="${BASH_REMATCH[1]}.post${BASH_REMATCH[2]}+g${BASH_REMATCH[3]}"
+          else
+            version="${desc#v}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      # Releases rebuild everything, so tag pushes skip the filter and every
+      # output is empty; the jobs below check github.ref_type instead.
+      - uses: dorny/paths-filter@v3
+        if: github.ref_type != 'tag'
+        id: filter
+        with:
+          # On pushes, diff against the previous commit of the branch rather
+          # than the merge-base with the default branch. PRs use the PR's files.
+          base: ${{ github.ref }}
+          filters: |
+            backend:
+              - "services/backend/**"
+              - "packages/opengsync-db/**"
+              - "packages/opengsync-worker/**"
+              - "services/db/**"
+              - "services/pytest/**"
+              - "compose.test.yaml"
+              - "uv.lock"
+              - "pyproject.toml"
+              - ".github/workflows/images.yml"
+            worker:
+              - "services/backend/Dockerfile"
+              - "packages/opengsync-worker/**"
+              - "packages/opengsync-db/**"
+              - "uv.lock"
+              - "pyproject.toml"
+              - ".github/workflows/images.yml"
+            postgres:
+              - "services/db/Dockerfile"
+              - "services/db/entrypoint.sh"
+              - "services/db/postgresql.prod.conf"
+              - "services/db/pgbackrest.conf"
+              - "services/db/init.sh"
+              - ".github/workflows/images.yml"
+            # Only migrations change what `alembic upgrade head` does; env.py's
+            # opengsync_db import is only used by --autogenerate.
+            migrator:
+              - "services/db/alembic/**"
+              - "services/backend/Dockerfile"
+              - ".github/workflows/images.yml"
+            nginx:
+              - "services/nginx/**"
+              - "services/backend/static/**"
+              - ".github/workflows/images.yml"
+
+  # Runs whenever backend inputs change, and always for a release tag.
+  test:
+    needs: changes
+    if: github.ref_type == 'tag' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run pytest
+        run: docker compose -f compose.test.yaml up --build --abort-on-container-exit --exit-code-from opengsync-pytest
+      - name: Tear down
+        if: always()
+        run: docker compose -f compose.test.yaml down -v
+
+  # Every image job needs a passing (or, when backend inputs didn't change,
+  # skipped) test run, so a failing release tag publishes nothing and :latest
+  # never moves for some images but not others. PRs build without pushing.
+  publish-backend:
+    needs: [changes, test]
+    if: >-
+      !cancelled()
+      && needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync FastAPI backend
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/backend/Dockerfile
+          target: opengsync-app
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.changes.outputs.version }}
+
+  publish-worker:
+    needs: [changes, test]
+    if: >-
+      !cancelled()
+      && needs.changes.result == 'success'
+      && (needs.test.result == 'success' || needs.test.result == 'skipped')
+      && (github.ref_type == 'tag' || needs.changes.outputs.worker == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/worker
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync Taskiq worker and scheduler
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/backend/Dockerfile
+          target: celery-worker
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.changes.outputs.version }}
+
+  # Postgres + pgBackRest. The image is validated by building it (pgBackRest
+  # is installed and run at build time).
+  publish-postgres:
+    needs: [changes, test]
+    if: >-
+      !cancelled()
+      && needs.changes.result == 'success'
+      && (needs.test.result == 'success' || needs.test.result == 'skipped')
+      && (github.ref_type == 'tag' || needs.changes.outputs.postgres == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/postgres
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=PostgreSQL with pgBackRest for opengsync
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/db/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Nginx reverse proxy: a thin nginx layer with static assets baked in.
+  publish-nginx:
+    needs: [changes, test]
+    if: >-
+      !cancelled()
+      && needs.changes.result == 'success'
+      && (needs.test.result == 'success' || needs.test.result == 'skipped')
+      && (github.ref_type == 'tag' || needs.changes.outputs.nginx == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/nginx
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync nginx reverse proxy
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/nginx/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Alembic migrator. Its filter is a subset of the backend filter, so the
+  # test suite always runs first; a bad migration is the one artifact that can
+  # damage data. Release tags rebuild it like every other image, so compose
+  # can pull migrator:${APP_VERSION} alongside the rest.
+  publish-migrator:
+    needs: [changes, test]
+    if: >-
+      !cancelled()
+      && needs.test.result == 'success'
+      && (github.ref_type == 'tag' || needs.changes.outputs.migrator == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/migrator
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=opengsync Alembic migrator
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/backend/Dockerfile
+          target: migrator
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.changes.outputs.version }}

@@ -1,0 +1,18 @@
+{% from "components/metadata_group.jinja2" import metadata_group %}
+
+<div class="row">
+    {{ metadata_group("Total Sequenced Reads", "%.2f" % (library.get_num_sequenced_reads() / 1_000_000), class="col-3", unit="M") }}
+    {{ metadata_group("Flowcell %", "%.2f" % (library.get_num_sequenced_reads() / library.experiment.get_demultiplexed_reads() * 100.0), class="col-3", unit="%") }}
+</div>
+
+<div class="row">
+    {% for read_quality in library.read_qualities %}
+    {{ metadata_group("Reads Lane " ~ read_quality.lane, "%.2f" % (read_quality.num_reads / 1_000_000), class="col-3", unit="M") }}
+    {% endfor %}
+</div>
+
+<h5>Per Lane Stats</h5>
+{{ per_lane_stats_ss.render() }}
+
+<h5>Average Stats</h5>
+{{ average_stats_ss.render() }}

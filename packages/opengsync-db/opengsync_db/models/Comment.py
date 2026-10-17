@@ -19,15 +19,15 @@ class Comment(Base):
     text: Mapped[str] = mapped_column(sa.Text, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     
-    file_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True)
+    file_id: Mapped[int | None] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True)
     file: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[file_id])
 
     author_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     author: Mapped["User"] = relationship("User", lazy="joined")
 
-    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
-    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    seq_request_id: Mapped[int | None] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
+    experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
+    lab_prep_id: Mapped[int | None] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
 
     @property
     def timestamp(self) -> datetime:

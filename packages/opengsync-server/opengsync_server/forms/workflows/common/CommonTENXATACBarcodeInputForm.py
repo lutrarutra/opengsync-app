@@ -3,12 +3,12 @@ import pandas as pd
 
 from flask import url_for
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryType, IndexType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ....core import exceptions
 from ....core.RunTime import runtime
-from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown
 from .... import logger, tools, db
 from ....tools import utils
@@ -133,7 +133,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         
         self.post_url = url_for(f"{workflow}_workflow.upload_tenx_atac_barcode_form", uuid=self.uuid, **self.url_context)
 
-        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.TENX_ATAC_INDEX])[0]}
+        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.index_kit.select(type=IndexType.TENX_ATAC_INDEX).order_by(models.IndexKit.name.asc()), limit=None)}
 
         columns = [
             TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
@@ -181,13 +181,18 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         self.df["kit_id"] = None
         kits: dict[str, tuple[models.IndexKit, pd.DataFrame]] = {}
         for identifier in kit_identifiers:
-            kit = db.index_kits[identifier]
+            kit = db.session.get_one(Q.index_kit.select(identifier=identifier))
 
             if kit.type != IndexType.TENX_ATAC_INDEX:
                 logger.error(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")
                 raise exceptions.InternalServerErrorException(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")
             
-            df = db.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
+            df = T.index_kit_barcodes(
+                db.session.get_pandas(Q.pd.index_kit_barcodes(kit.id), limit=None),
+                per_adapter=False,
+                per_index=True,
+            )
+            df = T.index_kit_barcodes_per_index(df, kit.type)
             kits[identifier] = (kit, df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
 

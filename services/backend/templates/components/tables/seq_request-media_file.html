@@ -1,0 +1,53 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+<div id="media_file-table" class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        {{ table_col("media_file-table", table, "id") }}
+        {{ table_col("media_file-table", table, "name") }}
+        {{ table_col("media_file-table", table, "type") }}
+        {{ table_col("media_file-table", table, "uploader") }}
+        {{ table_col("media_file-table", table, "size_bytes") }}
+        {{ table_col("media_file-table", table, "timestamp_utc") }}
+      </tr>
+    </thead>
+    <tbody>
+      {% for file in files %}
+      <tr>
+        <th scope="row">{{ file.id }}</th>
+        <td class="cm-callback"
+        {{
+            context_menu([
+                {"type": "copy", "value": file.basename, "label": "Copy Name"},
+                {"type": "hxdelete", "label": "Delete File", "disabled": access_level < C.AccessLevel.WRITE, "config": {
+                    "url": url_for('delete_media_file', media_file_id=file.id).__str__(),
+                    "target": "#media_file-table",
+                    "title": "Delete {file.basename}?".format(file=file)
+                },},
+            ])
+        }}>
+            <span class="x-scroll">
+                <span class="scroll-container">
+                    <a href="{{ url_for('serve_media_file', media_file_id=file.id) }}" target="_blank" rel="noopener noreferrer">
+                        {{ file.basename }}
+                    </a>
+                </span>
+            </span>
+        </td>
+        <td>{{ file.type.display_name }}</td>
+        <td>{{ file.uploader.name }}</td>
+        <td>{{ file.size_bytes | filesize }}</td>
+        <td>{{ file.timestamp_utc | format_datetime }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {{ pagination("media_file-table", table) }}
+  <script>
+    $(document).ready(function() {
+        const table = new HTMXTable("#media_file-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+    });
+  </script>
+</div>

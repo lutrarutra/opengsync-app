@@ -1,0 +1,31 @@
+<div class="modal-content" id="sequencer-loading-checklist-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Create Sequencer Loading Checklist</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="sequencer-loading-checklist-form">
+            {{ form.csrf_token.render() }}
+            {{ form.render_general_errors() }}
+
+            {% for subform in form.parameters %}
+            <div class="row">
+                {{ subform.param_label.render("col-6") }}
+                {{ subform.param_value.render("col-6") }}
+                {{ subform.var_name.render() }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success"
+            hx-include="#sequencer-loading-checklist-form" hx-target="#sequencer-loading-checklist-form-container" hx-swap="outerHTML"
+            hx-post="{{ url_for('GenerateSequencerLoadingChecklistAction.Submit', experiment_id=form.experiment.id) }}">Submit</button>
+        </div>
+    </div>
+</div>

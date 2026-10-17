@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import KitType
 
 from ... import db, logic, forms
@@ -24,15 +24,12 @@ def query():
     if (word := request.form.get(field_name, default="")) is None:
         raise exceptions.BadRequestException()
 
-    if (word := request.form.get(field_name)) is None:
-        raise exceptions.BadRequestException()
-
-    results = db.kits.query(word, kit_type=KitType.FEATURE_KIT)
+    kits = db.session.get_all(Q.feature_kit.search(name=word, identifier=word))
 
     return make_response(
         render_template(
             "components/search/feature_kit.html",
-            results=results,
+            results=kits,
             field_name=field_name
         )
     )
@@ -46,7 +43,7 @@ def get_features(current_user: models.User):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -60,9 +57,9 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, feature_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
-    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+    if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -76,10 +73,10 @@ def edit(current_user: models.User, feature_kit_id: int):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_features(current_user: models.User, feature_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
-    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+    if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -96,13 +93,13 @@ def edit_features(current_user: models.User, feature_kit_id: int):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, feature_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
-    if (kit := db.feature_kits.get(feature_kit_id)) is None:
+    if (kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
     
-    db.feature_kits.delete(kit)
+    db.session.delete(kit, flush=True)
 
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits"))
@@ -110,11 +107,13 @@ def delete(current_user: models.User, feature_kit_id: int):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db)
 def render_table(feature_kit_id: int):
-    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+    if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit.id)
-    df = df.drop(columns=["type", "type_id"])
+    df = db.session.get_pandas(
+        Q.pd.feature_kit_features(feature_kit.id), limit=None
+    )
+    df = df.drop(columns=["type"])
 
     columns = []
     for i, col in enumerate(df.columns):

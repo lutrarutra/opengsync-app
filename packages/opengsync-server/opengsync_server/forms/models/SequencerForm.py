@@ -1,4 +1,5 @@
 from typing import Optional
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -32,7 +33,7 @@ class SequencerForm(HTMXFlaskForm):
 
     def __fill_form(self, sequencer: models.Sequencer):
         self.name.data = sequencer.name
-        self.model.data = sequencer.model_id
+        self.model.data = sequencer.model.id
         self.ip_address.data = sequencer.ip
 
     def validate(self, sequencer: Optional[models.Sequencer]) -> bool:
@@ -41,12 +42,12 @@ class SequencerForm(HTMXFlaskForm):
         
         # Editing existing sequencer
         if sequencer is not None:
-            if (_ := db.sequencers.get(sequencer.id)) is None:
+            if (_ := db.session.first(Q.sequencer.select(id=sequencer.id))) is None:
                 logger.error(f"Sequencer with id {sequencer.id} does not exist.")
                 return False
             
             if self.name.data is not None:
-                if (temp := db.sequencers.get_with_name(self.name.data)) is not None:
+                if (temp := db.session.first(Q.sequencer.select(name=self.name.data))) is not None:
                     if temp.id != sequencer.id:
                         self.name.errors = ("You already have a sequencer with this name.",)
                         return False
@@ -54,18 +55,18 @@ class SequencerForm(HTMXFlaskForm):
         # Creating new sequencer
         else:
             if self.name.data is not None:
-                if db.sequencers.get_with_name(self.name.data) is not None:
+                if db.session.first(Q.sequencer.select(name=self.name.data)) is not None:
                     self.name.errors = ("You already have a sequencer with this name.",)
                     return False
 
         return True
     
     def __create_new_sequencer(self) -> Response:
-        sequencer = db.sequencers.create(
+        sequencer = db.session.save(Q.sequencer.create(
             name=self.name.data,  # type: ignore
             model=SequencerModel.get(self.model.data),
             ip=self.ip_address.data,
-        )
+        ))
 
         flash(f"Sequencer '{sequencer.name}' created.", "success")
 
@@ -75,10 +76,10 @@ class SequencerForm(HTMXFlaskForm):
         sequencer.name = self.name.data  # type: ignore
         sequencer.ip = self.ip_address.data
         sequencer.model = SequencerModel.get(self.model.data)
-        db.sequencers.update(sequencer)
+        db.session.save(sequencer)
 
         flash("Sequencer updated.", "success")
-        return make_response(redirect=url_for("devices_page.sequencer", sequencer_id=sequencer.id))
+        return make_response(redirect=url_for("sequencer_page", sequencer_id=sequencer.id))
     
     def process_request(self, **context) -> Response:
         sequencer: Optional[models.Sequencer] = context.get("sequencer")

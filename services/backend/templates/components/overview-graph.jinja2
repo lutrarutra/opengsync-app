@@ -1,0 +1,31 @@
+{# Overview graph (static/js/overview-graph.js) in a full-screen popup: the button goes on the page title line,
+   the popup outside the page header (its stacking context would hide the popup behind the backdrop). #}
+
+{% macro overview_button(id) -%}
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#{{ id }}"
+    title="Samples, libraries, pools and their statuses as a diagram">
+    <i class="bi bi-diagram-3"></i> Overview
+</button>
+{%- endmacro %}
+
+{% macro overview_modal(id, url, title) -%}
+<div class="modal fade overview-modal" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}-title" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="{{ id }}-title"><i class="bi bi-diagram-3"></i> {{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-column p-2" style="overflow: hidden;">
+                <div class="overview-graph" style="position: relative; flex: 1; min-height: 0;">
+                    <div class="spinner-border cemm-blue" role="status"><span class="visually-hidden">Loading...</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module">
+    import { mountOnOpen } from "{{ url_for('static', filename='js/overview-graph.js') }}";
+    mountOnOpen(document.getElementById("{{ id }}"), "{{ url }}");
+</script>
+{%- endmacro %}

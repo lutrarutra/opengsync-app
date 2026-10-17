@@ -40,3 +40,6 @@ scheduler:
     upload_folder_clean_schedule: "0 1 * * *"
     rf_scan_interval_min: 5
     status_update_interval_min: 2
+    # Non-admin users who have not logged in for this many days are deactivated (checked on the schedule below).
+    user_inactivity_days: 365
+    user_deactivation_schedule: "0 2 * * *"

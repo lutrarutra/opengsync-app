@@ -10,6 +10,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
 from ..categories import SampleStatus, SampleStatus, AttributeType, AttributeType
+from ..core.EnumColumn import EnumColumn
+from .. import localize
 from .Base import Base
 from . import links
 
@@ -47,7 +49,7 @@ class Sample(Base):
     
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True)
+    status: Mapped[SampleStatus | None] = mapped_column(EnumColumn[SampleStatus](SampleStatus), nullable=True, name="status_id", key="status", active_history=True)
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
@@ -78,56 +80,44 @@ class Sample(Base):
 
     _attributes: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="attributes")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
-
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+        
         if "library_links" not in orm.attributes.instance_state(self).unloaded:
             return len(self.library_links)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_libraries' attribute.")
         
-        from .Library import Library
-        return session.query(sa.func.count(Library.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Library.id == links.SampleLibraryLink.library_id,
-                    links.SampleLibraryLink.sample_id == self.id
-                )
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(Sample._num_libraries, Sample.num_libraries.expression) "
+                "in your query options."
             )
-        ).scalar()
+        
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library.select(sample_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Library.id == links.SampleLibraryLink.library_id,
-                    links.SampleLibraryLink.sample_id == cls.id
-                )
-            )
+            *Q.library.where_clauses(sample_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    @property
-    def status(self) -> SampleStatus | None:
-        if self.status_id is None:
-            return None
-        return SampleStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: SampleStatus | None):
-        if value is None:
-            self.status_id = None
-        else:
-            self.status_id = value.id
-    
+    _num_libraries: Mapped[int | None] = orm.query_expression()
+
     @property
     def timestamp_stored_str(self) -> str:
-        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
+        return localize(self.timestamp_stored_utc).strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name})"
@@ -174,3 +164,16 @@ class Sample(Base):
         if self._attributes is None or key not in self._attributes:
             raise KeyError(f"Attribute '{key}' does not exist.")
         del self._attributes[key]
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_sample_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_sample_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

@@ -68,10 +68,10 @@ class SampleBP(DBBlueprint):
             )
 
         if status is not None:
-            query = query.where(models.Sample.status_id == status.id)
+            query = query.where(models.Sample.status == status)
 
         if status_in is not None:
-            query = query.where(models.Sample.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.Sample.status.in_(status_in))
 
         if custom_query is not None:
             query = custom_query(query)
@@ -88,7 +88,7 @@ class SampleBP(DBBlueprint):
             name=name.strip(),
             project_id=project_id,
             owner_id=owner_id,
-            status_id=status.id if status is not None else None
+            status=status
         )
 
         self.db.session.add(sample)
@@ -171,7 +171,7 @@ class SampleBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, sample_id: int, flush: bool = True):
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+            raise exceptions.NotFoundException(f"Sample with id {sample_id} does not exist")
         
         self.db.session.delete(sample)
         if flush:
@@ -234,7 +234,7 @@ class SampleBP(DBBlueprint):
             name = type.label
 
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+            raise exceptions.NotFoundException(f"Sample with id '{sample_id}', not found.")
         
         sample.set_attribute(key=name, value=value, type=type)
 
@@ -246,7 +246,7 @@ class SampleBP(DBBlueprint):
         name = name.lower().strip().replace(" ", "_")
 
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+            raise exceptions.NotFoundException(f"Sample with id '{sample_id}', not found.")
         
         attribute = sample.get_attribute(key=name)
         return attribute
@@ -258,10 +258,10 @@ class SampleBP(DBBlueprint):
         name = name.lower().strip().replace(" ", "_")
 
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+            raise exceptions.NotFoundException(f"Sample with id '{sample_id}', not found.")
         
         if sample.get_attribute(key=name) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample attribute with name '{name}' does not exist in sample with id '{sample_id}'.")
+            raise exceptions.NotFoundException(f"Sample attribute with name '{name}' does not exist in sample with id '{sample_id}'.")
         
         sample.delete_sample_attribute(key=name)
 
@@ -272,9 +272,9 @@ class SampleBP(DBBlueprint):
     def get_access_type(self, sample: models.Sample, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
-        if user.is_admin():
+        if user.is_admin:
             return AccessType.ADMIN
-        if user.is_insider():
+        if user.is_insider:
             return AccessType.INSIDER
         if user == sample.owner:
             return AccessType.OWNER
@@ -288,5 +288,5 @@ class SampleBP(DBBlueprint):
     def __getitem__(self, sample_id: int) -> models.Sample:
         """Get a sample by its ID."""
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}' does not exist.")
+            raise exceptions.NotFoundException(f"Sample with id '{sample_id}' does not exist.")
         return sample

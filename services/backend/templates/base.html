@@ -1,0 +1,234 @@
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo/opengsync_128.png') }}" sizes="any" type="image/png">
+
+    <title>{% if title is defined %}{{ title }}{% else %}OpeNGSync{% endif %}</title>
+    <!-- htmx -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+    <script>
+        // CSRF: send the csrf_token cookie back as a header (checked by dependencies.csrf_protect)
+        function csrfToken() {
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+            return match ? decodeURIComponent(match[1]) : null;
+        }
+        document.addEventListener("htmx:configRequest", function (event) {
+            const token = csrfToken();
+            if (token) event.detail.headers["X-CSRF-Token"] = token;
+        });
+    </script>
+    
+    <!-- Sweet Alert 2 -->
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4@4/bootstrap-4.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"/>
+
+    <!-- Custom CSS --> 
+    <link href="{{ url_for('static', filename='style/compiled/style.css') }}" rel="stylesheet" type="text/css"> 
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script>
+        // CSRF for state-changing jQuery requests ($.ajax POSTs, e.g. the plots)
+        $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
+            const token = csrfToken();
+            if (token && !/^(GET|HEAD|OPTIONS)$/i.test(options.type)) jqXHR.setRequestHeader("X-CSRF-Token", token);
+        });
+    </script>
+
+    <!-- hyperscript -->
+    <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    {% if not current_user %}
+    <div style="position: absolute; bottom: 15px; left: 15px; z-index: 1100;">
+        <a href="{{ url_for('help') }}" target="_blank" type="button" style="z-index: 1100;">
+            <img src="{{ url_for('static', filename='images/help.svg') }}" width="26px" style="z-index: 1100;">
+        </a>
+    </div>
+    {% endif %}
+    {% if current_user %}
+        {% set user_role = current_user.role %}
+    {% else %}
+        {% set user_role = none %}
+    {% endif %}
+    {% include "components/navbar.html" %}
+    {% include "components/right_click_menu.html" %}
+    <div id="alert-container"></div>
+    <div id="debug-container"></div>
+    <div id="main-container">
+        <div id="main">
+            <div id="left-margin">
+                {% if path_list is defined and path_list %}
+                <nav id="breadcrumb" aria-label="breadcrumb">
+                    <ol>
+                    {% for name, url in path_list %}
+                        {% if loop.last %}
+                            <li  class="active" aria-current="page">{{name}}</li>
+                        {% else %}
+                            <li><a href="{{ url }}">{{name}}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    </ol>
+                </nav>
+                {% endif %}
+            </div>
+            <div id="middle-container">
+            {% block content %}{% endblock %}
+            </div>
+            <div id="right-margin">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="sm-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false" data-bs-backdrop="static">
+        <div class="modal-dialog modal-sm modal-fullscreen-sm-down modal-dialog-centered" id="sm-modal-content">
+            {{ spinner() }}
+        </div>
+    </div>
+
+    <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
+            {{ spinner() }}
+        </div>
+    </div>
+
+    <div class="modal fade" id="fullscreen-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false" data-bs-backdrop="static">
+        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="fullscreen-modal-content">
+            {{ spinner() }}
+        </div>
+    </div>
+
+    <div id="debug-modal" aria-hidden="true" style="display: none;">
+    </div>
+
+    <div class="toast" id="cookie-toast" role="alert" aria-live="assertive" aria-atomic="true" style="display: none;">
+        <div class="toast-header">
+            <strong class="me-auto">🍪 Cookies Notice</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            This website uses only essential cookies to ensure the proper functionality of the website.
+            We do not use any tracking or marketing cookies.
+            By continuing to use this website, you consent to the use of these essential cookies.
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        function show_frontend_notification(text, category='info') {
+            Swal.fire({
+                position: 'top',
+                icon: category,
+                html: flashToastContent(text),
+                showConfirmButton: false,
+                timer: category === 'error' ? null : 1000,
+                toast: true,
+                showCloseButton: true,
+            });
+        }
+
+        function showOneFlashFromList(messages, index) {
+            if (index >= messages.length) {
+                return;
+            }
+            const msg = messages[index];
+            Swal.fire({
+                position: 'top',
+                icon: msg.category || 'success',
+                html: flashToastContent(msg.message),
+                showConfirmButton: false,
+                timer: msg.category === 'error' || msg.category === 'warning' ? null : 1500,
+                toast: true,
+                showCloseButton: true,
+                willClose: function() {
+                    showOneFlashFromList(messages, index + 1);
+                }
+            });
+        }
+
+        $(document).on("click", "#right-click-bg", function(e) {
+            $("#context-menu-container").css({
+                display: "none"
+            }).children().remove();
+            $("#right-click-bg").css({
+                display: "none"
+            });
+        });
+
+        $(document).keyup(function(e) {
+            if (e.key === "Escape") {
+                $("#context-menu-container").css({
+                    display: "none"
+                }).empty();
+                $("#right-click-bg").css({
+                    display: "none"
+                });
+            }
+        });
+
+        function print_div(id) {
+            var div = document.getElementById(id);
+
+            var win = window.open("", "Print-Window");
+
+            win.document.open();
+            const css = `<link href="{{ url_for('static', filename='style/compiled/style.css') }}" rel="stylesheet" type="text/css">`;
+            win.document.write('<html><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css"></head>' + css + '<body onload="window.print()" class="print-window">' + div.innerHTML + '</body></html>');
+
+            win.document.close();
+
+            setTimeout(function () {
+                win.close();
+            }, 1000);
+        }
+
+        function open_file_tab(file_id, container_id="files-tab") {
+            $(`.nav-tabs button[data-bs-target="#${container_id}"]`).tab('show');
+            $(`.nav-tabs button[data-bs-target="#file-${file_id}-tab"]`).tab('show');
+        }
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/tooltips.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/multiple-select.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/search-select.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/global-search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/libs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jss-query-column.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jss-prompt.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jss-object-column.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/contextmenu.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/reverse_complement.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/confirm_close.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fastapi-table.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/colors.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/clickable-cards.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/callbacks.js') }}"></script>
+    <script id="passkey-config" type="application/json">{{ {
+        "registerOptions": url_for('passkey_register_options') | string,
+        "registerVerify": url_for('passkey_register_verify') | string,
+        "loginOptions": url_for('passkey_login_options') | string,
+        "loginVerify": url_for('passkey_login_verify') | string,
+    } | tojson }}</script>
+    <script src="{{ url_for('static', filename='js/passkey.js') }}"></script>
+    {% if current_user and chat_enabled is defined and chat_enabled %}
+    {% include "components/chat/widget.html" %}
+    {% endif %}
+</body>
+
+</html>

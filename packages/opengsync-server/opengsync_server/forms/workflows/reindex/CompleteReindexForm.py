@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType, BarcodeOrientation
 
 from .... import logger, tools, db
@@ -86,7 +86,7 @@ class CompleteReindexForm(MultiStepForm):
         
         seq_request_ids: set[int] = set()
         for (library_id, index_type_id), _ in self.library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
-            library = db.libraries[int(library_id)]  # type: ignore
+            library = db.session.get_one(Q.library.select(id=int(library_id)))  # type: ignore
 
             seq_request_ids.add(library.seq_request_id)
 
@@ -100,9 +100,9 @@ class CompleteReindexForm(MultiStepForm):
                     logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
                     raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
 
-            library = db.libraries.remove_indices(library_id=library.id)
+            library.indices = []
             library.index_type = index_type
-            db.libraries.update(library)
+            db.session.save(library)
 
             match index_type:
                 case IndexType.TENX_ATAC_INDEX:
@@ -126,15 +126,17 @@ class CompleteReindexForm(MultiStepForm):
                             logger.error(f"{self.uuid}: Missing sequence_{i} for TENX_ATAC_INDEX in library {row['library_name']}.")
                             raise ValueError(f"Missing sequence_{i} for TENX_ATAC_INDEX in library {row['library_name']}.")
                         
-                        library = db.libraries.add_index(
-                            library_id=library.id,
-                            index_kit_i7_id=int(row["kit_id"]) if pd.notna(row["kit_id"]) else None,
-                            index_kit_i5_id=None,
-                            name_i7=row["name"] or None,
-                            name_i5=None,
-                            sequence_i7=row[f"sequence_{i}"],
-                            sequence_i5=None,
-                            orientation=BarcodeOrientation.FORWARD if pd.notna(row["kit_id"]) else None,
+                        library.indices.append(
+                            Q.library_index.create(
+                                library_id=library.id,
+                                index_kit_i7_id=int(row["kit_id"]) if pd.notna(row["kit_id"]) else None,
+                                index_kit_i5_id=None,
+                                name_i7=row["name"] or None,
+                                name_i5=None,
+                                sequence_i7=row[f"sequence_{i}"],
+                                sequence_i5=None,
+                                orientation=BarcodeOrientation.FORWARD if pd.notna(row["kit_id"]) else None,
+                            )
                         )
                 else:
                     if len(df) != 1:
@@ -148,39 +150,43 @@ class CompleteReindexForm(MultiStepForm):
                         if orientation.id != row["orientation_i5_id"]:
                             logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {row['library_name']}.")
                             raise ValueError("Conflicting orientations for i7 and i5.")
-                    library = db.libraries.add_index(
-                        library_id=library.id,
-                        index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row["kit_i7_id"]) else None,
-                        index_kit_i5_id=int(row["kit_i5_id"]) if pd.notna(row["kit_i5_id"]) else None,
-                        name_i7=row["name_i7"] if pd.notna(row["name_i7"]) else None,
-                        name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
-                        sequence_i7=row["sequence_i7"],
-                        sequence_i5=row["sequence_i5"] if pd.notna(row["sequence_i5"]) else None,
-                        orientation=orientation,
+                    
+                    library.indices.append(
+                        Q.library_index.create(
+                            library_id=library.id,
+                            index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row["kit_i7_id"]) else None,
+                            index_kit_i5_id=int(row["kit_i5_id"]) if pd.notna(row["kit_i5_id"]) else None,
+                            name_i7=row["name_i7"] if pd.notna(row["name_i7"]) else None,
+                            name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
+                            sequence_i7=row["sequence_i7"],
+                            sequence_i5=row["sequence_i5"] if pd.notna(row["sequence_i5"]) else None,
+                            orientation=orientation,
+                        )
                     )
+            db.session.save(library)
 
         for seq_request_id in seq_request_ids:
             for context, text in self.get_comments().items():
                 if context == "i7_primer":
-                    db.comments.create(
+                    db.session.save(Q.comment.create(
                         text=f"i7 Primer Sequence: {text}",
-                        author_id=user.id, seq_request_id=seq_request_id
-                    )
+                        author=user, seq_request_id=seq_request_id
+                    ))
                 elif context == "i5_primer":
-                    db.comments.create(
+                    db.session.save(Q.comment.create(
                         text=f"i5 Primer Sequence: {text}",
-                        author_id=user.id, seq_request_id=seq_request_id
-                    )
+                        author=user, seq_request_id=seq_request_id
+                    ))
 
         flash("Libraries Re-Indexed!", "success")
         self.complete()
         
         if self.seq_request is not None:
-            return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id))
+            return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id))
         if self.lab_prep is not None:
             return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))
         if self.pool is not None:
-            return make_response(redirect=url_for("pools_page.pool", pool_id=self.pool.id))
+            return make_response(redirect=url_for("pool_page", pool_id=self.pool.id))
         
         return make_response(redirect=url_for("dashboard"))
         

@@ -1,0 +1,114 @@
+import json
+from typing import Any
+from collections.abc import Sequence
+
+from starlette.datastructures import URL
+from fastapi import Response
+
+from opengsync_db import utils
+
+from .TableCol import TableCol
+from ...core import responses, context
+
+TABLE_PAGE_LIMIT_DEFAULT = 10
+TABLE_PAGE_LIMIT_MIN = 1
+TABLE_PAGE_LIMIT_MAX = 100
+
+
+class HTMXTable:
+    template = ""
+    columns: list[TableCol] = []
+    def __init__(
+        self,
+        route: str,
+        page: int | None = 0,
+        order_by: utils.OrderBy | None = None,
+        limit: int | None = None,
+    ):
+        self.active_search_var: str | None = None
+        self.active_sort_var: str | None = None
+        self.active_sort_descending: bool = False
+        self.active_query_value: str | None = None
+        self.filter_values: dict[str, list] = {}
+        self.route = route
+        self.num_pages: int | None = None
+        self.active_page: int | None = page
+        self.url_params: dict = {}
+        self.context: dict = {}
+        self.limit = self._resolve_limit(limit)
+        self.url_params["limit"] = self.limit
+
+        if order_by is not None:
+            try:
+                attr = getattr(order_by.element, "key", getattr(order_by.element, "name", None))
+                if attr is not None:
+                    self.active_sort_var = attr
+                    is_desc = getattr(order_by.modifier, "__name__", "") == "desc_op"
+                    self.active_sort_descending = is_desc
+                    self.url_params["order_by"] = f"{attr}:{'desc' if is_desc else 'asc'}"
+            except AttributeError:
+                pass
+
+    def _resolve_limit(self, limit: int | None) -> int:
+        request = getattr(context.ctx, "request", None)
+        if request is not None and request.query_params.get("browse") is not None:
+            return TABLE_PAGE_LIMIT_DEFAULT
+        if limit is None and request is not None:
+            raw = request.query_params.get("limit")
+            if raw is not None:
+                try:
+                    limit = int(raw)
+                except (TypeError, ValueError):
+                    limit = None
+        if limit is None:
+            return TABLE_PAGE_LIMIT_DEFAULT
+        return max(TABLE_PAGE_LIMIT_MIN, min(TABLE_PAGE_LIMIT_MAX, limit))
+
+    def __getitem__(self, item: str) -> TableCol:
+        for col in self.columns:
+            if col.label == item:
+                return col
+        raise KeyError(f"Column with label '{item}' not found in table.")
+    
+    @property
+    def url(self) -> URL:
+        return context.ctx.request.url_for(self.route).include_query_params(**self.url_params)
+    
+    def get_state(self) -> dict:
+        state = self.url_params.copy()
+        if self.num_pages is not None:
+            state["page"] = self.active_page
+        if self.active_sort_var is not None:
+            state["order_by"] = f"{self.active_sort_var}:{'desc' if self.active_sort_descending else 'asc'}"
+        if self.active_query_value is not None:
+            state[self.active_search_var] = self.active_query_value
+        if self.filter_values:
+            for key, values in self.filter_values.items():
+                state[key + "_in"] = json.dumps([v.id if v is not None else None for v in values])
+        return state
+    
+    def page_url(self, page: int) -> URL:
+        return context.ctx.request.url_for(self.route).include_query_params(**{**self.url_params, "page": page})
+
+    def set_num_pages(self, count: int, limit: int | None = None) -> None:
+        page_limit = limit if limit is not None else self.limit
+        self.num_pages = (count + page_limit - 1) // page_limit
+
+    def paginate(
+        self,
+        session: Any,
+        statement: Any,
+        page: int,
+        order_by: Any = None,
+        options: Any = None,
+    ) -> Sequence[Any]:
+        rows, count = session.page(
+            statement, page=page, limit=self.limit, order_by=order_by, options=options
+        )
+        self.set_num_pages(count)
+        return rows
+
+    def make_response(self, **kwargs) -> Response:
+        if not self.template:
+            raise ValueError("Template not set for HTMXTable.")
+        return responses.htmx_response(template=self.template, table=self, **{**self.context, **kwargs})

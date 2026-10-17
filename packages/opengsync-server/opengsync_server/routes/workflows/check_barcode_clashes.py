@@ -2,7 +2,8 @@ import pandas as pd
 
 from flask import Blueprint, request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, queries as Q, categories as C
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, logger
 from ...forms.workflows import check_barcode_clashes as wff
@@ -14,7 +15,7 @@ check_barcode_clashes_workflow = Blueprint("check_barcode_clashes_workflow", __n
 
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def begin(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     form = SelectSamplesForm(
@@ -45,7 +46,7 @@ def select():
     }
 
     for _, row in form.library_table.iterrows():
-        if (library := db.libraries.get(int(row["id"]))) is None:
+        if (library := db.session.first(Q.library.select(id=int(row["id"])))) is None:
             logger.error(f"Library {library} not found in database")
             raise Exception("Library not found in database")
         
@@ -59,7 +60,7 @@ def select():
             library_data["index_type_id"].append(index.type.id)
 
     for _, row in form.pool_table.iterrows():
-        if (pool := db.pools.get(int(row["id"]))) is None:
+        if (pool := db.session.first(Q.pool.select(id=int(row["id"])))) is None:
             logger.error(f"Pool {pool} not found in database")
             raise Exception("Pool not found in database")
 
@@ -74,7 +75,7 @@ def select():
                 library_data["index_type_id"].append(index.type.id)
 
     for _, row in form.lane_table.iterrows():
-        if (lane := db.lanes.get(int(row["id"]))) is None:
+        if (lane := db.session.first(Q.lane.select(id=int(row["id"])))) is None:
             logger.error(f"Lane {lane} not found in database")
             raise Exception("Lane not found in database")
 
@@ -95,22 +96,26 @@ def select():
 
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def check_experiment_barcode_clashes(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
 
-    library_df = db.pd.get_experiment_barcodes(experiment_id=experiment.id)
+    library_df = T.experiment_barcodes(
+        db.session.get_pandas(
+            Q.pd.experiment_barcodes(experiment.id), limit=None
+        )
+    )
     return wff.CheckBarcodeClashesForm(library_df, groupby="lane").process_request()
 
 
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < cats.AccessType.VIEW:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < C.AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     library_data = {

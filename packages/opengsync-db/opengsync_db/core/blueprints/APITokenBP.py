@@ -31,10 +31,8 @@ class APITokenBP(DBBlueprint):
         time_valid_min: int,
         flush: bool = True,
     ) -> models.APIToken:
-        token = models.APIToken(
-            owner=owner,
-            time_valid_min=time_valid_min,
-        )
+        from ...queries import api_token
+        token = api_token.create(owner=owner, time_valid_min=time_valid_min)
 
         self.db.session.add(token)
 
@@ -48,12 +46,12 @@ class APITokenBP(DBBlueprint):
             if isinstance(id, int):
                 token = self.db.session.get(models.APIToken, id)
             elif isinstance(id, str):
-                token = self.db.session.query(models.APIToken).filter(models.APIToken.uuid == id).first()
+                token = self.db.session.query(models.APIToken).filter(models.APIToken.token_hash == models.APIToken.hash(id)).first()
         else:
             if isinstance(id, int):
                 token = self.db.session.query(models.APIToken).options(options).filter(models.APIToken.id == id).first()
             elif isinstance(id, str):
-                token = self.db.session.query(models.APIToken).options(options).filter(models.APIToken.uuid == id).first()
+                token = self.db.session.query(models.APIToken).options(options).filter(models.APIToken.token_hash == models.APIToken.hash(id)).first()
         return token
 
     @DBBlueprint.transaction
@@ -110,5 +108,5 @@ class APITokenBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, key: int | str) -> models.APIToken:
         if (token := self.get(key)) is None:
-            raise exceptions.ElementDoesNotExist(f"API Token with ID/UUID '{key}' not found.")
+            raise exceptions.NotFoundException(f"API Token with ID/UUID '{key}' not found.")
         return token

@@ -29,7 +29,7 @@ class FeatureBP(DBBlueprint):
             sequence=sequence.strip(),
             pattern=pattern.strip(),
             read=read.strip(),
-            type_id=type.id,
+            type=type,
             target_name=target_name.strip() if target_name else None,
             target_id=target_id.strip() if target_id else None,
             feature_kit_id=feature_kit_id
@@ -96,7 +96,7 @@ class FeatureBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, feature_id: int, flush: bool = True):
         if (feature := self.db.session.get(models.Feature, feature_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {feature_id} does not exist")
         
         self.db.session.delete(feature)
 
@@ -135,5 +135,5 @@ class FeatureBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.Feature:
         if (feature := self.db.session.get(models.Feature, id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Feature with id {id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {id} does not exist")
         return feature

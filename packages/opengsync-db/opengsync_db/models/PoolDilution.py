@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 from datetime import datetime
 from datetime import timezone
 
@@ -6,6 +6,8 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from opengsync_db import models
+
+from .. import localize
 
 from .Base import Base
 
@@ -28,14 +30,11 @@ class PoolDilution(Base):
     operator: Mapped[models.User] = relationship("User", lazy="select")
 
     qubit_concentration: Mapped[float] = mapped_column(sa.Float)
-    volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-
-    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "pool_id", "timestamp_utc", "operator_id", "qubit_concentration", "volume_ul"]
+    volume_ul: Mapped[float | None] = mapped_column(sa.Float, nullable=True)
 
     def molarity(self, pool: models.Pool) -> float | None:
-        if pool.avg_fragment_size is None:
+        if not pool.avg_fragment_size:
             return None
-        
         return self.qubit_concentration / (pool.avg_fragment_size * 660) * 1_000_000
     
     def molarity_str(self, pool: models.Pool) -> str:
@@ -58,7 +57,7 @@ class PoolDilution(Base):
     
     @property
     def timestamp(self) -> datetime:
-        return self.timestamp_utc
+        return localize(self.timestamp_utc)
 
     def timestamp_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         return self.timestamp.strftime(fmt)
@@ -68,3 +67,7 @@ class PoolDilution(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
+
+    __table_args__ = (
+        sa.UniqueConstraint("pool_id", "identifier", name="uq_pool_dilution_pool_id_identifier"),
+    )

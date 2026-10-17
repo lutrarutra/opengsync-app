@@ -2,7 +2,7 @@ from flask import Blueprint, request, flash, url_for
 from flask_htmx import make_response
 from sqlalchemy import orm
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, logger
 from ...core import wrappers, exceptions
@@ -13,10 +13,10 @@ select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow",
 
 @wrappers.htmx_route(select_experiment_pools_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id), options=orm.selectinload(models.Experiment.pools))) is None:
         raise exceptions.NotFoundException()
     
     context = {"experiment": experiment}
@@ -26,7 +26,7 @@ def begin(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(select_experiment_pools_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     context = {}
@@ -34,7 +34,7 @@ def select(current_user: models.User):
         raise exceptions.BadRequestException()
     try:
         experiment_id = int(experiment_id)
-        if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
+        if (experiment := db.session.first(Q.experiment.select(id=experiment_id), options=orm.selectinload(models.Experiment.pools))) is None:
             raise exceptions.NotFoundException()
         
         experiment.pools
@@ -56,11 +56,11 @@ def select(current_user: models.User):
             logger.error(f"{row['id']} is not a valid pool id")
             raise ValueError("Invalid pool id")
         
-        if (_ := db.pools.get(pool_id)) is None:
+        if (_ := db.session.first(Q.pool.select(id=pool_id))) is None:
             raise exceptions.NotFoundException()
         
         if pool_id not in current_pool_ids:
-            db.links.link_pool_experiment(experiment_id=experiment.id, pool_id=pool_id)
+            db.actions.link_pool_experiment(experiment=experiment, pool=db.session.get_one(Q.pool.select(id=pool_id)))
 
     flash("Pools linked to experiment", "success")
     return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))

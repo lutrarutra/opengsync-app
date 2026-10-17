@@ -27,12 +27,11 @@ class UserBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if role is not None:
-            query = query.where(models.User.role_id == role.id)
+            query = query.where(models.User.role == role)
 
         if role_in is not None:
-            role_ids = [role.id for role in role_in]
             query = query.where(
-                models.User.role_id.in_(role_ids)
+                models.User.role.in_(role_in)
             )
 
         if group_id is not None:
@@ -53,9 +52,9 @@ class UserBP(DBBlueprint):
 
         if insider is not None:
             if insider:
-                query = query.where(models.User.role_id.in_([role.id for role in UserRole.insiders()]))
+                query = query.where(models.User.role.in_(UserRole.insiders()))
             else:
-                query = query.where(models.User.role_id == UserRole.CLIENT.id)
+                query = query.where(models.User.role == UserRole.CLIENT)
 
         if custom_query is not None:
             query = custom_query(query)
@@ -97,7 +96,7 @@ class UserBP(DBBlueprint):
             first_name=first_name.strip(),
             last_name=last_name.strip(),
             password=hashed_password,
-            role_id=role.id,
+            role=role,
         )
         self.db.session.add(user)
         
@@ -228,7 +227,7 @@ class UserBP(DBBlueprint):
             exceptions.ElementDoesNotExist: if user with user_id does not exist
         """
         if (user := self.db.session.get(models.User, user_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+            raise exceptions.NotFoundException(f"User with id {user_id} does not exist")
 
         self.db.session.delete(user)
         if flush:
@@ -254,12 +253,12 @@ class UserBP(DBBlueprint):
 
         if only_insiders:
             query = query.where(
-                models.User.role_id != UserRole.CLIENT.id
+                models.User.role != UserRole.CLIENT
             )
 
         if role_in is not None:
             query = query.where(
-                models.User.role_id.in_([role.id for role in role_in])
+                models.User.role.in_(role_in)
             )
 
         query = query.order_by(
@@ -280,7 +279,7 @@ class UserBP(DBBlueprint):
 
         if role_in is not None:
             query = query.where(
-                models.User.role_id.in_([role.id for role in role_in])
+                models.User.role.in_(role_in)
             )
 
         query = query.order_by(
@@ -306,7 +305,7 @@ class UserBP(DBBlueprint):
 
         if affiliation_type is not None:
             query = query.where(
-                models.links.UserAffiliation.affiliation_type_id == affiliation_type.id
+                models.links.UserAffiliation.affiliation_type == affiliation_type
             )
 
         if sort_by is not None:
@@ -345,11 +344,11 @@ class UserBP(DBBlueprint):
     def __getitem__(self, key: int | str) -> models.User:
         if isinstance(key, int):
             if (user := self.get(key)) is None:
-                raise exceptions.ElementDoesNotExist(f"User with id {key} does not exist")
+                raise exceptions.NotFoundException(f"User with id {key} does not exist")
             return user
         elif isinstance(key, str):
             if (user := self.get_with_email(key)) is None:
-                raise exceptions.ElementDoesNotExist(f"User with email {key} does not exist")
+                raise exceptions.NotFoundException(f"User with email {key} does not exist")
             return user
         else:
             raise TypeError(f"Key must be int or str, got {type(key).__name__}")

@@ -1,0 +1,208 @@
+from passlib.context import CryptContext
+import jwt
+import datetime as dt
+import bcrypt
+import secrets
+
+from loguru import logger
+
+from opengsync_db.categories import UserRole
+from opengsync_db import models
+
+from .config import settings
+from . import exceptions as exc
+
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def hash_api_token(token: str) -> str:
+    return pwd_context.hash(token)
+
+def verify_api_token(token: str, hashed_token: str) -> bool:
+    return pwd_context.verify(token, hashed_token)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def require_secret_key() -> str:
+    """The key that signs every token. Never empty: with an empty key anyone could sign a valid login token."""
+    if not settings.SECRET_KEY.strip():
+        raise RuntimeError("SECRET_KEY is not set: refusing to sign or verify tokens with an empty key.")
+    return settings.SECRET_KEY
+
+def generate_api_token() -> str:
+    return "cf-" + secrets.token_urlsafe(32)
+
+def url_safe_token(length: int = 32) -> str:
+    return secrets.token_urlsafe(length)
+
+def create_password_reset_token(user_id: int, valid_minutes: int = 60 * 24) -> str:
+    issued = dt.datetime.now(settings.TIMEZONE)
+    expire = issued + dt.timedelta(minutes=valid_minutes)
+    payload = {
+        "user_id": user_id,
+        "exp": expire,
+        "iat": issued.timestamp(),
+        "action": "password_reset"
+    }
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
+
+def verify_password_reset_token(
+    token: str,
+    pw_set_datetime: dt.datetime | None = None,
+) -> int | None:
+    try:
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("action") != "password_reset":
+            return None
+        if (
+            pw_set_datetime is not None
+            and not is_login_token_valid_after_password_change(payload, pw_set_datetime)
+        ):
+            return None
+        return payload.get("user_id")
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+    
+def generate_registration_token(email: str, role: UserRole, valid_minutes: int = 60 * 24) -> str:
+    expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(minutes=valid_minutes)
+    payload = {
+        "email": email,
+        "role": role.id,
+        "exp": expire,
+        "action": "registration"
+    }
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
+
+def verify_registration_token(token: str) -> tuple[str, UserRole] | None:
+    try:
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("action") != "registration":
+            return None
+        email = payload.get("email")
+        role_id = payload.get("role")
+        if email is None or role_id is None:
+            return None
+        role = UserRole.get(role_id)
+        if role is None:
+            return None
+        return email, role
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+    
+
+def create_login_token(user: models.User, valid_days: int = 7) -> str:
+    issued = dt.datetime.now(settings.TIMEZONE)
+    expire = issued + dt.timedelta(days=valid_days)
+    payload = {
+        "id": user.id,
+        "exp": expire.timestamp(),
+        "iat": issued.timestamp(),
+        "username": user.email,
+        "role": user.role.id
+    }
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
+
+def validate_login_token(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
+        if (user_id := payload.get("id")) is None:
+            logger.warning("Token missing user ID")
+            raise exc.UserNotAuthenticatedException(message="Invalid token")
+        if (username := payload.get("username")) is None:
+            logger.warning("Token missing username")
+            raise exc.UserNotAuthenticatedException(message="Invalid token")
+        if (role := payload.get("role")) is None:
+            logger.warning("Token missing user role")
+            raise exc.UserNotAuthenticatedException(message="Invalid token")
+    except jwt.ExpiredSignatureError:
+        logger.warning("Token has expired")
+        raise exc.UserNotAuthenticatedException(message="Token has expired")
+    except jwt.InvalidTokenError:
+        logger.warning("Invalid token")
+        raise exc.UserNotAuthenticatedException(message="Invalid token")
+    
+    return {
+        "id": user_id,
+        "username": username,
+        "role": role,
+        "iat": payload.get("iat"),
+    }
+
+
+def is_login_token_valid_after_password_change(
+    payload: dict | None,
+    pw_set_datetime: dt.datetime | None,
+) -> bool:
+    """Return whether a login token was issued after the password changed.
+
+    Tokens created before ``iat`` was added remain valid for users who have
+    never changed their password. Once a password changes, legacy tokens
+    without ``iat`` are rejected.
+    """
+    if payload is None:
+        return False
+    if pw_set_datetime is None:
+        return True
+
+    issued_at = payload.get("iat")
+    if isinstance(issued_at, bool) or not isinstance(issued_at, (int, float)):
+        return False
+
+    if pw_set_datetime.tzinfo is None:
+        pw_set_datetime = pw_set_datetime.replace(
+            tzinfo=dt.timezone.utc,
+        )
+    return issued_at > pw_set_datetime.timestamp()
+
+
+class BcryptCompat:
+    """Drop-in replacement for flask_bcrypt.Bcrypt, compatible with
+    passwords hashed by flask_bcrypt using default settings.
+
+    Defaults: rounds=12, prefix=b'2b', handle_long_passwords=False
+    """
+
+    def __init__(
+        self,
+        rounds: int = 12,
+        prefix: bytes = b"2b",
+        handle_long_passwords: bool = False,
+    ):
+        self._log_rounds = rounds
+        self._prefix = prefix
+        self._handle_long_passwords = handle_long_passwords
+
+    def generate_password_hash(self, password: str, rounds: int | None = None) -> str:
+        if not password:
+            raise ValueError("Password must be non-empty.")
+
+        if rounds is None:
+            rounds = self._log_rounds
+
+        password_bytes = password.encode("utf-8")
+
+        if self._handle_long_passwords:
+            import hashlib
+            password_bytes = hashlib.sha256(password_bytes).hexdigest().encode("utf-8")
+
+        salt = bcrypt.gensalt(rounds=rounds, prefix=self._prefix)
+        return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
+
+    def check_password_hash(self, pw_hash: bytes | str, password: str) -> bool:
+        if isinstance(pw_hash, str):
+            pw_hash = pw_hash.encode("utf-8")
+
+        password_bytes = password.encode("utf-8")
+
+        if self._handle_long_passwords:
+            import hashlib
+            password_bytes = hashlib.sha256(password_bytes).hexdigest().encode("utf-8")
+
+        return bcrypt.checkpw(password_bytes, pw_hash)

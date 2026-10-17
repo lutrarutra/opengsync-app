@@ -28,7 +28,7 @@ class LibraryStatus(ExtendedEnum):
     REMOVED = LibraryStatusEnum(13, "Removed", "🗑️", "Library was removed")
     QC_PENDING = LibraryStatusEnum(14, "QC Pending", "🧪", "Library is awaiting quality control")
     QC_COMPLETED = LibraryStatusEnum(15, "QC Completed", "✅", "Quality control is completed for the library")
-    
+
     @property
     def select_name(self) -> str:
         return self.icon

@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Blueprint, request, Response, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -18,7 +18,7 @@ billing_workflow = Blueprint("billing_workflow", __name__, url_prefix="/workflow
 
 @wrappers.htmx_route(billing_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     return wff.SelectExperimentsForm().make_response()
@@ -26,7 +26,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(billing_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     form = wff.SelectExperimentsForm(formdata=request.form)
@@ -39,7 +39,7 @@ def select(current_user: models.User) -> Response:
 
 @wrappers.resource_route(billing_workflow, methods=["GET"], db=db)
 def download(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     experiment_ids = request.args.get("experiment_ids")
@@ -49,7 +49,7 @@ def download(current_user: models.User) -> Response:
         experiment_ids = json.loads(experiment_ids)
         experiments: list[models.Experiment] = []
         for experiment_id in experiment_ids:
-            if (experiment := db.experiments.get(int(experiment_id))) is None:
+            if (experiment := db.session.first(Q.experiment.select(id=int(experiment_id)))) is None:
                 raise exceptions.NotFoundException(f"Experiment with id {experiment_id} not found")
             experiments.append(experiment)
     except ValueError:

@@ -1,9 +1,11 @@
 from flask import Response, url_for, flash
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 
-from opengsync_db import models, exceptions, categories as cats
+from opengsync_db import models, exceptions, categories as C
+from opengsync_db.core.blueprints import pd_transforms as T
 
-from .... import logger, tools, db
+from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, IntegerColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -29,7 +31,12 @@ class SamplePoolingForm(HTMXFlaskForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
+        sample_table = T.lab_prep_pooling_table(
+            db.session.get_pandas(
+                Q.pd.lab_prep_pooling_table(self.lab_prep.id, include_rejected=True), limit=None
+            ),
+            expand_mux_=False,
+        )
         self.sample_table = sample_table[sample_table["mux_type"].notna()]
         self.mux_table = self.sample_table[["sample_id", "sample_name", "sample_pool"]].drop_duplicates()
 
@@ -61,25 +68,25 @@ class SamplePoolingForm(HTMXFlaskForm):
         old_libraries: dict[int, models.Library] = dict()
 
         for library_id in self.sample_table["library_id"].unique():
-            if (library := db.libraries.get(int(library_id))) is None:
+            if (library := db.session.first(Q.library.select(id=int(library_id)))) is None:
                 logger.error(f"Library {library_id} not found.")
-                raise exceptions.ElementDoesNotExist(f"Library {library_id} not found.")
+                raise exceptions.NotFoundException(f"Library {library_id} not found.")
             
             old_libraries[library.id] = library
             library.sample_links.clear()
-            db.libraries.update(library)
-            db.flush()
-            db.refresh(library)
+            db.session.save(library)
+            db.session.flush()
+            db.session.refresh(library)
         
         libraries: dict[str, models.Library] = dict()
 
         for (new_sample_pool, library_id), _df in self.sample_table.groupby(["new_sample_pool", "library_id"]):
-            old_library = old_libraries[int(library_id)]
+            old_library = db.session.get_one(Q.library.select(id=int(library_id)))  # type: ignore
             library_name = f"{new_sample_pool}_{old_library.type.identifier}" if new_sample_pool != "x" else f"canceled_samples_{old_library.type.identifier}"
             if (new_library := libraries.get(library_name)) is None:
-                new_library = db.libraries.create(
+                new_library = db.session.save(Q.library.create(
                     name=library_name,
-                    sample_name=new_sample_pool,
+                    sample_name=new_sample_pool,  # type: ignore
                     library_type=old_library.type,
                     status=old_library.status,
                     owner_id=old_library.owner_id,
@@ -91,31 +98,32 @@ class SamplePoolingForm(HTMXFlaskForm):
                     nuclei_isolation=old_library.nuclei_isolation,
                     index_type=old_library.index_type,
                     original_library_id=old_library.original_library_id if old_library.original_library_id is not None else None,
-                )
+                    clone_number=old_library.clone_number
+                ))
                 libraries[library_name] = new_library
 
             new_library.features = old_library.features
             if new_sample_pool == "x":
-                new_library.status = cats.LibraryStatus.FAILED
-            db.libraries.update(new_library)
+                new_library.status = C.LibraryStatus.FAILED
+            db.session.save(new_library)
 
             for _, row in _df.iterrows():
-                if (sample := db.samples.get(int(row["sample_id"]))) is None:
+                if (sample := db.session.first(Q.sample.select(id=int(row["sample_id"])))) is None:
                     logger.error(f"Sample {row['sample_id']} not found.")
                     raise Exception(f"Sample {row['sample_id']} not found.")
 
-                db.links.link_sample_library(
+                db.actions.link_sample_library(
                     sample_id=sample.id,
                     library_id=new_library.id,
                     mux=row["mux"],
                 )
 
-        db.flush()
-        db.refresh(self.lab_prep)
+        db.session.flush()
+        db.session.refresh(self.lab_prep)
         for library in self.lab_prep.libraries:
-            db.refresh(library)
+            db.session.refresh(library)
             if len(library.sample_links) == 0:
-                db.libraries.delete(library)
+                db.session.delete(library)
 
         flash("Sample pool annotation processed successfully.", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

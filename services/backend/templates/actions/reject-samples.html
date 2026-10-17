@@ -1,0 +1,49 @@
+<div class="modal-content" id="reject-samples-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Reject Samples</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                {{ form.spreadsheet.render(submit_btn_id="submit-reject-samples-btn", target_element_id="reject-samples-container") }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
+                <div class="help-tab">
+                    <ul>
+                        <li>Specify <b>x</b> in the <b>Reject</b> column for samples that failed. Their status is set to {{ C.SampleStatus.REJECTED.display_name }}.</li>
+                        <li>Rejected samples stay in their library, but are ignored in the following checklist steps (multiplexing preps, prep-table, ...).</li>
+                        <li>To un-reject a sample, clear its <b>x</b>. Its status is set back to {{ C.SampleStatus.STORED.display_name }}.</li>
+                        <li>Rejection applies to the sample everywhere it is used, and its name cannot be re-used in new sequencing requests.</li>
+                        <li>If all samples of a library are rejected, fail the library with <b>x</b> in the prep-table.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-reject-samples-btn" class="btn btn-success">Submit</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,131 @@
+{% from "components/legends.jinja2" import index_badge_legend %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{% macro barcode_clashes_table(df) %}
+{% set uuid = uuid4() %}
+<div class="table-container">
+    <table class="table barcode-clashes-table">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">Library ID</th>
+                <th scope="col" class="col-2">Name</th>
+                {% if "pool" in df.columns %}
+                <th scope="col" class="col-2">Pool</th>
+                {% endif %}
+                <th scope="col" class="col-2">Combined Index <span class="desc">i7 + i5</span></th>
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i7 + i5)") }}>Hamming Dist.</span></th>
+                <th scope="col" class="col-3">
+                    Index
+                    <a type="button" role="button" onclick="toggle_index_display()">
+                        <i class="bi bi-upc-scan"></i>
+                    </a>
+                    {{ index_badge_legend() }}
+                </th>
+                {% if "rc_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7 + i5])") }}>RC Dist.</span></th>
+                {% endif %}
+                {% if "rc_i7i5_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + RC[i5])") }}>RC i7+i5 Dist.</span></th>
+                {% endif %}
+                {% if "rc_i7_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + i5)") }}>i7 RC Dist.</span></th>
+                {% endif %}
+                {% if "rc_i5_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i5 + RC[i5])") }}>i5 RC Dist.</span></th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for _, row in df.iterrows() %}
+            {% if row["error"] %}
+            <tr {{ tooltip(row["error"], category="error") }}>
+            {% elif row["warning"] %}
+            <tr {{ tooltip(row["warning"], category="warning") }}>
+            {% else %}
+            <tr>
+            {% endif %}
+                <th scope="row">{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] if "library_id" in row else "" }}</th>
+                <td>{{ row["library_name"] }}</td>
+                {% if "pool" in df.columns %}
+                <td>{{ row["pool"] }}</td>
+                {% endif %}
+                <td class="index-cell">{{ row["combined_index"] }}</td>
+                <td {% if not notna(row["min_hamming_bases"]) %}
+                {% elif row["min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["min_hamming_bases"] ~ " bp" if notna(row["min_hamming_bases"]) else "" }}</td>
+
+                <td class="x-scroll-cell">
+                    {% set badge_class = index_badge_class(row) %}
+                    <div class="scroll-container">
+                        {% if "name_i7" in df.columns and "name_i5" in df.columns %}
+                        {% if notna(row["name_i7"]) and notna(row["name_i5"]) and (row["name_i7"] == row["name_i5"]) %}
+                        <span class="badge index-badge index-badges-{{ uuid }} {{ badge_class }}" >{{ row["name_i7"] }}</span>
+                        {% else %}
+                        {% if notna(row["name_i7"]) %}
+                        <span class="badge index-badge index-badges-{{ uuid }} {{ badge_class }}">{{ row["name_i7"] }}{% if notna(row["name_i5"]) %}+{{ row["name_i5"] }}{% endif %}</span>
+                        {% else %}
+                        <span class="badge index-badge index-badges-{{ uuid }} {{ badge_class }}">{{ row["sequence_i7"] }}{% if notna(row["sequence_i5"]) %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                        {% endif %}
+                        {% endif %}
+                        <span class="badge index-badge index-badges-{{ uuid }} {{ badge_class }}" style="display: none;">{{ row["sequence_i7"] }}{% if notna(row["sequence_i5"]) %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                        {% else %}
+                        <span class="badge index-badge index-badges-{{ uuid }} {{ badge_class }}">{{ row["sequence_i7"] }}{% if notna(row["sequence_i5"]) %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                        <span class="badge index-badge index-badges-{{ uuid }} {{ badge_class }}" style="display: none;">{{ row["sequence_i7"] }}{% if notna(row["sequence_i5"]) %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                        {% endif %}
+                    </div>
+                </td>
+
+                {% if "rc_min_hamming_bases" in df.columns %}
+                <td {% if not notna(row["rc_min_hamming_bases"]) %}
+                {% elif row["rc_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["rc_min_hamming_bases"] ~ " bp" if notna(row["rc_min_hamming_bases"]) else "" }}</td>
+                {% endif %}
+
+                {% if "rc_i7i5_min_hamming_bases" in df.columns %}
+                <td {% if not notna(row["rc_i7i5_min_hamming_bases"]) %}
+                {% elif row["rc_i7i5_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_i7i5_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["rc_i7i5_min_hamming_bases"] ~ " bp" if notna(row["rc_i7i5_min_hamming_bases"]) else "" }}</td>
+                {% endif %}
+                
+                {% if "rc_i7_min_hamming_bases" in df.columns %}
+                <td {% if not notna(row["rc_i7_min_hamming_bases"]) %}
+                {% elif row["rc_i7_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_i7_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["rc_i7_min_hamming_bases"] ~ " bp" if notna(row["rc_i7_min_hamming_bases"]) else "" }}</td>
+                {% endif %}
+                
+                {% if "rc_i5_min_hamming_bases" in df.columns %}
+                <td {% if not notna(row["rc_i5_min_hamming_bases"]) %}
+                {% elif row["rc_i5_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_i5_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["rc_i5_min_hamming_bases"] ~ " bp" if notna(row["rc_i5_min_hamming_bases"]) else "" }}</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}

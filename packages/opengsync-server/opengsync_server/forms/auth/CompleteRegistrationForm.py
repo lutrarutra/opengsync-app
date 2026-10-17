@@ -3,7 +3,7 @@ from flask_htmx import make_response
 from wtforms import PasswordField, StringField, EmailField
 from wtforms.validators import DataRequired, Length, EqualTo
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import bcrypt, db, serializer, logger
 from ...core import tokens
@@ -29,7 +29,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
     
     def prepare(self):
         if self._email is not None:
-            if db.users.get_with_email(self._email) is not None:
+            if db.session.first(Q.user.select(email=self._email)) is not None:
                 self.email.errors = ("Token expired or invalid.",)
                 return
             self.email.data = self._email
@@ -45,7 +45,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
             return False
         
         self._email, self._role = data
-        if db.users.get_with_email(self._email) is not None:
+        if db.session.first(Q.user.select(email=self._email)) is not None:
             self.email.errors = ("Token expired or invalid.",)
             return False
         if self._email != self.email.data:
@@ -60,13 +60,13 @@ class CompleteRegistrationForm(HTMXFlaskForm):
 
         hashed_password = bcrypt.generate_password_hash(self.password.data).decode("utf-8")
 
-        user = db.users.create(
+        user = db.session.save(Q.user.create(
             email=self._email.strip(),  # type: ignore
             hashed_password=hashed_password,
             first_name=self.first_name.data.strip(),  # type: ignore
             last_name=self.last_name.data.strip(),  # type: ignore
             role=self._role,  # type: ignore
-        )
+        ))
 
         flash("Registration completed!", "success")
         logger.info(f"Registration completed for {user.email}")

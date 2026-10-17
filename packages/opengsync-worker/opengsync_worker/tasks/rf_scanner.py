@@ -10,8 +10,8 @@ from xml.dom.minidom import parse
 from dataclasses import dataclass
 
 from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
-from opengsync_db.core import DBHandler
-from opengsync_db import units
+from opengsync_db.transitions import run_operation, sequencing as ops
+from opengsync_db import units, queries as Q, SyncDBHandler
 
 from . import logger
 
@@ -156,28 +156,27 @@ def parse_metrics(run_folder: Path) -> dict[str, units.Quantity]:
     return quantities
 
 
-def process_run_folder(illumina_run_folder: Path, db: DBHandler):
+def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
     logger.info(f"Processing run folder: {illumina_run_folder}")
     
-    active_runs, _ = db.seq_runs.find(
-        status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
-        limit=None
-    )
+    active_runs = db.session.get_all(Q.seq_run.select(status_in=[RunStatus.FINISHED, RunStatus.RUNNING]), limit=None)
 
     active_runs = dict([(run.experiment_name, run) for run in active_runs])
 
     for run in active_runs.values():
-        if not os.path.exists(os.path.join(illumina_run_folder, run.run_folder)):
-            run.status = RunStatus.ARCHIVED
-            if run.experiment is not None:
-                run.experiment.status = ExperimentStatus.ARCHIVED
-                for pool in run.experiment.pools:
-                    if pool.status < PoolStatus.SEQUENCED:
-                        pool.status = PoolStatus.SEQUENCED
-                    for library in pool.libraries:
-                        if library.status < LibraryStatus.SEQUENCED:
-                            library.status = LibraryStatus.SEQUENCED
-            db.seq_runs.update(run)
+        run_path = os.path.join(illumina_run_folder, run.run_folder)
+        if not os.path.exists(run_path):
+            with run_operation(db.session, ops.RF_FOLDER_MISSING, subject=run, folder=run_path):
+                run.status = RunStatus.ARCHIVED
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.ARCHIVED
+                    for pool in run.experiment.pools:
+                        if pool.status < PoolStatus.SEQUENCED:
+                            pool.status = PoolStatus.SEQUENCED
+                        for library in pool.libraries:
+                            if library.status < LibraryStatus.SEQUENCED:
+                                library.status = LibraryStatus.SEQUENCED
+                db.session.save(run)
             active_runs[run.experiment_name] = run
             logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
     
@@ -190,8 +189,10 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             status = RunStatus.FINISHED
             stat = os.stat(os.path.join(run_folder, "RTAComplete.txt"))
             completed = datetime.fromtimestamp(stat.st_ctime)
+            marker = "RTAComplete.txt found"
         else:
             status = RunStatus.RUNNING
+            marker = "no RTAComplete.txt"
         
         try:
             parsed_data = parse_run_folder(run_folder)
@@ -204,13 +205,13 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         experiment_name = parsed_data["experiment_name"]
         logger.info(f"Processing {experiment_name} ({run_name}):")
 
-        if (run := db.seq_runs.get(experiment_name)) is not None:
+        if (run := db.session.first(Q.seq_run.select(experiment_name=experiment_name))) is not None:
             if run.run_folder != run_name:
                 logger.info(f"WARNING: Run folder name mismatch: {run.run_folder} != {run_name}.")
                 if status > run.status:
                     logger.info(f"Updating run folder name to {run_name}.")
                     run.run_folder = run_name
-                    db.seq_runs.update(run)
+                    db.session.save(run)
                     parsed_data = parse_run_folder(run_folder)
                 else:
                     logger.info("Skipping update due to lower status.")
@@ -227,84 +228,88 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
-                    for pool in run.experiment.pools:
-                        if pool.status < PoolStatus.SEQUENCED:
-                            pool.status = PoolStatus.SEQUENCED
-                        for library in pool.libraries:
-                            if library.status < LibraryStatus.SEQUENCED:
-                                library.status = LibraryStatus.SEQUENCED
+                    with run_operation(db.session, ops.RF_RUN_FINISHED, subject=run, run=run.run_folder, folder=run_folder):
+                        run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
+                        for pool in run.experiment.pools:
+                            if pool.status < PoolStatus.SEQUENCED:
+                                pool.status = PoolStatus.SEQUENCED
+                            for library in pool.libraries:
+                                if library.status < LibraryStatus.SEQUENCED:
+                                    library.status = LibraryStatus.SEQUENCED
             
             # if run folder was removed and then added back, e.g. maintenance.
             if run.status == RunStatus.ARCHIVED:
                 logger.info(f"Run folder '{run.run_folder}' was unarchived!")
-                run.status = RunStatus.FINISHED
-                if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
-                    for pool in run.experiment.pools:
-                        if pool.status < PoolStatus.SEQUENCED:
-                            pool.status = PoolStatus.SEQUENCED
-                        for library in pool.libraries:
-                            if library.status < LibraryStatus.SEQUENCED:
-                                library.status = LibraryStatus.SEQUENCED
-                db.seq_runs.update(run)
+                with run_operation(db.session, ops.RF_FOLDER_BACK, subject=run, folder=run_folder):
+                    run.status = RunStatus.FINISHED
+                    if run.experiment is not None:
+                        run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
+                        for pool in run.experiment.pools:
+                            if pool.status < PoolStatus.SEQUENCED:
+                                pool.status = PoolStatus.SEQUENCED
+                            for library in pool.libraries:
+                                if library.status < LibraryStatus.SEQUENCED:
+                                    library.status = LibraryStatus.SEQUENCED
+                    db.session.save(run)
                 continue
             
             metrics = parse_metrics(run_folder)
             
-            run.status = status
-            run.instrument_name = parsed_data["instrument"]
-            run.flowcell_id = parsed_data["flowcell_id"]
-            run.rta_version = parsed_data["rta_version"]
-            run.read_type = parsed_data["read_type"]
-            run.r1_cycles = parsed_data["r1_cycles"]
-            run.r2_cycles = parsed_data["r2_cycles"]
-            run.i1_cycles = parsed_data["i1_cycles"]
-            run.i2_cycles = parsed_data["i2_cycles"]
+            with run_operation(db.session, ops.RF_RUN_STATUS, subject=run, folder=run_folder, marker=marker):
+                run.status = status
+                run.instrument_name = parsed_data["instrument"]
+                run.flowcell_id = parsed_data["flowcell_id"]
+                run.rta_version = parsed_data["rta_version"]
+                run.read_type = parsed_data["read_type"]
+                run.r1_cycles = parsed_data["r1_cycles"]
+                run.r2_cycles = parsed_data["r2_cycles"]
+                run.i1_cycles = parsed_data["i1_cycles"]
+                run.i2_cycles = parsed_data["i2_cycles"]
 
-            for key, value in metrics.items():
-                run.set_quantity(key, value)
+                for key, value in metrics.items():
+                    run.set_quantity(key, value)
 
-            db.seq_runs.update(run)
+                db.session.save(run)
             active_runs[experiment_name] = run
             logger.info("Updated!")
         else:
             metrics = parse_metrics(run_folder)
-                    
-            run = db.seq_runs.create(
-                experiment_name=experiment_name,
-                status=status,
-                run_folder=run_name,
-                instrument_name=parsed_data["instrument"],
-                flowcell_id=parsed_data["flowcell_id"],
-                rta_version=parsed_data["rta_version"],
-                read_type=parsed_data["read_type"],
-                r1_cycles=parsed_data.get("r1_cycles"),
-                r2_cycles=parsed_data.get("r2_cycles"),
-                i1_cycles=parsed_data.get("i1_cycles"),
-                i2_cycles=parsed_data.get("i2_cycles"),
-                quantities=metrics,
-            )
-            if completed is not None:
-                run.set_timestamp("completed", completed)
-            if started is not None and isinstance(started, datetime):
-                run.set_timestamp("started", started)
 
-            if run.status == RunStatus.FINISHED:
-                if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
-                    for pool in run.experiment.pools:
-                        if pool.status < PoolStatus.SEQUENCED:
-                            pool.status = PoolStatus.SEQUENCED
-                        for library in pool.libraries:
-                            if library.status < LibraryStatus.SEQUENCED:
-                                library.status = LibraryStatus.SEQUENCED
+            with run_operation(db.session, ops.RF_NEW_RUN, folder=run_folder, marker=marker):
+                run = db.session.save(Q.seq_run.create(
+                    experiment_name=experiment_name,
+                    status=status,
+                    run_folder=run_name,
+                    instrument_name=parsed_data["instrument"],
+                    flowcell_id=parsed_data["flowcell_id"],
+                    rta_version=parsed_data["rta_version"],
+                    read_type=parsed_data["read_type"],
+                    r1_cycles=parsed_data.get("r1_cycles"),
+                    r2_cycles=parsed_data.get("r2_cycles"),
+                    i1_cycles=parsed_data.get("i1_cycles"),
+                    i2_cycles=parsed_data.get("i2_cycles"),
+                    quantities=metrics,
+                ))
+                if completed is not None:
+                    run.set_timestamp("completed", completed)
+                if started is not None and isinstance(started, datetime):
+                    run.set_timestamp("started", started)
+
+                if run.status == RunStatus.FINISHED:
+                    if run.experiment is not None:
+                        run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
+                        for pool in run.experiment.pools:
+                            if pool.status < PoolStatus.SEQUENCED:
+                                pool.status = PoolStatus.SEQUENCED
+                            for library in pool.libraries:
+                                if library.status < LibraryStatus.SEQUENCED:
+                                    library.status = LibraryStatus.SEQUENCED
                             
-            elif run.status == RunStatus.RUNNING:
-                if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.SEQUENCING
+                elif run.status == RunStatus.RUNNING:
+                    if run.experiment is not None:
+                        run.experiment.status = ExperimentStatus.SEQUENCING
             
-            db.seq_runs.update(run)
+                db.session.save(run)
 
             active_runs[experiment_name] = run
             logger.info("Added!")

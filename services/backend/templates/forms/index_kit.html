@@ -1,0 +1,27 @@
+<div class="modal-content" id="index_kit-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Index Kit</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="index_kit-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.name.render("col-6") }}
+                {{ form.identifier.render("col-3") }}
+                {{ form.index_type_id.render("col-3") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-index_kit-btn" class="btn btn-success"
+            hx-include="#index_kit-form" hx-target="#index_kit-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">{% if form.form_type == "edit" %}Save{% else %}Create{% endif %}</button>
+        </div>
+    </div>
+</div>

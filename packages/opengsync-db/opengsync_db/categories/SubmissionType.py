@@ -21,9 +21,9 @@ class SubmissionType(ExtendedEnum):
     QC_ONLY = SubmissionTypeEnum(4, "QC Only", "QC", "Submit libraries for quality control only; they will not be sequenced.")
 
     @classmethod
-    def as_selectable(cls, inlcude_unpooled_libraries: bool = True) -> list[tuple[int, str]]:
-        return [(item.id, item.label) for item in cls.as_list() if item != cls.UNPOOLED_LIBRARIES and not inlcude_unpooled_libraries]
+    def as_selectable(cls, include_unpooled_libraries: bool = True) -> list[tuple[int, str]]:
+        return [(item.id, item.label) for item in cls.as_list() if (item != cls.UNPOOLED_LIBRARIES) or include_unpooled_libraries]
     
     @classmethod
     def as_list(cls, include_unpooled_libraries: bool = True) -> list["SubmissionType"]:
-        return [item for item in cls if item != cls.UNPOOLED_LIBRARIES or include_unpooled_libraries]
+        return [item for item in cls if (item != cls.UNPOOLED_LIBRARIES) or include_unpooled_libraries]

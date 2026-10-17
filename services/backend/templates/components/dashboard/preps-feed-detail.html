@@ -1,0 +1,53 @@
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div class="modal-content assay-type-todo-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">{{ service_type.abbreviation }}</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="banner-container">
+            {% for _, row in df.iterrows() %}
+            {% set seq_request = row["seq_request"] %}
+            <div class="element-banner">
+                <div class="feed-head">
+                    <div class="feed-title">
+                        <a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a>
+                        <span class="feed-subtitle"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></span>
+                    </div>
+                    {% include "components/dashboard/seq_request-assignees.html" %}
+                </div>
+                <div class="feed-meta">
+                    <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+                    <span><i class="bi bi-box-seam"></i>{{ seq_request.submission_type.display_name }}</span>
+                    {% for library_type, count in row["library_type_counts"].items() %}
+                    <span {{ tooltip(library_type.label, position="top") }}>{{ library_type.abbreviation }} <b>{{ count }}</b></span>
+                    {% endfor %}
+                </div>
+                <div class="feed-meta">
+                    <span><i class="bi bi-collection"></i>{{ seq_request.num_libraries }} libraries</span>
+                    {% for status, count in row["library_status_counts"].items() %}
+                    <span {{ tooltip(status.description, position="top") }}>{{ status.icon }} {{ status.label }} <b>{{ count }}</b></span>
+                    {% endfor %}
+                </div>
+                <div class="feed-chips">
+                    {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
+                    <span class="feed-chip {% if row['num_waiting_samples'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">📭 Waiting samples <b>{{ row["num_waiting_samples"] }}</b></span>
+                    {% elif seq_request.submission_type == C.SubmissionType.UNPOOLED_LIBRARIES %}
+                    <span class="feed-chip {% if row['num_waiting_libraries'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">📭 Waiting libraries <b>{{ row["num_waiting_libraries"] }}</b></span>
+                    {% else %}
+                    <span class="feed-chip {% if row['num_waiting_pools'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">📭 Waiting pools <b>{{ row["num_waiting_pools"] }}</b></span>
+                    {% endif %}
+                    <span class="feed-chip {% if row['num_preparing_libraries'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">{{ C.LibraryStatus.PREPARING.icon }} Preparing libraries <b>{{ row["num_preparing_libraries"] }}</b></span>
+                    <span class="feed-chip {% if row['num_stored_libraries'] == 0 %}feed-chip-ok{% else %}feed-chip-warn{% endif %}">{{ C.LibraryStatus.STORED.icon }} To be pooled <b>{{ row["num_stored_libraries"] }}</b></span>
+                </div>
+                <div class="status-row">
+                    {{ seq_request_status_bar(seq_request) }}
+                    <span class="status-label">{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="group-seq_request-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("group-seq_request-table", table, "id") }}
+                {{ table_col("group-seq_request-table", table, "name") }}
+                {{ table_col("group-seq_request-table", table, "requestor") }}
+                {{ table_col("group-seq_request-table", table, "status") }}
+                {{ table_col("group-seq_request-table", table, "library_types") }}
+                {{ table_col("group-seq_request-table", table, "submission_type") }}
+                {{ table_col("group-seq_request-table", table, "timestamp_submitted") }}
+                {{ table_col("group-seq_request-table", table, "num_libraries") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for seq_request in seq_requests %}
+            <tr>
+                <th scope="row">{{ seq_request.id }}</th>
+                <td><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='group@' + group_id | string) }}">{{ seq_request.name }}</a></td>
+                <td><a href="{{ url_for('user_page', user_id=seq_request.requestor_id, from='group@' + group_id | string) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
+                <td>{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
+                <td>{{ seq_request.submission_type.abbreviation }}</td>
+                <td>{{ seq_request.timestamp_submitted_str() }}</td>
+                <td>{{ seq_request.num_libraries }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("group-seq_request-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#group-seq_request-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

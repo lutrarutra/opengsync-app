@@ -1,0 +1,78 @@
+from fastapi import Depends, Response
+import pandas as pd
+
+from opengsync_db import SyncSession
+
+from ....core import dependencies, exceptions as exc
+from ....components import inputs
+from ...HTMXForm import RouteFunc, htmx_route
+from .RelibWorkflow import RelibWorkflowStep, RelibWorkflow, EXPIRED
+
+
+class SelectSamplesForm(RelibWorkflowStep):
+    template_path = "workflows/relib/select-samples.html"
+    selected_library_ids = inputs.tables.LibrarySelectTableField(
+        "Libraries", "relib", select_all=True, required=True,
+    )
+
+    def __init__(self, workflow: RelibWorkflow) -> None:
+        super().__init__(workflow=workflow)
+        if self.workflow.seq_request_id is not None:
+            self.selected_library_ids.query_params["seq_request_id"] = self.workflow.seq_request_id
+        if self.workflow.lab_prep_id is not None:
+            self.selected_library_ids.query_params["lab_prep_id"] = self.workflow.lab_prep_id
+
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            form: "SelectSamplesForm" = Depends(SelectSamplesForm.Init()),
+        ) -> Response:
+            library_table = form.workflow.tables.get("library_table")
+            if library_table is None:
+                raise exc.BadRequestException(EXPIRED)
+            form.selected_library_ids.data = library_table["library_id"].unique().tolist()
+            return form.make_response()
+        return route
+
+    @htmx_route("POST")
+    def Submit(cls) -> RouteFunc:
+        def route(
+            form: "SelectSamplesForm" = Depends(SelectSamplesForm.Validate()),
+            session: SyncSession = Depends(dependencies.db_session),
+        ) -> Response:
+            library_table_data: dict[str, list] = {
+                "library_id": [],
+                "sample_name": [],
+                "library_name": [],
+                "library_type_id": [],
+                "service_type_id": [],
+                "genome_id": [],
+                "nuclei_isolation": [],
+                "protocol_id": [],
+            }
+
+            libraries = form.selected_library_ids.get_selected_libraries(session)
+            seq_request_id, lab_prep_id = form.workflow.seq_request_id, form.workflow.lab_prep_id
+            if any(
+                (seq_request_id is not None and library.seq_request_id != seq_request_id)
+                or (lab_prep_id is not None and library.lab_prep_id != lab_prep_id)
+                for library in libraries
+            ):
+                form.add_general_error("Selected libraries do not belong to this request/prep.")
+                raise exc.FormValidationException(form)
+
+            for library in libraries:
+                library_table_data["library_id"].append(library.id)
+                library_table_data["sample_name"].append(library.sample_name)
+                library_table_data["library_name"].append(library.name)
+                library_table_data["library_type_id"].append(library.type.id)
+                library_table_data["service_type_id"].append(library.service_type.id)
+                library_table_data["genome_id"].append(library.genome_ref.id)
+                library_table_data["nuclei_isolation"].append("Yes" if library.nuclei_isolation else "No")
+                library_table_data["protocol_id"].append(library.protocol_id)
+
+            library_table = pd.DataFrame(library_table_data)
+            library_table["protocol_id"] = library_table["protocol_id"].astype(pd.Int64Dtype())
+            form.workflow.tables["library_table"] = library_table
+            return form.workflow.get_next_step(form).make_response()
+        return route

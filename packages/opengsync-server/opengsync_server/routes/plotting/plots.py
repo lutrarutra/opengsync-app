@@ -1,4 +1,5 @@
 import json
+from opengsync_db import queries as Q
 import pandas as pd
 import numpy as np
 
@@ -11,6 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, logger
 from ...core import wrappers, exceptions, runtime
@@ -27,10 +29,10 @@ def _add_traces(to_figure, from_figure):
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_library_reads(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -42,7 +44,9 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     request_args = request.get_json()
     width = request_args.get("width", 1000)
     
-    df = db.pd.get_experiment_seq_qualities(experiment_id)
+    df = T.experiment_seq_qualities(
+        db.session.get_pandas(Q.pd.experiment_seq_qualities(experiment_id), limit=None)
+    )
     if len(df) == 0:
         return make_response()
     
@@ -90,10 +94,10 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_pool_reads(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -105,7 +109,12 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
     request_args = request.get_json()
     width = request_args.get("width", 1000)
     
-    df = db.pd.get_experiment_stats(experiment_id)
+    df = T.experiment_stats(
+        db.session.get_pandas(Q.pd.experiment_stats(experiment_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
     if len(df) == 0:
         return make_response()
     
@@ -120,7 +129,7 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
     )
 
     df["y_ticks"] = df.apply(
-        lambda row: f"<a href='{url_for('pools_page.pool', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
+        lambda row: f"<a href='{url_for('pool_page', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
         if pd.notna(row["pool_id"]) else "", axis=1  # type: ignore
     )
     df.loc[df["pool_name"].isna(), "y_ticks"] = "Undetermined"
@@ -153,10 +162,10 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_pool_per_library_reads(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -168,7 +177,12 @@ def experiment_pool_per_library_reads(current_user: models.User, experiment_id: 
     request_args = request.get_json()
     width = request_args.get("width", 1000)
     
-    df = db.pd.get_experiment_stats(experiment_id)
+    df = T.experiment_stats(
+        db.session.get_pandas(Q.pd.experiment_stats(experiment_id), limit=None),
+        per_lane=False,
+        expand_qc_=True,
+        weighted_average=True,
+    )
     if len(df) == 0:
         return make_response()
 
@@ -181,7 +195,7 @@ def experiment_pool_per_library_reads(current_user: models.User, experiment_id: 
     df["pool_reads"] = df.groupby("pool_id")["num_reads"].transform("sum")
 
     df["y_ticks"] = df.apply(
-        lambda row: f"<a href='{url_for('pools_page.pool', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
+        lambda row: f"<a href='{url_for('pool_page', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
         if pd.notna(row["pool_id"]) else "", axis=1  # type: ignore
     )
     df.loc[df["pool_name"].isna(), "y_ticks"] = "Undetermined"

@@ -1,0 +1,45 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="input-help">
+    <h5>Columns</h5>
+    <ul>
+        <li>
+            <b>Library Name</b>:
+            <ul>
+                <li>Name of the the previosuly specified libraries.</li>
+            </ul>
+        </li>
+        <li>
+            <b>Pool</b>:
+            <ul>
+                <li>Which pool the library belongs to.</li>
+            </ul>
+        </li>
+    </ul>
+    <div id="pooling-example"></div>
+</div>
+<script>
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+        jspreadsheet(document.getElementById('pooling-example'), {
+            worksheets: [{
+                data: [
+                    ["brain_sample_1_BULKRNA", "bulk_rna_pool_1"],
+                    ["brain_sample_2_BULKRNA", "bulk_rna_pool_1"],
+                    ["lung_sample_1_BULKRNA", "bulk_rna_pool_1"],
+                    ["lung_sample_2_BULKRNA", "bulk_rna_pool_2"],
+                    ["heart_sample_1_BULKRNA", "bulk_rna_pool_2"],
+                    ["heart_sample_2_BULKRNA", "bulk_rna_pool_2"],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+            }]
+        });
+    });
+</script>

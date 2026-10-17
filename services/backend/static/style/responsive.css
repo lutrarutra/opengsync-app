@@ -1,0 +1,91 @@
+/* grey side margins and the content padding inside them; the navbar aligns to the content edges (navbar.css) */
+:root {
+    --page-margin: max(10%, 120px);
+    --page-padding: 10px;
+}
+
+@media screen and (min-width: 1001px) and (max-width: 1440px) {
+    :root {
+        --page-margin: 5%;
+        --page-padding: 5px;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    :root {
+        --page-margin: 0px;
+        --page-padding: 5px;
+    }
+}
+
+#main {
+    padding: 0;
+    display: flex;
+    width: 100vw;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    #left-margin, #right-margin {
+        position: sticky;
+        top: 0;
+        padding: 5px;
+        width: var(--page-margin);
+        margin: 0;
+        background-color: var(--color-gray-200);
+    }
+
+    #middle-container {
+        margin: 0;
+        width: calc(100vw - var(--page-margin) * 2);
+        height: 100%;
+        padding: 0 var(--page-padding);
+        background-color: var(--color-gray-100);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .page-header-container {
+            background-color: var(--color-gray-100);
+            z-index: 10;
+        }
+
+        .page-content {
+            margin: 0;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .page-content:has(>.tab-content) {
+            overflow: hidden;
+            >.tab-content {
+                height: 100%;
+                overflow: hidden;
+                >.tab-pane {
+                    height: 100%;
+                    overflow-y: auto;
+                }
+            }
+        }
+    }
+}
+
+@media screen and (min-width: 1001px) and (max-width: 1440px) {
+    #breadcrumb {
+        font-size: 0.8rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .clipboard-btn {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    #left-margin, #right-margin {
+        display: none;
+    }
+}

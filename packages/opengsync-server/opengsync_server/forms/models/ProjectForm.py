@@ -1,4 +1,5 @@
 from typing import Literal
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -76,7 +77,7 @@ class ProjectForm(HTMXFlaskForm):
                 self.status.errors = (f"You can only create a project with status {ProjectStatus.DRAFT.name}.",)
                 return False
         else:
-            if not current_user.is_insider():
+            if not current_user.is_insider:
                 if status != self.project.status:
                     self.status.errors = ("You don't have permissions to edit the status.",)
                     return False
@@ -93,7 +94,7 @@ class ProjectForm(HTMXFlaskForm):
                 return False
             
             if self.identifier.data:
-                if (db.projects.get(self.identifier.data) is not None):
+                if (db.session.first(Q.project.select(id=self.identifier.data)) is not None):
                     self.identifier.errors = ("Project with this identifier already exists.",)
                     return False
         # Editing existing project
@@ -105,48 +106,48 @@ class ProjectForm(HTMXFlaskForm):
                         return False
                     
             if self.identifier.data:
-                if (prj := db.projects.get(self.identifier.data)) is not None:
+                if (prj := db.session.first(Q.project.select(id=self.identifier.data))) is not None:
                     if prj.id != self.project.id:
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
                     
-            if self.project.identifier and self.identifier.data and self.project.identifier != self.identifier.data and not current_user.is_insider():
+            if self.project.identifier and self.identifier.data and self.project.identifier != self.identifier.data and not current_user.is_insider:
                 self.identifier.errors = ("You don't have permissions to change the identifier.",)
                 return False
                     
-            if self.project.status != status and not current_user.is_insider():
+            if self.project.status != status and not current_user.is_insider:
                 self.status.errors = ("You don't have permissions to change the status.",)
                 return False
                     
-        if (user := db.users.get(self.owner.selected.data)) is None:
+        if (user := db.session.first(Q.user.select(id=self.owner.selected.data))) is None:
             self.owner.selected.errors = ("Selected user does not exist.",)
             return False
         
-        if not current_user.is_insider() and user.id != current_user.id:
+        if not current_user.is_insider and user.id != current_user.id:
             self.owner.selected.errors = ("You don't have permissions to set this user as owner.",)
             return False
                     
         if self.group.selected.data is not None:
-            if (group := db.groups.get(self.group.selected.data)) is None:
+            if (group := db.session.first(Q.group.select(id=self.group.selected.data))) is None:
                 logger.error(f"Group with id {self.group.selected.data} does not exist.")
                 raise ValueError(f"Group with id {self.group.selected.data} does not exist.")
             
-            if not user.is_insider():
-                if db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
+            if not user.is_insider:
+                if db.session.first(Q.affiliation.select(user_id=user.id, group_id=group.id)) is None:
                     self.owner.selected.errors = ("Selected user must be part of the selected group.",)
                     return False
             
             if self.project is not None:
-                if not self.project.owner.is_insider() and db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
+                if not self.project.owner.is_insider and db.session.first(Q.affiliation.select(user_id=self.project.owner_id, group_id=group.id)) is None:
                     self.group.selected.errors = ("Project owner must be part of the group.",)
                     return False
             else:
-                if not current_user.is_insider() and db.groups.get_user_affiliation(user_id=current_user.id, group_id=group.id) is None:
+                if not current_user.is_insider and db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group.id)) is None:
                     self.group.selected.errors = ("You must be part of the group.",)
                     return False
                 
         if self.title.data:
-            if current_user.is_insider():
+            if current_user.is_insider:
                 import sqlalchemy as sa
                 if db.session.query(models.Project.title).join(
                     models.User,
@@ -162,19 +163,19 @@ class ProjectForm(HTMXFlaskForm):
         return True
     
     def __create_new_project(self, user_id: int) -> Response:
-        project = db.projects.create(
+        project = db.session.save(Q.project.create(
             identifier=self.identifier.data if self.identifier.data else None,
             title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
             owner_id=user_id,
             group_id=self.group.selected.data,
-        )
+        ))
 
         logger.debug(f"Created project {project.title}.")
         flash(f"Created project {project.title}.", "success")
 
         return make_response(
-            redirect=url_for("projects_page.project", project_id=project.id),
+            redirect=url_for("project_page", project_id=project.id),
         )
     
     def __update_existing_project(self) -> Response:
@@ -189,12 +190,12 @@ class ProjectForm(HTMXFlaskForm):
         self.project.group_id = self.group.selected.data
         self.project.owner_id = self.owner.selected.data
 
-        db.projects.update(project=self.project)
+        db.session.save(self.project)
 
         flash(f"Updated project {self.project.title}.", "success")
 
         return make_response(
-            redirect=url_for("projects_page.project", project_id=self.project.id),
+            redirect=url_for("project_page", project_id=self.project.id),
         )
     
     def process_request(self, user: models.User) -> Response:

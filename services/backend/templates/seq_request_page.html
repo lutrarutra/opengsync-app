@@ -1,0 +1,555 @@
+{% from "components/overview-graph.jinja2" import overview_button, overview_modal with context %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/workflow_tile.jinja2" import workflow_tile with context %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/button.jinja2" import modal_button %}
+{% from "components/button.jinja2" import confirm_action_button %}
+
+{% extends "base.html" %}
+{% set active_page = "seq_requests-page" %}
+{% block content %}
+{% set in_review = current_user.is_insider and seq_request.status == C.SeqRequestStatus.SUBMITTED %}
+{% set reviewed = current_user.is_insider and seq_request.status not in [C.SeqRequestStatus.DRAFT, C.SeqRequestStatus.SUBMITTED] %}
+
+{% macro review_tab_button(active) %}
+<li class="nav-item" role="presentation">
+    <button class="nav-link {% if active %}active{% endif %}" data-bs-toggle="tab"
+    data-bs-target="#request-review-tab" type="button" role="tab"
+    aria-controls="request-review-tab" aria-selected="{{ 'true' if active else 'false' }}">Review {{ tab_count(review_checklist_steps_completed, review_checklist_steps_total) }}</button>
+</li>
+{% endmacro %}
+
+{% macro review_tab_pane(active, tabindex) %}
+<div class="tab-pane fade {% if active %}show active{% endif %}" id="request-review-tab" role="tabpanel" tabindex="{{ tabindex }}">
+    <div class="d-flex justify-content-between align-items-center px-2">
+        <div>
+            <h3>Review Checklist</h3>
+            <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+        </div>
+        {% if active %}
+        <div style="height: 100%; display: flex; align-items: center;">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
+            hx-get="{{ url_for('ProcessSeqRequestAction.Begin', seq_request_id=seq_request.id) }}"
+            hx-target="#xl-modal-content" hx-swap="innerHTML">
+                Process Request
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div hx-get="{{ url_for('get_seq_request_review_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+{% endmacro %}
+
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>{{ seq_request.identifier }} <span class="desc">{{ seq_request.submission_type.label }}</span></h1>
+        </div>
+        <div class="page-controls">
+            {{ overview_button("request-overview") }}
+            {% if current_user.is_insider and seq_request.status == C.SeqRequestStatus.ACCEPTED %}
+            <button hx-get="{{ url_for('StoreSamplesAction.Begin', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click">
+                Store Samples
+            </button>
+            {% endif %}
+            <span>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('MediaFileForm.Upload', seq_request_id=seq_request.id) }}">
+                    Attach File
+                </button>
+            </span>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Export
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('export_seq_request_libraries', seq_request_id=seq_request.id) }}">
+                        Libraries (.tsv)
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_seq_request', seq_request_id=seq_request.id) }}">Everything (.xlsx)</a></li>
+                </ul>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        {{
+                            modal_button(
+                                "Edit", class="dropdown-item", disabled=not (seq_request.is_editable() or current_user.is_insider),
+                                url=url_for('SeqRequestForm.Edit', seq_request_id=seq_request.id),
+                                disabled_tooltip="Request cannot be edited after submission.",
+                                tooltip_position="left"
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Delete", class="dropdown-item", title="Delete request {name}".format(name=seq_request.identifier),
+                                disabled=not seq_request.is_editable(),
+                                disabled_tooltip="Request cannot be deleted after submission.",
+                                tooltip_position="left", method="hx-delete",
+                                url=url_for('delete_seq_request', seq_request_id=seq_request.id),
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Archive", class="dropdown-item", title="Archive request {name}".format(name=seq_request.identifier),
+                                disabled=not (current_user.is_insider or seq_request.status == C.SeqRequestStatus.DRAFT),
+                                disabled_tooltip="Submitted request can only be archived by insiders.",
+                                tooltip_position="left", method="hx-post",
+                                url=url_for('archive_seq_request', seq_request_id=seq_request.id),
+                            )
+                        }}
+                    </li>
+                    {% if current_user.is_insider and seq_request.status == C.SeqRequestStatus.ARCHIVED %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Unarchive", class="dropdown-item", title="Unarchive request {name}".format(name=seq_request.identifier),
+                                method="hx-post", url=url_for('unarchive_seq_request', seq_request_id=seq_request.id),
+                            )
+                        }}
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_insider and seq_request.submission_type != C.SubmissionType.QC_ONLY %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Clone (Pooled)", title="Clone request {name} (Pooled Libraries)".format(name=seq_request.identifier),
+                                body="This will make copy of the request with all libraries and pools in it. Do you want to proceed?",
+                                method="hx-post", url=url_for('clone_seq_request', seq_request_id=seq_request.id, method='pooled'),
+                                class="dropdown-item"
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Clone (Indexed)", title="Clone request {name} (Indexed Libraries)".format(name=seq_request.identifier),
+                                body="This will make copy of the request with all libraries in it (un-pooled). Do you want to proceed?",
+                                method="hx-post", url=url_for('clone_seq_request', seq_request_id=seq_request.id, method='indexed'),
+                                class="dropdown-item"
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Clone (Raw)", title="Clone request {name} (Raw Libraries)".format(name=seq_request.identifier),
+                                body="This will make copy of the request with unindexed libraries in it (prep required). Do you want to proceed?",
+                                method="hx-post", url=url_for('clone_seq_request', seq_request_id=seq_request.id, method='raw'),
+                                class="dropdown-item"
+                            )
+                        }}
+                    </li>
+                    {% endif %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Remove All Libraries", class="dropdown-item",
+                                title="Remove All Libraries from {name}".format(name=seq_request.identifier),
+                                url=url_for('remove_all_seq_request_libraries', seq_request_id=seq_request.id),
+                                tooltip_position="left", method="hx-delete",
+                                tooltip="This will remove all libraries from the request. This action cannot be un-done.",
+                                disabled=not(seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider )
+                            )
+                        }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin: 0; padding: 0;">
+        <p style="margin: 0; padding: 0;"><b>{{ seq_request.requestor.name }}</b>{% if seq_request.group %} <span class="text-secondary">({{ seq_request.group.name }})</span>{% endif %}: <i class="text-secondary">{{ seq_request.name }}</i></p>
+    </div>
+
+    <div class="status_bar">
+        {{ seq_request_status_bar(seq_request) }}
+    </div>
+
+    <ul class="nav nav-tabs page-tabs" role="tablist">
+        {% if in_review %}{{ review_tab_button(active=true) }}{% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if not in_review %}active{% endif %}" data-bs-toggle="tab"
+            data-bs-target="#request-checklist-tab" type="button" role="tab"
+            aria-controls="request-checklist-tab" aria-selected="true">Checklist {{ tab_count(submit_checklist_steps_completed, submit_checklist_steps_total) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-samples-tab" type="button" role="tab"
+            aria-controls="request-samples-tab" aria-selected="true">Samples {{ tab_count(seq_request.num_samples) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#workflows-tab"
+                type="button" role="tab" aria-controls="workflows-tab" aria-selected="false">
+                Workflows
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-libraries-tab" type="button" role="tab"
+            aria-controls="request-libraries-tab" aria-selected="true">Libraries {{ tab_count(seq_request.num_libraries) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-pools-tab" type="button" role="tab"
+            aria-controls="request-pools-tab" aria-selected="true">Pools {{ tab_count(seq_request.num_pools) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-metadata-tab" type="button" role="tab"
+            aria-controls="request-metadata-tab" aria-selected="false">Metadata</button>
+        </li>
+        {% if current_user.is_insider %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#request-status-tab" type="button" role="tab"
+                aria-controls="request-status-tab" aria-selected="false">
+                Status
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#seq_request-files-tab" type="button" role="tab"
+            aria-controls="seq_request-files-tab" aria-selected="true"
+            id="seq_request-files-tab-btn">Files {{ tab_count(seq_request.num_files) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-comments-tab" type="button" role="tab"
+            aria-controls="request-comments-tab" aria-selected="true"
+            id="request-comments-tab-btn">Comments {{ tab_count(seq_request.num_comments) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-share-tab" type="button" role="tab"
+            aria-controls="request-share-tab" aria-selected="true"
+            id="request-share-tab-btn">Share {{ tab_count(seq_request.num_delivery_email_links) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-projects-tab" type="button" role="tab"
+            aria-controls="request-projects-tab" aria-selected="true"
+            id="request-projects-tab-btn">Projects {{ tab_count(seq_request.num_projects) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-assignees-tab" type="button" role="tab"
+            aria-controls="request-assignees-tab" aria-selected="true"
+            id="request-assignees-tab-btn">Assignees {{ tab_count(seq_request.num_assignees) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-data_paths-tab" type="button" role="tab"
+            aria-controls="request-data_paths-tab" aria-selected="true">
+            Data {{ tab_count(seq_request.num_data_paths) }}</button>
+        </li>
+        {% if reviewed %}{{ review_tab_button(active=false) }}{% endif %}
+    </ul>
+</div>
+
+<div class="page-content">
+    <div class="tab-content pt-1">
+        {% if in_review %}{{ review_tab_pane(active=true, tabindex=0) }}{% endif %}
+        <div class="tab-pane fade {% if not in_review %}show active{% endif %}" id="request-checklist-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Checklist</h3>
+                </div>
+                <div style="height: 100%; display: flex; align-items: center;">
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('get_seq_request_submit_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Samples <img {{ tooltip('Right click on a sample name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Workflows <img {{ tooltip('If you want to change the submission type (raw samples/pooled libraries), you can change it in Manage -> Edit', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h3>
+                    {% if seq_request.submission_type == C.SubmissionType.QC_ONLY %}<p class="text-muted">QC-only libraries are not submitted for sequencing.</p>{% endif %}
+                </div>
+            </div>
+            <div class="workflow-tiles">
+                {% if current_user.is_insider %}
+                {{ workflow_tile("Store Samples", "Store samples received from customers.", url_for('StoreSamplesAction.Begin', seq_request_id=seq_request.id), img="store.svg",
+                    disabled_reason=none if seq_request.status == C.SeqRequestStatus.ACCEPTED else "Samples can only be stored once the request has been accepted.") }}
+                {% endif %}
+                {% set can_edit_libraries = seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}
+                {% if seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES %}
+                {{ workflow_tile("Merge Pools", "Merge pools by combining all libraries from selected pools into a new pool.", url_for('MergePoolsWorkflow.Begin', seq_request_id=seq_request.id), img="merge.svg",
+                    disabled_reason=none if can_edit_libraries else "You can no longer edit libraries after the request has been submitted.") }}
+                {% endif %}
+                {% if seq_request.submission_type in [C.SubmissionType.POOLED_LIBRARIES, C.SubmissionType.UNPOOLED_LIBRARIES] %}
+                {{ workflow_tile("Re-Index Libraries", "Make changes to library indices.", url_for('ReindexWorkflow.Begin', seq_request_id=seq_request.id), img="barcode.svg",
+                    disabled_reason=none if can_edit_libraries else "You can no longer edit libraries after the request has been submitted.") }}
+                {{ workflow_tile("Check Barcode Clashes", "Checks barcode conflicts, in preparation for pooling libraries.", url_for('CheckBarcodeClashesAction.Render', seq_request_id=seq_request.id), img="clash.svg") }}
+                {% if current_user.is_insider %}
+                {{ workflow_tile("Check Index Orientations", "Verify the orientation of custom barcodes and store all indices in forward orientation.", url_for('IndexCheckWorkflow.Begin', seq_request_id=seq_request.id), bi="bi-arrow-left-right") }}
+                {% endif %}
+                {% endif %}
+                {% if current_user.is_insider and seq_request.submission_type != C.SubmissionType.QC_ONLY %}
+                {{ workflow_tile("Re-Sequence Libraries", "Clone libraries for re-sequencing. Libraries will be added to the original (this) sequencing request.", url_for('ReseqAction.Begin', seq_request_id=seq_request.id), img="redo.svg") }}
+                {{ workflow_tile("Edit Libraries", "Make changes to libraries.", url_for('RelibWorkflow.Begin', seq_request_id=seq_request.id), bi="bi-pencil-square") }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-libraries-tab" role="tabpanel" tabindex="4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                    hx-get="{{ url_for('EditLibraryPropertiesAction.Begin', seq_request_id=seq_request.id) }}">Properties</button>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_library_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-pools-tab" role="tabpanel" tabindex="5">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Pools</h2>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_pool_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-metadata-tab" role="tabpanel" tabindex="6">
+            <div class="display-form">
+                <h4>Metadata</h4>
+                <div class="row">
+                    {{ metadata_group("Request Name", seq_request.name, class="col-4") }}
+                    {{ metadata_group("Data Delivery Mode", seq_request.data_delivery_mode.label, class="col-4") }}
+                    {% if seq_request.group %}
+                    {{ metadata_group_link("Group", seq_request.group.name, url_for("group_page", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-4") }}
+                    {% else %}
+                    {{ metadata_group("Group", "", class="col-4") }}
+                    {% endif %}
+                </div>
+                {{ metadata_group_textarea("Description", seq_request.description if seq_request.description else "") }}
+
+                <br>
+                <h4>Technical Requirements</h4>
+                <div class="row">
+                    {{ metadata_group("Submitted Time", seq_request.timestamp_submitted_str(), class="col-3") }}
+                    {{ metadata_group("Sequencing Type (SE/PE)", seq_request.read_type.label, class="col-3") }}
+                    {{ metadata_group("Read Length", seq_request.read_length, class="col-3") }}
+                    {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
+                </div>
+
+                {{ metadata_group_textarea("Special Requirements", seq_request.special_requirements) }}
+
+                <br>
+                <h4>Requestor</h4>
+                <div class="row">
+                    {{ metadata_group_link("Name", seq_request.requestor.first_name + " " + seq_request.requestor.last_name, url_for("user_page", user_id=seq_request.requestor.id), class="col") }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.requestor.email, class="col",
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
+                        ) 
+                    }}
+                </div>
+
+                <br>
+                <h4>Contact Person</h4>
+                <div class="row">
+                    {{ 
+                        metadata_group(
+                            "Contact Person",
+                            seq_request.contact_person.name,
+                            class="col-6 col-xl-4"
+                        ) 
+                    }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Contact Person Email", seq_request.contact_person.email, class="col-6 col-xl-4",
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
+                        )
+                    }}
+                    {{ 
+                        metadata_group(
+                            "Contact Person Phone",
+                            seq_request.contact_person.phone,
+                            class="col-6 col-xl-4",
+                        ) 
+                    }}
+                </div>
+
+                <h4>Principal Investigator</h4>
+                <div class="row">
+                    {% if seq_request.pi_contact %}
+                    {{ metadata_group("name", seq_request.pi_contact.name, class="col-6 col-xl-4") }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.pi_contact.email, class="col-6 col-xl-4",
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
+                        )
+                    }}
+                    {% else %}
+                    {{ metadata_group("name", "", class="col-6 col-xl-4") }}
+                    {{ metadata_group("Email", "", class="col-6 col-xl-4") }}
+                    {% endif %}
+                </div>
+                {{ metadata_group("Organization", seq_request.organization_contact.name) }}
+                {{ metadata_group_textarea("Organization Address", seq_request.organization_contact.address) }}
+                
+                {% if seq_request.bioinformatician_contact_id %}
+                <br>
+                <h4>Bioinformatician Contact</h4>
+                <div class="row">
+                    {{ metadata_group("Name", seq_request.bioinformatician_contact.name, class="col-6 col-xl-4") }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-4",
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
+                        )
+                    }}
+                    {{ metadata_group("Phone", seq_request.bioinformatician_contact.phone, class="col-6 col-xl-4") }}
+                </div>
+                {% endif %}
+            
+                <br>
+                <h4>Billing Info</h4>
+                {{ metadata_group("Billing Contact", seq_request.billing_contact.name) }}
+                {{ metadata_group_textarea("Address", seq_request.billing_contact.address) }}
+                
+                <div class="row">
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.billing_contact.email, class="col-6",
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
+                        )
+                    }}
+                    {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col-6") }}
+                </div>
+                <div class="row">
+                    {{ metadata_group("Billing Code", seq_request.billing_code, class="col-6") }}
+                </div>
+            </div>
+        </div>
+        {% if current_user.is_insider %}
+        <div class="tab-pane fade" id="request-status-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('render_status', entity='seq_request', obj_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+        <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="8">
+            <div hx-get="{{ url_for('render_media_file_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-comments-tab" role="tabpanel" tabindex="9">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Comments</h2>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('CommentForm.Begin', seq_request_id=seq_request.id) }}">
+                    Comment
+                </button>
+            </div>
+
+            <div hx-get="{{ url_for('render_comment_thread', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>  
+        <div class="tab-pane fade" id="request-share-tab" role="tabpanel" tabindex="10">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>The data will be shared with following emails:</h2>
+                </div>
+                <div>
+                    {{ modal_button("Add Email", url=url_for('AddSeqRequestShareEmailAction.Begin', seq_request_id=seq_request.id), disabled=not current_user.is_insider and seq_request.status >= C.SeqRequestStatus.FINISHED) }}
+                </div>
+            </div>     
+            {% set only_one = seq_request.delivery_email_links | length == 1 %}
+            <div class="share-email-list">
+                {% for link in seq_request.delivery_email_links %}
+                <div class="row">
+                    <div class="col-7">
+                        {{ metadata_group_email_link("Recipient", link.email, class="col") }}
+                    </div>
+                    <div class="col-4">
+                        {{ metadata_group("Status", link.status.label + " " + link.status.icon, class="col") }}
+                    </div>
+                    <div class="col-1 remove-btn-container">
+                        <span
+                        {% if only_one %}
+                            {{ tooltip('Atleast one email is required. Add another email to remove this.', category='danger') }}
+                        {% endif %}>
+                            <button class="btn btn-danger" {% if only_one %}disabled{% endif %}
+                            hx-delete="{{ url_for('remove_seq_request_share_email', seq_request_id=seq_request.id, email=link.email) }}">
+                                Remove
+                            </button>
+                        </span>
+                    </div>        
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="11">
+            <div hx-get="{{ url_for('render_project_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-assignees-tab" role="tabpanel" tabindex="12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
+                    <button hx-get="{{ url_for('AddSeqRequestAssigneeAction.Begin', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
+                        {% if not current_user.is_insider %}disabled{% endif %}>
+                        Add Assignee
+                    </button>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_assignee_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="13">
+            <div hx-get="{{ url_for('render_data_path_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% if reviewed %}{{ review_tab_pane(active=false, tabindex=14) }}{% endif %}
+    </div>
+</div>
+
+{{ overview_modal("request-overview", url_for('render_seq_request_overview', seq_request_id=seq_request.id), 'Overview · ' ~ seq_request.identifier) }}
+{% endblock %}

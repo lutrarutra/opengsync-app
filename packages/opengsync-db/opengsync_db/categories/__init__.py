@@ -35,3 +35,49 @@ from .MUXType import MUXType
 from .DataPathType import DataPathType
 from .BarcodeOrientation import BarcodeOrientation
 from .TaskStatus import TaskStatus
+from .OperationKind import OperationKind
+from .AccessLevel import AccessLevel
+from .ExtendedEnum import ExtendedEnum
+
+__all__ = [
+    "ServiceType",
+    "BarcodeType",
+    "DataDeliveryMode",
+    "DeliveryStatus",
+    "ExperimentStatus",
+    "FeatureType",
+    "MediaFileType",
+    "FlowCellType",
+    "GenomeRef",
+    "HTTPResponse",
+    "LibraryStatus",
+    "LibraryType",
+    "RequestResponse",
+    "SeqRequestStatus",
+    "ReadType",
+    "UserRole",
+    "SequencerModel",
+    "PoolStatus",
+    "ExperimentWorkFlow",
+    "PoolType",
+    "SampleStatus",
+    "RunStatus",
+    "AttributeType",
+    "IndexType",
+    "SubmissionType",
+    "LabChecklistType",
+    "EventType",
+    "AffiliationType",
+    "AccessType",
+    "GroupType",
+    "PrepStatus",
+    "KitType",
+    "ProjectStatus",
+    "MUXType",
+    "DataPathType",
+    "BarcodeOrientation",
+    "TaskStatus",
+    "OperationKind",
+    "AccessLevel",
+    "ExtendedEnum",
+]

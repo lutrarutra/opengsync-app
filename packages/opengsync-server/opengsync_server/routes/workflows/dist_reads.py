@@ -1,6 +1,6 @@
 from flask import Blueprint, request, Response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, logger
 from ...forms.workflows import dist_reads as forms
@@ -11,10 +11,10 @@ dist_reads_workflow = Blueprint("dist_reads_workflow", __name__, url_prefix="/wo
 
 @wrappers.htmx_route(dist_reads_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if experiment.workflow.combined_lanes:
@@ -27,10 +27,10 @@ def begin(current_user: models.User, experiment_id: int) -> Response:
 
 @wrappers.htmx_route(dist_reads_workflow, db=db, methods=["POST"])
 def submit(current_user: models.User, experiment_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if experiment.workflow.combined_lanes:

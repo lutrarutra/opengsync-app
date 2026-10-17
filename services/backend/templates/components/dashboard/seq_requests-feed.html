@@ -1,0 +1,31 @@
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
+
+
+{# first page: fill the count badge in the dashboard header #}
+{% if current_page == 0 %}<span id="dash-count-seq-requests" hx-swap-oob="true">{{ tab_count(total) }}</span>{% endif %}
+{% for seq_request in seq_requests %}
+<div class="element-banner"
+{% if loop.last and limit == loop.index %}
+hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq-requests-feed-indicator" hx-swap="outerHTML" hx-indicator="#seq-requests-feed-indicator" hx-disinherit="*"
+{% endif %}>
+    <div class="feed-head">
+        <div class="feed-title">
+            <a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a>
+            <span class="feed-subtitle"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></span>
+        </div>
+        {% include "components/dashboard/seq_request-assignees.html" %}
+    </div>
+    <div class="feed-meta">
+        <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+        <span><i class="bi bi-box-seam"></i>{{ seq_request.submission_type.display_name }}</span>
+        <span><i class="bi bi-collection"></i>{{ seq_request.num_libraries }} libraries</span>
+    </div>
+    <div class="status-row">
+        {{ seq_request_status_bar(seq_request) }}
+        <span class="status-label">{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</span>
+    </div>
+</div>
+{% endfor %}
+{{ spinner(id="seq-requests-feed-indicator") }}

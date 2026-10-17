@@ -1,0 +1,51 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/tooltip.jinja2" import tooltip %}
+<div id="media_file-table" class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        {{ table_col("media_file-table", table, "id") }}
+        {{ table_col("media_file-table", table, "name") }}
+        {{ table_col("media_file-table", table, "type") }}
+        {{ table_col("media_file-table", table, "uploader") }}
+        {{ table_col("media_file-table", table, "size_bytes") }}
+        {{ table_col("media_file-table", table, "timestamp_utc") }}
+      </tr>
+    </thead>
+    <tbody>
+      {% for file in files %}
+      <tr>
+        <th scope="row">{{ file.id }}</th>
+        <td>
+            <span class="x-scroll">
+                <span class="scroll-container d-flex align-items-center gap-2">
+                    {% if file.type == C.MediaFileType.LANE_POOLING_TABLE and file.experiment_id %}
+                    <a class="w-auto flex-shrink-0" href="{{ url_for('lane_pooling_table_page', experiment_id=file.experiment_id, file_id=file.id) }}" target="_blank" rel="noopener noreferrer" aria-label="View Table" {{ tooltip("View Table") }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-table" viewBox="0 0 16 16">
+                            <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 2h-4v3h4zm0 4h-4v3h4zm0 4h-4v3h3a1 1 0 0 0 1-1zm-5 3v-3H6v3zm-5 0v-3H1v2a1 1 0 0 0 1 1zm-4-4h4V8H1zm0-4h4V4H1zm5-3v3h4V4zm4 4H6v3h4z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('serve_media_file', media_file_id=file.id) }}" target="_blank" rel="noopener noreferrer">
+                        {{ file.basename }}
+                    </a>
+                </span>
+            </span>
+        </td>
+        <td>{{ file.type.display_name }}</td>
+        <td>{{ file.uploader.name }}</td>
+        <td>{{ file.size_bytes | filesize }}</td>
+        <td>{{ file.timestamp_utc | format_datetime }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {{ pagination("media_file-table", table) }}
+  <script>
+    $(document).ready(function() {
+        const table = new HTMXTable("#media_file-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+    });
+  </script>
+</div>

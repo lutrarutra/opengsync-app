@@ -1,0 +1,407 @@
+{% from "components/legends.jinja2" import index_badge_legend %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/button.jinja2" import confirm_action_button %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+
+<div class="accordion p-1" id="sops-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="false" aria-controls="sops-accordiod-collapse-1">
+                <b>{% if libraries_added %}✅{% else %}⚠️{% endif %} Add Libraries to the Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                        hx-get="{{ url_for('LibraryPrepAction.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Add Libraries' - Workflow
+                    </li>
+                    <li>Select libraries</li>
+                    <li>Complete workflow</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
+                <b>{% if mux_required %}{% if samples_pooled is none %}❗{% else %}🔘{% endif %}{% else %}🚫{% endif %} Specify how Samples are Pooled</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('SamplePoolingAction.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Sample Pooling' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Required only when multiple samples are multiplexed into a library</li>
+                    <li>Samples with the same Pool are combined into a single library.</li>
+                    <li>To fail samples, use the 'Reject Samples'-step. Rejected samples are not listed and stay in their current pool.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2b" aria-expanded="false" aria-controls="sops-accordiod-collapse-2b">
+                <b>{% if mux_required %}{% if samples_pooled is none %}❗{% else %}🔘{% endif %}{% else %}🚫{% endif %} Reject Samples</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-2b" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('RejectSamplesAction.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Reject Samples' - Workflow
+                    </li>
+                    <li>Specify <span class="code-highlight">x</span> in the 'Reject'-column for failed samples.</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Optional; only for samples in multiplexed libraries.</li>
+                    <li>Rejected samples get status {{ C.SampleStatus.REJECTED.display_name }}, stay in their library and are ignored in the following steps.</li>
+                    <li>Rejection applies to the sample everywhere it is used. Clear the <span class="code-highlight">x</span> to un-reject a sample.</li>
+                    <li>If all samples of a library are rejected, fail the library with <span class="code-highlight">x</span> in the prep-table.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+                <b>{% if not oligo_mux_required %}🚫{% else %}{% if oligo_mux_annotated is none %}❗{% elif oligo_mux_annotated %}✅{% else %}⚠️{% endif %}{% endif %} Oligo Multiplexing Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('MuxPrepWorkflow.Begin', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_OLIGO.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" {% if not oligo_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only required when Oligo multiplexing library is included in the prep.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="false" aria-controls="sops-accordiod-collapse-4">
+                <b>{% if not flex_mux_required %}🚫{% else %}{% if flex_mux_annotated is none %}❗{% elif flex_mux_annotated %}✅{% else %}⚠️{% endif %}{% endif %} Flex Multiplexing Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('MuxPrepWorkflow.Begin', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_FLEX_PROBE.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" {% if not flex_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only required when multiplexed Flex library is included in the prep.</li>
+                    <li>If sample contains more than one barcode, separate them with a semicolon <span class="code-highlight">;</span>.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-5" aria-expanded="false" aria-controls="sops-accordiod-collapse-5">
+                <b>{% if not on_chip_mux_required %}🚫{% else %}{% if on_chip_mux_annotated is none %}❗{% elif on_chip_mux_annotated %}✅{% else %}⚠️{% endif %}{% endif %} On-Chip Multiplexing Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-5" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('MuxPrepWorkflow.Begin', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_ON_CHIP.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" {% if not on_chip_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only required when On-Chip multiplexed library is included in the prep.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-6" aria-expanded="false" aria-controls="sops-accordiod-collapse-6">
+                <b>{% if prep_table_submitted is none %}❗{% elif prep_table_submitted %}✅{% else %}⚠️{% endif %} Submit Prep-Table</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-6" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <select class="form-select" style="width: 250px;" id="checklist_id">
+                    {% for checklist in C.LabChecklistType.as_list() %}
+                    <option value="{{ checklist.id }}" {% if lab_prep.checklist_type.id == checklist.id %}selected{% endif %}>{{ checklist.name }}</option>
+                    {% endfor %}
+                </select>
+                <b class="pt-2">Steps:</b>
+                <ol>
+                    <li>
+                        Download 
+                        <a class="btn btn-primary" onclick="download_template()" data-url="{{ url_for('download_lab_prep_spreadsheet_template', lab_prep_id=lab_prep.id, direction='rows') }}">Rows</a>
+                        or
+                        <a class="btn btn-primary" onclick="download_template()" data-url="{{ url_for('download_lab_prep_spreadsheet_template', lab_prep_id=lab_prep.id, direction='columns') }}">Columns</a>
+                    </li>
+                    <li>
+                        Fill the template as required and <button class="btn-success btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('UploadLibraryPrepSpreadsheetAction.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Upload</button> the completed prep-table.
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Mark pool with <span class="code-highlight">x</span> if a library should be marked failed, e.g. didn't pass QC.</li>
+                    <li>Mark pool with <span class="code-highlight">t</span> if a library is a control sample ('library_id'-column is empty).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-7" aria-expanded="false" aria-controls="sops-accordiod-collapse-7">
+                <b>{% if protocols_selected is none %}❗{% elif protocols_selected %}✅{% else %}⚠️{% endif %} Select Library Protocols</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-7" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('SelectLibraryProtocolsWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Select Library Protocols' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>In prep-table, 'library_kits' should list of identifiers separated by ';'.</li>
+                    <li>If possible, protocol will be automatically assigned based on the combination of 'library_kits'.</li>
+                </ul>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-3">Type</th>
+                            <th scope="col" class="col-6">Protocol</th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td>{{ library.type.label }}</td>
+                                <td>{% if library.protocol %}{{ library.protocol.name }}{% else %}<span class="text-muted">Not Selected</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-8" aria-expanded="false" aria-controls="sops-accordiod-collapse-8">
+                <b>{% if library_fragment_sizes_measured is none %}❗{% elif library_fragment_sizes_measured %}✅{% else %}⚠️{% endif %} Measure Library Fragment Size (BA)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-8" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('BAReportWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
+                    </li>
+                </ol>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-2">Library</th>
+                            <th class="col-2">Average Fragment Size</th>
+                            <th class="col-8">Report</th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ library.avg_fragment_size }}</div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                <td class="x-scroll-cell">
+                                    <span class="scroll-container">{% if library.ba_report_id %}<span class="desc">{{ library.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('serve_media_file', media_file_id=library.ba_report_id) }}" target="_blank">{{ library.ba_report.name }}</a></span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-9" aria-expanded="false" aria-controls="sops-accordiod-collapse-9">
+                <b>{% if libraries_indexed is none %}❗{% elif libraries_indexed %}✅{% else %}⚠️{% endif %} Index Libraries</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-9" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('ReindexWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Index Libraries' - Workflow
+                    </li>
+                </ol>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-9">
+                                Index
+                                <a type="button" role="button" onclick="toggle_index_display()">
+                                    <i class="bi bi-upc-scan"></i>
+                                </a>
+                                {{ index_badge_legend() }}
+                            </th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td class="x-scroll-cell">
+                                    {{ library_index_cell(library) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-10" aria-expanded="false" aria-controls="sops-accordiod-collapse-10">
+                <b>{% if libraries_pooled is none %}❗{% elif libraries_pooled %}✅{% else %}⚠️{% endif %} Pool Libraries</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-10" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('LibraryPoolingWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Pool Libraries' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>If you don't want to pool certain libraries (yet),  <span class="code-highlight">skip</span></li>
+                    <li>Mark pool with <span class="code-highlight">x</span> if a library should not be pooled, e.g. didn't pass QC.</li>
+                    <li>❗ Doing this workflow will re-create the pools. If pool has already been assigned an experiment, the new pools might not be added to the experiment it was sequenced in if there are conflicts. Refrain from re-doing this workflow after the pool has already been sequenced.</li>
+                    <li>If Library ID is empty, it means that the uploaded prep-table is outdated, probably due to library ID mismatch in prep-table.</li>
+                </ul>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-6">Library</th>
+                            <th scope="col" class="col-6">pool</th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td>{% if library.pool_id %}<a href="{{ url_for('pool_page', pool_id=library.pool_id, from='lab_prep@' + lab_prep.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-11" aria-expanded="false" aria-controls="sops-accordiod-collapse-11">
+                <b>{% if lab_prep_completed is none %}❗{% elif lab_prep_completed %}✅{% else %}⚠️{% endif %} Complete Lab Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-11" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Complete Prep",
+                                title="Complete Library Prep?",
+                                url=url_for('complete_lab_prep', lab_prep_id=lab_prep.id),
+                                disabled=lab_prep_completed is not false,
+                                color="success",
+                                disabled_tooltip="Lab prep can only be completed once all required steps have been completed.",
+                                method="hx-post",
+                            )
+                        }}
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Sets the status of all pools to "Stored".</li>
+                    <li>Sets the status of the lab prep to "Completed".</li>
+                    <li>Sets the status of sequencing requests to "Prepared" if all libraries in it are prepared.</li>
+                </ul>
+            </div>
+        </div> 
+    </div>
+</div>
+<script>
+    function download_template() {
+        const url = event.target.getAttribute('data-url');
+        const checklist_type_id = parseInt($("#checklist_id").val());
+        window.location.href = url + "&checklist_id=" + checklist_type_id;
+    }
+</script>

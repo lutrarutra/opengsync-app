@@ -10,6 +10,7 @@ extraPaths = [
     "packages/opengsync-db",
     "packages/opengsync-server",
     "packages/opengsync-api",
+    "services/backend",
 ]
 reportIncompatibleMethodOverride = false
 
@@ -18,9 +19,9 @@ name = "opengsync-app"
 dynamic = ["version"]
 dependencies = [
     "opengsync-db",
-    "opengsync-server",
     "opengsync-worker",
     "opengsync-api",
+    "server",
 
     "numpy >= 2.2",
     "pandas >= 3.0",
@@ -40,16 +41,26 @@ dev = [
     "alembic",
     "matplotlib",
     "seaborn",
+    "strix-agent>=1.7.0",
 ]
 
 
 [tool.uv.workspace]
 members = [
     "packages/*",
+    "services/backend",
 ]
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+]
+extend-ignore = ["E501", "W292", "W293", "I001", "N999", "B008", "RUF012", "RUF022", "SIM102", "UP037", "E302"]
 
 [tool.uv.sources]
 opengsync-db = { workspace = true }
 opengsync-api = { workspace = true }
-opengsync-server = { workspace = true }
 opengsync-worker = { workspace = true }
+server = { workspace = true }

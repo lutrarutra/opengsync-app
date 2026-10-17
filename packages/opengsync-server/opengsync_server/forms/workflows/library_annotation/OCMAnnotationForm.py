@@ -27,7 +27,7 @@ class OCMAnnotationForm(LibraryAnnotationWorkflow):
     @staticmethod
     def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return (
-            current_step.seq_request.submission_type_id in [SubmissionType.POOLED_LIBRARIES.id, SubmissionType.UNPOOLED_LIBRARIES.id] and
+            current_step.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and
             (current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id)
         )
 

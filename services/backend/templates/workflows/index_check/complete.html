@@ -1,0 +1,73 @@
+{% from "components/legends.jinja2" import index_badge_legend %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+
+<div id="index-check-complete-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Complete Index Check</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body tab-body" id="index-check-complete-form">
+        {{ form.csrf_token.render() }}
+        {{ form.render_general_errors() }}
+        {% if summary %}
+        <h5>Details</h5>
+        <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Library</th>
+                    <th scope="col" class="col-4">
+                        Index
+                        <a type="button" role="button" onclick="toggle_index_display()">
+                            <i class="bi bi-upc-scan"></i>
+                        </a>
+                        {{ index_badge_legend() }}
+                    </th>
+                    <th scope="col">Orientation</th>
+                    <th scope="col">i7 Reverse Complemented</th>
+                    <th scope="col">i5 Reverse Complemented</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in summary %}
+                <tr>
+                    <td>{{ item.library_name }}</td>
+                    <td class="x-scroll-cell">{{ library_index_cell(item.library) }}</td>
+                    <td>{{ item.orientation.display_name }}</td>
+                    {% for was_reverse_complemented in [item.was_reverse_complemented_i7, item.was_reverse_complemented_i5] %}
+                    <td>
+                        {% if was_reverse_complemented %}
+                        <span class="badge bg-warning text-dark">Yes</span>
+                        {% else %}
+                        <span class="badge bg-success">No</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+        <p class="text-muted">Click "Complete" to persist these changes and return to the previous page.</p>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#index-check-complete-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button type="button" class="btn btn-success"
+                hx-target="#index-check-complete-container" hx-swap="outerHTML"
+                hx-include="#index-check-complete-form"
+                hx-post="{{ form.post_url }}">
+                Complete
+            </button>
+        </div>
+    </div>
+</div>

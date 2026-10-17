@@ -10,9 +10,11 @@ from openpyxl.utils import get_column_letter
 
 from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
+from sqlalchemy import orm
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, LabChecklistType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
@@ -32,7 +34,7 @@ def get(current_user: models.User):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -44,10 +46,10 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -58,16 +60,22 @@ def edit(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def complete(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(
+        Q.lab_prep.select(id=lab_prep_id),
+        options=[
+            orm.selectinload(models.LabPrep.pools),
+            orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.seq_request).selectinload(models.SeqRequest.libraries),
+        ]
+    )) is None:
         raise exceptions.NotFoundException()
     
     for pool in lab_prep.pools:
         if pool.status < PoolStatus.STORED:
             pool.status = PoolStatus.STORED
-            db.pools.update(pool)
+            db.session.save(pool)
 
     for library in lab_prep.libraries:
         is_prepared = True
@@ -77,10 +85,10 @@ def complete(current_user: models.User, lab_prep_id: int):
                 break
         if is_prepared:
             library.seq_request.status = SeqRequestStatus.PREPARED
-            db.libraries.update(library)
+            db.session.save(library)
 
     lab_prep.status = PrepStatus.COMPLETED
-    db.lab_preps.update(lab_prep)
+    db.session.save(lab_prep)
 
     flash("Lab prep completed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -88,31 +96,31 @@ def complete(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if lab_prep.status != PrepStatus.PREPARING:
         flash("Cannot delete completed prep.", "warning")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
     
-    db.lab_preps.delete(lab_prep_id=lab_prep.id)
+    db.session.delete(lab_prep)
     flash("Lab prep deleted!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_preps"))
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def uncomplete(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
 
     lab_prep.status = PrepStatus.PREPARING
-    db.lab_preps.update(lab_prep)
+    db.session.save(lab_prep)
 
     flash("Lab prep completed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -120,16 +128,16 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"], arg_params=["library_id"])
 def remove_library(current_user: models.User, lab_prep_id: int, library_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if lab_prep.status != PrepStatus.PREPARING:
         raise exceptions.BadRequestException()
     
-    db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
+    db.actions.remove_library_from_prep(lab_prep_id=lab_prep.id, library_id=library_id)
 
     flash("Library Removed!.", "success")
     context = logic.library.get_table_context(current_user=current_user, request=request, lab_prep=lab_prep)
@@ -141,10 +149,10 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     if direction not in ("rows", "columns"):
         raise exceptions.BadRequestException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if checklist_id is not None:
@@ -275,10 +283,10 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -291,10 +299,10 @@ def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Respo
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def checklist(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     checklist = lab_prep.get_checklist()
@@ -308,10 +316,10 @@ def checklist(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_files(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
 
     return make_response(
@@ -325,13 +333,13 @@ def get_files(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
     if file not in lab_prep.media_files:
@@ -340,7 +348,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.media_files.delete(file_id=file.id)
+    db.session.delete(file)
 
     logger.info(f"Deleted file '{file.name}' from prep (id='{lab_prep_id}')")
     flash(f"Deleted file '{file.name}' from prep.", "success")
@@ -349,10 +357,10 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -367,10 +375,10 @@ def file_form(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def plates_tab(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     return make_response(render_template("components/plates.html", plates=lab_prep.plates, from_page=f"lab_prep@{lab_prep.id}"))
@@ -378,10 +386,10 @@ def plates_tab(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -396,10 +404,10 @@ def comment_form(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_comments(current_user: models.User, lab_prep_id: int):
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     return make_response(
@@ -412,13 +420,18 @@ def get_comments(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_mux_table(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_lab_prep_pooling_table(lab_prep.id)
+    df = T.lab_prep_pooling_table(
+        db.session.get_pandas(
+            Q.pd.lab_prep_pooling_table(lab_prep.id), limit=None
+        ),
+        expand_mux_=False,
+    )
 
     df = df.sort_values(by=["library_name", "sample_pool", "sample_name"])
 
@@ -432,7 +445,7 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
     }
 
     for _, row in df.iterrows():
-        if row["mux_type_id"] is None:
+        if row["mux_type"] is None:
             continue
         
         mux_table["sample_name"].append(row["sample_name"])
@@ -472,6 +485,5 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
         )
 
     spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"lab_prep_mux_table-{lab_prep_id}")
-
     return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 

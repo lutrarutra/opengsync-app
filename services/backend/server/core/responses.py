@@ -1,0 +1,317 @@
+import json
+import io
+import re
+from pathlib import Path
+from typing import Any, Iterable, Literal, NotRequired, TypedDict
+from urllib.parse import quote
+
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
+from starlette.datastructures import URL
+from pydantic import BaseModel
+
+from . import templates, config
+from .. import utils
+from .context import ctx
+
+class FlashMessage(BaseModel):
+    message: str
+    category: Literal["info", "success", "warning", "error"] = "info"
+
+def flash(message: str, category: Literal["info", "success", "warning", "error"] = "info") -> FlashMessage:
+    return FlashMessage(message=message, category=category)
+
+class QueryOption(TypedDict):
+    id: int
+    name: str
+    header: NotRequired[str]
+    description: NotRequired[str]
+    data: NotRequired[dict[str, Any]]
+
+def query_options_response(options: Iterable[tuple[int, str] | QueryOption], *, has_more: bool) -> JSONResponse:
+    """A page of options for a spreadsheet QueryColumn or a SearchableInputField:
+    ``{"options": [{"id", "name", "header"?, "description"?, "data"?}], "has_more"}``. QueryColumns show only the
+    name; ``data`` holds values for scripts of the page (e.g. a user's email)."""
+    return JSONResponse({
+        "options": [option if isinstance(option, dict) else {"id": option[0], "name": option[1]} for option in options],
+        "has_more": has_more,
+    })
+
+def raw_json_response(*, data: str | bytes, encapsulate: str | None = None) -> Response:
+    if encapsulate:
+        data = utils.parsing.json_encapsulate(encapsulate, data)
+
+    return JSONResponse(content=data, media_type="application/json")
+    
+
+def html_response(
+    *,
+    template: str | None = None, 
+    redirect: URL | None = None, 
+    status: int = 200, 
+    response: Response | None = None,
+    flash: FlashMessage | str | None = None,
+    **context
+) -> Response:
+    if redirect:
+        resp = RedirectResponse(url=redirect, status_code=303)
+    else:
+        content = ""
+        if template is not None:
+            content = templates.render_template(template, **context)
+        
+        resp = HTMLResponse(
+            content=content,
+            status_code=status,
+            headers={"Content-Type": "text/html; charset=utf-8"}
+        )
+
+    if response:
+        for header, value in response.raw_headers:
+            if header.lower() == b"set-cookie":
+                resp.raw_headers.append((header, value))
+    
+    if flash:
+        flash_data = flash.model_dump() if isinstance(flash, FlashMessage) else {
+            "message": flash,
+            "category": "info",
+        }
+        resp.set_cookie(
+            key="flash_message",
+            value=quote(json.dumps(flash_data)),
+            max_age=60,
+            httponly=False,
+            samesite="lax",
+            path="/",
+        )
+
+    return resp
+
+def htmx_response(
+    *,
+    template: str | None = None,
+    content: str | None = None,
+    status: int = 200, 
+    redirect: URL | None = None, 
+    re_target: str | None = None, 
+    re_swap: str | None = None,
+    response: Response | None = None,
+    flash: FlashMessage | str | None = None,
+    refresh_table: str | None = None,
+    trigger: dict[str, object] | None = None,
+    **context
+) -> Response:
+    if template and content:
+        raise ValueError("Cannot provide both template and content for HTMX response.")
+
+    # Build composable HX-Trigger events
+    events: dict[str, object] = {}
+
+    if flash:
+        flash_data = flash.model_dump() if isinstance(flash, FlashMessage) else {"message": flash, "category": "info"}
+        if redirect:
+            headers = {"HX-Redirect": redirect.__str__()}
+            resp = HTMLResponse(status_code=204, headers=headers)
+            resp.set_cookie(
+                key="flash_message",
+                value=quote(json.dumps(flash_data)),
+                max_age=60,
+                httponly=False,
+                samesite="lax",
+                path="/",
+            )
+            if response:
+                for header, value in response.raw_headers:
+                    if header.lower() == b"set-cookie":
+                        resp.raw_headers.append((header, value))
+            return resp
+        else:
+            events["flash"] = flash_data
+
+    if refresh_table:
+        events["refreshTable"] = refresh_table
+
+    if trigger:
+        events.update(trigger)
+
+    if events:
+        headers = {"HX-Trigger": json.dumps(events)}
+    else:
+        headers = {"HX-Trigger": "contentUpdated"}
+
+    if re_target:
+        headers["HX-Target"] = re_target
+    if re_swap:
+        headers["HX-Swap"] = re_swap
+    
+    if redirect:
+        headers["HX-Redirect"] = redirect.__str__()
+        resp = HTMLResponse(status_code=204, headers=headers)
+    elif template is not None:
+        content = templates.render_template(template, **context)
+        resp = HTMLResponse(content=content, status_code=status, headers=headers)
+    elif content is not None:
+        resp = HTMLResponse(content=content, status_code=status, headers=headers)
+    else:
+        resp = HTMLResponse(status_code=status if status != 200 else 204, headers=headers)
+
+    if response:
+        for header, value in response.raw_headers:
+            if header.lower() == b"set-cookie":
+                resp.raw_headers.append((header, value))
+    
+    return resp
+
+def _x_accel_redirect(path: Path) -> str | None:
+    share_root = Path(config.settings.app_config.share_root).as_posix()
+    media_folder = Path(config.settings.app_config.media_folder).as_posix()
+    posix = path.as_posix()
+    if posix == share_root or posix.startswith(share_root.rstrip("/") + "/"):
+        return quote(posix.replace(share_root, "/nginx-share/", 1), safe="/")
+    if posix == media_folder or posix.startswith(media_folder.rstrip("/") + "/"):
+        return quote(posix.replace(media_folder, "/nginx-media/", 1), safe="/")
+    return None
+
+
+def accel_redirect_response(
+    *,
+    path: str | Path,
+    filename: str | None = None,
+    content_type: str | None = None,
+    disposition: Literal["inline", "attachment"] | None = "attachment",
+    extra_headers: dict[str, str] | None = None,
+) -> Response:
+    """Ask nginx to serve the file via X-Accel-Redirect.
+
+    The app response must be empty and must not set Content-Length; uvicorn
+    rejects a file-sized length on an empty body, and nginx sets the real
+    length when it serves the file.
+    """
+    path = Path(path)
+    if not path.is_file():
+        return HTMLResponse(content="File not found", status_code=404)
+
+    accel = _x_accel_redirect(path)
+    if accel is None:
+        return file_response(
+            path=path,
+            filename=filename,
+            content_type=content_type,
+            disposition=disposition,
+            extra_headers=extra_headers,
+        )
+
+    if filename is None:
+        filename = path.name
+
+    headers = dict(extra_headers or {})
+    headers.pop("Content-Length", None)
+    headers.pop("content-length", None)
+    if disposition is not None:
+        headers["Content-Disposition"] = content_disposition(disposition, filename)
+    headers["X-Accel-Redirect"] = accel
+
+    response = Response(
+        content=b"",
+        media_type=content_type or "application/octet-stream",
+        headers=headers,
+    )
+    if "content-length" in response.headers:
+        del response.headers["content-length"]
+    return response
+
+
+def content_disposition(disposition: str, filename: str) -> str:
+    """``Content-Disposition`` for any filename: header values must be latin-1, so a name outside
+    ASCII (or with quotes or control characters) gets an ASCII fallback plus the RFC 5987 ``filename*``, as Flask's send_file."""
+    fallback = re.sub(r'[^\x20-\x7e]|["\\]', "_", filename)  # printable ASCII; no quotes or line breaks
+    value = f'{disposition}; filename="{fallback}"'
+    if fallback != filename:
+        value += f"; filename*=UTF-8''{quote(filename, safe='')}"
+    return value
+
+
+def file_response(
+    *,
+    path: str | Path,
+    filename: str | None = None,
+    content_type: str | None = None,
+    disposition: Literal["inline", "attachment"] | None = "attachment",
+    extra_headers: dict[str, str] | None = None,
+    send_body: bool = True,
+    require_accel: bool = False,
+) -> Response:
+    """In prod, files under the share root or media folder are handed to nginx. With `require_accel`, a
+    prod path that nginx cannot serve raises instead of being read into memory by the app."""
+    path = Path(path)
+    if not path.is_file():
+        return HTMLResponse(content="File not found", status_code=404)
+
+    if send_body and config.settings.ENVIRONMENT == "prod":
+        if _x_accel_redirect(path) is not None:
+            return accel_redirect_response(
+                path=path,
+                filename=filename,
+                content_type=content_type,
+                disposition=disposition,
+                extra_headers=extra_headers,
+            )
+        if require_accel:
+            raise RuntimeError(f"Refusing to serve '{path}' from the app: it is not under an nginx-served root.")
+
+    if filename is None:
+        filename = path.name
+
+    headers = dict(extra_headers or {})
+    if disposition is not None:
+        headers["Content-Disposition"] = content_disposition(disposition, filename)
+
+    media_type = content_type or "application/octet-stream"
+
+    if not send_body:
+        return Response(content=b"", media_type=media_type, headers=headers)
+
+    with open(path, "rb") as f:
+        return Response(
+            content=f.read(),
+            media_type=media_type,
+            headers=headers,
+        )
+
+
+def bytes_response(*, data: bytes | io.BytesIO, filename: str, content_type: str | None = None, disposition: Literal["inline", "attachment"] = "attachment") -> Response:
+    if isinstance(data, io.BytesIO):
+        data.seek(0)
+        raw = data.read()
+    else:
+        raw = data
+
+    headers = {
+        "Content-Disposition": content_disposition(disposition, filename)
+    }
+    response = Response(
+        content=raw,
+        media_type=content_type or "application/octet-stream",
+        headers=headers,
+    )
+    return response
+
+
+def _normalize_path_params(path_params: dict) -> dict:
+    normalized: dict = {}
+    for key, value in path_params.items():
+        if isinstance(value, Path):
+            value = value.as_posix() if value.parts else ""
+        if value is None or value == "" or value == ".":
+            continue
+        normalized[key] = value
+    return normalized
+
+
+def url_for(name: str, **path_params) -> URL:
+    return ctx.request.url_for(name, **_normalize_path_params(path_params))
+
+
+def external_url_for(name: str, **path_params) -> URL:
+    """Absolute URL for links sent outside the app (emails). Built from ``external_base_url``,
+    not the request's Host header, so a forged Host cannot redirect tokens in those links."""
+    return templates.absolute_url_for(ctx.request, name, external=True, **_normalize_path_params(path_params))

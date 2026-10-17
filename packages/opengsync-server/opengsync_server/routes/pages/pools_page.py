@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db.categories import PoolStatus, AccessType
-from opengsync_db import models
+from opengsync_db.categories import PoolStatus, AccessLevel
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -15,14 +15,14 @@ def pools():
 
 @wrappers.page_route(pools_page_bp, "pools", db=db, cache_timeout_seconds=360)
 def pool(current_user: models.User, pool_id: int):
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.pools.get_access_type(pool, current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.pool.permissions(pool.id, current_user.id)) < AccessLevel.READ:
          raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Pools", url_for("pools_page.pools")),
+        ("Pools", url_for("pool_pages")),
         (f"Pool {pool.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
@@ -41,8 +41,8 @@ def pool(current_user: models.User, pool_id: int):
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
         elif page == "lab_prep":
@@ -52,10 +52,10 @@ def pool(current_user: models.User, pool_id: int):
                 (f"Pool {pool_id}", ""),
             ]
 
-    is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
+    is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider
     is_indexed = True and len(pool.libraries) > 0
     for library in pool.libraries:
-        if not library.is_indexed():
+        if not library.is_indexed:
             is_indexed = False
             break
 

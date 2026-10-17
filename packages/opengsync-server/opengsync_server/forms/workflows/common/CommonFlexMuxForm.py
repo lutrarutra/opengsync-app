@@ -1,12 +1,15 @@
 import pandas as pd
 
 from flask import url_for
+import sqlalchemy as sa
 
 from opengsync_db import models, exceptions
 from opengsync_db.categories import LibraryType, MUXType
+from opengsync_db import queries as Q
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db
-from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 
@@ -47,7 +50,12 @@ class CommonFlexMuxForm(MultiStepForm):
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             
-            sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
+            sample_table = T.lab_prep_pooling_table(
+                db.session.get_pandas(
+                    Q.pd.lab_prep_pooling_table(self.lab_prep.id), limit=None
+                ),
+                expand_mux_=False,
+            )
             sample_table = sample_table[
                 sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])
             ]
@@ -134,11 +142,16 @@ class CommonFlexMuxForm(MultiStepForm):
     @classmethod
     def update_barcodes(cls, sample_table: pd.DataFrame):
         for (sample_id, library_id, barcode), _df in sample_table.groupby(["sample_id", "library_id", "mux_barcode"]):
-            if (link := db.links.get_sample_library_link(sample_id=int(sample_id), library_id=int(library_id))) is None:  # type: ignore
+            if (link := db.session.get_one(
+                sa.select(models.links.SampleLibraryLink).where(
+                    models.links.SampleLibraryLink.sample_id == sample_id,
+                    models.links.SampleLibraryLink.library_id == library_id
+                ))
+            ) is None:
                 logger.error(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
-                raise exceptions.ElementDoesNotExist(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
+                raise exceptions.NotFoundException(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
             
             if link.mux is None:
                 link.mux = {}
             link.mux["barcode"] = str(barcode)
-            db.links.update_sample_library_link(link)
+            db.session.save(link)

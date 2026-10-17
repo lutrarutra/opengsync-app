@@ -1,13 +1,14 @@
-from typing import Optional
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import BooleanField
+import sqlalchemy as sa
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 from opengsync_db.categories import MUXType
+from opengsync_db.core.blueprints import pd_transforms as T
 
-from .... import logger, db, tools
+from .... import logger, db
 from ....tools import utils, StaticSpreadSheet
 from ....tools.spread_sheet_components import TextColumn
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
@@ -29,7 +30,12 @@ class OligoReMuxForm(CommonOligoMuxForm):
             uuid=uuid, formdata=formdata, workflow=OligoReMuxForm._workflow_name,
             additional_columns=[]
         )
-        self.library_sample_pool_table = db.pd.get_library_sample_pool(self.library.id, expand_mux=True).sort_values(
+        self.library_sample_pool_table = T.library_sample_pool(
+            db.session.get_pandas(
+                Q.pd.library_sample_pool(self.library.id), limit=None
+            ),
+            expand_mux_=True,
+        ).sort_values(
             by=["sample_name", "library_name", "sample_pool"]
         )
         self._context["library_sample_pool_table"] = StaticSpreadSheet(df=self.library_sample_pool_table, columns=[
@@ -62,7 +68,10 @@ class OligoReMuxForm(CommonOligoMuxForm):
             for _, row in self.pooling_table.iterrows():
                 sample_id = int(row["sample_id"])
 
-                if (link := db.links.get_sample_library_link(sample_id=sample_id, library_id=self.library.id)) is None:
+                if (link := db.session.first(sa.select(models.links.SampleLibraryLink).where(
+                    models.links.SampleLibraryLink.library_id == self.library.id,
+                    models.links.SampleLibraryLink.sample_id == sample_id
+                ))) is None:
                     logger.error(f"Could not find link for sample {sample_id} and library {self.library.id}")
                     raise Exception("Internal error")
                 
@@ -73,7 +82,7 @@ class OligoReMuxForm(CommonOligoMuxForm):
                 link.mux["read"] = row["mux_read"]
                 link.mux["pattern"] = row["mux_pattern"]
 
-                db.links.update_sample_library_link(link)
+                db.session.save(link)
         else:
             for _, row in self.df.iterrows():
                 for _, pool_row in self.library_sample_pool_table[
@@ -82,7 +91,10 @@ class OligoReMuxForm(CommonOligoMuxForm):
                     sample_id = int(pool_row["sample_id"])
                     library_id = int(pool_row["library_id"])
 
-                    if (link := db.links.get_sample_library_link(sample_id=sample_id, library_id=library_id)) is None:
+                    if (link := db.session.first(sa.select(models.links.SampleLibraryLink).where(
+                        models.links.SampleLibraryLink.library_id == library_id,
+                        models.links.SampleLibraryLink.sample_id == sample_id
+                    ))) is None:
                         logger.error(f"Could not find link for sample {sample_id} and library {library_id}")
                         raise Exception("Internal error")
                     
@@ -93,7 +105,7 @@ class OligoReMuxForm(CommonOligoMuxForm):
                     link.mux["read"] = row["mux_read"]
                     link.mux["pattern"] = row["mux_pattern"]
 
-                    db.links.update_sample_library_link(link)
+                    db.session.save(link)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("libraries_page.library", library_id=self.library.id, tab="library-multiplexing-tab")))

@@ -1,8 +1,10 @@
 import os
+from opengsync_db import queries as Q
 import pandas as pd
 from flask import url_for, Response, flash
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, db
 from ....core import runtime
@@ -38,7 +40,9 @@ class LibraryPoolingForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
 
-        self.library_table = db.pd.get_lab_prep_libraries(lab_prep_id=lab_prep.id)
+        self.library_table = T.lab_prep_libraries(
+            db.session.get_pandas(Q.pd.lab_prep_libraries(lab_prep.id), limit=None)
+        )
 
         if self.library_table["pool"].isna().any():
             if self.lab_prep.prep_file is not None:
@@ -116,7 +120,7 @@ class LibraryPoolingForm(MultiStepForm):
                     _id = None
 
                 if _id is not None:
-                    if (library := db.libraries.get(_id)) is None:
+                    if (library := db.session.first(Q.library.select(id=_id))) is None:
                         self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                     elif library.name != row["library_name"]:
                         self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))

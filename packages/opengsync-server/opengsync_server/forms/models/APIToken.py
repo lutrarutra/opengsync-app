@@ -1,12 +1,10 @@
-from flask import Response, flash, render_template
+from flask import Response, render_template
 from flask_htmx import make_response
 from wtforms import SelectField
 
-from opengsync_db import models
-from opengsync_db.categories import ProjectStatus
+from opengsync_db import models, queries as Q
 
 from ... import logger, db
-from ...core import exceptions
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -40,9 +38,6 @@ class APITokenForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
 
-        token = db.api_tokens.create(
-            owner=self.user,
-            time_valid_min=self.time_valid_min.data
-        )
+        token = db.session.save(Q.api_token.create(owner=self.user, time_valid_min=self.time_valid_min.data))
 
         return make_response(render_template("forms/auth/api_token_complete.html", token=token))

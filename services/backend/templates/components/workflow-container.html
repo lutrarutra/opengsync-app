@@ -1,0 +1,17 @@
+{% from "components/workflow_tile.jinja2" import workflow_tile with context %}
+
+<div class="workflow-tiles">
+    {{ workflow_tile("Store Samples", "Store samples received from customers.", url_for('StoreSamplesAction.Begin'), img="store.svg") }}
+    {{ workflow_tile("Qubit Concentration", "Measure samples' concentration with Qubit fluorometer.", url_for('QubitMeasureWorkflow.Begin'), img="fluorometer.svg") }}
+    {{ workflow_tile("Bio Analyzer Report", "Upload results form Bio Analyzer.", url_for('BAReportWorkflow.Begin'), img="analyzer.svg") }}
+    {{ workflow_tile("Check Index Orientations", "Verify the orientation of custom barcodes and store all indices in forward orientation.", url_for('IndexCheckWorkflow.Begin'), bi="bi-arrow-left-right") }}
+    {{ workflow_tile("Check Barcode Clashes", "Checks barcode conflicts, in preparation for pooling libraries.", url_for('CheckBarcodeClashesAction.SelectSamples'), img="clash.svg") }}
+    {{ workflow_tile("Check Sequencing Index Constrains", "Check wether you have valid barcode index configuration for sequencing.", url_for('BarcodeConstraintsAction.Begin'), modal="xl", bi="bi-alphabet") }}
+    {{ workflow_tile("Merge Pools", "Merge pools by combining all libraries from selected pools into a new pool.", url_for('MergePoolsWorkflow.Begin'), img="merge.svg") }}
+    {{ workflow_tile("Edit Libraries", "Make changes to libraries.", url_for('RelibWorkflow.Begin'), bi="bi-pencil-square") }}
+    {{ workflow_tile("Re-Index Libraries", "Make changes to library indices.", url_for('ReindexWorkflow.Begin'), img="barcode.svg") }}
+    {{ workflow_tile("Prepare Libraries", "Prepare libraries in the pool", url_for('LabPrepForm.Create'), modal="xl", img="prepare.svg") }}
+    {{ workflow_tile("Create Experiment", "Create a new sequencing experiment.", url_for('ExperimentForm.Create'), modal="xl", img="sequencer.svg") }}
+    {{ workflow_tile("Create Sequencing Request", "Create a new sequencing request.", url_for('SeqRequestForm.Create'), modal="xl", img="select.svg") }}
+    {{ workflow_tile("Merge Projects", "Merge samples from two projects into one.", url_for('MergeProjectsAction.Begin'), modal="xl", img="merge.svg") }}
+</div>

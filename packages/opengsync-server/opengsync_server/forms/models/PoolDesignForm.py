@@ -1,4 +1,5 @@
 from flask import Response, flash, url_for
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 from wtforms import StringField, FloatField, IntegerField, FormField
 from wtforms.validators import DataRequired, Length
@@ -58,14 +59,13 @@ class PoolDesignForm(HTMXFlaskForm):
             raise exceptions.InternalServerErrorException("Pool design must be set when editing an existing pool design.")
         
         if (pool_id := self.pool_id.selected.data):
-            if (pool := db.pools.get(pool_id)) is None:
+            if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
                 raise exceptions.NotFoundException(f"Pool with ID {pool_id} not found.")
             
             if pool.num_m_reads_requested:
                 self.pool_design.num_m_requested_reads = pool.num_m_reads_requested
             else:
                 pool.num_m_reads_requested = self.pool_design.num_m_requested_reads
-                db.pools.update(pool)
             self.pool_design.name = pool.name
             self.pool_design.pool_id = pool_id
         else:
@@ -77,22 +77,22 @@ class PoolDesignForm(HTMXFlaskForm):
         self.pool_design.cycles_i2 = self.i2_cycles.data  # type: ignore
 
         db.session.add(self.pool_design)
-        db.flush()
+        db.session.flush()
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("design_page.design"))
 
     def __create_new_pool_design(self) -> Response:
-        new_pool_design = db.pool_designs.create(
+        new_pool_design = db.session.save(Q.pool_design.create(
             name=self.pool_design_name.data,  # type: ignore
             num_m_requested_reads=self.num_m_requested_reads.data,  # type: ignore
             cycles_r1=self.r1_cycles.data,  # type: ignore
             cycles_i1=self.i1_cycles.data,  # type: ignore
             cycles_r2=self.r2_cycles.data,  # type: ignore
             cycles_i2=self.i2_cycles.data,  # type: ignore
-        )
+        ))
 
         db.session.add(new_pool_design)
-        db.flush()
+        db.session.flush()
         flash("Design Created!", "success")
         return make_response(redirect=url_for("design_page.design"))
     

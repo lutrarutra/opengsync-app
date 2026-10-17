@@ -1,4 +1,5 @@
 from wtforms import FormField
+from opengsync_db import queries as Q
 from flask import Response, url_for
 from flask_htmx import make_response
 
@@ -46,11 +47,11 @@ class MergeProjectsForm(HTMXFlaskForm):
         if not self.validate(user):
             return self.make_response()
         
-        if (project_dst := db.projects.get(self.project_dst_id)) is None:
+        if (project_dst := db.session.first(Q.project.select(id=self.project_dst_id))) is None:
             self.project_dst.selected.errors = ("Selected project not found.",)
             return self.make_response()
         
-        if (project_src := db.projects.get(self.project_src_id)) is None:
+        if (project_src := db.session.first(Q.project.select(id=self.project_src_id))) is None:
             self.project_src.selected.errors = ("Selected project not found.",)
             return self.make_response()
         
@@ -70,6 +71,6 @@ class MergeProjectsForm(HTMXFlaskForm):
                             self.project_dst.selected.errors = (f"Sample name conflict for sample '{sample.name}' with incompatible attribute values.",)
                             return self.make_response()
         
-        project = db.projects.merge_projects(project_dst, project_src)
-        return make_response(redirect=url_for("projects_page.project", project_id=project.id))
+        project = db.actions.merge_projects(project_dst, project_src)
+        return make_response(redirect=url_for("project_page", project_id=project.id))
                     

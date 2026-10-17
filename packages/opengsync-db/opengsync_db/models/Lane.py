@@ -39,8 +39,6 @@ class Lane(Base):
         cascade="save-update, merge, delete, delete-orphan",
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
-
     warning_min_molarity: ClassVar[float] = 1.0
     warning_max_molarity: ClassVar[float] = 5.0
     error_min_molarity: ClassVar[float] = 0.5
@@ -152,11 +150,25 @@ class Lane(Base):
             else_=None
         )  # type: ignore[arg-type]
 
-    @property
-    def original_molarity(self) -> float | None:
-        if self.original_qubit_concentration is None or self.avg_fragment_size is None:
+    @hybrid_property
+    def original_molarity(self) -> float | None:  # type: ignore[override]
+        if self.original_qubit_concentration is None or not self.avg_fragment_size:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+
+    @original_molarity.expression
+    def original_molarity(cls) -> sa.ColumnElement[float | None]:
+        return sa.case(
+            (
+                sa.and_(
+                    Lane.original_qubit_concentration.is_not(None),
+                    Lane.avg_fragment_size.is_not(None),
+                    Lane.avg_fragment_size > 0
+                ),
+                sa.cast(Lane.original_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
+            ),
+            else_=None
+        )
     
     @property
     def qubit_concentration(self) -> float | None:
@@ -166,7 +178,7 @@ class Lane(Base):
     
     @hybrid_property
     def lane_molarity(self) -> float | None:  # type: ignore[override]
-        if self.original_qubit_concentration is None or self.avg_fragment_size is None:
+        if self.original_qubit_concentration is None or not self.avg_fragment_size:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
@@ -176,7 +188,8 @@ class Lane(Base):
             (
                 sa.and_(
                     Lane.original_qubit_concentration.is_not(None),
-                    Lane.avg_fragment_size.is_not(None)
+                    Lane.avg_fragment_size.is_not(None),
+                    Lane.avg_fragment_size > 0
                 ),
                 sa.cast(Lane.original_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
             ),
@@ -185,7 +198,7 @@ class Lane(Base):
 
     @hybrid_property
     def sequencing_molarity(self) -> float | None:  # type: ignore[override]
-        if self.sequencing_qubit_concentration is None or self.avg_fragment_size is None:
+        if self.sequencing_qubit_concentration is None or not self.avg_fragment_size:
             return None
         return self.sequencing_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
 
@@ -195,7 +208,8 @@ class Lane(Base):
             (
                 sa.and_(
                     Lane.sequencing_qubit_concentration.is_not(None),
-                    Lane._avg_fragment_size.is_not(None)
+                    Lane._avg_fragment_size.is_not(None),
+                    Lane.avg_fragment_size > 0
                 ),
                 sa.cast(Lane.sequencing_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
             ),
@@ -265,3 +279,7 @@ class Lane(Base):
             if link.num_m_reads is not None:
                 reads += link.num_m_reads
         return reads
+
+    __table_args__ = (
+        sa.UniqueConstraint("experiment_id", "number", name="uq_lane_experiment_id_number"),
+    )

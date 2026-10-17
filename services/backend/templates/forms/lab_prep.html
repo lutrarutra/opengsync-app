@@ -1,0 +1,45 @@
+<div class="modal-content" id="lab_prep-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Prep</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div id="lab_prep-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.service_type.render("col-4") }}
+                {{ form.checklist_type.render("col-4") }}
+                {{ form.name.render("col-4") }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if form.form_type == "edit" %}
+            <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('LabPrepForm.Edit', lab_prep_id=form.lab_prep.id) }}">Save</button>
+            {% elif form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('LabPrepForm.Create') }}">Create</button>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        var checklist_identifiers = {{ identifiers | tojson }};
+
+        $(document).ready(function() {
+            {% if form.form_type == "create" %}
+            $("#protocol").on("change", function(){
+                const protocol = $(this).val();
+                $("#name").attr("placeholder", checklist_identifiers[protocol] + "XXX");
+            });
+            {% endif %}
+        });
+    </script>
+</div>

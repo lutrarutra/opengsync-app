@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField
 from wtforms.validators import DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from .. import db, logger, mail_handler
 from ..tools import utils
@@ -42,7 +42,7 @@ class DirectoryShareForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             return False
         
         if not self.recipients.data:
@@ -81,23 +81,23 @@ class DirectoryShareForm(HTMXFlaskForm):
         if not self.validate(current_user):
             return self.make_response()
         
-        share_token = db.shares.create(
+        share_token = db.session.save(Q.share_token.create(
             owner=current_user,
             time_valid_min=self.time_valid_min.data,
             paths=[self.p.as_posix()],
-        )
+        ), flush=True)
 
         outdir = "BSF_DATA"
 
         http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-        sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+        sync_command = render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
         wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
         browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
 
         content = render_template(
             "email/share-directory.html", style=style, browse_link=browse_link,
-            author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
+            author=None if self.anonymous_send.data else current_user if current_user.is_insider else None,
             share_token=share_token,
             sync_command=sync_command,
             http_command=http_command,

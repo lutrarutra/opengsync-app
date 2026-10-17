@@ -1,0 +1,251 @@
+@import "./colors.css";
+
+.form-check:has(.disabled) {
+    label:hover, input:hover {
+        cursor: not-allowed !important;
+    }
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+}
+
+input.form-control {
+    &:focus {
+        border: 1px solid var(--color-cemm-blue);
+        box-shadow: none;
+    }
+    &.is-invalid:focus {
+        border: 1px solid var(--color-danger);
+        box-shadow: none;
+    }
+}
+
+.invalid-feedback-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 25px;
+    max-height: 100px;
+    overflow-y: auto;
+    padding-top: 1px;
+    width: 100%;
+    overflow-x: auto;
+
+    p {
+        margin: 0;
+        padding: 0;
+        height: 25px;
+        vertical-align: middle;
+        width: 100%;
+        white-space: nowrap;
+        text-wrap: nowrap;
+        color: var(--color-danger);
+        font-size: 14px;
+    }
+}
+
+input.disabled,
+textarea.disabled {
+    background-color: var(--bs-secondary-bg);
+    opacity: 1;
+    box-shadow: none;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    cursor: not-allowed;
+}
+
+input.disabled:focus,
+textarea.disabled:focus {
+    box-shadow: none;
+    background-color: var(--bs-secondary-bg);
+    border: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+.display-form {
+    input.disabled {
+        background-color: var(--color-white);
+    }
+}
+
+.form-group {
+    padding: 0 5px 0 5px;
+    margin: 0;
+    input.form-control:read-only {
+        background-color: var(--color-gray-100) !important;
+        cursor: default !important;
+    }
+}
+
+/* Metadata values are read-only, but should retain the same background as
+   editable Bootstrap form controls. */
+.form-group.metadata-group input.form-control:read-only,
+.form-group.metadata-group textarea.form-control:read-only,
+.form-group.metadata-group select.form-control,
+.form-group.metadata-group .input-group-text {
+    background-color: var(--bs-body-bg) !important;
+    opacity: 1;
+}
+
+.form-group.metadata-group textarea.form-control {
+    min-height: 12rem;
+}
+
+/* Metadata values wrapped in a link (URL, mailto, ...) are clickable. */
+.form-group.metadata-group a:not(.clipboard-btn) input.form-control:read-only {
+    cursor: pointer !important;
+}
+
+/* Multi-step forms: one .step-pane per step, .step-timeline in the footer. */
+.step-timeline {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0 20px 0 10px;
+
+    .step-timeline-item {
+        --step-color: var(--bs-secondary-color);
+        --step-border: var(--bs-border-color);
+        --step-bg: var(--bs-body-bg);
+        --step-ring: var(--bs-primary-bg-subtle);
+        display: flex;
+        align-items: center;
+        flex: 1;
+
+        /* Connector to the previous step */
+        &::before {
+            content: "";
+            flex: 1;
+            height: 2px;
+            margin: 0 4px;
+            background-color: var(--bs-border-color);
+        }
+        &:first-child {
+            flex: 0 0 auto;
+            &::before {
+                display: none;
+            }
+        }
+
+        button {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 14px;
+            border: 1.5px solid var(--step-border);
+            background-color: var(--step-bg);
+            color: var(--step-color);
+            transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:hover {
+            cursor: pointer;
+            border-color: var(--step-color);
+        }
+    }
+
+    .step-timeline-item.step-ok {
+        --step-color: var(--bs-success);
+        --step-border: var(--bs-success-border-subtle);
+        --step-bg: var(--bs-success-bg-subtle);
+        --step-ring: var(--bs-success-bg-subtle);
+    }
+    .step-timeline-item.step-error {
+        --step-color: var(--bs-danger);
+        --step-border: var(--bs-danger-border-subtle);
+        --step-bg: var(--bs-danger-bg-subtle);
+        --step-ring: var(--bs-danger-bg-subtle);
+    }
+
+    .step-timeline-item.current {
+        --step-border: var(--step-color);
+    }
+    .step-timeline-item.step-missing.current {
+        --step-color: var(--bs-primary);
+    }
+    .step-timeline-item.current button {
+        box-shadow: 0 0 0 3px var(--step-ring);
+    }
+
+    /* Connector after a validated step */
+    .step-timeline-item.step-ok + .step-timeline-item::before {
+        background-color: var(--bs-success);
+    }
+}
+
+.form-check:has(input.disabled) {
+    label {
+        color: var(--color-gray-500) !important;
+    }
+}
+
+.form-group {
+    a.clipboard-btn {
+        .not-copied-icon {
+            color: var(--color-cemm-blue-darker);
+        }
+        .copied-icon {
+            color: var(--color-cemm-green-darker);
+        }
+    }
+    a.clipboard-btn:hover {
+        cursor: pointer;
+    }
+
+    .copyable-input {
+        display: flex;
+        align-items: center;
+        align-content: center;
+        position: relative;
+        .clipboard-btn {
+            position: absolute;
+            right: 10px;
+        }
+    }
+
+    .copyable-input.input-with-unit {
+        .clipboard-btn {
+            right: 80px;
+        }
+    }
+}
+
+.form-check {
+    padding: 0 0 0 5px;
+    margin: 0;
+    white-space: nowrap;
+
+    label:hover, input:hover {
+        cursor: pointer;
+    }
+
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE/Edge */
+    .form-check-input {
+        margin-left: 0;
+    }
+    .form-check-label {
+        padding-left: 10px;
+    }
+}
+
+/* Muted placeholder styling for select elements */
+select.form-control:has(option:checked[value=""]) {
+    color: #6c757d;
+}
+
+/* Options inherit the select's color in non-native dropdowns (e.g. Chrome/Edge on Windows),
+   so reset them to avoid real options looking disabled while the placeholder is selected */
+select.form-control option {
+    color: var(--bs-body-color);
+}
+
+select.form-control option[value=""] {
+    color: #6c757d;
+}

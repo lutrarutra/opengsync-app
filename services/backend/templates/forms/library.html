@@ -1,0 +1,37 @@
+<div class="modal-content" id="library-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Edit Library</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        {{ form.csrf_token.render() }}
+        <div class="row">
+            {{ form.name.render("col-6") }}
+            {{ form.library_type.render("col-6") }}
+        </div>
+        <div class="row">
+            {{ form.genome.render("col-4") }}
+            {{ form.mux_type.render("col-4") }}
+            {{ form.status.render("col-4") }}
+        </div>
+        {% if form.status_comment is defined and not form.status_comment.hidden %}
+        <div class="row">
+            {{ form.status_comment.render("col-12") }}
+        </div>
+        {% endif %}
+        <div class="row">
+            {{ form.protocol.render("col-8") }}
+        </div>
+        {{ form.nuclei_isolation.render() }}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#library-form-container" hx-target="#library-form-container"
+                hx-swap="outerHTML" hx-post="{{ form.post_url }}">Save</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,115 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+<div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Specify Samples</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="form-tab-form-btn"
+                data-bs-target="#form-tab-form" type="button" role="tab"
+                aria-controls="form-tab-form" aria-selected="true">
+                Form</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" role="tabpanel" tabindex="0">
+                {{ 
+                    form.spreadsheet(
+                        target_element_id="assay-form-submission-container",
+                        submit_btn_id="parse-spreadsheet-btn",
+                    )
+                }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#assay-form-submission-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn">
+                Next
+            </button>
+        </div>
+    </div>
+    <script>
+        var assays = {
+            {% for service_type in C.ServiceType.as_list() %}
+            {{ service_type.id }}: {
+                optional_library_types: [
+                    {% for library_type in service_type.optional_library_types %}
+                    {{ library_type.id }},
+                    {% endfor %}
+                ],
+                multiplexing: {% if service_type.oligo_multiplexing %}true{% else %}false{% endif %},
+            },
+            {% endfor %}
+        };
+
+        function update_optional_assays(assay_id) {
+            const optional_library_types = assays[assay_id].optional_library_types;
+            const multiplexing = assays[assay_id].multiplexing;
+            
+            $(".opt-checkbox input").each(function() {
+                $(this).addClass("disabled");
+                $(this).prop("disabled", true);
+                $(this).prop("checked", false);
+            });
+            $(".opt-checkbox label").each(function() {
+                $(this).addClass("text-muted");
+            });
+
+            if (multiplexing) {
+                $(".service-checkbox-multiplexing input").each(function() {
+                    $(this).removeClass("disabled");
+                    $(this).prop("disabled", false);
+                });
+
+                $(".service-checkbox-multiplexing label").each(function() {
+                    $(this).removeClass("text-muted");
+                });
+            } else {
+                $(".service-checkbox-multiplexing input").each(function() {
+                    $(this).addClass("disabled");
+                    $(this).prop("disabled", true);
+                    $(this).prop("checked", false);
+                });
+
+                $(".service-checkbox-multiplexing label").each(function() {
+                    $(this).addClass("text-muted");
+                });
+            }
+
+            optional_library_types.forEach(function(library_type_id) {
+                $(`.opt-checkbox-${library_type_id} input`).each(function() {
+                    $(this).removeClass("disabled");
+                    $(this).prop("disabled", false);
+                });
+
+                $(`.opt-checkbox-${library_type_id} label`).each(function() {
+                    $(this).removeClass("text-muted");
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            update_optional_assays($("#service_type").val());
+
+            $("#service_type").on("change", function() {
+                update_optional_assays($(this).val());
+            });
+        });
+    </script>
+</div>

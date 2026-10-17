@@ -1,0 +1,120 @@
+{% from 'components/spinner.jinja2' import spinner %}
+<div id="barcode-match-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Match Barcodes</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="form-tab-btn"
+                data-bs-target="#form-tab" type="button" role="tab"
+                aria-controls="form-tab" aria-selected="true">
+                Form</button>
+            </li>
+            {% for (kit_id, kit) in kits %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link index_kit-{{kit_id}}-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#index_kit-{{kit_id}}-tab" type="button" role="tab"
+                aria-controls="index_kit-{{kit_id}}-tab" aria-selected="false">
+                {{ kit }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content" id="barcode-match-form-container">
+            <div class="tab-pane fade show active" id="form-tab" role="tabpanel" tabindex="0">
+                <div class="input-help">
+                    <p>
+                        The sequences were queried against all barcodes in the database and some matches were found.
+                        If the barcodes originate from a kit, please select the kit from available options.
+                        If the barcodes do not originate from a kit, please select "Custom". Using pre-defined kits helps
+                        to minimize the risk of input errors.
+                    </p>
+                    <p>
+                        ⚠️ Mistakes in index kit selection can lead to barcode clashes and therefore <b>irreversible data loss</b>.
+                        Ensure that you select the correct kit or choose "Custom" if the barcodes do not match any predefined kits. If you are
+                        unsure which kit it is, select "Custom" and specify the primer sequence in the field below. 
+                    </p>
+                </div>
+                {{ form.csrf_token.render() }}
+                <div class="row">
+                    {{ form.i7_kit.render("col-6") }}
+                    {% if index_type == C.IndexType.DUAL_INDEX %}
+                    {{ form.i5_kit.render("col-6") }}
+                    {% else %}
+                    {{ form.i5_kit.render("col-6", disabled=true) }}
+                    {% endif %}
+                </div>
+                <div class="row">
+                    {{ form.i7_option.render("col-6") }}
+                    {% if index_type == C.IndexType.DUAL_INDEX %}
+                    {{ form.i5_option.render("col-6") }}
+                    {% else %}
+                    {{ form.i5_option.render("col-6", disabled=true) }}
+                    {% endif %}
+                </div>
+                <div class="row">
+                    {{ form.i7_primer.render("col-6") }}
+                    {% if index_type == C.IndexType.DUAL_INDEX %}
+                    {{ form.i5_primer.render("col-6") }}
+                    {% else %}
+                    {{ form.i5_primer.render("col-6", disabled=true) }}
+                    {% endif %}
+                </div>
+            </div>
+            {% for (kit_id, kit) in kits %}
+            <div class="tab-pane fade" id="index_kit-{{kit_id}}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+                <div hx-get="{{ url_for('render_index_kit_spreadsheet', index_kit_id=kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#barcode-match-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button type="button" class="btn btn-primary"
+                hx-target="#barcode-match-container" hx-swap="outerHTML" hx-include="#barcode-match-form-container"
+                hx-post="{{ form.post_url }}">
+                Next
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            function toggleCustomOption($select, optionName) {
+                const isCustom = $select.val() === "0";
+                const $option = $(`[name="${optionName}"]`);
+                $option.prop('disabled', !isCustom);
+                if (!isCustom) {
+                    $option.val("");
+                }
+            }
+
+            const i7_kit = $('[name="i7_kit"]');
+            toggleCustomOption(i7_kit, "i7_option");
+            i7_kit.on('change', function () {
+                toggleCustomOption(i7_kit, "i7_option");
+            });
+
+            {% if index_type == C.IndexType.DUAL_INDEX %}
+            const i5_kit = $('[name="i5_kit"]');
+            toggleCustomOption(i5_kit, "i5_option");
+            i5_kit.on('change', function () {
+                toggleCustomOption(i5_kit, "i5_option");
+            });
+            {% endif %}
+        });
+    </script>
+</div>

@@ -1,0 +1,7 @@
+{% from "components/assignee_list.jinja2" import feed_assignees %}
+{{ feed_assignees(
+    project.assignees, current_user,
+    refresh_url=url_for('render_project_feed_assignees', project_id=project.id),
+    assign_url=url_for('add_project_assignee', project_id=project.id),
+    unassign_url=url_for('remove_project_assignee', project_id=project.id, assignee_id=current_user.id),
+) }}

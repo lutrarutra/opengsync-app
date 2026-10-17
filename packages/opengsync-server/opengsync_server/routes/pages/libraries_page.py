@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db, forms
 from ...core import wrappers, exceptions
@@ -15,11 +15,11 @@ def libraries():
 
 @wrappers.page_route(libraries_page_bp, "libraries", db=db, cache_timeout_seconds=360)
 def library(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.VIEW:
+    access_level = db.session.get_access_level(Q.library.permissions(library.id, current_user.id))
+    if access_level < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     path_list = [
@@ -30,8 +30,8 @@ def library(current_user: models.User, library_id: int):
         page, id = _from.split("@")
         if page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "experiment":
@@ -42,14 +42,14 @@ def library(current_user: models.User, library_id: int):
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples")),
-                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
+                ("Samples", url_for("sample_pages")),
+                (f"Sample {id}", url_for("sample_page", sample_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "pool":
             path_list = [
-                ("Pools", url_for("pools_page.pools")),
-                (f"Pool {id}", url_for("pools_page.pool", pool_id=id)),
+                ("Pools", url_for("pool_pages")),
+                (f"Pool {id}", url_for("pool_page", pool_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "lab_prep":

@@ -1,4 +1,5 @@
 from flask import flash, url_for, Response
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 from wtforms import PasswordField, EmailField
 from wtforms.validators import DataRequired, Length, EqualTo
@@ -22,7 +23,7 @@ class ResetPasswordForm(HTMXFlaskForm):
     def prepare(self):
         if (data := tokens.verify_reset_token(token=self.token, serializer=serializer)) is not None:
             user_id, email, hash = data
-            if (user := db.users.get(user_id)) is None:
+            if (user := db.session.first(Q.user.select(id=user_id))) is None:
                 self.email.errors = ("Token expired or invalid.",)
                 return
             if user.email != email:
@@ -44,7 +45,7 @@ class ResetPasswordForm(HTMXFlaskForm):
             return False
         
         user_id, email, hash = data
-        if (user := db.users.get(user_id)) is None:
+        if (user := db.session.first(Q.user.select(id=user_id))) is None:
             self.email.errors = ("Token expired or invalid.",)
             return False
         
@@ -66,7 +67,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         
         hashed_password = bcrypt.generate_password_hash(self.password.data).decode("utf-8")
         self.user.password = hashed_password
-        db.users.update(self.user)
+        db.session.save(self.user)
         logger.info(f"Password reset for {self.user.id}")
         runtime.app.delete_user_sessions(self.user.id)
         runtime.session.clear()

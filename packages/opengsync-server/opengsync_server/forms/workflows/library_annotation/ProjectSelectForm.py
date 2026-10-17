@@ -1,4 +1,5 @@
 from flask import Response
+from opengsync_db import queries as Q
 from wtforms import StringField, FormField, TextAreaField, BooleanField
 from wtforms.validators import Optional as OptionalValidator, Length
 
@@ -24,7 +25,7 @@ class ProjectSelectForm(LibraryAnnotationWorkflow):
     def fill_previous_form(self):
         if (project_id := self.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
-            self.existing_project.search_bar.data = project.title if (project := db.projects.get(project_id)) is not None else None
+            self.existing_project.search_bar.data = project.title if (project := db.session.first(Q.project.select(id=project_id))) is not None else None
         else:
             self.new_project.data = self.metadata.get("project_title")
             self.project_description.data = self.metadata.get("project_description")
@@ -66,7 +67,7 @@ class ProjectSelectForm(LibraryAnnotationWorkflow):
                 return False
             
         if self.new_project.data:
-            if user.is_insider():
+            if user.is_insider:
                 import sqlalchemy as sa
                 if db.session.query(models.Project.title).join(
                     models.User,
@@ -95,5 +96,5 @@ class ProjectSelectForm(LibraryAnnotationWorkflow):
         self.metadata["seq_request_id"] = self.seq_request.id
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data
-        self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider() else user.id
+        self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider else user.id
         return self.get_next_step().make_response()

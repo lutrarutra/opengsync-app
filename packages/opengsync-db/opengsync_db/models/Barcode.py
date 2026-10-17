@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 
 from opengsync_db.categories import BarcodeType
+from opengsync_db.core.EnumColumn import EnumColumn
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
@@ -19,16 +20,12 @@ class Barcode(Base):
     name: Mapped[str] = mapped_column(sa.String(16), nullable=False, index=True)
     well: Mapped[Optional[str]] = mapped_column(sa.String(4), nullable=True)
 
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[BarcodeType] = mapped_column(EnumColumn[BarcodeType](BarcodeType), nullable=False, name="type_id", key="type")
 
     adapter_id: Mapped[int] = mapped_column(sa.ForeignKey("adapter.id"), nullable=False)
 
     index_kit_id: Mapped[int] = mapped_column(sa.ForeignKey("index_kit.id"), nullable=False)
     index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="barcodes", lazy="select")
-
-    @property
-    def type(self) -> BarcodeType:
-        return BarcodeType.get(self.type_id)
 
     def __str__(self) -> str:
         return f"Barcode({self.name}, {self.sequence}, {self.type})"

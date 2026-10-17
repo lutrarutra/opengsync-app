@@ -1,0 +1,136 @@
+{% macro flow_cell_type_cm(design) %}
+data-context-menu='{{ {"actions": [
+    {
+        "type": "hxpost",
+        "label": "Automatic",
+        "disabled": false,
+        "active": design.stored_flow_cell_type is none,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=-1).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_6K_SP.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_6K_SP,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_SP.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_6K_S1.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_6K_S1,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S1.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_6K_S2.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_6K_S2,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S2.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_6K_S4.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_6K_S4,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S4.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_X_1B_ILLUMINA,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_X_10B_ILLUMINA,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.NOVASEQ_X_25B_ILLUMINA,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.MISEQ_V3.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.MISEQ_V3,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V3.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.MISEQ_V2.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.MISEQ_V2,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V2.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.MISEQ_MICRO_V2.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.MISEQ_MICRO_V2,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_MICRO_V2.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+    {
+        "type": "hxpost",
+        "label": C.FlowCellType.MISEQ_NANO_V2.display_name_with_max_m_reads,
+        "disabled": false,
+        "active": design.stored_flow_cell_type == C.FlowCellType.MISEQ_NANO_V2,
+        "config": {
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_NANO_V2.id).__str__(),
+            "target": "#flow-cell-design-list",
+            "confirm": false,
+        }
+    },
+]} | tojson }}'
+{% endmacro %}

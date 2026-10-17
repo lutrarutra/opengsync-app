@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=70.1", "setuptools-scm[simple]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "server"
+dynamic = ["version"]
+authors = [
+    { name = "lutrarutra", email = "lutrarutra@pm.me" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "opengsync-db",
+    "loguru >= 0.7",
+    "fastapi >= 0.138",
+    "uvicorn[standard]",
+    "gunicorn",
+    "pydantic[email]",
+    "pydantic-settings",
+    "redis",
+    "uuid6",
+    "websockets",
+    "python-multipart",
+    "pyJWT",
+    "passlib[argon2]",
+    "bcrypt >= 4.0.1",
+    "boto3",
+    "httpx",
+    "premailer",
+    "pygments",
+    "jinja2",
+    "proxmoxer",
+    "fastapi-cache2",
+    "openpyxl",
+    "pyarrow",
+    "markdown",
+    "plotly >= 5.19.0",
+    "pathspec >= 1.0",
+    "webauthn>=2.5",
+    "pydantic-ai-slim[anthropic,openai]>=1.0",
+    "regex>=2024.11.6",
+    "nh3>=0.2.18",
+    "pymdown-extensions>=10.21",
+]
+
+[tool.setuptools_scm]
+root = "../.."
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+opengsync-db = { workspace = true }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*"]
+
+[tool.setuptools.package-data]
+"server.templates" = ["templates/**/*.*"]
+
+[project.optional-dependencies]
+worker = [
+]

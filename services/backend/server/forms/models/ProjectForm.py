@@ -1,0 +1,214 @@
+from typing import Literal
+
+from fastapi import Depends, Response
+
+from opengsync_db import queries as Q, SyncSession, models, categories as C
+from opengsync_db.transitions import run_operation, create as create_ops, manual as manual_ops
+
+from ...core import responses, dependencies, exceptions as exc
+from ...components import inputs
+from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+
+
+class ProjectForm(HTMXForm):
+    template_path = "forms/project.html"
+    status_comment = inputs.string.StringInputField(
+        "Why? (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Reason for the status change, stored in the status history",
+    )
+
+    identifier = inputs.string.StringInputField(
+        "Identifier",
+        max_length=models.Project.identifier.type.length,
+        required=False,
+        placeholder="BSA_XXXX",
+    )
+    title = inputs.string.StringInputField("Title", max_length=models.Project.title.type.length)
+    description = inputs.string.TextAreaInputField("Description", max_length=2048, required=False)
+    status = inputs.selectable.SelectableInputField("Status", C.ProjectStatus.as_selectable(), default=C.ProjectStatus.DRAFT.id)
+    owner = inputs.searchable.SearchableInputField("Owner", route="search_users")
+    group = inputs.searchable.SearchableInputField("Group", route="search_groups", required=False)
+
+    def __init__(self, form_type: Literal["create", "edit"], project: models.Project | None) -> None:
+        super().__init__()
+        self.form_type = form_type
+        self.project = project
+        if project is None and form_type == "edit":
+            raise ValueError("Project must be provided for edit form.")
+        elif project is not None and form_type == "create":
+            raise ValueError("Project must not be provided for create form.")
+
+    @classmethod
+    def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
+        def dependency(
+            project_id: int | None = None,
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
+        ) -> "ProjectForm":
+            if form_type == "edit" and project_id is None:
+                raise exc.BadRequestException("Project ID must be provided for edit form.")
+            
+            project = None
+            if form_type != "create" and project_id is not None:  # a create form ignores a stray id
+                project = session.get_one(Q.project.select(id=project_id))
+            form = ProjectForm(form_type=form_type, project=project)
+            form.status.read_only = not current_user.is_insider
+            return form
+        
+        return dependency
+
+    @htmx_route("GET", "/{project_id}/edit", name="Edit")
+    def RenderEdit(cls) -> RouteFunc:
+        def route(
+            access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+            form: "ProjectForm" = Depends(ProjectForm.Init(form_type="edit"))
+        ):
+            if form.project is None:
+                raise exc.BadRequestException("Project ID must be provided for edit form.")
+
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this project.")
+
+            form.identifier.data = form.project.identifier
+            form.title.data = form.project.title
+            form.description.data = form.project.description
+            form.status.data = form.project.status.id
+            form.status_comment.hidden = bool(form.status.read_only)
+            form.owner.data = form.project.owner_id
+            form.group.data = form.project.group_id
+            return form.make_response()
+        return route
+
+    @htmx_route("GET", "/create", name="Create")
+    def RenderCreate(cls) -> RouteFunc:
+        def route(
+            current_user_id: int = Depends(dependencies.require_user_id),
+            form: "ProjectForm" = Depends(ProjectForm.Init(form_type="create"))
+        ):
+            form.owner.data = current_user_id
+            return form.make_response()
+        return route
+
+    @htmx_route("POST", "/{project_id}/edit", name="Edit")
+    def Edit(cls) -> RouteFunc:
+        def submit(
+            access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+            session: SyncSession = Depends(dependencies.db_session),
+            form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="edit")),
+        ) -> Response:
+            if form.project is None:
+                raise exc.BadRequestException("Project ID must be provided for edit form.")
+            
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this project.")
+
+            owner = session.get_one(Q.user.select(id=form.owner.data))
+
+            group = None
+            if form.group.data is not None:
+                group = session.get_one(Q.group.select(id=form.group.data))
+                if not owner.is_insider and session.first(
+                    Q.affiliation.select(user_id=owner.id, group_id=group.id)
+                ) is None:
+                    form.group.errors.append("Project owner must be part of the selected group.")
+                    raise exc.FormValidationException(form)
+
+            if session.exists(
+                Q.project.select(title=form.title.data, owner_id=form.project.owner_id).where(
+                    models.Project.id != form.project.id
+                )
+            ):
+                form.title.errors.append("You already have a project with this title.")
+                raise exc.FormValidationException(form)
+
+            if form.identifier.data and session.exists(
+                Q.project.select(identifier=form.identifier.data).where(models.Project.id != form.project.id)
+            ):
+                form.identifier.errors.append("This identifier is already taken.")
+                raise exc.FormValidationException(form)
+
+            if form.identifier.data and form.identifier.data != form.project.identifier:
+                if access_level < C.AccessLevel.INSIDER:
+                    form.identifier.errors.append("Only insiders can set a project identifier.")
+                    raise exc.FormValidationException(form)
+
+            if (
+                access_level < C.AccessLevel.INSIDER
+                and form.status.data != form.project.status.id
+            ):
+                form.status.errors.append("Only insiders can change project status.")
+                raise exc.FormValidationException(form)
+
+            if access_level < C.AccessLevel.INSIDER and form.owner.data != form.project.owner_id:
+                form.owner.errors.append("Only insiders can change project owner.")
+                raise exc.FormValidationException(form)
+
+            with run_operation(session, manual_ops.EDIT_PROJECT, subject=form.project, comment=form.status_comment.data):
+                form.project.identifier = form.identifier.data
+                form.project.title = form.title.data
+                form.project.description = form.description.data
+                form.project.status = C.ProjectStatus.get(form.status.data)
+                form.project.owner_id = form.owner.data
+                form.project.group_id = group.id if group else None
+
+            return responses.htmx_response(
+                redirect=responses.url_for("project_page", project_id=form.project.id),
+                flash=responses.flash("Project Updated!", "success"),
+            )
+        return submit
+
+    @htmx_route("POST", "/create", name="Create")
+    def Create(cls) -> RouteFunc:
+        def submit(
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),                
+            form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="create")),
+        ) -> Response:
+            if not current_user.is_insider and form.owner.data != current_user.id:
+                form.owner.errors.append("You do not have permission to set this user as owner.")
+                raise exc.FormValidationException(form)
+
+            if not current_user.is_insider and form.status.data != C.ProjectStatus.DRAFT.id:
+                form.status.errors.append("You can only create a project with status DRAFT.")
+                raise exc.FormValidationException(form)
+
+            owner = session.get_one(Q.user.select(id=form.owner.data))
+
+            group = None
+            if form.group.data is not None:
+                group = session.get_one(Q.group.select(id=form.group.data))
+                if not owner.is_insider and session.first(
+                    Q.affiliation.select(user_id=owner.id, group_id=group.id)
+                ) is None:
+                    form.group.errors.append("Project owner must be part of the selected group.")
+                    raise exc.FormValidationException(form)
+
+            if session.exists(
+                Q.project.select(title=form.title.data, owner_id=form.owner.data)
+            ):
+                form.title.errors.append("You already have a project with this title.")
+                raise exc.FormValidationException(form)
+
+            if session.exists(Q.project.select(identifier=form.identifier.data)):
+                form.identifier.errors.append("This identifier is already taken.")
+                raise exc.FormValidationException(form)
+
+            if form.identifier.data and not current_user.is_insider:
+                form.identifier.errors.append("Only insiders can set a project identifier.")
+                raise exc.FormValidationException(form)
+
+            with run_operation(session, create_ops.PROJECT_CREATE):
+                project = session.save(Q.project.create(
+                    identifier=form.identifier.data,
+                    title=form.title.data,
+                    description=form.description.data,
+                    status=C.ProjectStatus.get(form.status.data),
+                    owner_id=form.owner.data,
+                    group_id=group.id if group else None,
+                ), flush=True)
+
+            return responses.htmx_response(
+                redirect=responses.url_for("project_page", project_id=project.id),
+                flash=responses.flash("Project Created!", "success"),
+            )
+        return submit

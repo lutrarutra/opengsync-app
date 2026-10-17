@@ -1,0 +1,214 @@
+import sqlalchemy as sa
+from sqlalchemy import sql
+
+from ..models import Pool, Contact, Library, User, SeqRequest, links
+from ..categories import PoolStatus, PoolType, LibraryType, AccessLevel, SeqRequestStatus
+from ..core import utils
+
+
+def create(
+    name: str,
+    owner_id: int,
+    contact_name: str,
+    contact_email: str,
+    pool_type: PoolType,
+    clone_number: int,
+    experiment_id: int | None = None,
+    original_pool_id: int | None = None,
+    seq_request_id: int | None = None,
+    lab_prep_id: int | None = None,
+    num_m_reads_requested: float | None = None,
+    status: PoolStatus = PoolStatus.DRAFT,
+    contact_phone: str | None = None,
+) -> Pool:
+    return Pool(
+        name=name.strip(),
+        owner_id=owner_id,
+        type=pool_type,
+        seq_request_id=seq_request_id,
+        num_m_reads_requested=num_m_reads_requested,
+        contact=Contact(
+            name=contact_name.strip(),
+            email=contact_email.strip(),
+            phone=contact_phone.strip() if contact_phone else None
+        ),
+        lab_prep_id=lab_prep_id,
+        status=status,
+        timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None,
+        clone_number=clone_number,
+        original_pool_id=original_pool_id,
+        experiment_id=experiment_id
+    )
+
+
+def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
+    is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
+    is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
+
+    # TODO: This is not entirely correct, as it doesn't account for users having access to the pool through their projects
+
+    has_write_access = sa.and_(
+        sa.select(1).where(
+            Pool.seq_request_id == SeqRequest.id,
+            SeqRequest.status == SeqRequestStatus.DRAFT,
+            sa.or_(
+                SeqRequest.requestor_id == user_id,
+                sa.select(1).where(
+                    (links.UserAffiliation.user_id == user_id),
+                    (links.UserAffiliation.group_id == SeqRequest.group_id)
+                ).correlate_except(links.UserAffiliation).exists()
+            )
+        ).correlate_except(SeqRequest).exists()
+    )
+
+    has_read_access = sa.and_(
+        sa.select(1).where(
+            Pool.seq_request_id == SeqRequest.id,
+            sa.or_(
+                SeqRequest.requestor_id == user_id,
+                sa.select(1).where(
+                    (links.UserAffiliation.user_id == user_id),
+                    (links.UserAffiliation.group_id == SeqRequest.group_id)
+                ).correlate_except(links.UserAffiliation).exists()
+            )
+        ).correlate_except(SeqRequest).exists()
+    )
+
+    return sa.case(
+        (sa.exists(is_admin), AccessLevel.ADMIN),
+        (sa.exists(is_insider), AccessLevel.INSIDER),
+        (has_write_access, AccessLevel.WRITE),
+        (has_read_access, AccessLevel.READ),
+        else_=AccessLevel.NONE
+    )
+
+
+def search(
+    name: str | None = None,
+    owner_name: str | None = None,
+    name_weight: float = 0.5,
+    owner_name_weight: float = 0.5,
+    statement: sa.Select[tuple[Pool]] = sa.select(Pool),
+) -> sa.Select[tuple[Pool]]:
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Pool.name, name))
+        relevance += sa.func.similarity(Pool.name, name) * name_weight
+
+    if owner_name is not None:
+        full_name = sa.func.concat(User.first_name, ' ', User.last_name)
+        filter_conditions.append(utils.safe_trgm_search(full_name, owner_name))
+        relevance += sa.func.similarity(full_name, owner_name) * owner_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if owner_name is not None:
+        statement = statement.join(User, Pool.owner_id == User.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
+def select(
+    id: int | None = None,
+    user_id: int | None = None,
+    library_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
+    seq_request_id: int | None = None,
+    name: str | None = None,
+    associated_to_experiment: bool | None = None,
+    status: PoolStatus | None = None,
+    status_in: list[PoolStatus] | None = None,
+    library_types_in: list[LibraryType] | None = None,
+    type_in: list[PoolType] | None = None,
+    viewer_id: int | None = None,
+    statement: sa.Select[tuple[Pool]] = sa.select(Pool),
+) -> sa.Select[tuple[Pool]]:
+    return statement.where(*where_clauses(
+        id=id,
+        user_id=user_id,
+        library_id=library_id,
+        experiment_id=experiment_id,
+        lab_prep_id=lab_prep_id,
+        seq_request_id=seq_request_id,
+        associated_to_experiment=associated_to_experiment,
+        name=name,
+        status=status,
+        status_in=status_in,
+        library_types_in=library_types_in,
+        type_in=type_in,
+        viewer_id=viewer_id
+    ))
+
+
+def permissions(pool_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+    return sa.select(access_level(user_id)).where(Pool.id == pool_id)
+
+
+def where_clauses(
+    id: int | None = None,
+    user_id: int | None = None,
+    library_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
+    seq_request_id: int | None = None,
+    associated_to_experiment: bool | None = None,
+    name: str | None = None,
+    status: PoolStatus | None = None,
+    status_in: list[PoolStatus] | None = None,
+    library_types_in: list[LibraryType] | None = None,
+    type_in: list[PoolType] | None = None,
+    viewer_id: int | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering pools.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Pool.id == id)
+    if user_id is not None:
+        clauses.append(Pool.owner_id == user_id)
+    if library_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Library.pool_id == Pool.id) &
+                (Library.id == library_id)
+            ).correlate_except(Library).exists()
+        )
+    if experiment_id is not None:
+        clauses.append(Pool.experiment_id == experiment_id)
+    if seq_request_id is not None:
+        clauses.append(Pool.seq_request_id == seq_request_id)
+    if lab_prep_id is not None:
+        clauses.append(Pool.lab_prep_id == lab_prep_id)
+    if status is not None:
+        clauses.append(Pool.status == status)
+    if status_in is not None:
+        clauses.append(Pool.status.in_(status_in))
+    if type_in is not None:
+        clauses.append(Pool.type.in_(type_in))
+    if library_types_in is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Library.pool_id == Pool.id) &
+                (Library.type.in_(library_types_in))
+            ).correlate_except(Library).exists()
+        )
+    if associated_to_experiment is not None:
+        if associated_to_experiment:
+            clauses.append(Pool.experiment_id.isnot(None))
+        else:
+            clauses.append(Pool.experiment_id.is_(None))
+    if name is not None:
+        clauses.append(Pool.name == name)
+
+    if viewer_id is not None:
+        clauses.append(access_level(viewer_id) >= AccessLevel.READ)
+
+    return clauses

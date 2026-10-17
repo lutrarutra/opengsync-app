@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -14,10 +14,10 @@ def share_tokens():
 
 @wrappers.page_route(share_tokens_page_bp, "share_tokens", db=db, cache_timeout_seconds=360)
 def share_token(current_user: models.User, share_token_id: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if (share_token := db.shares.get(share_token_id)) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=share_token_id))) is None:
         raise exceptions.NotFoundException()
 
     path_list = [
@@ -34,14 +34,14 @@ def share_token(current_user: models.User, share_token_id: str):
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects")),
-                (f"Project {id}", url_for("projects_page.project", project_id=id)),
+                ("Projects", url_for("project_pages")),
+                (f"Project {id}", url_for("project_page", project_id=id)),
                 (f"share_token {share_token_id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"share_token {share_token_id}", ""),
             ]
 

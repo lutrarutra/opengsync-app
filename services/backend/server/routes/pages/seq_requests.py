@@ -1,0 +1,77 @@
+from fastapi import APIRouter, Depends
+import sqlalchemy as sa
+from sqlalchemy import orm
+
+from opengsync_db import models, queries as Q, categories as C
+
+from ...core import dependencies, responses
+
+router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
+
+
+def _relevant_review_steps(session: dependencies.SyncSession, seq_request: models.SeqRequest) -> dict:
+    """Review checklist without the steps the checklist template marks as 🚫 Not Relevant."""
+    checklist = seq_request.get_review_checklist()
+
+    if seq_request.submission_type in [C.SubmissionType.RAW_SAMPLES, C.SubmissionType.QC_ONLY]:
+        checklist.pop("index_check")
+    if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES:
+        checklist.pop("check_barcodes")
+    if not checklist["check_multiplexing"] and not session.scalar(
+        sa.select(sa.exists().where(models.Library.seq_request_id == seq_request.id, models.Library.is_multiplexed))
+    ):
+        checklist.pop("check_multiplexing")
+
+    return checklist
+
+
+@router.get("/")
+def seq_requests_page():  
+    return responses.html_response(template="seq_requests_page.html", title="Requests")
+
+
+@router.get("/{seq_request_id}", dependencies=[Depends(dependencies.require_user), Depends(dependencies.seq_request_permissions)])
+def seq_request_page(
+    seq_request_id: int,
+    session: dependencies.SyncSession = Depends(dependencies.db_session),
+):
+    seq_request = session.get_one(
+        Q.seq_request.select(id=seq_request_id).options(
+            orm.selectinload(models.SeqRequest.requestor),
+            orm.selectinload(models.SeqRequest.group),
+            orm.selectinload(models.SeqRequest.contact_person),
+            orm.selectinload(models.SeqRequest.organization_contact),
+            orm.selectinload(models.SeqRequest.bioinformatician_contact),
+            orm.selectinload(models.SeqRequest.billing_contact),
+            orm.selectinload(models.SeqRequest.pi_contact),
+            orm.selectinload(models.SeqRequest.seq_auth_form_file),
+            orm.selectinload(models.SeqRequest.delivery_email_links),
+            orm.with_expression(models.SeqRequest._num_samples, models.SeqRequest.num_samples.expression),
+            orm.with_expression(models.SeqRequest._num_projects, models.SeqRequest.num_projects.expression),
+            orm.with_expression(models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression),
+            orm.with_expression(models.SeqRequest._num_pools, models.SeqRequest.num_pools.expression),
+            orm.with_expression(models.SeqRequest._num_files, models.SeqRequest.num_files.expression),
+            orm.with_expression(models.SeqRequest._num_comments, models.SeqRequest.num_comments.expression),
+            orm.with_expression(models.SeqRequest._num_delivery_email_links, models.SeqRequest.num_delivery_email_links.expression),
+            orm.with_expression(models.SeqRequest._num_assignees, models.SeqRequest.num_assignees.expression),
+            orm.with_expression(models.SeqRequest._num_data_paths, models.SeqRequest.num_data_paths.expression),
+        )
+    )
+    submit_checklist = seq_request.get_submit_checklist()
+    submit_steps = [
+        submit_checklist["samples_added"],
+        submit_checklist["authorization_form_added"],
+        submit_checklist["request_submitted"],
+    ]
+
+    review_checklist = _relevant_review_steps(session, seq_request)
+
+    return responses.html_response(
+        template="seq_request_page.html",
+        seq_request=seq_request,
+        submit_checklist_steps_completed=sum(1 for item in submit_steps if item),
+        submit_checklist_steps_total=len(submit_steps),
+        review_checklist_steps_completed=sum(1 for item in review_checklist.values() if item),
+        review_checklist_steps_total=len(review_checklist),
+        title=seq_request.identifier,
+    )

@@ -1,0 +1,36 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="experiment-data_path-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("experiment-data_path-table", table, "id") }}
+                {{ table_col("experiment-data_path-table", table, "path") }}
+                {{ table_col("experiment-data_path-table", table, "type") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for data_path in data_paths %}
+            <tr data-id="{{ data_path.id }}">
+                <th scope="row">{{ data_path.id }}</th>
+                {% if data_path.type != C.DataPathType.DIRECTORY %}
+                {% set begin, end = data_path.path | middle_truncate %}
+                <td><a class="visitable middle-ellipsis" href="{{ url_for('serve_data_file', data_path_id=data_path.id) }}" target="_blank"><span class="begin">{{ begin }}</span>{% if end %}<span class="end">{{ end }}</span>{% endif %}</a></td>
+                {% else %}
+                {% set begin, end = data_path.path | middle_truncate %}
+                <td><span class="middle-ellipsis"><span class="begin">{{ begin }}</span>{% if end %}<span class="end">{{ end }}</span>{% endif %}</span></td>
+                {% endif %}
+                <td>{{ data_path.type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("experiment-data_path-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#experiment-data_path-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

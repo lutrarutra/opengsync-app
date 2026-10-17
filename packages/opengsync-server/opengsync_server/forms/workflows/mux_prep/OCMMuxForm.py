@@ -1,4 +1,4 @@
-from typing import Optional
+from opengsync_db import queries as Q
 
 import pandas as pd
 
@@ -7,6 +7,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryStatus, MUXType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import logger, tools, db
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, SpreadSheetColumn, DuplicateCellValue
@@ -57,7 +58,10 @@ class OCMMuxForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        self.sample_table = db.pd.get_lab_prep_pooling_table(lab_prep.id)
+        self.sample_table = T.lab_prep_pooling_table(
+            db.session.get_pandas(Q.pd.lab_prep_pooling_table(lab_prep.id), limit=None),
+            expand_mux_=False,
+        )
         self.sample_table = self.sample_table[(self.sample_table["mux_type"].isin([MUXType.TENX_ON_CHIP]))]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 
@@ -127,48 +131,51 @@ class OCMMuxForm(MultiStepForm):
         old_libraries: list[int] = []
         
         for _, row in self.sample_table.iterrows():
-            if (old_library := db.libraries.get(int(row["library_id"]))) is None:
+            if (old_library := db.session.first(Q.library.select(id=int(row["library_id"])))) is None:
                 logger.error(f"Library {row['library_id']} not found.")
                 raise Exception(f"Library {row['library_id']} not found.")
             
             if old_library.id not in old_libraries:
                 old_libraries.append(old_library.id)
             
-            if (sample := db.samples.get(int(row["sample_id"]))) is None:
+            if (sample := db.session.first(Q.sample.select(id=int(row["sample_id"])))) is None:
                 logger.error(f"Sample {row['sample_id']} not found.")
                 raise Exception(f"Sample {row['sample_id']} not found.")
             
             lib = f"{row['new_sample_pool']}_{old_library.type.identifier}"
             if lib not in libraries.keys():
-                new_library = db.libraries.create(
-                    name=lib,
-                    sample_name=row["new_sample_pool"],
-                    library_type=old_library.type,
-                    status=LibraryStatus.PREPARING,
-                    owner_id=old_library.owner_id,
-                    seq_request_id=old_library.seq_request_id,
-                    lab_prep_id=self.lab_prep.id,
-                    genome_ref=old_library.genome_ref,
-                    service_type=old_library.service_type,
-                    mux_type=old_library.mux_type,
-                    nuclei_isolation=old_library.nuclei_isolation,
+                new_library = db.session.save(
+                    Q.library.create(
+                        name=lib,
+                        sample_name=row["new_sample_pool"],
+                        library_type=old_library.type,
+                        status=LibraryStatus.PREPARING,
+                        owner_id=old_library.owner_id,
+                        seq_request_id=old_library.seq_request_id,
+                        lab_prep_id=self.lab_prep.id,
+                        genome_ref=old_library.genome_ref,
+                        service_type=old_library.service_type,
+                        mux_type=old_library.mux_type,
+                        nuclei_isolation=old_library.nuclei_isolation,
+                        clone_number=old_library.clone_number,
+                    )
                 )
                 libraries[lib] = new_library
             else:
                 new_library = libraries[lib]
 
-            db.links.link_sample_library(
+            db.actions.link_sample_library(
                 sample_id=sample.id,
                 library_id=new_library.id,
                 mux={"barcode": row["mux_barcode"]},
             )
             new_library.features = old_library.features
-            db.libraries.update(new_library)
+            db.session.save(new_library)
 
         for old_library_id in old_libraries:
-            if (old_library := db.libraries.get(old_library_id)) is None:
+            if (old_library := db.session.first(Q.library.select(id=old_library_id))) is None:
                 continue
-            db.libraries.delete(old_library, delete_orphan_samples=False)
+            db.session.delete(old_library)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

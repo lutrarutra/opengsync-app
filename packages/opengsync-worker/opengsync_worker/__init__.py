@@ -14,16 +14,17 @@ from celery.schedules import crontab
 
 config = yaml.safe_load(open("/app/opengsync.yaml"))
 
-REDIS_PORT = int(os.environ["REDIS_PORT"])
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 
 celery = Celery("opengsync-worker", broker=f"redis://redis-cache:{REDIS_PORT}/4",)
 
-from opengsync_worker import tasks
+from opengsync_worker import tasks  #  noqa
 celery.autodiscover_tasks()
 
 run_folder = Path(config["illumina_run_folder"])
 upload_folder = Path(config["uploads_folder"])
 upload_folder_file_age_days = config["scheduler"]["upload_folder_file_age_days"]
+user_inactivity_days = config["scheduler"].get("user_inactivity_days", 365)
 
 
 def parse_schedule(schedule_value):
@@ -64,6 +65,11 @@ beat_schedule = {
         "task": "opengsync_worker.tasks.clean_upload_folder_wrapper",
         "schedule": parse_schedule(config["scheduler"]["upload_folder_clean_schedule"]),
         "args": (upload_folder.as_posix(), upload_folder_file_age_days,),
+    },
+    "deactivate_inactive_users": {
+        "task": "opengsync_worker.tasks.deactivate_inactive_users_wrapper",
+        "schedule": parse_schedule(config["scheduler"].get("user_deactivation_schedule", "0 2 * * *")),
+        "args": (user_inactivity_days,),
     },
 }
 

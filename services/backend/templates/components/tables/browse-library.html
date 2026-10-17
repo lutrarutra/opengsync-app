@@ -1,0 +1,66 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+<div id="select-libraries-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("select-libraries-table", table, "id") }}
+                {{ table_col("select-libraries-table", table, "name") }}
+                {{ table_col("select-libraries-table", table, "type") }}
+                {{ table_col("select-libraries-table", table, "status") }}
+                {% if browse_context == "qubit-measure" %}
+                <th class="col-2" scope="col">Qubit Conc.</th>
+                {% elif browse_context == "ba-report" %}
+                <th class="col-2" scope="col">Avg. Fragment Size</th>
+                {% elif browse_context == "index-check" %}
+                {{ table_col("select-libraries-table", table, "index_type") }}
+                {{ table_col("select-libraries-table", table, "barcode_orientation") }}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr id="library-row-{{ library.id }}" data-id="{{ library.id }}" class="library-row">
+                <th scope="row">{{ library.id }}</th>
+                <td>{{ library.name }}</td>
+                <td>
+                    <span {{ tooltip(library.type.label) }}>
+                        {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}
+                    </span>
+                </td>
+                <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
+                {% if browse_context == "qubit-measure" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ library.qubit_concentration or "" }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                {% elif browse_context == "ba-report" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ library.avg_fragment_size or "" }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                {% elif browse_context == "index-check" %}
+                <td>
+                    {% if library.index_type %}{{ library.index_type.label }}{% endif %}
+                </td>
+                <td>
+                    {{ library_index_cell(library) }}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("select-libraries-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#select-libraries-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

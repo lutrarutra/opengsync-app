@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -7,7 +7,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType
+from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType, SeqRequestStatus
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 from . import links
 
@@ -30,15 +31,15 @@ class Experiment(Base):
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True, index=True)
     
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
-    timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_finished_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     
     r1_cycles: Mapped[int | None] = mapped_column(nullable=True)
     r2_cycles: Mapped[int | None] = mapped_column(nullable=True)
     i1_cycles: Mapped[int | None] = mapped_column(nullable=True)
     i2_cycles: Mapped[int | None] = mapped_column(nullable=True)
 
-    workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    workflow: Mapped[ExperimentWorkFlow] = mapped_column(EnumColumn[ExperimentWorkFlow](ExperimentWorkFlow), name="workflow_id", key="workflow")
+    status: Mapped[ExperimentStatus] = mapped_column(EnumColumn[ExperimentStatus](ExperimentStatus), nullable=False, default=0, name="status_id", key="status", active_history=True)
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="select")
@@ -49,30 +50,38 @@ class Experiment(Base):
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name, post_update=True)
     lane_pooling_tables: Mapped[list["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=True,
-        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.LANE_POOLING_TABLE.id})",
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type == {MediaFileType.LANE_POOLING_TABLE.id})",
         order_by="desc(MediaFile.id)",
     )
     sequencer_loading_checklists: Mapped[list["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=True,
-        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.SEQUENCER_LOADING_CHECKLIST.id})",
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type == {MediaFileType.SEQUENCER_LOADING_CHECKLIST.id})",
         order_by="desc(MediaFile.id)",
     )
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="experiment")
     libraries: Mapped[list["Library"]] = relationship("Library", lazy="select", back_populates="experiment")
-    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="all, delete, delete-orphan")
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan", order_by="MediaFile.id.desc()")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="merge, save-update, delete, delete-orphan")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="experiment", lazy="select")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
-
     def get_checklist(self) -> dict:
-        if orm.object_session(self) is None:
+        if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session must be open for checklist")
-        
+
+        from .. import queries as Q
+        from .SeqRequest import SeqRequest
+        seq_requests = session.execute(
+            Q.seq_request.select(experiment_id=self.id).options(
+                orm.selectinload(SeqRequest.requestor),
+                orm.selectinload(SeqRequest.group),
+            ).order_by(SeqRequest.id)
+        ).scalars().all()
+        seq_requests_accepted = all(seq_request.status >= SeqRequestStatus.ACCEPTED for seq_request in seq_requests) if seq_requests else None
+
         pools_added = len(self.pools) > 0
         lanes_assigned = self.workflow.combined_lanes or all(len(pool.lane_links) > 0 for pool in self.pools) if pools_added else None
         reads_assigned = True if pools_added else None
@@ -147,6 +156,8 @@ class Experiment(Base):
             "missing_pool_reads": missing_pool_reads,
             "pool_qubits_measured": pool_qubits_measured,
             "pool_fragment_sizes_measured": pool_fragment_sizes_measured,
+            "seq_requests": seq_requests,
+            "seq_requests_accepted": seq_requests_accepted,
             "lane_qubit_measured": lane_qubit_measured,
             "missing_lane_qubits": missing_lane_qubits,
             "lane_fragment_size_measured": lane_fragment_size_measured,
@@ -193,24 +204,60 @@ class Experiment(Base):
         return lanes
 
     @hybrid_property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(type_id) for type_id in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
-            types = {library.type_id for library in self.libraries}
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+            types = {library.type for library in self.libraries}
+            return sorted(types)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'library_types' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._library_types, Experiment.library_types.expression) "
+                "in your query options."
+            )
+
         from .Library import Library
-        type_ids = session.query(Library.type_id).filter(Library.experiment_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+        library_types = session.query(Library.type).filter(Library.experiment_id == self.id).distinct().order_by(Library.type).all()
+        return [LibraryType.get(library_type) for (library_type,) in library_types]
+
+    @library_types.expression
+    def library_types(cls):
+        from .Library import Library
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.array_agg(sa.distinct(Library.type)),
+                sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
+            )
+        ).where(
+            Library.experiment_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
 
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]
+        if self._num_pools is not None:
+            return self._num_pools
+
         if "pools" not in orm.attributes.instance_state(self).unloaded:
             return len(self.pools)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_pools' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_pools was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_pools, Experiment.num_pools.expression) "
+                "in your query options."
+            )
+
         from .Pool import Pool
         return session.query(sa.func.count(Pool.id)).filter(Pool.experiment_id == self.id).scalar()  # type: ignore[arg-type]
     
@@ -222,14 +269,27 @@ class Experiment(Base):
         ).where(
             Pool.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_pools: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return len(self.libraries)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_libraries' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_libraries, Experiment.num_libraries.expression) "
+                "in your query options."
+            )
+
         from .Library import Library
         return session.query(sa.func.count(Library.id)).filter(Library.experiment_id == self.id).scalar()
     
@@ -241,16 +301,29 @@ class Experiment(Base):
         ).where(
             Library.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_libraries: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
-        if "files" not in orm.attributes.instance_state(self).unloaded:
+        if self._num_files is not None:
+            return self._num_files
+
+        if "media_files" not in orm.attributes.instance_state(self).unloaded:
             return len(self.media_files)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_files' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_files was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_files, Experiment.num_files.expression) "
+                "in your query options."
+            )
+
         from .MediaFile import MediaFile
-        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.experiment_id == self.id).count()
+        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.experiment_id == self.id).scalar()
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
@@ -260,14 +333,27 @@ class Experiment(Base):
         ).where(
             MediaFile.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_files: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_comments(self) -> int:  # type: ignore[override]
+        if self._num_comments is not None:
+            return self._num_comments
+
         if "comments" not in orm.attributes.instance_state(self).unloaded:
             return len(self.comments)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_comments' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_comments was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_comments, Experiment.num_comments.expression) "
+                "in your query options."
+            )
+
         from .Comment import Comment
         return session.query(sa.func.count(Comment.id)).filter(Comment.experiment_id == self.id).scalar()
     
@@ -279,69 +365,76 @@ class Experiment(Base):
         ).where(
             Comment.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_comments: Mapped[int | None] = orm.query_expression()
     
     @property
     def num_dilutions(self) -> int:
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_dilutions' attribute.")
         
-        from .Pool import Pool
+        from .. import queries as Q
         from .PoolDilution import PoolDilution
         return session.query(sa.func.count(PoolDilution.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    PoolDilution.pool_id == Pool.id,
-                    Pool.experiment_id == self.id
-                )
-            )
+            sa.select(1).where(
+                *Q.pool.where_clauses(experiment_id=self.id),
+                PoolDilution.pool_id == Q.pool.Pool.id
+            ).correlate_except(Q.pool.Pool).exists()
         ).scalar()
     
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]
+        if self._num_projects is not None:
+            return self._num_projects
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_projects' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_projects was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_projects, Experiment.num_projects.expression) "
+                "in your query options."
+            )
         
+        from .. import queries as Q
         from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
 
         return session.query(sa.func.count(Project.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.project_id == Project.id,
-                    links.SampleLibraryLink.sample_id == Sample.id,
-                    Library.id == links.SampleLibraryLink.library_id,
-                    Library.experiment_id == self.id,
-                )
-            )
+            *Q.project.where_clauses(experiment_id=self.id)
         ).scalar()
     
     @num_projects.expression
     def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
 
         return sa.select(
             sa.func.count(Project.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.project_id == Project.id,
-                    links.SampleLibraryLink.sample_id == Sample.id,
-                    Library.id == links.SampleLibraryLink.library_id,
-                    Library.experiment_id == cls.id,
-                )
-            )
+            *Q.project.where_clauses(experiment_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_projects: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]
+        if self._num_data_paths is not None:
+            return self._num_data_paths
+
         if "data_paths" not in orm.attributes.instance_state(self).unloaded:
             return len(self.data_paths)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_data_paths' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_data_paths was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_data_paths, Experiment.num_data_paths.expression) "
+                "in your query options."
+            )
+
         from .DataPath import DataPath
         return session.query(sa.func.count(DataPath.id)).filter(DataPath.experiment_id == self.id).scalar()
     
@@ -354,8 +447,10 @@ class Experiment(Base):
             DataPath.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    @hybrid_property
-    def lane_pooling_table(self) -> Optional["MediaFile"]:
+    _num_data_paths: Mapped[int | None] = orm.query_expression()
+
+    @property
+    def lane_pooling_table(self) -> "MediaFile | None":
         if "lane_pooling_tables" not in orm.attributes.instance_state(self).unloaded:
             return self.lane_pooling_tables[0] if len(self.lane_pooling_tables) > 0 else None
         
@@ -364,11 +459,11 @@ class Experiment(Base):
         from .MediaFile import MediaFile
         return session.query(MediaFile).filter(
             MediaFile.experiment_id == self.id,
-            MediaFile.type_id == MediaFileType.LANE_POOLING_TABLE.id
+            MediaFile.type == MediaFileType.LANE_POOLING_TABLE
         ).order_by(MediaFile.id.desc()).first()
     
-    @hybrid_property
-    def sequencer_loading_checklist(self) -> Optional["MediaFile"]:
+    @property
+    def sequencer_loading_checklist(self) -> "MediaFile | None":
         if "sequencer_loading_checklist" not in orm.attributes.instance_state(self).unloaded:
             return self.sequencer_loading_checklists[0] if len(self.sequencer_loading_checklists) > 0 else None
         
@@ -377,32 +472,12 @@ class Experiment(Base):
         from .MediaFile import MediaFile
         return session.query(MediaFile).filter(
             MediaFile.experiment_id == self.id,
-            MediaFile.type_id == MediaFileType.SEQUENCER_LOADING_CHECKLIST.id
+            MediaFile.type == MediaFileType.SEQUENCER_LOADING_CHECKLIST
         ).order_by(MediaFile.id.desc()).first()
 
     @property
-    def status(self) -> ExperimentStatus:
-        return ExperimentStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: ExperimentStatus):
-        self.status_id = value.id
-    
-    @property
     def flowcell_type(self) -> FlowCellType:
         return self.workflow.flow_cell_type
-    
-    @flowcell_type.setter
-    def flowcell_type(self, value: FlowCellType):
-        self.workflow_id = value.id
-    
-    @property
-    def workflow(self) -> ExperimentWorkFlow:
-        return ExperimentWorkFlow.get(self.workflow_id)
-    
-    @workflow.setter
-    def workflow(self, value: ExperimentWorkFlow):
-        self.workflow_id = value.id
     
     @property
     def timestamp_created(self) -> datetime:
@@ -470,6 +545,11 @@ class Experiment(Base):
         sa.Index(
             "trgm_experiment_name_idx",
             sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_experiment_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
             postgresql_using="gin",
         ),
     )

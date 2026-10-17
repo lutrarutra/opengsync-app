@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from dataclasses import dataclass
 
@@ -7,6 +8,7 @@ from wtforms import FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db.categories import IndexType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from ... import logger, db
 from ...core import exceptions
@@ -75,7 +77,7 @@ class BarcodeConstraintsForm(HTMXFlaskForm):
         kit = None
         
         if self.kit.selected.data is not None:
-            if (kit := db.index_kits.get(int(self.kit.selected.data))) is None:
+            if (kit := db.session.first(Q.index_kit.select(id=int(self.kit.selected.data)))) is None:
                 raise exceptions.NotFoundException("Kit not found")
             
             self.kit.search_bar.data = kit.search_name()
@@ -84,7 +86,16 @@ class BarcodeConstraintsForm(HTMXFlaskForm):
                 self.spreadsheet.add_general_error("10x ATAC index kits are not supported. 10X ATAC kits should be safe!")
                 return False
 
-            barcodes_df = db.pd.get_index_kit_barcodes(kit.id, per_index=True)
+            barcodes_df = T.index_kit_barcodes_per_index(
+                T.index_kit_barcodes(
+                    db.session.get_pandas(
+                        Q.pd.index_kit_barcodes(kit.id), limit=None
+                    ),
+                    per_adapter=False,
+                    per_index=True,
+                ),
+                kit.type,
+            )
             if len(barcodes_df["sequence_i7"].str.len().unique()) != 1:
                 self.spreadsheet.add_general_error(f"The selected kit '{kit.name}' has i7 index sequences of different lengths and cannot be used.")
                 return False

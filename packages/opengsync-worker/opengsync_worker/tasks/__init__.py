@@ -5,10 +5,11 @@ from pathlib import Path
 
 from loguru import logger
 
-from opengsync_db import DBHandler
+from opengsync_db import SyncDBHandler
 
 from opengsync_worker import celery
 from opengsync_worker.tasks.clean_upload_folder import clean_upload_folder
+from opengsync_worker.tasks.deactivate_inactive_users import deactivate_inactive_users
 from opengsync_worker.tasks.rf_scanner import process_run_folder
 from opengsync_worker.tasks.status_updater import update_statuses
 
@@ -22,8 +23,8 @@ logger.add(logdir / f"{date}.log", level="INFO", colorize=False, rotation="1 day
 logger.add(logdir / f"{date}.err", level="ERROR", colorize=False, rotation="1 day")
 
 
-def connect() -> DBHandler:
-    db = DBHandler(logger=logger, auto_commit=True)
+def connect() -> SyncDBHandler:
+    db = SyncDBHandler(logger=logger)
     db.connect(
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
@@ -46,7 +47,7 @@ def process_run_folder_wrapper(run_folder: str):
         logger.error(f"\n-------- Exception [ process_run_folder ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
         rollback = True
     finally:
-        db.close_session(rollback=rollback)
+        db.close_session(rollback=rollback, commit=True)
 
 
 @celery.task
@@ -61,7 +62,7 @@ def update_statuses_wrapper():
         logger.error(f"\n-------- Exception [ update_statuses ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
         rollback = True
     finally:
-        db.close_session(rollback=rollback)
+        db.close_session(rollback=rollback, commit=True)
 
 
 @celery.task
@@ -71,3 +72,18 @@ def clean_upload_folder_wrapper(upload_folder: str, upload_folder_file_age_days:
         clean_upload_folder(directory=Path(upload_folder), days_old=upload_folder_file_age_days)
     except Exception as e:
         logger.error(f"\n-------- Exception [ clean_upload_folder ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+
+
+@celery.task
+def deactivate_inactive_users_wrapper(inactivity_days: int):
+    db = connect()
+    rollback = False
+    logger.info("Starting inactive user deactivation task...")
+    try:
+        db.open_session()
+        deactivate_inactive_users(db, inactivity_days)
+    except Exception as e:
+        logger.error(f"\n-------- Exception [ deactivate_inactive_users ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+        rollback = True
+    finally:
+        db.close_session(rollback=rollback, commit=True)

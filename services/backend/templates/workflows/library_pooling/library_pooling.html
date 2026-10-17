@@ -1,0 +1,56 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+<div id="library_pooling-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Library Pooling</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="help-tab-btn"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="library_pooling-form">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{
+                    form.spreadsheet.render(
+                        submit_btn_id="submit-spreadsheet-btn",
+                        target_element_id="library_pooling-form-container",
+                    )
+                }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
+                <ul>
+                    <li>If you don't want to pool certain libraries (yet),  <span class="code-highlight">skip</span></li>
+                    <li>Mark pool with <span class="code-highlight">x</span> if a library should not be pooled, e.g. didn't pass QC.</li>
+                    <li>❗ Doing this workflow will re-create the pools. If pool has already been assigned an experiment, the new pools might not be added to the experiment it was sequenced in if there are conflicts. Refrain from re-doing this workflow after the pool has already been sequenced.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid if form.workflow is defined else "" }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

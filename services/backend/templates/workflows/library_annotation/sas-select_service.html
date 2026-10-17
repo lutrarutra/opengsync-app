@@ -1,0 +1,364 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+<div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">{% if form.submission_type == C.SubmissionType.POOLED_LIBRARIES %}Select Assay{% else %}Select Services{% endif %}</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="form-tab-form-btn"
+                data-bs-target="#form-tab-form" type="button" role="tab"
+                aria-controls="form-tab-form" aria-selected="true">
+                Form</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-form-help-btn"
+                data-bs-target="#form-tab-form-help" type="button" role="tab"
+                aria-controls="form-tab-form-help" aria-selected="false">
+                Examples</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-form-assay-btn"
+                data-bs-target="#form-tab-form-assay" type="button" role="tab"
+                aria-controls="form-tab-form-assay" aria-selected="true">
+                Services</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                <div class="service-step">
+                    <h6 class="service-step-title"><span class="service-step-number">1</span>Service</h6>
+                    {{ form.service_type.render() }}
+                    <p id="service-hint" class="text-muted mb-0" style="display: none;">Select a service from the list of available options. If your desired service is not listed, select 'Custom' and provide the necessary details below.</p>
+                </div>
+                <div id="step-parse-kit" class="service-step" style="display: none;">
+                    <h6 class="service-step-title"><span class="service-step-number"></span>Parse Biosciences Kit</h6>
+                    <div class="d-flex" style="gap: 20px;">
+                        {{ form.optional_assays.parse_kit.render("col") }}
+                        {{ form.optional_assays.parse_chemistry.render("col") }}
+                    </div>
+                </div>
+                <div id="step-libraries" class="service-step" style="display: none;">
+                    <h6 class="service-step-title"><span class="service-step-number"></span>Additional Libraries</h6>
+                    <p class="text-muted small">Select additional libraries to prepare from each sample.</p>
+                    <div class="d-flex flex-wrap" style="column-gap: 24px;">
+                        {{ form.optional_assays.vdj_b.render() }}
+                        {{ form.optional_assays.vdj_t.render() }}
+                        {{ form.optional_assays.vdj_t_gd.render() }}
+                        {{ form.optional_assays.crispr_screening.render() }}
+                        {{ form.optional_assays.antibody_capture.render() }}
+                        {{ form.optional_assays.parse_crispr.render() }}
+                        {{ form.optional_assays.parse_tcr.render() }}
+                        {{ form.optional_assays.parse_bcr.render() }}
+                    </div>
+                    <div id="antibody-capture-sub" class="service-sub-option col-6" style="display: none;">
+                        {{ form.optional_assays.antibody_capture_kit.render() }}
+                    </div>
+                </div>
+                <div id="step-multiplexing" class="service-step" style="display: none;">
+                    <h6 class="service-step-title"><span class="service-step-number"></span>Sample Multiplexing</h6>
+                    <p class="text-muted small">Pool multiple samples into one library. Select at most one method, or none if each sample gets its own library.</p>
+                    {{ form.additional_services.oligo_multiplexing.render("mux-option") }}
+                    <div id="oligo-multiplexing-sub" class="service-sub-option" style="display: none;">
+                        <div class="col-6">
+                            {{ form.additional_services.oligo_multiplexing_kit.render() }}
+                        </div>
+                        {% if form.submission_type == C.SubmissionType.RAW_SAMPLES %}
+                        <p class="text-warning small">
+                            ⚠️ You will multiplex the samples using LMOs/CMOs/HTOs and we will prepare the libraries from multiplexed sample pools. If you are not able to multiplex the samples yourself, please contact us.
+                        </p>
+                        {% endif %}
+                        <p id="multiome-mux-warning" class="text-warning small" style="display: none;">
+                            ⚠️ 10X Multiome Oligo multiplexing is not officially supported by 10X Genomics.
+                        </p>
+                    </div>
+                    {{ form.additional_services.ocm_multiplexing.render("mux-option") }}
+                    {{ form.optional_assays.antibody_multiplexing.render("mux-option") }}
+                    <div id="antibody-multiplexing-sub" class="service-sub-option" style="display: none;">
+                        <p class="text-warning small">
+                            ⚠️ We will perform cell surface protein capture and multiplexing in the same library instead of preparing two separate libraries.
+                            If you only require multiplexing, please select oligo-based cell tagging instead.
+                        </p>
+                    </div>
+                    {{ form.optional_assays.parse_mux.render("mux-option") }}
+                </div>
+                <div id="step-additional" class="service-step" style="display: none;">
+                    <h6 class="service-step-title"><span class="service-step-number"></span>Additional Services &amp; Information</h6>
+                    {{ form.additional_services.nuclei_isolation.render("pb-2") }}
+                    {{ form.additional_info.render() }}
+                </div>
+            </div>
+            <div class="tab-pane fade show" id="form-tab-form-help" role="tabpanel" tabindex="1">
+                <ol>
+                    <li>Select assay you want to request.</li>
+                    <li>Select additional options related to the assay, if needed.</li>
+                    <li>Specify additional requirements or relevant information.</li>
+                    <li>10X Products: <a href="https://www.10xgenomics.com/products" target="_blank">10xgenomics.com/products</a></li>
+                </ol>
+                <div class="accordion p-1" id="help-accordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-1" aria-expanded="false" aria-controls="help-accordion-collapse-1">
+                                <b>10X 5-prime Gene Expression + TCR + BCR + Sample Multiplexing</b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+tcr+bcr+mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-2" aria-expanded="false" aria-controls="help-accordion-collapse-2">
+                                <b>10X 3-prime Gene Expression + ATAC + Sample Multiplexing</b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+atac+mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-3" aria-expanded="false" aria-controls="help-accordion-collapse-3">
+                                <b>10X 3-prime Gene Expression + Cell Surface Protein Capture + Sample Multiplexing</b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+abc+mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-4" aria-expanded="false" aria-controls="help-accordion-collapse-4">
+                                <b>10X 3-prime Gene Expression + Cell Surface Protein Capture <b>with</b> Sample Multiplexing <b>in same library</b></b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+abc-mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="2">
+                <ul>
+                    {% for service_type in C.ServiceType.as_list() %}
+                    <li><b>{{ service_type.label }}</b> {% if service_type.platform %}<span class="desc">{{ service_type.platform }}</span>{% endif %}</li>
+                    Library Types:
+                    <ul class="h-list" style="width: 60%; padding-left: 15px;">
+                        {% for library_type in service_type.library_types %}
+                        <li><span {{ tooltip(library_type.label) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
+                        {% endfor %}
+                    </ul>
+                    {% if service_type.optional_library_types | length %}
+                    Optional Assays:
+                    <ul class="h-list" style="width: 60%; padding-left: 15px;">
+                        {% for library_type in service_type.optional_library_types %}
+                        <li><span {{ tooltip(library_type.label) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#assay-form-submission-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button class="btn btn-primary" type="button" hx-target="#assay-form-submission-container" hx-swap="outerHTML" hx-include="#assay-form-submission-container"
+                hx-post="{{ form.post_url }}">
+                Next
+            </button>
+        </div>
+    </div>
+    <style>
+        #assay-form-submission-container .service-step {
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+        #assay-form-submission-container .service-step-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+        #assay-form-submission-container .service-step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            background-color: var(--bs-primary);
+            color: #fff;
+            font-size: 0.8rem;
+        }
+        #assay-form-submission-container .service-sub-option {
+            margin-left: 1.5rem;
+            padding-left: 0.75rem;
+            border-left: 2px solid var(--bs-border-color);
+        }
+    </style>
+    <script>
+    // Wrapped in an IIFE: htmx re-executes this script whenever the step is re-rendered
+    // (e.g. navigating back), and top-level const declarations would collide.
+    (function() {
+        const assays = {
+            {% for service_type in C.ServiceType.as_list() %}
+            {{ service_type.id }}: {
+                optional_library_types: [{% for library_type in service_type.optional_library_types %}{{ library_type.id }}, {% endfor %}],
+                oligo_multiplexing: {{ "true" if service_type.oligo_multiplexing else "false" }},
+                ocm_multiplexing: {{ "true" if service_type.ocm_multiplexing else "false" }},
+            },
+            {% endfor %}
+        };
+        const CUSTOM_ID = {{ C.ServiceType.CUSTOM.id }};
+        const PARSE_ID = {{ C.ServiceType.PARSE.id }};
+        const MULTIOME_ID = {{ C.ServiceType.TENX_SC_MULTIOME.id }};
+        const FLEX_IDS = [{% for s in C.ServiceType.get_flex_services() %}{{ s.id }}, {% endfor %}];
+        const MUX_FIELDS = ["additional_services-oligo_multiplexing", "additional_services-ocm_multiplexing", "optional_assays-antibody_multiplexing", "optional_assays-parse_mux"];
+
+        // Elements only appear below the control that revealed them, so nothing above the user's focus moves.
+        // Animated on user interaction, instant on (re-)render.
+        function reveal($el, visible, animate) {
+            if (($el.css("display") !== "none") === visible) {
+                return;
+            }
+            if (animate) {
+                $el.stop(true, true)[visible ? "slideDown" : "slideUp"](150);
+            } else {
+                $el.toggle(visible);
+            }
+        }
+
+        // Enables a field when relevant, otherwise disables it (disabled inputs are not submitted).
+        // Checkboxes / text inputs are cleared when disabled; selects keep their value.
+        function set_field_enabled(id, enabled, $container, animate) {
+            const $input = $("#" + id);
+            $input.prop("disabled", !enabled).toggleClass("disabled", !enabled);
+            if (!enabled) {
+                if ($input.is(":checkbox")) {
+                    $input.prop("checked", false);
+                } else if ($input.is("input")) {
+                    $input.val("");
+                }
+            }
+            reveal($container || $input.closest(".form-check, .form-group"), enabled, animate);
+            return enabled;
+        }
+
+        const is_checked = (id) => $("#" + id).is(":checked");
+
+        function update_form(animate) {
+            if (!$("#assay-form-submission-container #service_type").length) {
+                return;
+            }
+            animate = animate === true;
+            const service_id = parseInt($("#service_type").val());
+            const assay = assays[service_id];
+            const selected = assay !== undefined;
+            const is_custom = service_id === CUSTOM_ID;
+            const is_parse = service_id === PARSE_ID;
+            const has = (library_type_id) => is_custom || (selected && assay.optional_library_types.includes(library_type_id));
+
+            $("#service-hint").toggle(!selected);
+
+            // Parse kit
+            const parse_kit = is_custom || is_parse;
+            set_field_enabled("optional_assays-parse_kit", parse_kit, null, false);
+            set_field_enabled("optional_assays-parse_chemistry", parse_kit, null, false);
+            // Kit & chemistry are required for Parse but optional for Custom
+            const parse_requirement = is_parse ? "Required" : "Optional";
+            $("#optional_assays-parse_kit option[value='']").text(`Select Parse Kit (${parse_requirement})`);
+            $("#optional_assays-parse_chemistry option[value='']").text(`Select Parse Chemistry (${parse_requirement})`);
+
+            // Additional libraries (depend only on the service, so toggled without animation)
+            const library_fields = {
+                "optional_assays-vdj_b": has({{ C.LibraryType.TENX_VDJ_B.id }}),
+                "optional_assays-vdj_t": has({{ C.LibraryType.TENX_VDJ_T.id }}),
+                "optional_assays-vdj_t_gd": has({{ C.LibraryType.TENX_VDJ_T_GD.id }}),
+                "optional_assays-crispr_screening": has({{ C.LibraryType.TENX_CRISPR_SCREENING.id }}),
+                "optional_assays-antibody_capture": has({{ C.LibraryType.TENX_ANTIBODY_CAPTURE.id }}) || has({{ C.LibraryType.TENX_SC_ABC_FLEX.id }}),
+                "optional_assays-parse_crispr": has({{ C.LibraryType.PARSE_SC_CRISPR.id }}),
+                "optional_assays-parse_tcr": has({{ C.LibraryType.PARSE_EVERCODE_TCR.id }}),
+                "optional_assays-parse_bcr": has({{ C.LibraryType.PARSE_EVERCODE_BCR.id }}),
+            };
+            let libraries = false;
+            for (const [id, enabled] of Object.entries(library_fields)) {
+                libraries = set_field_enabled(id, enabled, null, false) || libraries;
+            }
+            const abc_checked = is_checked("optional_assays-antibody_capture");
+            set_field_enabled("optional_assays-antibody_capture_kit", abc_checked, $("#antibody-capture-sub"), animate);
+
+            // Sample multiplexing
+            const oligo = set_field_enabled("additional_services-oligo_multiplexing", is_custom || (selected && assay.oligo_multiplexing), null, false);
+            const ocm = set_field_enabled("additional_services-ocm_multiplexing", is_custom || (selected && assay.ocm_multiplexing), null, false);
+            const abc_mux = set_field_enabled("optional_assays-antibody_multiplexing", abc_checked && !FLEX_IDS.includes(service_id), null, animate);
+            const parse_mux = set_field_enabled("optional_assays-parse_mux", is_parse, null, false);
+
+            const oligo_checked = is_checked("additional_services-oligo_multiplexing");
+            set_field_enabled("additional_services-oligo_multiplexing_kit", oligo_checked, $("#oligo-multiplexing-sub"), animate);
+            $("#multiome-mux-warning").toggle(service_id === MULTIOME_ID);
+            reveal($("#antibody-multiplexing-sub"), is_checked("optional_assays-antibody_multiplexing"), animate);
+
+            // Steps, numbered in order of the visible ones
+            const multiplexing = oligo || ocm || abc_mux || parse_mux;
+            let step = 2;
+            [
+                [$("#step-parse-kit"), parse_kit, false],
+                [$("#step-libraries"), libraries, false],
+                // Only animated when cell hashing is the sole method and appears/disappears with antibody capture
+                [$("#step-multiplexing"), multiplexing, animate && !(oligo || ocm || parse_mux)],
+                [$("#step-additional"), selected, false],
+            ].forEach(function([$step, visible, animate_step]) {
+                reveal($step, visible, animate_step);
+                if (visible) {
+                    $step.find(".service-step-number").text(step++);
+                }
+            });
+        }
+
+        // Multiplexing methods are mutually exclusive
+        MUX_FIELDS.forEach(function(id) {
+            $("#" + id).on("change", function() {
+                if (this.checked) {
+                    MUX_FIELDS.filter((other) => other !== id).forEach((other) => $("#" + other).prop("checked", false));
+                }
+                update_form(true);
+            });
+        });
+        $("#service_type").on("change", () => update_form(false));
+        $("#optional_assays-antibody_capture").on("change", () => update_form(true));
+        // Replace the listener from any previous render instead of stacking another one
+        if (window._select_service_after_settle) {
+            document.body.removeEventListener("htmx:afterSettle", window._select_service_after_settle);
+        }
+        window._select_service_after_settle = () => update_form(false);
+        document.body.addEventListener("htmx:afterSettle", window._select_service_after_settle);
+        update_form(false);
+    })();
+    </script>
+</div>

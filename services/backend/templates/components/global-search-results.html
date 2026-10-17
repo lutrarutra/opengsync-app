@@ -1,0 +1,35 @@
+{% if not groups %}
+<div class="gs-empty">No matches for “{{ q }}”</div>
+{% else %}
+{% for group in groups %}
+<div class="gs-section" role="group" aria-label="{{ group.kind.plural }}">
+    {% if kind == "all" %}
+    <div class="gs-section-header">
+        <span class="gs-section-title gs-kind-{{ group.kind.key }}">
+            <i class="bi {{ group.kind.icon }}"></i> {{ group.kind.plural }}
+        </span>
+        <span class="gs-section-count">
+            {% if group.total > group.hits|length %}{{ group.hits|length }} of {{ group.total }}{% else %}{{ group.total }}{% endif %}
+        </span>
+        {% if group.total > group.hits|length %}
+        <button type="button" class="gs-more" data-gs-kind="{{ group.kind.key }}">show all &rarr;</button>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% for hit in group.hits %}
+    <a class="gs-result gs-kind-{{ group.kind.key }}" href="{{ hit.url }}" role="option">
+        <i class="bi {{ group.kind.icon }} gs-result-icon" aria-hidden="true"></i>
+        <span class="gs-badge">{{ group.kind.label }}</span>
+        <span class="gs-result-main">
+            {% if hit.code %}<span class="gs-code">{{ hit.code }}</span>{% endif %}
+            <span class="gs-label">{{ hit.label }}</span>
+        </span>
+        {% if hit.detail %}<span class="gs-detail">{{ hit.detail }}</span>{% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% endfor %}
+{% if kind != "all" and groups[0].total > groups[0].hits|length %}
+<div class="gs-footer">Showing {{ groups[0].hits|length }} of {{ groups[0].total }}. Refine the search to narrow it down.</div>
+{% endif %}
+{% endif %}

@@ -2,7 +2,7 @@ data/
 .data/
 logs/
 cache/
-db/
+/db/
 uploads/
 media/
 cert/
@@ -26,8 +26,9 @@ test*.ipynb
 licensed/
 .config/
 ~*.xlsx
+strix_runs/
 
-services/opengsync-app/templates/custom/
+services/backend/templates/custom/
 services/nginx/config/
 
 .snakemake/

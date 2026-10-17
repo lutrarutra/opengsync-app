@@ -1,12 +1,11 @@
 import pandas as pd
-
 from flask import Response, flash, url_for
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
 from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ExperimentStatus
 
 from .... import db, logger 
@@ -38,7 +37,9 @@ class LoadFlowCellForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
         self._context["experiment"] = experiment
 
-        self.lane_table = db.pd.get_experiment_lanes(self.experiment.id)
+        self.lane_table = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         self.lane_table["library_volume"] = None
         self.lane_table["eb_volume"] = None
 
@@ -91,7 +92,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         for i, (_, row) in enumerate(self.lane_table.iterrows()):
             entry = self.input_fields[i]
             
-            if (lane := db.lanes.get(entry.lane_id.data)) is None:
+            if (lane := db.session.first(Q.lane.select(id=entry.lane_id.data))) is None:
                 raise ValueError(f"Lane with id {row['id']} not found")
             
             lane.target_molarity = entry.target_molarity.data
@@ -100,12 +101,12 @@ class LoadFlowCellForm(HTMXFlaskForm):
             lane.phi_x = entry.phi_x.data
             if (lane.total_volume_ul is not None) and (lane.target_molarity is not None) and (lane.original_molarity is not None):
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
-            db.lanes.update(lane)
+            db.session.save(lane)
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
 
         if all_lanes_loaded:
             self.experiment.status = ExperimentStatus.LOADED
-            db.experiments.update(self.experiment)
+            db.session.save(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

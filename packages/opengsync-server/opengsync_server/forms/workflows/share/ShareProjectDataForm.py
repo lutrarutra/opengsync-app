@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField, EmailField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ProjectStatus, DeliveryStatus
 
 from .... import db, logger, mail_handler
@@ -46,11 +46,11 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if not super().validate():
             return False
 
-        if not current_user.is_insider() and self.time_valid_min.data > self.time_valid_min.default:
+        if not current_user.is_insider and self.time_valid_min.data > self.time_valid_min.default:
             self.error_dummy.errors = (f"You don't have permissions to create that lasts more than {self.time_valid_min.default}",)
             return False
         
-        if not current_user.is_insider() and self.custom_email.data:
+        if not current_user.is_insider and self.custom_email.data:
             self.error_dummy.errors = ("You don't have permissions to send to custom email addresses.",)
             return False
 
@@ -83,19 +83,19 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if (share_token := self.project.share_token) is not None:
             if not share_token._expired:
                 share_token._expired = True
-                db.shares.update(share_token)
+                db.session.save(share_token)
         
-        share_token = db.shares.create(
+        share_token = db.session.save(Q.share_token.create(
             owner=current_user,
             time_valid_min=self.time_valid_min.data,
             paths=self.paths,
-        )
+        ))
 
         if self.mark_project_delivered.data:
             self.project.status = ProjectStatus.DELIVERED
             
         self.project.share_token = share_token
-        db.projects.update(self.project)
+        db.session.save(self.project)
         
         content = utils.render_share_project_data_email(
             share_token=share_token, current_user=current_user, project=self.project, internal_share=self.internal_share.data,
@@ -118,10 +118,10 @@ class ShareProjectDataForm(HTMXFlaskForm):
             for link in seq_request.delivery_email_links:
                 if link.email in self.recipient_emails:
                     link.status = DeliveryStatus.DISPATCHED
-                    db.seq_requests.update(seq_request)
+                    db.session.save(seq_request)
 
         flash("Data Share Email Sent!", "success")
-        return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-data_paths-tab"))
+        return make_response(redirect=url_for("project_page", project_id=self.project.id, tab="project-data_paths-tab"))
 
 
 

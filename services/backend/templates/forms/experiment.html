@@ -1,0 +1,43 @@
+<div id="experiment-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Experiment</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="experiment-form">
+            {{ form.csrf_token.render() }}
+                
+            <div class="row">
+                {{ form.name.render("col-4") }}
+                {{ form.workflow.render("col-4") }}
+                {{ form.sequencer.render("col-4") }}
+            </div>
+            <div class="row">
+                {{ form.operator.render("col-6") }}
+                {{ form.status.render("col-6") }}
+            </div>
+            {% if form.status_comment is defined and not form.status_comment.hidden %}
+            <div class="row">
+                {{ form.status_comment.render("col-12") }}
+            </div>
+            {% endif %}
+
+            <div class="row">
+                {{ form.r1_cycles.render("col-3") }}
+                {{ form.i1_cycles.render("col-3") }}
+                {{ form.i2_cycles.render("col-3") }}
+                {{ form.r2_cycles.render("col-3") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success"
+                hx-include="#experiment-form" hx-target="#experiment-form-container" hx-swap="outerHTML"
+                hx-post="{{ form.post_url }}">{% if form.form_type == "create" %}Submit{% else %}Edit{% endif %}
+            </button>
+        </div>
+    </div>
+</div>

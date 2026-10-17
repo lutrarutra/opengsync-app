@@ -11,7 +11,7 @@ merge_projects_workflow = Blueprint("merge_projects_workflow", __name__, url_pre
 
 @wrappers.htmx_route(merge_projects_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     form = MergeProjectsForm()
@@ -19,7 +19,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(merge_projects_workflow, db=db, methods=["POST"])
 def complete(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     form = MergeProjectsForm(formdata=request.form)    

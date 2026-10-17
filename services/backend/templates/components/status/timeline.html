@@ -1,0 +1,43 @@
+{% macro status_name(entity_type, status_id) -%}
+{%- set entity = ENTITY_BY_NAME.get(entity_type) -%}
+{%- if status_id is none -%}new
+{%- elif entity -%}{{ entity.status_enum.get(status_id).display_name }}
+{%- else -%}{{ status_id }}{%- endif -%}
+{%- endmacro %}
+
+<div class="status-timeline">
+    {% if not entries %}
+    <p class="text-muted small mb-0">No recorded status changes.</p>
+    {% else %}
+    <ul class="list-unstyled small mb-0">
+        {% for entry in entries %}
+        <li class="status-history-entry border-start ps-3 pb-2" data-operation="{{ entry.operation }}">
+            <div class="d-flex flex-wrap gap-2 align-items-baseline">
+                {% if entry.own_change %}
+                <span class="fw-semibold">{{ status_name(report_entity.name, entry.own_change[0]) }} → {{ status_name(report_entity.name, entry.own_change[1]) }}</span>
+                {% endif %}
+                <span>{{ entry.label }}</span>
+                <span class="text-muted">
+                    {{ entry.timestamp.strftime("%Y-%m-%d %H:%M") }}
+                    {% if entry.actor_id is not none and actors.get(entry.actor_id) %}· {{ actors[entry.actor_id].name }}
+                    {% elif entry.kind.implicit %}· automatic{% endif %}
+                    {% if entry.inferred %}· <span title="Reconstructed from timestamps when status history was introduced">inferred</span>{% endif %}
+                </span>
+            </div>
+            {% if entry.comment %}<div class="fst-italic">“{{ entry.comment }}”</div>{% endif %}
+            {% if entry.reason and entry.kind.name != "MIGRATION" %}<div class="text-muted">{{ entry.reason }}</div>{% endif %}
+            {% if entry.related_changes %}
+            {% set total = entry.related_changes.values() | sum %}
+            <a class="text-muted" data-bs-toggle="collapse" href="#history-related-{{ entry.run_id }}" role="button" aria-expanded="false">+{{ total }} related change{{ "s" if total != 1 }}</a>
+            <div class="collapse text-muted" id="history-related-{{ entry.run_id }}">
+                {% for (entity_type, src, dst), n in entry.related_changes.items() %}
+                <div>{{ n }} {{ (ENTITY_BY_NAME[entity_type].label_plural if n != 1 else ENTITY_BY_NAME[entity_type].label) | lower if ENTITY_BY_NAME.get(entity_type) else entity_type }}:
+                    {{ status_name(entity_type, src) }} → {{ status_name(entity_type, dst) }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>

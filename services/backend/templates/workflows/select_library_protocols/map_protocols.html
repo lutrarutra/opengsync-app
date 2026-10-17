@@ -1,0 +1,53 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+<div id="library_protocol_select-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Select Protocols</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#form-tab-form" type="button" role="tab"
+                aria-controls="form-tab-form" aria-selected="true">
+                Form</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#form-tab-help" type="button" role="tab"
+                aria-controls="form-tab-help" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                {% for subform in form.subforms %}
+                <div class="row">
+                    {{ subform.kit_combination.render("col-4") }}
+                    {{ subform.protocol.render("col-8") }}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="tab-pane fade" role="tabpanel" id="form-tab-help" tabindex="1">
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-primary"
+                hx-target="#library_protocol_select-form-container" hx-swap="outerHTML"
+                hx-include="#form-tab-form"
+                hx-post="{{ form.post_url }}">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

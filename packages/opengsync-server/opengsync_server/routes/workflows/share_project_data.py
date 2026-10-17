@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import AccessType
 
 from ... import db, logger
@@ -11,11 +11,11 @@ share_project_data_workflow = Blueprint("share_project_data_workflow", __name__,
 
 @wrappers.htmx_route(share_project_data_workflow, db=db, methods=["GET", "POST"])
 def share_project_data(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.EDIT:
+    access_level = db.session.get_access_level(Q.project.permissions(project.id, current_user.id))
+    if access_level < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     from ...forms.workflows.share.ShareProjectDataForm import ShareProjectDataForm

@@ -4,11 +4,11 @@ from functools import wraps
 F = TypeVar('F', bound=Callable[..., Any])
 
 if TYPE_CHECKING:
-    from .DBHandler import DBHandler
+    from .SyncDBHandler import SyncDBHandler
 
 
 class DBBlueprint:
-    def __init__(self, name: str, db: "DBHandler") -> None:
+    def __init__(self, name: str, db: "SyncDBHandler") -> None:
         self.name = name
         self.db = db
         self._register_transactions()

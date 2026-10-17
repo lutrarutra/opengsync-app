@@ -1,0 +1,79 @@
+<div id="qubit_measure-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Measure Qubit Concentration</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body">
+        <div id="qubit_measure-form">
+            {{ form.csrf_token.render() }}
+            <table class="table">
+                <thead>
+                    <tr>
+                    <th scope="col" class="col-1">ID</th>
+                    <th scope="col" class="col-4">Sample Name</th>
+                    <th scope="col" class="col-4">Sample Type <span class="desc">Sample/Library/Pool/Lane</span></th>
+                    <th scope="col" class="col-3">Qubit Conc.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub_form in form.sample_forms %}
+                    <tr>
+                        <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
+                        <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
+                        <td>Sample</td>
+                        <td>{{ sub_form.qubit_concentration.render(hide_label=True, hide_errors=True) }}</td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for sub_form in form.library_forms %}
+                    <tr>
+                        <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
+                        <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
+                        <td>Library</td>
+                        <td>{{ sub_form.qubit_concentration.render(hide_label=True, hide_errors=True) }}</td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for sub_form in form.pool_forms %}
+                    <tr>
+                        <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
+                        <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
+                        <td>Pool</td>
+                        <td>{{ sub_form.qubit_concentration.render(hide_label=True, hide_errors=True) }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for sub_form in form.lane_forms %}
+                    <tr>
+                        <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
+                        <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
+                        <td>Lane</td>
+                        <td>{{ sub_form.qubit_concentration.render(hide_label=True, hide_errors=True) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ form.post_url }}" id="submit-qubit_measure-form-btn"
+            hx-target="#qubit_measure-form-container" hx-swap="outerHTML" hx-include="#qubit_measure-form">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-qubit_measure-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
+</div>

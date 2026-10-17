@@ -1,27 +1,50 @@
 services:
+    db-migrator:
+        profiles: ["tools"]
+        container_name: opengsync-db-migrator-dev
+        build:
+            context: .
+            dockerfile: ./services/backend/Dockerfile.dev
+            target: migrator
+        environment:
+            TZ: ${TIMEZONE}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+            POSTGRES_PORT: ${POSTGRES_PORT}
+        depends_on:
+            postgres:
+                condition: service_healthy
+        volumes:
+            - ./services/db/alembic:/app/alembic
+        restart: "no"
+
     opengsync-app:
         container_name: opengsync-app-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: opengsync-app
         volumes:
             - ./packages/opengsync-server:/app/packages/opengsync-server
             - ./packages/opengsync-db:/app/packages/opengsync-db
             - ./opengsync.yaml:/app/opengsync.yaml:ro
-            - ./services/opengsync-app/static/images:/static/images:ro
-            - ./services/opengsync-app/static/js:/static/js:ro
-            - ./services/opengsync-app/static/resources:/static/resources:ro
-            - ./services/opengsync-app/templates:/templates:ro
+            - ./services/backend:/app/services/backend:ro
+            - ./services/backend/static/images:/static/images:ro
+            - ./services/backend/static/js:/static/js:ro
+            - ./services/backend/static/resources:/static/resources:ro
+            - ./services/backend/static/style/email.css:/static/style/email.css:ro
+            - ./services/backend/templates:/templates:ro
+            - ./docs:/app/docs:ro
             - ${UPLOADS_DIR}:/uploads
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
             - ./share:/share:ro
             - compiled_css:/static/style/compiled:ro
         environment:
-            OPENGSYNC_PORT: ${OPENGSYNC_PORT}
+            OPENGSYNC_PORT: ${OPENGSYNC_PORT:-5000}
             TZ: ${TIMEZONE}
-            REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
@@ -31,11 +54,12 @@ services:
             MAIL_PORT: ${MAIL_PORT}
             MAIL_SENDER: ${MAIL_SENDER}
             MAIL_PASSWORD: ${MAIL_PASSWORD}
-            SECRET_KEY: ${SECRET_KEY}
+            SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
             MAIL_USER: ${MAIL_USER}
-            OPENGSYNC_DEBUG: 1
+            CHAT_API_KEY: ${CHAT_API_KEY:-}
+            ENVIRONMENT: dev
         ports:
-            - ${OPENGSYNC_PORT}:5000
+            - ${OPENGSYNC_PORT:-5000}:${OPENGSYNC_PORT:-5000}
         restart: on-failure
         depends_on:
             postgres:
@@ -45,19 +69,22 @@ services:
                 condition: service_healthy
                 restart: true
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT}/status/"]
+            test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT:-5000}/api/health"]
             interval: 10s
             timeout: 10s
+        command: >
+            bash -c "
+            cd services/backend &&
+            uvicorn server.main:app --host 0.0.0.0 --port ${OPENGSYNC_PORT:-5000} --reload --reload-dir /app/services/backend --reload-dir /app/packages"
 
     opengsync-celery-worker:
         container_name: opengsync-celery-worker-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: celery-worker
         environment:
             TZ: ${TIMEZONE}
-            REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
@@ -83,11 +110,10 @@ services:
         container_name: opengsync-celery-beat-dev
         build:
             context: .
-            dockerfile: ./services/Dockerfile.dev
+            dockerfile: ./services/backend/Dockerfile.dev
             target: celery-worker
         environment:
             TZ: ${TIMEZONE}
-            REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
@@ -111,17 +137,13 @@ services:
         image: redis:8.0.3-alpine3.21
         environment:
             TZ: ${TIMEZONE}
-        ports:
-            - ${REDIS_PORT}:${REDIS_PORT}
         restart: on-failure
-        volumes:
-            - redis_data:/data
         healthcheck:
-            test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
+            test: ["CMD", "redis-cli", "-p", "6379", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5
-        command: --port ${REDIS_PORT}
+        command: --port 6379
 
     tailwind-compiler:
         container_name: tailwind-compiler-dev
@@ -130,8 +152,8 @@ services:
           context: .
           dockerfile: ./services/tailwind-compiler/Dockerfile
         volumes:
-            - ./services/opengsync-app/static/style:/app/style
-            - ./services/opengsync-app/templates:/app/templates
+            - ./services/backend/static/style:/app/style
+            - ./services/backend/templates:/app/templates
             - compiled_css:/app/static/style/compiled
         environment:
             - TZ=${TIMEZONE}
@@ -139,22 +161,22 @@ services:
 
     postgres:
         container_name: postgres-dev
-        image: postgres:17-alpine
+        build:
+            context: .
+            dockerfile: ./services/db/Dockerfile
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
-            PGPORT: ${POSTGRES_PORT}
             TZ: ${TIMEZONE}
         expose:
             - ${POSTGRES_PORT}
         ports:
-            - ${POSTGRES_PORT}:${POSTGRES_PORT}
+            - ${POSTGRES_PORT}:5432
         restart: on-failure
         volumes:
-            - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
+            - ./services/db/postgresql.conf:/etc/postgresql.conf:ro
             - postgres_data:/var/lib/postgresql/data
-            - postgres_archive:/var/lib/postgresql/archive
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -162,31 +184,27 @@ services:
             retries: 5
         command: "postgres -c config_file=/etc/postgresql.conf"
 
-    # pgadmin:
-    #     container_name: pgadmin-dev
-    #     image: dpage/pgadmin4:latest
-    #     environment:
-    #         PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-    #         PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-    #         TZ: ${TIMEZONE}
-    #     ports:
-    #         - ${PGADMIN_PORT}:80
-    #     restart: on-failure
-    #     volumes:
-    #         - pgadmin_data:/var/lib/pgadmin
-    #     depends_on:
-    #         postgres:
-    #             condition: service_healthy
-    #             restart: true
-    #     attach: false  # no logs
+    pgadmin:
+        container_name: pgadmin-dev
+        image: dpage/pgadmin4:latest
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+            TZ: ${TIMEZONE}
+        ports:
+            - ${PGADMIN_PORT}:80
+        restart: on-failure
+        volumes:
+            - pgadmin_data:/var/lib/pgadmin
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+        attach: false  # no logs
 
 volumes:
     compiled_css:
     pgadmin_data:
-    redis_data:
     postgres_data:
         external: true
         name: opengsync-dev_postgres_data
-    postgres_archive:
-        external: true
-        name: opengsync-dev_postgres_archive

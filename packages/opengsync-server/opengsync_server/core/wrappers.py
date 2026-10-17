@@ -8,25 +8,15 @@ from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 from flask_limiter.errors import RateLimitExceeded
 
-from opengsync_db import DBHandler
+from opengsync_db import SyncDBHandler, exceptions as db_exceptions, queries as Q
 from opengsync_db.categories import HTTPResponse
-from opengsync_db import exceptions as db_exceptions
 
 from .. import logger
-from ..core.LogBuffer import log_buffer
-from ..tools import routes as rt, textgen
+from ..tools import routes as rt
 from . import exceptions as serv_exceptions
 from .RunTime import runtime
 
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
-
-
-def __get_flash_msg(msg: str) -> str:
-    if textgen is None:
-        return msg
-    return "Unexpected Error 😔🥀... <br>" + textgen.generate(
-        "You need to write in 1-2 sentences make a joke about error/bug..."
-    ) or msg
 
 
 def _default_logger(exc: Exception, exc_type: str, level: Literal["error", "warning", "info"] | None = None, depth: int = 1) -> None:
@@ -35,7 +25,7 @@ def _default_logger(exc: Exception, exc_type: str, level: Literal["error", "warn
             serv_exceptions.NoPermissionsException: "info",
             serv_exceptions.NotFoundException: "info",
             serv_exceptions.BadRequestException: "info",
-            db_exceptions.ElementDoesNotExist: "info",
+            db_exceptions.NotFoundException: "info",
         }.get(type(exc), "error")
     else:
         _level = level
@@ -63,7 +53,7 @@ def _route_decorator(
     blueprint: Blueprint | Flask,
     route: str | None,
     methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD", "LOCK", "UNLOCK"]],
-    db: DBHandler | None,
+    db: SyncDBHandler | None,
     login_required: bool,
     debug: bool,
     strict_slashes: bool,
@@ -103,7 +93,7 @@ def _route_decorator(
                 match limit_exempt:
                     case "insider":
                         def exempt_when() -> bool:
-                            return current_user.is_authenticated and current_user.is_insider()
+                            return current_user.is_authenticated and current_user.is_insider
                     case "user":
                         def exempt_when() -> bool:
                             return current_user.is_authenticated
@@ -127,7 +117,7 @@ def _route_decorator(
                 return key
             
             def insider_cache_key() -> str:
-                if current_user.is_authenticated and not current_user.is_insider():
+                if current_user.is_authenticated and not current_user.is_insider:
                     return user_cache_key()
                 query_string = ""
                 if cache_query_string and request.args:
@@ -173,7 +163,7 @@ def _route_decorator(
                         raise serv_exceptions.InternalServerErrorException("Database handler is required for API token validation.")
                     if (api_token := additional_kwargs.pop("api_token", None)) is None:
                         raise serv_exceptions.UnauthorizedException("API token is required but not provided.")
-                    if (token := db.api_tokens.get(api_token)) is None:
+                    if (token := db.session.first(Q.api_token.select(uuid=api_token))) is None:
                         raise serv_exceptions.NoPermissionsException(f"Invalid API token '{api_token}'.")
                     if token.is_expired:
                         raise serv_exceptions.NoPermissionsException("API token is expired.")
@@ -184,28 +174,27 @@ def _route_decorator(
 
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
-                rollback = db.needs_commit if db is not None else False
+                rollback = True
                 _default_logger(e, "InternalServerErrorException", "error")
                 return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
-                rollback = db.needs_commit if db is not None else False
+                rollback = True
                 _default_logger(e, "OpeNGSyncServerException", None)
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
-                rollback = db.needs_commit if db is not None else False
+                rollback = True
                 _default_logger(e, "OpeNGSyncDBException", None)
                 return response_handler(e)
-            except RateLimitExceeded as e:
+            except RateLimitExceeded:
                 logger.warning(f"Rate limit exceeded for IP {request.remote_addr} on route {request.path}")
                 return response_handler(serv_exceptions.TooManyRequestsException())
             except Exception as e:
-                rollback = db.needs_commit if db is not None else False
+                rollback = True
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(e, "Exception", "error")
                 return response_handler(e)
             finally:    
-                runtime.session["needs_commit"] =  db.needs_commit if db is not None else False
                 runtime.session["rollback"] = rollback
                 if (msgs := runtime.app.consume_flashes(runtime.session)):
                     if runtime.session.sid:
@@ -232,7 +221,7 @@ def _page_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             code = 403
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.NotFoundException:
             code = 404
         case serv_exceptions.BadRequestException:
             code = 400
@@ -241,7 +230,6 @@ def _page_handler(e: Exception):
         case serv_exceptions.TooManyRequestsException:
             code = 429
         case _:
-            msg = __get_flash_msg(msg)
             code = 500
 
     flash(msg, category="error")
@@ -258,7 +246,7 @@ def _htmx_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             code = 403
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.NotFoundException:
             code = 404
         case serv_exceptions.BadRequestException:
             code = 400
@@ -284,7 +272,7 @@ def _api_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             return msg, HTTPResponse.FORBIDDEN.id
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.NotFoundException:
             return msg, HTTPResponse.NOT_FOUND.id
         case serv_exceptions.BadRequestException:
             return msg, HTTPResponse.BAD_REQUEST.id
@@ -307,7 +295,7 @@ def _resource_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             code = 403
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.NotFoundException:
             code = 404
         case serv_exceptions.BadRequestException:
             code = 400
@@ -317,7 +305,6 @@ def _resource_handler(e: Exception):
             code = 429
         case _:
             code = 500
-            msg = __get_flash_msg(msg) 
     
     flash(msg, category="error")
     return render_template("errors/error.html", msg=msg, code=code), code
@@ -327,7 +314,7 @@ def page_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
     methods: Sequence[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
-    db: DBHandler | None = None,
+    db: SyncDBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
     arg_params: list[str] | None = None,
@@ -371,7 +358,7 @@ def htmx_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
     methods: Sequence[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
-    db: DBHandler | None = None,
+    db: SyncDBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
     arg_params: list[str] | None = None,
@@ -415,7 +402,7 @@ def api_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
     methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD", "LOCK", "UNLOCK"]] = ["GET"],
-    db: DBHandler | None = None,
+    db: SyncDBHandler | None = None,
     login_required: bool = False,
     debug: bool = False,
     arg_params: list[str] | None = None,
@@ -464,7 +451,7 @@ def resource_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
     methods: Sequence[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
-    db: DBHandler | None = None,
+    db: SyncDBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
     arg_params: list[str] | None = None,

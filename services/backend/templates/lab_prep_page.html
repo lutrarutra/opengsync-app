@@ -1,0 +1,294 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/button.jinja2" import confirm_action_button %}
+
+{% extends "base.html" %}
+{% set active_page = "lab_preps-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>{{ lab_prep.display_name }} <span class="desc">{{ lab_prep.checklist_type.label }} - {{ lab_prep.service_type.abbreviation }} - {{ lab_prep.status.label }} {{ lab_prep.status.icon }}</span></h1>
+        </div>
+        <div class="page-controls">
+            <div class="dropdown">
+                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                        hx-get="{{ url_for('LabPrepForm.Edit', lab_prep_id=lab_prep.id) }}"
+                        hx-swap="innerHTML" hx-trigger="click">
+                            Edit Prep
+                        </button>
+                    </li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                                hx-get="{{ url_for('ReseqAction.Begin', lab_prep_id=lab_prep.id) }}"
+                                hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                                hx-swap="innerHTML">
+                            Re-Sequence Libraries
+                        </button>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Delete Prep",
+                                title="Delete Library Prep?",
+                                body="You will not be able to undo this. Are you sure?",
+                                method="hx-delete",
+                                url=url_for('delete_lab_prep', lab_prep_id=lab_prep.id),
+                                class="dropdown-item",
+                                disabled=lab_prep.status >= C.PrepStatus.COMPLETED,
+                                disabled_tooltip="Only preps that have not been completed can be deleted.",
+                                color="warning",
+                                tooltip_position="left"
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Uncomplete Prep",
+                                title="Undo Library Prep?",
+                                body="This will change the status of all 'Pooled' libraries to 'Preparing'. Are you sure?",
+                                method="hx-post",
+                                url=url_for('uncomplete_lab_prep', lab_prep_id=lab_prep.id),
+                                class="dropdown-item",
+                                disabled=lab_prep.status < C.PrepStatus.COMPLETED or not current_user.is_admin,
+                                disabled_tooltip="Only admins can uncomplete a prep." if not current_user.is_admin else "Only completed preps can be uncompleted.",
+                                color="warning",
+                                tooltip_position="left"
+                            )
+                        }}
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                        data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                        hx-get="{{ url_for('MediaFileForm.Upload', lab_prep_id=lab_prep.id) }}">
+                            Attach File
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs page-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-libraries-tab" type="button" role="tab"
+            aria-controls="lab_prep-libraries-tab" aria-selected="true">Libraries {{ tab_count(lab_prep.num_libraries) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-checklist-tab" type="button" role="tab"
+            aria-controls="lab_prep-checklist-tab" aria-selected="true">Checklist {{ tab_count(checklist_steps_completed, checklist_total_steps) }}</button>
+        </li>
+        {% if current_user.is_insider %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#lab_prep-status-tab" type="button" role="tab"
+                aria-controls="lab_prep-status-tab" aria-selected="false">
+                Status
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-pools-tab" type="button" role="tab"
+            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools {{ tab_count(lab_prep.num_pools) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-samples-tab" type="button" role="tab"
+            aria-controls="lab_prep-samples-tab" aria-selected="true">Samples {{ tab_count(lab_prep.num_samples) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#prep_table-tab" type="button" role="tab"
+            aria-controls="prep_table-tab" aria-selected="false"
+            {% if not lab_prep.prep_file %}disabled{% endif %}>
+            Prep Table</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#plate-tab" type="button" role="tab"
+            aria-controls="plate-tab" aria-selected="false">
+            Plates {{ tab_count(lab_prep.num_plates) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#mux-tab" type="button" role="tab"
+            aria-controls="mux-tab" aria-selected="false"
+            {% if not contains_mux_libraries %}disabled{% endif %}>
+            Multiplexing</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#files-tab" type="button" role="tab"
+            aria-controls="files-tab" aria-selected="true"
+            id="files-tab-btn">Files {{ tab_count(lab_prep.num_files) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#comments-tab" type="button" role="tab"
+            aria-controls="comments-tab" aria-selected="true"
+            id="comments-tab-btn">Comments {{ tab_count(lab_prep.num_comments) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#metadata-tab" type="button" role="tab"
+            aria-controls="metadata-tab" aria-selected="true"
+            id="metadata-tab-btn">Metadata</button>
+        </li>
+    </ul>
+</div>
+
+<div class="page-content">
+    <div class="tab-content pt-1">
+        <div class="tab-pane fade show active" id="lab_prep-libraries-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_library_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="lab_prep-checklist-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Checklist</h3>
+                </div>
+                <div style="height: 100%; display: flex; align-items: center;">
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_lab_prep_checklist', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% if current_user.is_insider %}
+        <div class="tab-pane fade" id="lab_prep-status-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('render_status', entity='lab_prep', obj_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="tab-pane fade" id="lab_prep-pools-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Pools</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_pool_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="lab_prep-samples-tab" role="tabpanel" tabindex="3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Samples</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_sample_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="4">
+            {% if lab_prep.prep_file %}
+            <div hx-get="{{ url_for('render_xlsx_spreadsheet', media_file_id=lab_prep.prep_file.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="5">
+            {% if lab_prep.plates | length > 0 %}
+            <div hx-get="{{ url_for('render_lab_prep_plates', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="6">
+            <div hx-get="{{ url_for('render_lab_prep_mux_spreadsheet', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="files-tab" role="tabpanel" tabindex="7">
+            <div hx-get="{{ url_for('render_media_file_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="comments-tab" role="tabpanel" tabindex="8">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Comments</h2>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('CommentForm.Begin', lab_prep_id=lab_prep.id) }}">
+                    Comment
+                </button>
+            </div>
+            
+            <div hx-get="{{ url_for('render_comment_thread', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="9">
+            <h4>Metadata</h4>
+            <div class="row">
+                {{ metadata_group("Name", lab_prep.name, class="col-3") }}
+                {{ metadata_group("Protocol", lab_prep.checklist_type.display_name, class="col-3") }}
+                {{ metadata_group("Status", lab_prep.status.display_name, class="col-3") }}
+                {{ metadata_group("Assay", lab_prep.service_type.abbreviation, class="col-3") }}
+            </div>
+            <div class="row">
+                {{ metadata_group_link("Creator", lab_prep.creator.name, url_for("user_page", user_id=lab_prep.creator.id, from="lab_prep@" + lab_prep.id | string), class="col-3") }}
+                {{ 
+                    metadata_group_email_link(
+                        "Email", lab_prep.creator.email, class="col-3",
+                        subject="Library Prep: " + lab_prep.name
+                    ) 
+                }}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function confirmation(ev) {
+        ev.preventDefault();
+        var url = ev.target.href;
+        Swal.fire({
+            title: 'Prep \'{{ lab_prep.name }}\' is empty.',
+            showDenyButton: true,
+            text: 'Do you want to download empty template?',
+            confirmButtonText: 'Yes',
+            denyButtonText: 'No',
+            icon: 'question'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    }
+</script>
+
+{% endblock %}

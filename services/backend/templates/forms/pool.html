@@ -1,0 +1,54 @@
+<div id="pool-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Pool Form</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+        <div id="pool-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.pool_type.render("col-3") }}
+                {{ form.name.render("col-3") }}
+                {{ form.num_m_reads_requested.render("col-3") }}
+                {{ form.status.render("col-3") }}
+            </div>
+            {% if form.status_comment is defined and not form.status_comment.hidden %}
+            <div class="row">
+                {{ form.status_comment.render("col-12") }}
+            </div>
+            {% endif %}
+            <div class="row">
+                {% if (form.form_type == "create" or form.form_type == "clone") and current_user.is_insider %}
+                {{ form.contact.render("col-4") }}
+                {{ form.contact_name.render("col-2") }}
+                {{ form.contact_email.render("col-3") }}
+                {{ form.contact_phone.render("col-3") }}
+                {% else %}
+                {{ form.contact_name.render("col-4") }}
+                {{ form.contact_email.render("col-4") }}
+                {{ form.contact_phone.render("col-4") }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#pool-form" hx-target="#pool-form-container" hx-swap="outerHTML"
+                {% if form.form_type == "edit" %}
+                hx-post="{{ url_for('PoolForm.Edit', pool_id=form.pool.id) }}"
+                {% elif form.form_type == "create" %}
+                hx-post="{{ url_for('PoolForm.Create') }}"
+                {% elif form.form_type == 'clone' %}
+                hx-post="{{ url_for('PoolForm.Clone', pool_id=form.pool.id) }}"
+                {% endif %}>
+                Complete
+            </button>
+        </div>
+    </div>
+</div>
+

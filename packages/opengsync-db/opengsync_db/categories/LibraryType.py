@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
-from .LabChecklistType import LabChecklistType, LabChecklistType
+from .LabChecklistType import LabChecklistType
 
 
 @dataclass(eq=False, frozen=True)

@@ -1,4 +1,5 @@
 from typing import Optional, Union, TypeVar, Sequence, Literal
+from opengsync_db import queries as Q
 import itertools
 import json
 import difflib
@@ -12,7 +13,7 @@ from flask import render_template
 
 import pandas as pd
 
-from opengsync_db import models, exceptions, DBHandler
+from opengsync_db import models, exceptions, SyncDBHandler
 from opengsync_db.categories.ExtendedEnum import DBEnum
 
 from .. import logger
@@ -74,76 +75,6 @@ def min_hamming_distances(seq_list: list[str], rc: Literal["i7", "i5", "both", "
         other_seqs = seq_list[:i] + seq_list[i + 1:]
         distances.append(min(_hamming_distance_shared_bases(ref, other) for other in other_seqs))
     return distances
-
-
-def __get_combined_index(df: pd.DataFrame, indices: list[str]) -> pd.Series:
-    combined_index = pd.Series([""] * len(df), index=df.index, dtype="string")
-    for index in indices:
-        df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-        _max = int(df[index].str.len().max())
-        combined_index += "+" + df[index].str.ljust(_max, "N")
-
-    return combined_index.str.lstrip("+")
-
-
-def __check_indices(df: pd.DataFrame, indices: list[str], groupby: str | list[str] | None = None, rc: Literal["i7", "i5", "both", "i7i5"] | None = None) -> pd.DataFrame:
-    df["combined_index"] = ""
-    df["min_hamming_bases"] = None
-
-    if len(df) > 1:
-        if groupby is None:
-            df["combined_index"] = __get_combined_index(df, indices)     
-            if "sequence_i5" in df.columns:
-                same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
-                df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
-            
-            df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
-            df["min_hamming_bases"] = min_hamming_distances(df["combined_index"].tolist(), rc=rc)
-        else:
-            for _, _df in df.groupby(groupby):             
-                _df["combined_index"] = __get_combined_index(_df, indices)
-                if "sequence_i5" in _df.columns:
-                    same_barcode_in_different_indices = _df["sequence_i7"] == _df["sequence_i5"]
-                    _df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in i7 & i5 indices"
-
-                if len(_df) < 2:
-                    _df["min_hamming_bases"] = _df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
-                else:
-                    _df["min_hamming_bases"] = min_hamming_distances(_df["combined_index"].tolist(), rc=rc)
-                
-                df.loc[_df.index, "combined_index"] = _df["combined_index"]
-                df.loc[_df.index, "min_hamming_bases"] = _df["min_hamming_bases"]
-    elif len(df) == 1:
-        df["combined_index"] = __get_combined_index(df, indices)
-        df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
-    else:
-        df["combined_index"] = ""
-        df["min_hamming_bases"] = None
-        
-    return df
-
-
-def check_indices(df: pd.DataFrame, groupby: str | list[str] | None = None) -> pd.DataFrame:
-    df = df.copy()
-    df["error"] = None
-    df["warning"] = None
-
-    indices = ["sequence_i7"]
-    if "sequence_i5" in df.columns and not df["sequence_i5"].isna().all():
-        indices.append("sequence_i5")
-
-    df = __check_indices(df, indices=indices, groupby=groupby)
-
-    df["rc_i7_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="i7")["min_hamming_bases"]
-    
-    if "sequence_i5" in df.columns:
-        df["rc_i5_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="i5")["min_hamming_bases"]
-        df["rc_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="both")["min_hamming_bases"]
-        df["rc_i7i5_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="i7i5")["min_hamming_bases"]
-
-    df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries."
-    df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."
-    return df
 
 
 def parse_time_windows(data: list[dict]) -> list[WeekTimeWindow]:
@@ -315,7 +246,7 @@ def connect_similar_strings(
     return res
 
 
-def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.DataFrame:
+def get_barcode_table(db: SyncDBHandler, libraries: Sequence[models.Library]) -> pd.DataFrame:
     library_data = {
         "library_id": [],
         "library_name": [],
@@ -332,7 +263,9 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
     }
     
     for library in libraries:
-        library_data["index_type_id"].append(library.index_type_id)
+        library_data["index_type_id"].append(
+            library.index_type.id if library.index_type is not None else None
+        )
         library_data["library_id"].append(library.id)
         library_data["library_name"].append(library.name)
         library_data["library_type_id"].append(library.type.id)
@@ -354,9 +287,9 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
 
             for (kit_i7_id, name_i7), seqs_i7 in library.adapters_i7().items():
                 if kit_i7_id is not None:
-                    if (kit_i7 := db.index_kits.get(kit_i7_id)) is None:
+                    if (kit_i7 := db.session.first(Q.index_kit.select(id=kit_i7_id))) is None:
                         logger.error(f"Index kit {kit_i7_id} not found in database")
-                        raise exceptions.ElementDoesNotExist("Index kit not found in database")
+                        raise exceptions.NotFoundException("Index kit not found in database")
                     kit_i7 = kit_i7.identifier
                 else:
                     kit_i7 = None
@@ -369,9 +302,9 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
             sequences_i5 = []
             for (kit_i5_id, name_i5), seqs_i5 in library.adapters_i5().items():
                 if kit_i5_id is not None:
-                    if (kit_i5 := db.index_kits.get(kit_i5_id)) is None:
+                    if (kit_i5 := db.session.first(Q.index_kit.select(id=kit_i5_id))) is None:
                         logger.error(f"Index kit {kit_i5_id} not found in database")
-                        raise exceptions.ElementDoesNotExist("Index kit not found in database")
+                        raise exceptions.NotFoundException("Index kit not found in database")
                     kit_i5 = kit_i5.identifier
                 else:
                     kit_i5 = None
@@ -553,9 +486,10 @@ def render_share_project_data_email(
     from ..core import runtime
 
     http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+    sync_command = render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
     wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
-    style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
+    with open(os.path.join(runtime.app.static_folder, "style/compiled/email.css"), "r") as f:
+        style = f.read()
 
     browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
 
@@ -591,7 +525,7 @@ def render_share_project_data_email(
     content = render_template(
         "email/share-project-data.html", style=style, browse_link=browse_link,
         project=project, library_types=library_types,
-        author=None if anonymous else current_user if current_user.is_insider() else None,
+        author=None if anonymous else current_user if current_user.is_insider else None,
         experiments=project.experiments, seq_requests=project.seq_requests,
         share_token=share_token,
         sync_command=sync_command,

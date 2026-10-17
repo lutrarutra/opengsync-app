@@ -1,0 +1,132 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Index of {{ current_path.as_posix() if current_path else '/' }}</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+            a { text-decoration: none; color: #0066cc; }
+            a:hover { text-decoration: underline; }
+            .breadcrumb { margin-bottom: 20px; }
+            a:visited { color: #551a8b; }
+            .download-header { color: #0066cc; font-weight: bold; display: flex; gap: 20px; list-style-type: none; padding: 0 0 10px 0; margin: 0; }
+        </style>
+
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"/>
+    </head>
+    <body>
+        <ul class="download-header">
+            Download:
+            <li>
+                <a href="{{ url_for('file_share.rclone_script', token=token) }}" type="button" target="_blank">
+                    <i class="bi bi-filetype-sh"></i> Rclone WebDav Script (Recommended)
+                </a>
+            </li>
+        </ul>
+        <table>
+            <thead>
+                <tr>
+                    <th colspan="3" style="">
+                        Storage Status:
+                        <span id="mount-status-badge" style="font-weight: bold;">
+                            ⏳
+                        </span>
+                        <small id="mount-status-details" style="margin-left: 10px;"></small>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Last Modified</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if current_path.parts %}
+                <tr>
+                    <td><a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '') }}">../</a></td>
+                    <td>-</td>
+                    <td>-</td>
+                </tr>
+                {% endif %}
+                {% for browser_path in paths %}
+                {% set path = browser_path.path %}
+                {% set is_directory = browser_path.is_dir if browser_path.is_dir is not none else path.is_dir() %}
+                {% set entry_size = browser_path.size if browser_path.size is not none else path.stat().st_size %}
+                {% set entry_mtime = browser_path.mtime if browser_path.mtime is not none else path.stat().st_mtime %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}">
+                            {% if not is_directory %}
+                            <i class="bi bi-file-earmark"></i> {{ path.name }}
+                            {% else %}
+                            <i class="bi bi-archive"></i> {{ path.name }}/
+                            {% endif %}
+                        </a>
+                    </td>
+                    <td>{{ entry_size | bytes_to_human }}</td>
+                    <td>{{ entry_mtime | from_timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const badge = document.getElementById("mount-status-badge");
+                const details = document.getElementById("mount-status-details");
+
+                function renderStatus(data) {
+                    details.textContent = "";
+
+                    if (data.status === "online") {
+                        badge.innerHTML = '<span style="color: #198754;"><i class="bi bi-check-circle-fill"></i> Online</span>';
+                        
+                    } else if (data.status === "degraded") {
+                        badge.innerHTML = '<span style="color: #fd7e14;"><i class="bi bi-exclamation-triangle-fill"></i> Degraded</span>';
+                        
+                        let offlineMounts = [];
+                        for (const [name, status_msg] of Object.entries(data.details)) {
+                            if (status_msg !== "online") {
+                                offlineMounts.push(name);
+                            }
+                        }
+                        details.textContent = "Missing: " + offlineMounts.join(", ");
+                        details.style.color = "#fd7e14";
+                        
+                    } else if (data.status === "offline") {
+                        badge.innerHTML = '<span style="color: #dc3545;"><i class="bi bi-x-circle-fill"></i> Offline</span>';
+                        details.textContent = "Cannot connect to cluster storage.";
+                        details.style.color = "#dc3545";
+                    } else {
+                        badge.innerHTML = '<span style="color: #6c757d;"><i class="bi bi-question-circle-fill"></i> Unknown</span>';
+                        details.textContent = "Share status is not configured.";
+                    }
+                }
+
+                function fetchMountStatus() {
+                    fetch("{{ url_for('share_status_check') }}")
+                        .then(response => {
+                            if (!response.ok && response.status !== 503) {
+                                throw new Error("Server or network error");
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            renderStatus(data);
+                        })
+                        .catch(error => {
+                            badge.innerHTML = '<span style="color: #6c757d;"><i class="bi bi-question-circle-fill"></i> Unknown Error</span>';
+                            details.textContent = "Failed to reach server API.";
+                            details.style.color = "#dc3545";
+                            console.error("Mount check error:", error);
+                        });
+                }
+                fetchMountStatus();
+            });
+        </script>
+    </body>
+</html>

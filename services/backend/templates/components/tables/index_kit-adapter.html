@@ -1,0 +1,67 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/table_col.jinja2" import table_col %}
+
+<div id="index_kit-adapter-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("index_kit-adapter-table", table, "id") }}
+                {% if index_kit.type != C.IndexType.COMBINATORIAL_DUAL_INDEX %}
+                {{ table_col("index_kit-adapter-table", table, "well") }}
+                {% endif %}
+                {% if index_kit.type == C.IndexType.SINGLE_INDEX_I7 %}
+                {{ table_col("index_kit-adapter-table", table, "name_i7") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_i7") }}
+                {% elif index_kit.type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX] %}
+                {{ table_col("index_kit-adapter-table", table, "name_i7") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_i7") }}
+                {{ table_col("index_kit-adapter-table", table, "name_i5") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_i5") }}
+                {% elif index_kit.type == C.IndexType.TENX_ATAC_INDEX %}
+                {{ table_col("index_kit-adapter-table", table, "name") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_1") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_2") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_3") }}
+                {{ table_col("index_kit-adapter-table", table, "sequence_4") }}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for adapter in adapters %}
+            <tr>
+                <th scope="row">{{ adapter.id }}</th>
+                {% if index_kit.type != C.IndexType.COMBINATORIAL_DUAL_INDEX %}
+                <td>{{ adapter.well }}</td>
+                {% endif %}
+                {% if index_kit.type == C.IndexType.SINGLE_INDEX_I7 %}
+                <td>{{ adapter.barcodes_i7[0].name }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+                {% elif index_kit.type == C.IndexType.DUAL_INDEX %}
+                <td>{{ adapter.barcodes_i7[0].name }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+                <td>{{ adapter.barcodes_i5[0].name }}</td>
+                <td>{{ adapter.barcodes_i5[0].sequence }}</td>
+                {% elif index_kit.type == C.IndexType.COMBINATORIAL_DUAL_INDEX %}
+                <td>{{ adapter.barcodes_i7[0].name if adapter.barcodes_i7 else "" }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence if adapter.barcodes_i7 else "" }}</td>
+                <td>{{ adapter.barcodes_i5[0].name if adapter.barcodes_i5 else "" }}</td>
+                <td>{{ adapter.barcodes_i5[0].sequence if adapter.barcodes_i5 else "" }}</td>
+                {% elif index_kit.type == C.IndexType.TENX_ATAC_INDEX %}
+                <td>{{ adapter.barcodes_i7[0].name }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+                <td>{{ adapter.barcodes_i7[1].sequence }}</td>
+                <td>{{ adapter.barcodes_i7[2].sequence }}</td>
+                <td>{{ adapter.barcodes_i7[3].sequence }}</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("index_kit-adapter-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#index_kit-adapter-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

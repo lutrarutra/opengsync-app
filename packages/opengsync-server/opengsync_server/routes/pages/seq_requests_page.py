@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import forms, db, logger
 from ...core import wrappers, exceptions
@@ -15,14 +15,14 @@ def seq_requests():
 
 @wrappers.page_route(seq_requests_page_bp, "seq_requests", db=db, cache_timeout_seconds=360)
 def seq_request(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.seq_requests[seq_request_id]) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
 
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Requests", url_for("seq_requests_page.seq_requests")),
+        ("Requests", url_for("seq_request_pages")),
         (f"Request {seq_request_id}", ""),
     ]
     if (_from := request.args.get("from")) is not None:
@@ -35,8 +35,8 @@ def seq_request(current_user: models.User, seq_request_id: int):
             ]
         elif page == "user":
             path_list = [
-                ("Users", url_for("users_page.users")),
-                (f"User {id}", url_for("users_page.user", user_id=id)),
+                ("Users", url_for("user_pages")),
+                (f"User {id}", url_for("user_page", user_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
         elif page == "library":
@@ -47,20 +47,20 @@ def seq_request(current_user: models.User, seq_request_id: int):
             ]
         elif page == "pool":
             path_list = [
-                ("Pools", url_for("pools_page.pools")),
-                (f"Pool {id}", url_for("pools_page.pool", pool_id=id)),
+                ("Pools", url_for("pool_pages")),
+                (f"Pool {id}", url_for("pool_page", pool_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
         elif page == "group":
             path_list = [
-                ("Groups", url_for("groups_page.groups")),
-                (f"Group {id}", url_for("groups_page.group", group_id=id)),
+                ("Groups", url_for("group_pages")),
+                (f"Group {id}", url_for("group_page", group_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples")),
-                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
+                ("Samples", url_for("sample_pages")),
+                (f"Sample {id}", url_for("sample_page", sample_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
 

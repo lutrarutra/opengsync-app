@@ -2,13 +2,21 @@
 
 help:
 	@echo "Error: Please specify a target."
-	@echo "Usage: make [deploy|test|debug|prod-build|prod-run|prod-logs|prod-stop|dev-build|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
+	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-logs prod-logs-all prod-stop deploy test pentest gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
-CLEAN_VERSION := $(shell echo $(VERSION) | sed 's/^v//')
+
+# Image tag compose.yaml pulls (${APP_VERSION}). Defaults to the release tag of the
+# checked-out commit, so `git checkout v2.0.0 && make deploy` runs the v2.0.0 images.
+# Off a tag it is left unset, so .env's APP_VERSION or compose's `latest` applies.
+# Override with `make deploy APP_VERSION=v2.0.1`.
+APP_VERSION ?= $(shell git describe --tags --exact-match --match 'v*' 2>/dev/null)
+ifneq ($(APP_VERSION),)
+export APP_VERSION
+endif
 OVERRIDE_FILE := $(wildcard compose.override.yaml)
 
 OVERRIDE_FILE ?= compose.override.yaml
@@ -37,28 +45,37 @@ dev-build:
 dev-build-logs:
 	$(COMPOSE_DEV) build --progress=plain --build-arg VERSION=$(VERSION)
 
-dev-run:
-	$(COMPOSE_DEV) up -d --remove-orphans
+dev-migrate:
+	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null; alembic --config /app/alembic/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null'
 
-dev-attach:
-	$(COMPOSE_DEV) up --remove-orphans
-
-dev-logs:
-	$(COMPOSE_DEV) logs -f $(LOGS)
+dev-downgrade:
+	$(COMPOSE_DEV) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
 
 dev-logs-all:
 	$(COMPOSE_DEV) logs -f
 
+dev:
+	$(COMPOSE_DEV) run --rm --build db-migrator
+	$(COMPOSE_DEV) up --remove-orphans --attach opengsync-app
+
 dev-stop:
 	$(COMPOSE_DEV) stop
 
-debug: dev-build dev-run dev-logs
+dev-down:
+	$(COMPOSE_DEV) down --remove-orphans
 
 prod-build:
 	$(COMPOSE_PROD) build --build-arg VERSION=$(VERSION)
 
 prod-build-logs:
 	$(COMPOSE_PROD) build --progress=plain --build-arg VERSION=$(VERSION)
+
+prod-migrate:
+	$(MAKE) test
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; echo "Current migration before upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null; alembic --config /app/alembic/alembic.ini upgrade head; echo "Current migration after upgrade:"; alembic --config /app/alembic/alembic.ini current 2>/dev/null'
+
+prod-downgrade:
+	$(COMPOSE_PROD) run --rm db-migrator sh -c 'set -eu; before="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; alembic --config /app/alembic/alembic.ini downgrade -1; after="$$(alembic --config /app/alembic/alembic.ini current 2>/dev/null)"; printf "Migration removed (previous current):\\n%s\\nCurrent migration:\\n%s\\n" "$$before" "$$after"'
 
 prod-run:
 	$(COMPOSE_PROD) up -d --remove-orphans --wait
@@ -72,16 +89,26 @@ prod-logs-all:
 prod-stop:
 	$(COMPOSE_PROD) stop
 
-prod-tag:
-	docker tag opengsync-app:latest opengsync-app:$(CLEAN_VERSION)
-
-deploy: prod-build prod-run
+deploy: prod-pull prod-run
 	docker system prune -f --filter "until=24h"
 
+prod-pull:
+	$(COMPOSE_PROD) pull --ignore-pull-failures
+
+# Starts postgres and redis, attaches to the pytest container and exits with its status.
+# The EXIT trap tears the stack down however this ends; the signal trap is there because
+# dash (make's /bin/sh on Linux) skips EXIT traps when killed by Ctrl-C.
 test:
-	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans 
-	$(COMPOSE_TEST) down --rmi local --remove-orphans
-	docker system prune -f --filter "until=24h"
+	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+	trap 'exit 130' HUP INT TERM; \
+	$(COMPOSE_TEST) up --build --remove-orphans --attach opengsync-pytest --exit-code-from opengsync-pytest
+
+# Runs the Strix security scanner against the source tree.
+# Sources LLM credentials (STRIX_LLM, LLM_API_KEY, LLM_API_BASE, ...) from $(ENV_FILE);
+# uncomment the strix export lines there first.
+pentest:
+	@set -a; [ -f $(ENV_FILE) ] && . ./$(ENV_FILE); set +a; \
+	uv run strix --target .
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d

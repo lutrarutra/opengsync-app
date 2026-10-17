@@ -1,0 +1,22 @@
+<div class="modal-content" id="kit_features-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Edit Features</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="kit_features-form">
+            {{ form.csrf_token.render() }}
+            {{ form.spreadsheet.render(submit_btn_id="submit-kit-features-btn", target_element_id="kit_features-form-container") }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+            {{ form.feature_kit.identifier }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-kit-features-btn" class="btn btn-success">Save</button>
+        </div>
+    </div>
+</div>

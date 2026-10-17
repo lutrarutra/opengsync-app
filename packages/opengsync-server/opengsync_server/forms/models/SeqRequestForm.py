@@ -8,7 +8,7 @@ from wtforms import StringField, TextAreaField, EmailField, BooleanField, Select
 from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType, UserRole, DeliveryStatus
 
 from ... import db, logger, bcrypt
@@ -286,7 +286,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
     def prepare(self):
         if self.form_type == "create":
-            self.disclaimer_form.disclaimer.data = self.current_user.is_insider()
+            self.disclaimer_form.disclaimer.data = self.current_user.is_insider
             self.contact_form.contact_person_name.data = self.current_user.name
             self.contact_form.contact_person_email.data = self.current_user.email
             self.contact_form.current_user_is_contact.data = True
@@ -297,7 +297,7 @@ class SeqRequestForm(HTMXFlaskForm):
     def validate(self, seq_request: Optional[models.SeqRequest] = None) -> bool:
         super().validate()
         
-        if self.current_user.is_insider():
+        if self.current_user.is_insider:
             assigned_user_id = self.user_select_form.user.selected.data
             assigned_user_email = self.user_select_form.email.data
             assigned_user_first_name = self.user_select_form.first_name.data
@@ -317,7 +317,7 @@ class SeqRequestForm(HTMXFlaskForm):
                         self.user_select_form.first_name.errors = ("First name is required when specifying email",)
                     if not assigned_user_last_name or assigned_user_last_name.strip() == "":
                         self.user_select_form.last_name.errors = ("Last name is required when specifying email",)
-                    if db.users.get_with_email(assigned_user_email):
+                    if db.session.first(Q.user.select(email=assigned_user_email)):
                         self.user_select_form.email.errors = ("Email already registered.",)
                 else:
                     if assigned_user_first_name:
@@ -334,14 +334,14 @@ class SeqRequestForm(HTMXFlaskForm):
             self.technical_info_form.submission_type.errors = ("Submission type is required",)
         else:
             try:
-                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not self.current_user.is_insider():
+                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not self.current_user.is_insider:
                     self.technical_info_form.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
                     self.technical_info_form._validated = False
             except ValueError:
                 logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
                 raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
 
-        user_requests, _ = db.seq_requests.find(user_id=self.current_user.id, limit=None)
+        user_requests = db.session.get_all(Q.seq_request.select(requestor_id=self.current_user.id), limit=None)
         for request in user_requests:
             if seq_request is not None and seq_request.id == request.id:
                 continue
@@ -409,11 +409,11 @@ class SeqRequestForm(HTMXFlaskForm):
         self.seq_request.contact_person.phone = self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None
         if self.bioinformatician_form.bioinformatician_name.data:
             if self.seq_request.bioinformatician_contact is None:
-                bioinformatician_contact = db.contacts.create_contact(
+                bioinformatician_contact = db.session.save(Q.contact.create(
                     name=self.bioinformatician_form.bioinformatician_name.data,
                     email=self.bioinformatician_form.bioinformatician_email.data,
                     phone=self.bioinformatician_form.bioinformatician_phone.data,
-                )
+                ))
                 self.seq_request.bioinformatician_contact_id = bioinformatician_contact.id
             else:
                 self.seq_request.bioinformatician_contact.name = self.bioinformatician_form.bioinformatician_name.data
@@ -428,57 +428,57 @@ class SeqRequestForm(HTMXFlaskForm):
         self.seq_request.billing_contact.address = self.billing_form.billing_address.data
         self.seq_request.billing_code = self.billing_form.billing_code.data
 
-        db.seq_requests.update(self.seq_request)
+        db.session.save(self.seq_request)
 
         flash("Changes Saved!", "success")
         logger.info(f"Updated sequencing request '{self.seq_request.name}'")
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id),)
     
     def __create_new_request(self) -> Response:
-        contact_person = db.contacts.create_contact(
+        contact_person = db.session.save(Q.contact.create(
             name=self.contact_form.contact_person_name.data,  # type: ignore
             email=self.contact_form.contact_person_email.data,
             phone=self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None,
-        )
+        ))
 
-        billing_contact = db.contacts.create_contact(
+        billing_contact = db.session.save(Q.contact.create(
             name=self.billing_form.billing_contact.data,  # type: ignore
             email=self.billing_form.billing_email.data,
             address=self.billing_form.billing_address.data,
             phone=self.billing_form.billing_phone.data.replace(" ", "") if self.billing_form.billing_phone.data else None
-        )
+        ))
 
-        organization_contact = db.contacts.create_contact(
+        organization_contact = db.session.save(Q.contact.create(
             name=self.organization_form.organization_name.data,  # type: ignore
             address=self.organization_form.organization_address.data,
-        )
+        ))
 
         bioinformatician_contact = None
         if self.bioinformatician_form.bioinformatician_name.data:
-            bioinformatician_contact = db.contacts.create_contact(
+            bioinformatician_contact = db.session.save(Q.contact.create(
                 name=self.bioinformatician_form.bioinformatician_name.data,
                 email=self.bioinformatician_form.bioinformatician_email.data,
                 phone=self.bioinformatician_form.bioinformatician_phone.data.replace(" ", "") if self.bioinformatician_form.bioinformatician_phone.data else None
-            )
+            ))
 
         user = self.current_user
-        if self.current_user.is_insider():
+        if self.current_user.is_insider:
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
-                user = db.users[assigned_user_id]
+                user = db.session.get_one(Q.user.select(id=assigned_user_id))
             elif (assigned_user_email := self.user_select_form.email.data):
                 hashed_password = bcrypt.generate_password_hash(uuid4().hex).decode("utf-8")
-                user = db.users.create(
+                user = db.session.save(Q.user.create(
                     email=assigned_user_email,
                     first_name=self.user_select_form.first_name.data.strip(),  # type: ignore
                     last_name=self.user_select_form.last_name.data.strip(),  # type: ignore
                     hashed_password=hashed_password,
                     role=UserRole.DEACTIVATED,
-                )
+                ))
 
-        seq_request = db.seq_requests.create(
+        seq_request = db.session.save(Q.seq_request.create(
             name=self.basic_info_form.request_name.data,  # type: ignore
-            group=db.groups[self.basic_info_form.group.selected.data] if self.basic_info_form.group.selected.data else None,
+            group=db.session.get_one(Q.group.select(id=self.basic_info_form.group.selected.data)) if self.basic_info_form.group.selected.data else None,
             description=self.basic_info_form.request_description.data,
             data_delivery_mode=DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data),
             num_lanes=self.technical_info_form.num_lanes.data,
@@ -492,25 +492,25 @@ class SeqRequestForm(HTMXFlaskForm):
             bioinformatician_contact=bioinformatician_contact,
             organization_contact=organization_contact,
             billing_code=self.billing_form.billing_code.data,
-        )
+        ))
 
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
             email=contact_person.email or seq_request.requestor.email,
-            status_id=DeliveryStatus.PENDING.id,
+            status=DeliveryStatus.PENDING,
         ))
 
         if seq_request.bioinformatician_contact is not None:
             seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
                 email=seq_request.bioinformatician_contact.email,
-                status_id=DeliveryStatus.PENDING.id,
+                status=DeliveryStatus.PENDING,
             ))
 
-        db.seq_requests.update(seq_request)
+        db.session.save(seq_request)
 
         flash("Request Created!", "success")
         logger.info(f"Created new sequencing request '{seq_request.name}'")
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=seq_request.id))
     
     def process_request(self) -> Response:
         if not self.validate():

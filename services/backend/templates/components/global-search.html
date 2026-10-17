@@ -1,0 +1,21 @@
+<div class="global-search" id="global-search">
+    <form class="gs-form" role="search" autocomplete="off" onsubmit="return false;">
+        <i class="bi bi-search gs-search-icon" aria-hidden="true"></i>
+        <span class="gs-spinner spinner-border spinner-border-sm" aria-hidden="true"></span>
+        <select name="kind" class="gs-kind" aria-label="Search in"
+            hx-get="{{ url_for('global_search') }}" hx-trigger="change" hx-target="#gs-results"
+            hx-include="closest form" hx-sync="closest form:replace" hx-indicator="closest form">
+            <option value="all" selected>All</option>
+            {% for search_kind in SEARCH_KINDS.values() %}
+            <option value="{{ search_kind.key }}">{{ search_kind.plural }}</option>
+            {% endfor %}
+        </select>
+        <input type="search" name="q" class="gs-input" placeholder="Search…" maxlength="128"
+            spellcheck="false" aria-label="Search" aria-controls="gs-results" aria-autocomplete="list"
+            hx-get="{{ url_for('global_search') }}" hx-trigger="input changed delay:250ms, search"
+            hx-target="#gs-results" hx-include="closest form" hx-sync="closest form:replace"
+            hx-indicator="closest form">
+        <kbd class="gs-shortcut" aria-hidden="true">/</kbd>
+        <div id="gs-results" class="gs-results" role="listbox" aria-label="Search results"></div>
+    </form>
+</div>

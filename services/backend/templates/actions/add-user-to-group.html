@@ -1,0 +1,31 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div id="add_user_to_group-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add User</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+        <div id="add_user_to_group-form">
+            {{ form.csrf_token.render() }}
+            {{ form.email.render() }}
+            {{ form.affiliation_type.render() }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ group.name }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" type="button"
+                hx-post="{{ form.post_url }}"
+                hx-include="#add_user_to_group-form" hx-swap="outerHTML" hx-target="#add_user_to_group-form-container">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

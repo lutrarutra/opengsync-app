@@ -59,7 +59,7 @@ class LibraryPropertiesForm(HTMXFlaskForm):
             if prop not in self.df["property"].values:
                 del self.library.properties[prop]
 
-        db.libraries.update(self.library)
+        db.session.save(self.library)
 
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("libraries_page.library", library_id=self.library.id))

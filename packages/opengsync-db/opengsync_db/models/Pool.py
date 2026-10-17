@@ -8,9 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
+from .. import localize
 from .Base import Base
 from . import links
-from ..categories import PoolStatus, PoolStatus, PoolType, PoolType, LibraryType, LibraryType, MUXType, MUXType
+from ..categories import PoolStatus, PoolType, LibraryType, MUXType
+from ..core.EnumColumn import EnumColumn
 from .Experiment import Experiment
 
 if TYPE_CHECKING:
@@ -28,39 +30,41 @@ class Pool(Base):
     __tablename__ = "pool"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status: Mapped[PoolStatus] = mapped_column(EnumColumn[PoolStatus](PoolStatus), nullable=False, default=0, name="status_id", key="status", active_history=True)
+    type: Mapped[PoolType] = mapped_column(EnumColumn[PoolType](PoolType), nullable=False, name="type_id", key="type")
 
-    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    original_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True, default=None)
+    original_pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True, default=None)
     
-    num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
-    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    num_m_reads_requested: Mapped[float | None] = mapped_column(sa.Float, default=None, nullable=True)
+    avg_fragment_size: Mapped[int | None] = mapped_column(sa.Integer, default=None, nullable=True)
+    qubit_concentration: Mapped[float | None] = mapped_column(sa.Float, default=None, nullable=True)
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="select")
 
-    plate_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
+    plate_id: Mapped[int | None] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
 
-    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
+    seq_request_id: Mapped[int | None] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
     
     contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     contact: Mapped["Contact"] = relationship("Contact", lazy="select")
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
+    ba_report_id: Mapped[int | None] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
     ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[ba_report_id])
 
-    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep_id: Mapped[int | None] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", lazy="select")
 
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
+    experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="pools")
     
-    merged_to_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True, default=None)
+    original_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[original_pool_id])
+
+    merged_to_pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id"), nullable=True, default=None)
     merged_to_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[merged_to_pool_id])
 
     merged_from: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="merged_to_pool", foreign_keys=[merged_to_pool_id])
@@ -78,8 +82,6 @@ class Pool(Base):
         cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc"
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]
-
     warning_min_molarity: ClassVar[float] = 1.0
     warning_max_molarity: ClassVar[float] = 5.0
     error_min_molarity: ClassVar[float] = 0.5
@@ -88,74 +90,117 @@ class Pool(Base):
     @property
     def mux_types(self) -> list[MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
-            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
+            return list({library.mux_type for library in self.libraries if library.mux_type is not None})
         
         from .Library import Library
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
         
-        mux_type_ids = session.query(Library.mux_type_id).where(
+        mux_types = session.query(Library.mux_type).where(
             (Library.pool_id == self.id) &
-            Library.mux_type_id.isnot(None)
+            Library.mux_type.isnot(None)
         ).distinct().all()
 
-        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
+        return [MUXType.get(mux_type) for (mux_type,) in mux_types]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return len(self.libraries)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
-        from .Library import Library
-        return session.query(sa.func.count(Library.id)).filter(Library.pool_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(Pool._num_libraries, Pool.num_libraries.expression) "
+                "in your query options."
+            )
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library.select(pool_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            Library.pool_id == cls.id
+            *Q.library.where_clauses(pool_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
+
+    _num_libraries: Mapped[int | None] = orm.query_expression()
+
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
+
     @hybrid_property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(library_type) for library_type in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                types.add(lib.type_id)
+                types.add(lib.type)
+            return sorted(types)
 
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(Pool._library_types, Pool.library_types.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
-        from .Library import Library
-        type_ids = session.query(Library.type_id).filter(Library.pool_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
 
-    @property
-    def status(self) -> PoolStatus:
-        return PoolStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: PoolStatus):
-        self.status_id = value.id
-    
-    @property
-    def type(self) -> PoolType:
-        return PoolType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: PoolType):
-        self.type_id = value.id
-    
-    @property
-    def molarity(self) -> float | None:
-        if self.avg_fragment_size is None or self.qubit_concentration is None:
+        from .. import queries as Q
+        from .Library import Library
+        result = session.scalar(sa.select(
+            sa.func.array_agg(sa.distinct(Library.type))
+        ).where(
+            *Q.library.where_clauses(pool_id=self.id)
+        ))
+        if result is None:
+            return []
+        return [LibraryType.get(library_type) for library_type in result]
+
+    @library_types.expression
+    def library_types(cls):
+        from .. import queries as Q
+        from .Library import Library
+        return sa.select(
+            sa.func.array_agg(sa.distinct(Library.type))
+        ).where(
+            *Q.library.where_clauses(pool_id=cls.id)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def molarity(self) -> float | None:  # type: ignore[override]
+        if not self.avg_fragment_size or self.qubit_concentration is None:
             return None
         
         return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+
+    @molarity.expression
+    def molarity(cls) -> sa.ColumnElement[float | None]:
+        return sa.case(
+            (
+                sa.and_(
+                    Pool.avg_fragment_size.is_not(None),
+                    Pool.avg_fragment_size > 0,
+                    Pool.qubit_concentration.is_not(None)
+                ),
+                sa.cast(cls.qubit_concentration, sa.Float) / (sa.cast(cls.avg_fragment_size, sa.Float) * 660) * 1_000_000
+            ),
+            else_=None
+        )
     
     @property
     def molarity_color_class(self) -> str:
@@ -184,7 +229,7 @@ class Pool(Base):
     
     @property
     def timestamp_stored_str(self) -> str:
-        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
+        return localize(self.timestamp_stored_utc).strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
     
     def search_value(self) -> int:
         return self.id
@@ -233,6 +278,11 @@ class Pool(Base):
         sa.Index(
             "trgm_pool_name_idx",
             sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_pool_name_compact_idx",
+            sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
             postgresql_using="gin",
         ),
     )

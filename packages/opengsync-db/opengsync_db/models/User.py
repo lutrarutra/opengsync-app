@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, ClassVar
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -7,7 +8,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 from .Base import Base
 from . import links
-from ..categories import UserRole, UserRole
+from ..categories import UserRole
+from ..core.EnumColumn import EnumColumn
 
 
 if TYPE_CHECKING:
@@ -19,9 +21,10 @@ if TYPE_CHECKING:
     from .MediaFile import MediaFile
     from .LabPrep import LabPrep
     from .APIToken import APIToken
+    from .UserPasskey import UserPasskey
 
 
-class UserMixin():
+class UserMixin:
     """
     This provides default implementations for the methods that Flask-Login
     expects user objects to have.
@@ -76,7 +79,16 @@ class User(Base, UserMixin):
     last_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), nullable=False, unique=True, index=True)
     password: Mapped[str] = mapped_column(sa.String(128), nullable=False)
-    role_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    pw_set_datetime: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True, default=None,
+    )
+    # Set on every successful password/passkey login; inactive users are deactivated by the worker.
+    last_login: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True, default=None,
+    )
+    role: Mapped[UserRole] = mapped_column(EnumColumn[UserRole](UserRole), nullable=False, name="role_id", key="role")
+    # Opaque WebAuthn user.id; generated on first passkey registration and stored by password managers.
+    webauthn_user_handle: Mapped[bytes | None] = mapped_column(sa.LargeBinary(64), nullable=True, unique=True, default=None)
 
     affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
@@ -87,6 +99,7 @@ class User(Base, UserMixin):
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
     api_tokens: Mapped[list["APIToken"]] = relationship("APIToken", back_populates="owner", lazy="select", cascade="all, delete-orphan")
+    passkeys: Mapped[list["UserPasskey"]] = relationship("UserPasskey", back_populates="user", lazy="select", cascade="all, delete-orphan")
     assigned_projects: Mapped[list["Project"]] = relationship(
         "Project",
         secondary="project_assignee_link",
@@ -100,94 +113,172 @@ class User(Base, UserMixin):
         lazy="select",
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_projects", "num_seq_requests"]
+    _num_api_tokens: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_api_tokens(self) -> int:  # type: ignore[override]
-        if "api_tokens" in orm.attributes.instance_state(self).unloaded:
+        if self._num_api_tokens is not None:
+            return self._num_api_tokens
+
+        if "api_tokens" not in orm.attributes.instance_state(self).unloaded:
             return len(self.api_tokens)
-        
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_api_tokens was not populated via with_expression. "
+                "Use orm.with_expression(User._num_api_tokens, User.num_api_tokens.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_api_tokens' attribute.")
-        
-        from .APIToken import APIToken
-        return session.query(sa.func.count(APIToken.uuid)).filter(APIToken.owner_id == self.id).scalar()
-    
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.api_token.select(owner_id=self.id).subquery()
+        ))  # type: ignore[return-value]
+
     @num_api_tokens.expression
     def num_api_tokens(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .APIToken import APIToken
         return sa.select(
-            sa.func.count(APIToken.uuid)
+            sa.func.count(APIToken.id)
         ).where(
-            APIToken.owner_id == cls.id
+            *Q.api_token.where_clauses(owner_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_samples: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        if "samples" in orm.attributes.instance_state(self).unloaded:
+        if self._num_samples is not None:
+            return self._num_samples
+
+        if "samples" not in orm.attributes.instance_state(self).unloaded:
             return len(self.samples)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_samples was not populated via with_expression. "
+                "Use orm.with_expression(User._num_samples, User.num_samples.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_samples' attribute.")
-        
-        from .Sample import Sample
-        return session.query(sa.func.count(Sample.id)).filter(Sample.owner_id == self.id).scalar()
-    
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.sample.select(user_id=self.id).subquery()
+        ))  # type: ignore[return-value]
+
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
         ).where(
-            Sample.owner_id == cls.id
+            *Q.sample.where_clauses(user_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
+
+    _num_seq_requests: Mapped[int | None] = orm.query_expression()
+
     @hybrid_property
     def num_seq_requests(self) -> int:  # type: ignore[override]
-        if "requests" in orm.attributes.instance_state(self).unloaded:
+        if self._num_seq_requests is not None:
+            return self._num_seq_requests
+
+        if "requests" not in orm.attributes.instance_state(self).unloaded:
             return len(self.requests)
-        
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_seq_requests was not populated via with_expression. "
+                "Use orm.with_expression(User._num_seq_requests, User.num_seq_requests.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_seq_requests' attribute.")
-        
-        from .SeqRequest import SeqRequest
-        return session.query(sa.func.count(SeqRequest.id)).filter(SeqRequest.requestor_id == self.id).scalar()
-    
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.seq_request.select(requestor_id=self.id).subquery()
+        ))  # type: ignore[return-value]
+
     @num_seq_requests.expression
     def num_seq_requests(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .SeqRequest import SeqRequest
         return sa.select(
             sa.func.count(SeqRequest.id)
         ).where(
-            SeqRequest.requestor_id == cls.id
+            *Q.seq_request.where_clauses(requestor_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_projects: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]
-        if "projects" in orm.attributes.instance_state(self).unloaded:
+        if self._num_projects is not None:
+            return self._num_projects
+
+        if "projects" not in orm.attributes.instance_state(self).unloaded:
             return len(self.projects)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_projects was not populated via with_expression. "
+                "Use orm.with_expression(User._num_projects, User.num_projects.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_projects' attribute.")
-        from .Project import Project
-        return session.query(sa.func.count(Project.id)).filter(Project.owner_id == self.id).scalar()
-    
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.project.select(owner_id=self.id).subquery()
+        ))  # type: ignore[return-value]
+
     @num_projects.expression
     def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Project import Project
         return sa.select(
             sa.func.count(Project.id)
         ).where(
-            Project.owner_id == cls.id
+            *Q.project.where_clauses(owner_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
+
+    _num_affiliations: Mapped[int | None] = orm.query_expression()
+
     @hybrid_property
     def num_affiliations(self) -> int:  # type: ignore[override]
-        if "affiliations" in orm.attributes.instance_state(self).unloaded:
+        if self._num_affiliations is not None:
+            return self._num_affiliations
+
+        if "affiliations" not in orm.attributes.instance_state(self).unloaded:
             return len(self.affiliations)
-        
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_affiliations was not populated via with_expression. "
+                "Use orm.with_expression(User._num_affiliations, User.num_affiliations.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_affiliations' attribute.")
-        return session.query(sa.func.count(links.UserAffiliation.group_id)).filter(links.UserAffiliation.user_id == self.id).scalar()
-    
+
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            sa.select(links.UserAffiliation).where(
+                links.UserAffiliation.user_id == self.id
+            ).subquery()
+        ))  # type: ignore[return-value]
+
     @num_affiliations.expression
     def num_affiliations(cls) -> sa.ScalarSelect[int]:
         return sa.select(
@@ -196,20 +287,22 @@ class User(Base, UserMixin):
             links.UserAffiliation.user_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    def is_insider(self) -> bool:
+    @hybrid_property
+    def is_insider(self) -> bool:  # type: ignore[override]
         return self.role.insider
-    
-    def is_admin(self) -> bool:
+
+    @is_insider.expression
+    def is_insider(cls) -> sa.ColumnElement[bool]:
+        return cls.role.in_([UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN, UserRole.ADMIN])  # type: ignore[arg-type]
+
+    @hybrid_property
+    def is_admin(self) -> bool:  # type: ignore[override]
         return self.role == UserRole.ADMIN
 
-    @property
-    def role(self) -> UserRole:
-        return UserRole.get(self.role_id)
-    
-    @role.setter
-    def role(self, value: UserRole):
-        self.role_id = value.id
-    
+    @is_admin.expression
+    def is_admin(cls) -> sa.ColumnElement[bool]:
+        return cls.role == UserRole.ADMIN  # type: ignore[arg-type]
+
     @hybrid_property
     def name(self) -> str:  # type: ignore[override]
         return self.first_name + " " + self.last_name
@@ -217,8 +310,8 @@ class User(Base, UserMixin):
     @name.expression
     def name(cls) -> sa.ScalarSelect[str]:
         return sa.select(
-            (cls.first_name + " " + cls.last_name)  # type: ignore[arg-type]
-        ).correlate(cls).scalar_subquery()
+            sa.func.concat(cls.first_name, " ", cls.last_name)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     def search_value(self) -> int:
         return self.id

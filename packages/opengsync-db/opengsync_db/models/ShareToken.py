@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 from uuid6 import uuid7
 from datetime import datetime
 from datetime import timezone, timedelta
@@ -28,19 +28,31 @@ class ShareToken(Base):
 
     paths: Mapped[list["SharePath"]] = relationship("SharePath", back_populates="token", lazy="select", cascade="all, delete-orphan")
 
-    sortable_fields: ClassVar[list[str]] = ["uuid", "expiration", "time_valid_min", "owner_id", "num_paths"]
+    _num_paths: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_paths(self) -> int:  # type: ignore[override]
+        if self._num_paths is not None:
+            return self._num_paths
+
         if "paths" not in orm.attributes.instance_state(self).unloaded:
             return len(self.paths)
-        
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_paths was not populated via with_expression. "
+                "Use orm.with_expression(ShareToken._num_paths, ShareToken.num_paths.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_paths' attribute.")
-        
+
         from .SharePath import SharePath
-        return session.query(sa.func.count(SharePath.id)).filter(SharePath.uuid == self.uuid).scalar()
-    
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            sa.select(SharePath).where(SharePath.uuid == self.uuid).subquery()
+        ))  # type: ignore[return-value]
+
     @num_paths.expression
     def num_paths(cls) -> sa.ScalarSelect[int]:
         from .SharePath import SharePath

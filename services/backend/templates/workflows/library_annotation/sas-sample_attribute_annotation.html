@@ -1,0 +1,82 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+<div id="sample_annotation_form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Sample Annotation</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="sample_annotation_form">
+            {{ form.csrf_token.render() }}
+
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                <p>
+                    To add a new variable, right-click a column header, select "Insert a new column before" or "Insert a new column after" and enter the name of the variable. To change the name of a variable, right-click its column header and select "Rename this column".
+                </p>
+                <p>
+                    <b>Please provide as many variables as possible/applicable as these are used in downstream analysis.</b>
+                </p>
+                {{ 
+                    form.spreadsheet.render(
+                        submit_btn_id="submit-spreadsheet-btn",
+                        target_element_id="sample_annotation_form-container",
+                    )
+                }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ul>
+                        <li>Describe each sample with as many attributes as apply, they are used in the downstream analysis.</li>
+                        <li>A column that is used must be filled in for every sample, leave columns that don't apply empty.</li>
+                        <li>Add your own attributes by right-clicking a column header and inserting a new column, rename columns the same way.</li>
+                    </ul>
+                    <h5>Columns</h5>
+                    <ul>
+                        <li>
+                            <b>Sample</b> <span class="desc">read-only</span>
+                            <ul>
+                                <li>The samples of the previous step: existing samples of the project with their ID, e.g. <i>liver_ctrl_1 [12]</i>, new samples marked <i>[new]</i>.</li>
+                                <li>Existing samples come with their attributes, changes are saved to the sample.</li>
+                            </ul>
+                        </li>
+                        <li><b>Sex, Genotype, Cell Type, Condition, Age, Tissue, Disease</b> <span class="desc">optional</span>: common attributes.</li>
+                    </ul>
+                    <h5>Example</h5>
+                </div>
+                {% if example_spreadsheet is defined %}{{ example_spreadsheet.render(height="220px") }}{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#sample_annotation_form-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

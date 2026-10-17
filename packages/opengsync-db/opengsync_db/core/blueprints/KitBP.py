@@ -22,10 +22,10 @@ class KitBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if type is not None:
-            query = query.where(models.Kit.kit_type_id == type.id)
+            query = query.where(models.Kit.kit_type == type)
 
         if type_in is not None:
-            query = query.where(models.Kit.kit_type_id.in_([t.id for t in type_in]))
+            query = query.where(models.Kit.kit_type.in_(type_in))
 
         if protocol is not None:
             query = query.where(
@@ -65,7 +65,7 @@ class KitBP(DBBlueprint):
         kit = models.Kit(
             name=name,
             identifier=identifier,
-            kit_type_id=kit_type.id,
+            kit_type=kit_type,
         )
         self.db.session.add(kit)
 
@@ -160,7 +160,7 @@ class KitBP(DBBlueprint):
     ) -> list[models.Kit]:
         query = self.db.session.query(models.Kit)
         if kit_type is not None:
-            query = query.where(models.Kit.kit_type_id == kit_type.id)
+            query = query.where(models.Kit.kit_type == kit_type)
 
         query = query.order_by(
             sa.func.similarity(models.Kit.identifier + ' ' + models.Kit.name, word).desc()

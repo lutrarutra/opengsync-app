@@ -1,0 +1,41 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+
+<div id="feature_kit-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("feature_kit-table", table, "id") }}
+                {{ table_col("feature_kit-table", table, "identifier") }}
+                {{ table_col("feature_kit-table", table, "name") }}
+                {{ table_col("feature_kit-table", table, "type") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for feature_kit in feature_kits %}
+            <tr>
+                <th scope="row">{{ feature_kit.id }}</th>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": feature_kit.identifier, "label": "Copy Identifier"},
+                    ])
+                }}><a href="{{ url_for('feature_kit_page', feature_kit_id=feature_kit.id) }}">{{ feature_kit.identifier }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": feature_kit.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('feature_kit_page', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
+                <td>{{ feature_kit.type.label }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("feature_kit-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#feature_kit-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

@@ -1,0 +1,89 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+
+{# where this form submits, read by the chat widget for context #}
+<span hidden data-submit-url="{{ form.post_url }}"></span>
+<div class="modal-content" id="ba_report-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Bio Analyzer Report</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body" id="ba_report-form">
+        {{ form.render_general_errors() }}
+        <div class="row gap-3">
+            <div id="left-list" class="list-group col">
+                {% for idx, row in form.sample_table.iterrows() %}
+                <li class="list-group-item" data-idx="{{ idx }}">
+                    <b>{{ row["name"] }}</b>
+                </li>
+                {% endfor %}
+            </div>
+            <div id="right-list" class="list-group col">
+                {% for idx, row in form.excel_table.iterrows() %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-idx="{{ idx }}" data-name="{{ row['sample_name'] }}" data-value="{{ row['avg_fragment_size'] }}">
+                    <b>{{ row["sample_name"] }}</b> {% if notna(row["avg_fragment_size"]) %}{{ row["avg_fragment_size"] }}bp{% else %}<span class="text-danger">could not be parsed</span>{% endif %}
+                </li>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}            
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if form.previous_url %}
+            <button type="button" class="btn btn-warning" id="back-ba_report-form-btn"
+                hx-get="{{ form.previous_url }}" hx-target="#ba_report-form-container" hx-swap="outerHTML">
+                Back
+            </button>
+            {% endif %}
+            <button class="btn btn-success" id="submit-ba_report-form-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+<style>
+    .list-group li.highlight {
+        background-color: #00adcc70;
+        border: 2px dashed #00adcc70;
+        margin: 2px 0;
+    }
+</style>
+<script>
+    window.onbeforeunload = function() {
+        return "Data will be lost if you leave the page, are you sure?";
+    };
+
+    $(document).ready(function() {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js";
+        script.onload = function() {
+            const left_sortable = new Sortable(document.getElementById("left-list"), {
+                animation: 150, swap: true, swapClass: "highlight",
+            });
+            const right_sortable = new Sortable(document.getElementById("right-list"), {
+                animation: 150, swap: true, swapClass: "highlight",
+            });
+        };
+        document.head.appendChild(script);
+        
+        $("#submit-ba_report-form-btn").on("click", function() {
+            htmx.ajax("POST", "{{ form.post_url }}", {
+                "target": "#ba_report-form-container",
+                "swap": "outerHTML",
+                "values": {
+                    "csrf_token": "{{ form.csrf_token_value }}",
+                    "left_order": JSON.stringify(Array.from($("#left-list li")).map(li => parseInt($(li).data("idx")))),
+                    "right_order": JSON.stringify(Array.from($("#right-list li")).map(li => ({
+                        "name": $(li).data("name"),
+                        "value": parseInt($(li).data("value"))
+                    }))),
+                }
+            });
+        });
+    });
+
+</script>

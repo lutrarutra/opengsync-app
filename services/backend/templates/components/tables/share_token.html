@@ -1,0 +1,38 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="share_token-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("share_token-table", table, "uuid") }}
+                {{ table_col("share_token-table", table, "expiration") }}
+                {{ table_col("share_token-table", table, "owner") }}
+                {{ table_col("share_token-table", table, "time_valid_min") }}
+                {{ table_col("share_token-table", table, "num_paths") }}
+                
+            </tr>
+        </thead>
+        <tbody>
+            {% for share_token in share_tokens %}
+            <tr>
+                <th scope="row"><i class="bi bi-shield-lock"></i></th>
+                <td>
+                    {% if share_token.is_expired %}🔴{% else %}🟢{% endif %}
+                    {{ share_token.expiration | format_datetime }}
+                </td>
+                <td><a href="{{ url_for('user_page', user_id=share_token.owner_id) }}">{{ share_token.owner.name }}{% if current_user.id == share_token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+                <td>{{ share_token.time_valid_min }}</td>
+                <td>{{ share_token.num_paths }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("share_token-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#share_token-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

@@ -1,10 +1,11 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C, queries as Q
 
-from ..import db, logger
+from ..import db
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions
@@ -15,24 +16,25 @@ class UserTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True),
         TableCol(title="Email", label="email", col_size=3, sortable=True),
-        TableCol(title="Role", label="role", col_size=2, choices=cats.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
+        TableCol(title="Role", label="role", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role"),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
         TableCol(title="# Projects", label="num_projects", col_size=1, sortable=True),
     ]
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
-    fnc_context = {}
+
     table = UserTable(route="users_htmx.get", page=request.args.get("page", 0, type=int))
+    stmt = sa.select(models.User)
 
     if (role_in := request.args.get("role_in")):
         role_in = json.loads(role_in)
         try:
-            role_in = [cats.UserRole.get(int(role)) for role in role_in]
+            role_in = [C.UserRole.get(int(role)) for role in role_in]
             if role_in:
-                fnc_context["role_in"] = role_in
+                stmt = Q.user.select(role_in=role_in, statement=stmt)
                 table.filter_values["role"] = role_in
         except ValueError:
             raise exceptions.BadRequestException()
@@ -40,35 +42,35 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     context = parse_context(current_user, request) | kwargs
 
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        stmt = Q.user.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.user.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.User.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.User, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
         
 
     template = "components/tables/user.html"
-    if not current_user.is_insider():
-        fnc_context["user_id"] = current_user.id
+    if not current_user.is_insider:
+        # fnc_context["user_id"] = current_user.id
+        stmt = Q.user.select(id=current_user.id, statement=stmt)
 
-    users, table.num_pages = db.users.find(page=table.active_page, **fnc_context)
+    users, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "users": users,
@@ -80,31 +82,35 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
     context = parse_context(current_user, request) | kwargs
-    fnc_context = {}
     page = request.args.get("page", 0, type=int)
-    
+    stmt = sa.select(models.User)
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            fnc_context["name"] = name
+            stmt = Q.user.search(name=name, statement=stmt)
         else:
-            fnc_context["sort_by"] = "name"
+            stmt = stmt.order_by(models.User.name.asc())
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
     
-    fnc_context["insider"] = request.args.get("insider")
+    if (insider := request.args.get("insider")) is not None:
+        if insider.lower() == "true" or isinstance(insider, bool) and insider is True:
+            stmt = Q.user.select(insider=True, statement=stmt)
+        elif insider.lower() == "false" or isinstance(insider, bool) and insider is False:
+            stmt = Q.user.select(insider=False, statement=stmt)
+        else:
+            raise exceptions.BadRequestException("Invalid value for 'insider' parameter. Must be 'true' or 'false'.")
 
     if (group := context.get("group")) is not None:
-        fnc_context["group_id"] = group.id
+        stmt = Q.user.select(group_id=group.id, statement=stmt)
     else:
-        if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
+        if not current_user.is_insider:
+            stmt = Q.user.select(id=current_user.id, statement=stmt)
     
-    users, num_pages = db.users.find(page=page, **fnc_context)
+    users, count = db.session.page(stmt, page=page)
 
     context.update({
         "users": users,
         "template_name_or_list": "components/search/user.html",
-        "num_pages": num_pages,
     })
     return context
 

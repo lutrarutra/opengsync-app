@@ -1,0 +1,29 @@
+<div class="modal-content" id="flow-cell-design-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Edit Flow Cell Design</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="flow-cell-design-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.name.render("col-6") }}
+                {{ form.flow_cell_type_id.render("col-6") }}
+            </div>
+
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ form.post_url }}"
+            hx-include="#flow-cell-design-form"
+            hx-target="#flow-cell-design-form-container"
+            hx-swap="outerHTML">Submit</button>
+        </div>
+    </div>
+</div>

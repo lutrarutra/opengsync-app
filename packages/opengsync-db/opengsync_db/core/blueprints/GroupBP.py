@@ -18,7 +18,7 @@ class GroupBP(DBBlueprint):
         type_in: Optional[list[GroupType]] = None
     ) -> Query:
         if type is not None:
-            query = query.where(models.Group.type_id == type.id)
+            query = query.where(models.Group.type == type)
         if user_id is not None:
             query = query.join(
                 models.links.UserAffiliation,
@@ -27,7 +27,7 @@ class GroupBP(DBBlueprint):
                 models.links.UserAffiliation.user_id == user_id
             )
         if type_in is not None:
-            query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
+            query = query.where(models.Group.type.in_(type_in))
 
         return query
 
@@ -43,11 +43,11 @@ class GroupBP(DBBlueprint):
         
         group = models.Group(
             name=name.strip(),
-            type_id=type.id
+            type=type
         )
         group.user_links = [models.links.UserAffiliation(
             user_id=user_id,
-            affiliation_type_id=AffiliationType.OWNER.id
+            affiliation_type=AffiliationType.OWNER
         )]
 
         self.db.session.add(group)
@@ -74,8 +74,8 @@ class GroupBP(DBBlueprint):
         user_id: int | None = None, type: Optional[GroupType] = None,
         name: str | None = None,
         id: int | None = None,
-        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         type_in: Optional[list[GroupType]] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.Group], int | None]:
@@ -156,10 +156,10 @@ class GroupBP(DBBlueprint):
         )
 
         if type is not None:
-            query = query.where(models.links.UserAffiliation.affiliation_type_id == type.id)
+            query = query.where(models.links.UserAffiliation.affiliation_type == type)
 
         if type_in is not None:
-            query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
+            query = query.where(models.links.UserAffiliation.affiliation_type.in_(type_in))
 
         if sort_by is not None:
             attr = getattr(models.links.UserAffiliation, sort_by)
@@ -202,7 +202,7 @@ class GroupBP(DBBlueprint):
     def add_user(self, user_id: int, group_id: int, affiliation_type: AffiliationType) -> models.Group:
 
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
+            raise exceptions.NotFoundException(f"Group with id {group_id} not found")
         
         if self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id,
@@ -213,7 +213,7 @@ class GroupBP(DBBlueprint):
         group.user_links.append(models.links.UserAffiliation(
             user_id=user_id,
             group_id=group_id,
-            affiliation_type_id=affiliation_type.id
+            affiliation_type=affiliation_type
         ))
 
         self.db.session.add(group)
@@ -222,13 +222,13 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def change_user_affiliation(self, user_id: int, group_id: int, new_affiliation_type: AffiliationType) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
+            raise exceptions.NotFoundException(f"Group with id {group_id} not found")
         
         if (affiliation := self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id,
             models.links.UserAffiliation.group_id == group_id
         ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
+            raise exceptions.NotFoundException(f"User {user_id} is not in group {group_id}")
 
         affiliation.affiliation_type = new_affiliation_type
         self.db.session.add(affiliation)
@@ -238,13 +238,13 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def remove_user(self, user_id: int, group_id: int) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
+            raise exceptions.NotFoundException(f"Group with id {group_id} not found")
         
         if (affiliation := self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id,
             models.links.UserAffiliation.group_id == group_id
         ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
+            raise exceptions.NotFoundException(f"User {user_id} is not in group {group_id}")
 
         group.user_links.remove(affiliation)
         self.db.session.delete(affiliation)
@@ -255,5 +255,5 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, group_id: int) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
+            raise exceptions.NotFoundException(f"Group with id {group_id} does not exist")
         return group

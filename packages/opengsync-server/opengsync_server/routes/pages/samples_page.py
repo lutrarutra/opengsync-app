@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -15,14 +15,14 @@ def samples():
 
 @wrappers.page_route(samples_page_bp, "samples", db=db, cache_timeout_seconds=360)
 def sample(current_user: models.User, sample_id: int):
-    if (sample := db.samples.get(sample_id)) is None:
+    if (sample := db.session.first(Q.sample.select(id=sample_id))) is None:
         raise exceptions.NotFoundException()
         
-    if db.samples.get_access_type(sample, current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.sample.permissions(sample.id, current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Samples", url_for("samples_page.samples")),
+        ("Samples", url_for("sample_pages")),
         (f"Sample {sample_id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
@@ -35,14 +35,14 @@ def sample(current_user: models.User, sample_id: int):
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects")),
-                (f"Project {id}", url_for("projects_page.project", project_id=id)),
+                ("Projects", url_for("project_pages")),
+                (f"Project {id}", url_for("project_page", project_id=id)),
                 (f"Sample {sample_id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"Sample {sample_id}", ""),
             ]
 

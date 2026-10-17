@@ -1,4 +1,5 @@
 from flask import Response, flash, url_for
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
@@ -54,7 +55,7 @@ class ExperimentForm(HTMXFlaskForm):
                 raise ValueError("Experiment must be provided for edit form type")
             
             self.name.data = self.experiment.name
-            self.workflow.data =  self.experiment.workflow_id
+            self.workflow.data = self.experiment.workflow.id
             self.sequencer.selected.data =  self.experiment.sequencer.id
             self.sequencer.search_bar.data =  self.experiment.sequencer.name
             self.r1_cycles.data =  self.experiment.r1_cycles
@@ -63,19 +64,18 @@ class ExperimentForm(HTMXFlaskForm):
             self.i2_cycles.data =  self.experiment.i2_cycles
             self.operator.selected.data =  self.experiment.operator_id
             self.operator.search_bar.data =  self.experiment.operator.search_name()
-            self.status.data =  self.experiment.status_id
+            self.status.data = self.experiment.status.id
 
     def validate(self) -> bool:
-        logger.debug(self.formdata)
         if (validated := super().validate()) is False:
             return False
         
         try:
-            if (e := db.experiments.get(self.name.data)) is not None:  # type: ignore
+            if (e := db.session.first(Q.experiment.select(name=self.name.data))) is not None:
                 if self.experiment is None or  self.experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False
-        except exceptions.ElementDoesNotExist:
+        except exceptions.NotFoundException:
             pass
         
         try:
@@ -108,7 +108,7 @@ class ExperimentForm(HTMXFlaskForm):
         self.experiment.operator_id = self.operator.selected.data
         self.experiment.status = status
 
-        db.experiments.update(self.experiment)
+        db.session.save(self.experiment)
 
         flash(f"Changes Saved!.", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
@@ -117,7 +117,7 @@ class ExperimentForm(HTMXFlaskForm):
         workflow = ExperimentWorkFlow.get(self.workflow.data)
         status = ExperimentStatus.get(self.status.data)
 
-        experiment = db.experiments.create(
+        experiment = db.session.save(Q.experiment.create(
             name=self.name.data,  # type: ignore
             workflow=workflow,
             sequencer_id=self.sequencer.selected.data,
@@ -127,13 +127,10 @@ class ExperimentForm(HTMXFlaskForm):
             i2_cycles=self.i2_cycles.data,
             operator_id=self.operator.selected.data,
             status=status
-        )
+        ), flush=True)
 
         flash(f"Created experiment '{experiment.name}'.", "success")
-
-        return make_response(
-            redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
-        )
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
 
     def process_request(self) -> Response:
         if not self.validate():

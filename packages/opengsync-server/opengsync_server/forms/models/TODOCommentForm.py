@@ -3,7 +3,7 @@ from flask_htmx import make_response
 from wtforms import TextAreaField, SelectField
 from wtforms.validators import DataRequired, Length
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ... import logger, db
 from ...core import exceptions
@@ -14,7 +14,7 @@ class TODOCommentForm(HTMXFlaskForm):
     _template_path = "forms/todo_comment.html"
 
     text = TextAreaField("Note", validators=[DataRequired(), Length(min=1, max=2048)])
-    status_id = SelectField("Status", validators=[DataRequired()], choices=[(-1, "-")] + cats.TaskStatus.as_selectable(), default=cats.TaskStatus.IN_PROGRESS.id, coerce=int)
+    status_id = SelectField("Status", validators=[DataRequired()], choices=[(-1, "-")] + C.TaskStatus.as_selectable(), default=C.TaskStatus.IN_PROGRESS.id, coerce=int)
 
     def __init__(
         self,
@@ -55,13 +55,13 @@ class TODOCommentForm(HTMXFlaskForm):
         
         new_todo_comment = models.TODOComment(
             text=self.text.data,  # type: ignore
-            task_status_id=self.status_id.data if self.status_id.data != -1 else None,
+            task_status=C.TaskStatus.get(self.status_id.data) if self.status_id.data != -1 else None,
             pool_design_id=self.pool_design.id if self.pool_design else None,
             flow_cell_design_id=self.flow_cell_design.id if self.flow_cell_design else None,
             author=current_user,
         )
         db.session.add(new_todo_comment)
-        db.flush()
+        db.session.flush()
         flash("Comment Added!", "success")
         return make_response(redirect=url_for("design_page.design"))
 

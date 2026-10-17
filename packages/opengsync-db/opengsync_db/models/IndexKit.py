@@ -1,10 +1,11 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Kit import Kit
 from ..categories import IndexType, IndexType, LabChecklistType, LabChecklistType, KitType
+from ..core.EnumColumn import EnumColumn
 
 
 if TYPE_CHECKING:
@@ -15,26 +16,16 @@ if TYPE_CHECKING:
 class IndexKit(Kit):
     __tablename__ = "index_kit"
     id: Mapped[int] = mapped_column(sa.ForeignKey("kit.id"), primary_key=True)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[IndexType] = mapped_column(EnumColumn[IndexType](IndexType), nullable=False, name="type_id", key="type")
     supported_protocol_ids: Mapped[list[int]] = mapped_column(sa.ARRAY(sa.Integer), nullable=False)
     
     barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
     adapters: Mapped[list["Adapter"]] = relationship("Adapter", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "type_id"]
-
     __mapper_args__ = {
         "polymorphic_identity": KitType.INDEX_KIT.id,
     }
 
-    @property
-    def type(self) -> IndexType:
-        return IndexType.get(self.type_id)
-    
-    @type.setter
-    def type(self, value: IndexType):
-        self.type_id = value.id
-    
     @property
     def supported_protocols(self) -> list[LabChecklistType]:
         return [LabChecklistType.get(protocol_id) for protocol_id in self.supported_protocol_ids]

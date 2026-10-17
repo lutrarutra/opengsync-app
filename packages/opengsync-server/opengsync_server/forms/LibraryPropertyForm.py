@@ -1,9 +1,11 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .. import logger, db
 from ..core import exceptions
@@ -34,10 +36,21 @@ class LibraryPropertyForm(HTMXFlaskForm):
 
         if self.seq_request is not None:
             self.post_url = url_for("libraries_htmx.properties", seq_request_id=self.seq_request.id)
-            df = db.pd.get_library_properties(seq_request_id=self.seq_request.id)
+            df = T.library_properties(
+                db.session.get_pandas(
+                    Q.pd.library_properties(seq_request_id=self.seq_request.id),
+                    limit=None,
+                ),
+                expand_properties=True,
+            )
         elif self.project is not None:
             self.post_url = url_for("libraries_htmx.properties", project_id=self.project.id)
-            df = db.pd.get_library_properties(project_id=self.project.id)
+            df = T.library_properties(
+                db.session.get_pandas(
+                    Q.pd.library_properties(project_id=self.project.id), limit=None
+                ),
+                expand_properties=True,
+            )
         else:
             logger.error("Either project or seq_request must be provided.")
             raise ValueError("Either project or seq_request must be provided.")
@@ -97,7 +110,7 @@ class LibraryPropertyForm(HTMXFlaskForm):
             if label in self.df.columns:
                 continue
             for library_id in self.df["library_id"]:
-                if (library := db.libraries.get(int(library_id))) is None:
+                if (library := db.session.first(Q.library.select(id=int(library_id)))) is None:
                     raise exceptions.InternalServerErrorException(f"Library with ID {library_id} does not exist")
                 if library.properties is None:
                     continue
@@ -105,7 +118,7 @@ class LibraryPropertyForm(HTMXFlaskForm):
                     library.properties.pop(label) 
         
         for idx, row in self.df.iterrows():
-            if (library := db.libraries.get(row["library_id"])) is None:
+            if (library := db.session.first(Q.library.select(id=row["library_id"]))) is None:
                 self.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Library with ID {row['library_id']} does not exist"))
                 continue
             
@@ -120,9 +133,9 @@ class LibraryPropertyForm(HTMXFlaskForm):
 
         flash("Changes Saved!", "success")
         if self.project is not None:
-            return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="libraries-tab"))
+            return make_response(redirect=url_for("project_page", project_id=self.project.id, tab="libraries-tab"))
         elif self.seq_request is not None:
-            return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-libraries-tab"))
+            return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id, tab="request-libraries-tab"))
         else:
             logger.error("Either project or seq_request must be provided.")
             raise ValueError("Either project or seq_request must be provided.")

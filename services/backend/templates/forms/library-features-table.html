@@ -1,0 +1,22 @@
+<div id="library-features-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Library Features</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="library-features-form">
+            {{ form.csrf_token.render() }}
+            {{ form.spreadsheet.render(submit_btn_id="submit-library-features-btn", target_element_id="library-features-form-container") }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+            {{ form.library.name }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-library-features-btn" class="btn btn-success">Save</button>
+        </div>
+    </div>
+</div>

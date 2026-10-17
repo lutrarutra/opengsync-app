@@ -1,0 +1,18 @@
+<div class="modal-content" id="seq_request_share_email_form-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Email</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="seq_request_share_email_form-form">
+            {{ form.csrf_token.render() }}
+            {{ form.email.render() }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <button class="btn btn-success" hx-include="#seq_request_share_email_form-form" hx-target="#seq_request_share_email_form-form-container" hx-swap="outerHTML"
+        hx-post="{{ form.post_url }}">
+            Submit
+        </button>
+    </div>
+</div>

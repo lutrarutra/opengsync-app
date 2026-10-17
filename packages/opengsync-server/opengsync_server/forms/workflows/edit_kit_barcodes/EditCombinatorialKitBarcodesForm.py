@@ -4,11 +4,11 @@ from wtforms import BooleanField
 
 import pandas as pd
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType, BarcodeType
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import db, logger
-from ....core.RunTime import runtime
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DuplicateCellValue, MissingCellValue, SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -45,7 +45,16 @@ class EditCombinatorialKitBarcodesForm(HTMXFlaskForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=EditCombinatorialKitBarcodesForm.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata,
-            df=db.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True),
+            df=T.index_kit_barcodes_per_index(
+                T.index_kit_barcodes(
+                    db.session.get_pandas(
+                        Q.pd.index_kit_barcodes(self.index_kit.id), limit=None
+                    ),
+                    per_adapter=False,
+                    per_index=True,
+                ),
+                self.index_kit.type,
+            ),
             allow_new_rows=True
         )
 
@@ -98,41 +107,43 @@ class EditCombinatorialKitBarcodesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        self.index_kit = db.index_kits.remove_all_barcodes(self.index_kit.id)
+        self.index_kit = db.actions.remove_all_barcodes_from_kit(self.index_kit)
         self.df["barcode_i7_id"] = None
         self.df["barcode_i5_id"] = None
+
+        barcodes = []
 
         for name_i7, sequence_i7 in self.df[["name_i7", "sequence_i7"]].itertuples(index=False):
             if pd.isna(name_i7) or pd.isna(sequence_i7):
                 continue
-            adapter = db.adapters.create(
-                index_kit_id=self.index_kit.id,
+            adapter = Q.adapter.create(
+                index_kit=self.index_kit,
                 well=None,
             )
-            db.barcodes.create(
+            barcodes.append(Q.barcode.create(
                 name=name_i7,
                 sequence=sequence_i7 if not self.rc_sequence_i7.data else models.Barcode.reverse_complement(sequence_i7),
                 well=None,
-                adapter_id=adapter.id,
+                adapter=adapter,
                 type=BarcodeType.INDEX_I7,
-            )
+            ))
             
         for name_i5, sequence_i5 in self.df[["name_i5", "sequence_i5"]].itertuples(index=False):
             if pd.isna(name_i5) or pd.isna(sequence_i5):
                 continue
-            adapter = db.adapters.create(
-                index_kit_id=self.index_kit.id,
+            adapter = Q.adapter.create(
+                index_kit=self.index_kit,
                 well=None,
             )
-            db.barcodes.create(
+            barcodes.append(Q.barcode.create(
                 name=name_i5,
                 sequence=sequence_i5 if not self.rc_sequence_i5.data else models.Barcode.reverse_complement(sequence_i5),
                 well=None,
-                adapter_id=adapter.id,
+                adapter=adapter,
                 type=BarcodeType.INDEX_I5,
-            )
+            ))
 
+        db.session.add_all(barcodes)
         flash("Changes saved!", "success")
-        db.refresh(self.index_kit)
         return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
     

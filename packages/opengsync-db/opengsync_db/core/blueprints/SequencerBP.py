@@ -24,7 +24,7 @@ class SequencerBP(DBBlueprint):
         
         sequencer = models.Sequencer(
             name=name.strip(),
-            model_id=model.id,
+            model=model,
             ip=ip.strip() if ip else None
         )
 
@@ -51,8 +51,7 @@ class SequencerBP(DBBlueprint):
     ) -> tuple[list[models.Sequencer], int | None]:
         query = self.db.session.query(models.Sequencer)
         if model_in is not None:
-            model_ids = [model.id for model in model_in]
-            query = query.where(models.Sequencer.model_id.in_(model_ids))
+            query = query.where(models.Sequencer.model.in_(model_in))
 
         if sort_by is not None:
             attr = getattr(models.Sequencer, sort_by)
@@ -104,7 +103,7 @@ class SequencerBP(DBBlueprint):
     def delete(self, sequencer_id: int, flush: bool = True):
         sequencer = self.db.session.get(models.Sequencer, sequencer_id)
         if not sequencer:
-            raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
+            raise exceptions.NotFoundException(f"Sequencer with id {sequencer_id} does not exist")
         
         if self.db.session.query(models.Experiment).where(
             models.Experiment.sequencer_id == sequencer_id
@@ -136,7 +135,7 @@ class SequencerBP(DBBlueprint):
     def __getitem__(self, sequencer_id: int) -> models.Sequencer:
         sequencer = self.db.session.get(models.Sequencer, sequencer_id)
         if not sequencer:
-            raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
+            raise exceptions.NotFoundException(f"Sequencer with id {sequencer_id} does not exist")
         return sequencer
 
         

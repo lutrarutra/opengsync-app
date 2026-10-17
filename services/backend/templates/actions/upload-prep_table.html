@@ -1,0 +1,41 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+<div class="modal-content" id="prep_table-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Upload Library Preparation Table</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" id="prep_table-form" style="height: 100%; overflow-y: hidden;">
+        {{ form.csrf_token.render() }}
+        {{ form.spreadsheet.render() }}
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+            {{ lab_prep.name }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success submit-form-btn"
+                hx-post="{{ form.post_url }}"
+                hx-target="#prep_table-form-container" hx-swap="outerHTML"
+                hx-include="#prep_table-form-container" hx-encoding="multipart/form-data"
+                {% if lab_prep.prep_file %}
+                _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Warning',
+                        showDenyButton: true,
+                        text: 'There is already prep table uploaded at {{ lab_prep.prep_file.timestamp_str() }} by \'{{ lab_prep.prep_file.uploader.name }}\', do you want to overwrite it?',
+                        confirmButtonText: 'Yes',
+                        icon: 'warning',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                {% endif %}>
+                Upload
+            </button>
+        </div>
+    </div>
+</div>

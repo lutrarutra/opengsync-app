@@ -1,0 +1,25 @@
+<div class="modal-content" id="process_request-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Process Sequencing Request</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id="process_request-form">
+        {{ form.assign_seq_request_to_me.render("pb-3") }}
+        <div class="row">
+            {{ form.response_type.render("col-4") }}
+            {{ form.notification_receiver.render("col-8") }}
+        </div>
+        {{ form.notification_comment.render() }}
+        {{ form.csrf_token.render() }}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#process_request-form" hx-target="#process_request-form-container" hx-swap="outerHTML"
+                hx-post="{{ form.post_url }}">Process</button>
+        </div>
+    </div>
+</div>

@@ -3,9 +3,20 @@ services:
         container_name: opengsync-pytest
         build:
             context: .
-            dockerfile: ./services/Dockerfile
+            dockerfile: ./services/backend/Dockerfile
             target: pytest
-        command: "pytest tests/ -v -W always"
+        command: "pytest tests/ -W always"
+        volumes:
+            # Host tests overlay the image copy so local edits are picked up without a stale cache.
+            - ./services/pytest/tests:/app/tests
+            # Host backend code mounted so form/route changes are picked up without rebuilding.
+            - ./services/backend/server:/app/services/backend/server
+            # Host templates mounted so template changes are picked up without rebuilding.
+            - ./services/backend/templates:/templates
+            # Docs mounted read-only so tests can check generated sections (docs/state-transitions.md).
+            - ./docs:/app/docs:ro
+            # Alembic migrations mounted so migration tests run the current versions.
+            - ./services/db/alembic:/app/alembic:ro
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password
@@ -14,15 +25,43 @@ services:
             POSTGRES_HOST: postgres
             TIMEZONE: "Europe/Vienna"
             TZ: "Europe/Vienna"
+            ENVIRONMENT: test
+            SECRET_KEY: "test-secret-key-1234-5678-9012-3456"
+            REDIS_HOST: redis-cache
+            REDIS_PORT: 6379
         depends_on:
             postgres:
+                condition: service_healthy
+                restart: true
+            redis-cache:
                 condition: service_healthy
                 restart: true
 
     postgres:
         container_name: opengsync-postgres-db-test
-        image: postgres:17-alpine
-        command: "-c logging_collector=off"
+        # Throwaway cluster: durability is traded for speed. These settings lose data
+        # on a crash and must never be copied to dev/prod. Passed as -c flags rather
+        # than a config_file so initdb's generated postgresql.conf (timezone, locale,
+        # shared_buffers) stays in effect. timezone=UTC mirrors prod (postgresql.prod.conf), so
+        # timestamptz values come back in UTC and unlocalized rendering shows up in tests.
+        command: >-
+            postgres
+            -c fsync=off
+            -c synchronous_commit=off
+            -c full_page_writes=off
+            -c wal_level=minimal
+            -c max_wal_senders=0
+            -c logging_collector=off
+            -c log_min_messages=warning
+            -c log_checkpoints=off
+            -c timezone=UTC
+        # Keep PGDATA in RAM. Every test creates its own database, so the fixture must
+        # drop it on teardown or this fills up (see tests/conftest.py).
+        tmpfs:
+            - /var/lib/postgresql/data
+        build:
+            context: .
+            dockerfile: ./services/db/Dockerfile
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password
@@ -30,7 +69,22 @@ services:
             PGPORT: 5434
             TZ: "Europe/Vienna"
         healthcheck:
-            test: ["CMD", "pg_isready", "-d", "test_db", "-U", "admin"]
+            # Over TCP: the entrypoint's temporary init server listens on the socket only,
+            # so a socket check can pass before the real server is up.
+            test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-d", "test_db", "-U", "admin"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            # Poll every second while starting so pytest isn't held back by the 10s interval.
+            start_period: 30s
+            start_interval: 1s
+
+    redis-cache:
+        container_name: opengsync-redis-test
+        image: redis:7-alpine
+        restart: on-failure
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5

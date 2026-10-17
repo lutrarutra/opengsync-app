@@ -1,0 +1,41 @@
+{% from "components/status_bar.jinja2" import pool_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
+
+
+{# first page: fill the count badge in the dashboard header #}
+{% if current_page == 0 %}<span id="dash-count-pools" hx-swap-oob="true">{{ tab_count(total) }}</span>{% endif %}
+{% for pool in pools %}
+<div class="element-banner"
+{% if loop.last and limit == loop.index %}
+hx-get="{{ url_for('render_pool_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#pools-feed-indicator" hx-swap="outerHTML" hx-indicator="#pools-feed-indicator"
+{% endif %}>
+    <div class="feed-head">
+        <div class="feed-title">
+            <a href="{{ url_for('pool_page', pool_id=pool.id) }}">{{ pool.name }}</a>
+            <span class="feed-subtitle"><b>{{ pool.owner.name }}</b></span>
+        </div>
+    </div>
+    <div class="feed-chips">
+        {% if pool.avg_fragment_size %}
+        <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>BA</span>
+        {% else %}
+        <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>BA</span>
+        {% endif %}
+        {% if pool.qubit_concentration %}
+        <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>Qubit</span>
+        {% else %}
+        <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>Qubit</span>
+        {% endif %}
+        {% if pool.experiment_id %}
+        <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>{{ pool.experiment.name }}</span>
+        {% else %}
+        <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>No experiment</span>
+        {% endif %}
+    </div>
+    <div class="status-row">
+        {{ pool_status_bar(pool) }}
+        <span class="status-label">{{ pool.status.label }} {{ pool.status.icon | safe }}</span>
+    </div>
+</div>
+{% endfor %}
+{{ spinner(id="pools-feed-indicator") }}

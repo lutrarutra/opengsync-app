@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 from datetime import datetime
 from datetime import timezone
 
@@ -11,8 +11,8 @@ from sqlalchemy.ext.mutable import MutableDict
 
 
 from .Base import Base
-from .. import localize
-from ..categories import ProjectStatus, ProjectStatus, LibraryType, LibraryType
+from ..categories import ProjectStatus, LibraryType, LibraryStatus
+from ..core.EnumColumn import EnumColumn
 from . import links
 
 if TYPE_CHECKING:
@@ -30,13 +30,13 @@ class Project(Base):
     __tablename__ = "project"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    identifier: Mapped[str | None] = mapped_column(sa.String(16), default=None, nullable=True, index=True)
+    identifier: Mapped[str | None] = mapped_column(sa.String(16), default=None, nullable=True, index=True, unique=True)
     title: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(sa.Text, default=None, nullable=True)
 
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status: Mapped[ProjectStatus] = mapped_column(EnumColumn[ProjectStatus](ProjectStatus), nullable=False, name="status_id", key="status", active_history=True)
 
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="project", lazy="select")
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
@@ -67,76 +67,301 @@ class Project(Base):
 
     __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "status_id", "group_id", "timestamp_created_utc", "num_samples"]
-
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        if "samples" in orm.attributes.instance_state(self).unloaded:
+        if self._num_samples is not None:
+            return self._num_samples
+        
+        if "samples" not in orm.attributes.instance_state(self).unloaded:
             return len(self.samples)
+        
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_samples was not populated via with_expression. "
+                "Use orm.with_expression(Project._num_samples, Project.num_samples.expression) "
+                "in your query options."
+            )
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_samples' attribute.")
-        from .Sample import Sample
-        return session.query(sa.func.count(Sample.id)).filter(Sample.project_id == self.id).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.sample.select(project_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
         ).where(
-            Sample.project_id == cls.id
+            *Q.sample.where_clauses(project_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_samples: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(type_id) for type_id in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
-                types.add(lib.type_id)
-            return [LibraryType.get(type_id) for type_id in sorted(types)]
-        
+                types.add(lib.type)
+            return sorted(types)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(Project._library_types, Project.library_types.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+
+        from .. import queries as Q
+        from .Library import Library
+        result = session.scalar(sa.select(
+            sa.func.array_agg(sa.distinct(Library.type))
+        ).where(
+            *Q.library.where_clauses(project_id=self.id)
+        ))
+        if result is None:
+            return []
+        return [LibraryType.get(type_id) for type_id in result]
+    
+    @library_types.expression
+    def library_types(cls):
+        from .. import queries as Q
+        from .Library import Library
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.array_agg(sa.distinct(Library.type)),
+                sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
+            )
+        ).where(
+            *Q.library.where_clauses(project_id=cls.id)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
+
+    @hybrid_property
+    def library_type_counts(self) -> dict[LibraryType, int]:  # type: ignore[override]
+        counts: dict[LibraryType, int] = {}
+
+        if self._library_type_counts is not None:
+            for type_id, count in self._library_type_counts.items():
+                counts[LibraryType.get(int(type_id))] = count
+            return counts
+
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            for lib in self.libraries:
+                lib_type = LibraryType.get(lib.type)
+                counts[lib_type] = counts.get(lib_type, 0) + 1
+            return counts
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_type_counts was not populated via with_expression. "
+                "Use orm.with_expression(Project._library_type_counts, Project.library_type_counts.expression) "
+                "in your query options."
+            )
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_type_counts' attribute.")
+
+        from .. import queries as Q
+        from .Library import Library
+        results = session.execute(
+            sa.select(Library.type, sa.func.count(Library.id))
+            .where(*Q.library.where_clauses(project_id=self.id))
+            .group_by(Library.type)
+        ).all()
+        for library_type, count in results:
+            counts[LibraryType.get(library_type)] = count
+        return counts
+
+    @library_type_counts.expression
+    def library_type_counts(cls):
         from .Library import Library
         from .Sample import Sample
-        type_ids = session.query(Library.type_id).filter(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Sample.project_id == self.id)
+
+        project_alias = cls.__table__.alias("project_inner")
+
+        # Explicit joins instead of Q.library.where_clauses: its EXISTS inside LATERAL
+        # trips SQLAlchemy's cartesian product linter. DISTINCT because a library can
+        # link to several samples of the same project.
+        count_subq = (
+            sa.select(
+                Library.type.label("type_id"),
+                sa.func.count(sa.distinct(Library.id)).label("cnt"),
             )
-        ).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.library_id == Library.id)
+            .join(Sample, Sample.id == links.SampleLibraryLink.sample_id)
+            .where(Sample.project_id == project_alias.c.id)
+            .group_by(Library.type)
+            .lateral("s")
+        )
+
+        return (
+            sa.select(
+                sa.func.coalesce(
+                    sa.func.jsonb_object_agg(count_subq.c.type_id, count_subq.c.cnt),
+                    sa.cast(sa.text("'{}'"), JSONB),
+                )
+            )
+            .select_from(project_alias, count_subq)
+            .where(project_alias.c.id == cls.id)
+            .correlate(cls)  # type: ignore[arg-type]
+            .scalar_subquery()
+        )
+
+    _library_type_counts: Mapped[dict[int, int] | None] = orm.query_expression()
+
+    @hybrid_property
+    def library_status_counts(self) -> dict[LibraryStatus, int]:  # type: ignore[override]
+        counts: dict[LibraryStatus, int] = {}
+
+        if self._library_status_counts is not None:
+            for status_id, count in self._library_status_counts.items():
+                counts[LibraryStatus.get(int(status_id))] = count
+            return counts
+
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            for lib in self.libraries:
+                lib_status = LibraryStatus.get(lib.status)
+                counts[lib_status] = counts.get(lib_status, 0) + 1
+            return counts
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_status_counts was not populated via with_expression. "
+                "Use orm.with_expression(Project._library_status_counts, Project.library_status_counts.expression) "
+                "in your query options."
+            )
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_status_counts' attribute.")
+
+        from .. import queries as Q
+        from .Library import Library
+        results = session.execute(
+            sa.select(Library.status, sa.func.count(Library.id))
+            .where(*Q.library.where_clauses(project_id=self.id))
+            .group_by(Library.status)
+        ).all()
+        for library_status, count in results:
+            counts[LibraryStatus.get(library_status)] = count
+        return counts
+
+    @library_status_counts.expression
+    def library_status_counts(cls):
+        from .Library import Library
+        from .Sample import Sample
+
+        project_alias = cls.__table__.alias("project_inner")
+
+        # See library_type_counts for why this doesn't use Q.library.where_clauses.
+        count_subq = (
+            sa.select(
+                Library.status.label("status_id"),
+                sa.func.count(sa.distinct(Library.id)).label("cnt"),
+            )
+            .join(links.SampleLibraryLink, links.SampleLibraryLink.library_id == Library.id)
+            .join(Sample, Sample.id == links.SampleLibraryLink.sample_id)
+            .where(Sample.project_id == project_alias.c.id)
+            .group_by(Library.status)
+            .lateral("s")
+        )
+
+        return (
+            sa.select(
+                sa.func.coalesce(
+                    sa.func.jsonb_object_agg(count_subq.c.status_id, count_subq.c.cnt),
+                    sa.cast(sa.text("'{}'"), JSONB),
+                )
+            )
+            .select_from(project_alias, count_subq)
+            .where(project_alias.c.id == cls.id)
+            .correlate(cls)  # type: ignore[arg-type]
+            .scalar_subquery()
+        )
+
+    _library_status_counts: Mapped[dict[int, int] | None] = orm.query_expression()
 
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]
+        if self._num_data_paths is not None:
+            return self._num_data_paths
+        
         if "data_paths" in orm.attributes.instance_state(self).unloaded:
             return len(self.data_paths)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_data_paths' attribute.")
-        from .DataPath import DataPath
-        return session.query(sa.func.count(DataPath.id)).filter(DataPath.project_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_data_paths was not populated via with_expression. "
+                "Use orm.with_expression(Project._num_data_paths, Project.num_data_paths.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.data_path.select(project_id=self.id).subquery()
+        ))  # type: ignore[return-value]
 
     @num_data_paths.expression
     def num_data_paths(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .DataPath import DataPath
         return sa.select(
             sa.func.count(DataPath.id)
         ).where(
-            DataPath.project_id == cls.id
+            *Q.data_path.where_clauses(project_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
+
+    _num_data_paths: Mapped[int | None] = orm.query_expression()
+
+    _num_assignees: Mapped[int | None] = orm.query_expression()
+
     @hybrid_property
     def num_assignees(self) -> int:  # type: ignore[override]
+        if self._num_assignees is not None:
+            return self._num_assignees
+
         if "assignees" not in orm.attributes.instance_state(self).unloaded:
             return len(self.assignees)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_assignees was not populated via with_expression. "
+                "Use orm.with_expression(Project._num_assignees, Project.num_assignees.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_assignees.")
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.user.select(assignees_project_id=self.id).subquery()
+        ))  # type: ignore[return-value]
+
+    @num_assignees.expression
+    def num_assignees(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .User import User
-        return session.query(sa.func.count(User.id)).join(links.ProjectAssigneeLink
-        ).filter(links.ProjectAssigneeLink.project_id == self.id).scalar()
+        return sa.select(
+            sa.func.count(User.id)
+        ).where(
+            *Q.user.where_clauses(assignees_project_id=cls.id)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def software(self) -> dict[str, dict]:
@@ -147,106 +372,86 @@ class Project(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_samples' attribute.")
         
+        from .. import queries as Q
         from .SeqRequest import SeqRequest
-        from .Sample import Sample
-        from .Library import Library
         return session.query(SeqRequest).where(
-            sa.exists().where(
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == SeqRequest.id) &
-                (Project.id == self.id)
-            )
+            *Q.seq_request.where_clauses(project_id=self.id)
         ).all()
     
     @hybrid_property
     def num_seq_requests(self) -> int:  # type: ignore[override]
+        if self._num_seq_requests is not None:
+            return self._num_seq_requests
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_seq_requests' attribute.")
-        
-        from .SeqRequest import SeqRequest
-        from .Sample import Sample
-        from .Library import Library
-        return session.query(sa.distinct(SeqRequest.id)).where(
-            sa.exists().where(
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == SeqRequest.id) &
-                (Project.id == self.id)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_seq_requests was not populated via with_expression. "
+                "Use orm.with_expression(Project._num_seq_requests, Project.num_seq_requests.expression) "
+                "in your query options."
             )
-        ).count()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.seq_request.select(project_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_seq_requests.expression
     def num_seq_requests(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .SeqRequest import SeqRequest
-        from .Sample import Sample
-        from .Library import Library
         return sa.select(
             sa.func.count(sa.distinct(SeqRequest.id))
         ).where(
-            sa.exists().where(
-                (Sample.project_id == cls.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == SeqRequest.id) &
-                (cls.id == cls.id)
-            )
+            *Q.seq_request.where_clauses(project_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_seq_requests: Mapped[int | None] = orm.query_expression()
     
     @property
     def experiments(self) -> list["Experiment"]:
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'experiments' attribute.")
         
+        from .. import queries as Q
         from .Experiment import Experiment
-        from .Sample import Sample
-        from .Library import Library
         return session.query(Experiment).where(
-            sa.exists().where(
-                (Project.id == self.id) &
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.experiment_id == Experiment.id)
-            )
+            *Q.experiment.where_clauses(project_id=self.id)
         ).all()
     
     @hybrid_property
     def num_experiments(self) -> int:  # type: ignore[override]
+        if self._num_experiments is not None:
+            return self._num_experiments
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_experiments' attribute.")
-        
-        from .Experiment import Experiment
-        from .Sample import Sample
-        from .Library import Library
-        return session.query(sa.distinct(Experiment.id)).where(
-            sa.exists().where(
-                (Project.id == self.id) &
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.experiment_id == Experiment.id)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_experiments was not populated via with_expression. "
+                "Use orm.with_expression(Project._num_experiments, Project.num_experiments.expression) "
+                "in your query options."
             )
-        ).count()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.experiment.select(project_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_experiments.expression
     def num_experiments(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Experiment import Experiment
-        from .Sample import Sample
-        from .Library import Library
         return sa.select(
             sa.func.count(sa.distinct(Experiment.id))
         ).where(
-            sa.exists().where(
-                (Project.id == cls.id) &
-                (Sample.project_id == cls.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.experiment_id == Experiment.id)
-            )
+            *Q.experiment.where_clauses(project_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_experiments: Mapped[int | None] = orm.query_expression()
     
 
     @property
@@ -254,16 +459,14 @@ class Project(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'share_email_links' attribute.")
         
+        from .. import queries as Q
         from .links import SeqRequestDeliveryEmailLink
-        from .Sample import Sample
-        from .Library import Library
+        from .SeqRequest import SeqRequest
         return session.query(SeqRequestDeliveryEmailLink).where(
-            sa.exists().where(
-                (Sample.project_id == self.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == SeqRequestDeliveryEmailLink.seq_request_id)
-            )
+            sa.select(1).where(
+                *Q.seq_request.where_clauses(project_id=self.id),
+                SeqRequestDeliveryEmailLink.seq_request_id == SeqRequest.id
+            ).correlate_except(SeqRequest).exists()
         ).all()
 
     def set_software(self, software: str, version: str, comment: str | None = None) -> None:
@@ -276,6 +479,12 @@ class Project(Base):
         }
         if comment is not None:
             self.__software[software]["comment"] = comment
+
+    def delete_software(self, software: str) -> None:
+        software = software.strip().lower()
+        if self.__software is None or software not in self.__software:
+            raise KeyError(f"Software '{software}' does not exist.")
+        del self.__software[software]
     
     def search_value(self) -> int:
         return self.id
@@ -286,15 +495,8 @@ class Project(Base):
         return self.title
     
     @property
-    def status(self) -> ProjectStatus:
-        return ProjectStatus.get(self.status_id)
-    
-    @status.setter
-    def status(self, value: ProjectStatus):
-        self.status_id = value.id
-
-    @property
     def timestamp_created(self) -> datetime:
+        from .. import localize
         return localize(self.timestamp_created_utc)
 
     def timestamp_created_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
@@ -304,10 +506,16 @@ class Project(Base):
         if self.identifier:
             return f"Project(id: {self.id}, identifier: {self.identifier})"
         return f"Project(id: {self.id}, title: {self.title})"
+
+    @property
+    def identifier_display(self) -> str:
+        if self.identifier:
+            return self.identifier
+        return f"PRJ_{self.id:04d}"
     
     def __repr__(self) -> str:
         return self.__str__()
-    
+        
     __table_args__ = (
         sa.Index(
             "trgm_project_identifier_idx",
@@ -319,4 +527,5 @@ class Project(Base):
             sa.text("lower(title) gin_trgm_ops"),
             postgresql_using="gin",
         ),
+        sa.UniqueConstraint("title", "owner_id", name="uq_project_title_owner_id")
     )

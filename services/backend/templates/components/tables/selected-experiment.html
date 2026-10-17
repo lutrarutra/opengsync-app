@@ -1,0 +1,24 @@
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col" class="col-1">ID</th>
+            <th scope="col" class="col-4">Name</th>
+            <th scope="col" class="col-2">Workflow</th>
+            <th scope="col" class="col-2">Status</th>
+            <th scope="col" class="col-3">Library Types</th>
+            <th scope="col" class="col-2">Operator</th>
+        </tr>
+    </thead>
+    <tbody id="{{ field.id }}-selected-table-body">
+        {% for experiment in selected_experiments %}
+        <tr id="selected-experiment-row-{{ experiment.id }}" class="experiment-row selected">
+            <th scope="row">{{ experiment.id }}</th>
+            <td>{{ experiment.name }}</td>
+            <td>{{ experiment.workflow.display_name }}</td>
+            <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
+            <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
+            <td>{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

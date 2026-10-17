@@ -51,11 +51,11 @@ class SampleForm(HTMXFlaskForm):
             return self.make_response()
         
         self.sample.name = self.name.data  # type: ignore
-        self.sample.status_id = self.status.data
+        self.sample.status = SampleStatus.get(self.status.data) if self.status.data is not None else None
        
-        db.samples.update(self.sample)
+        db.session.save(self.sample)
 
         flash("Changes saved!", "success")
         return make_response(
-            redirect=url_for("samples_page.sample", sample_id=self.sample.id),
+            redirect=url_for("sample_page", sample_id=self.sample.id),
         )

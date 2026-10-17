@@ -21,7 +21,7 @@ class LabPrepBP(DBBlueprint):
         flush: bool = True
     ) -> models.LabPrep:
         if (creator := self.db.session.get(models.User, creator_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id '{creator_id}', not found.")
+            raise exceptions.NotFoundException(f"User with id '{creator_id}', not found.")
         
         number = self.get_next_protocol_number(checklist_type)
 
@@ -32,8 +32,8 @@ class LabPrepBP(DBBlueprint):
             name=name.strip(),
             prep_number=number,
             creator_id=creator.id,
-            checklist_type_id=checklist_type.id,
-            service_type_id=service_type.id,
+            checklist_type=checklist_type,
+            service_type=service_type,
         )
 
         self.db.session.add(lab_prep)
@@ -67,14 +67,14 @@ class LabPrepBP(DBBlueprint):
         query = self.db.session.query(models.LabPrep)
 
         if checklist_type is not None:
-            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+            query = query.where(models.LabPrep.checklist_type == checklist_type)
         elif checklist_type_in is not None:
-            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
+            query = query.where(models.LabPrep.checklist_type.in_(checklist_type_in))
 
         if status is not None:
-            query = query.where(models.LabPrep.status_id == status.id)
+            query = query.where(models.LabPrep.status == status)
         elif status_in is not None:
-            query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.LabPrep.status.in_(status_in))
 
         if options is not None:
             query = query.options(options)
@@ -117,7 +117,7 @@ class LabPrepBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, lab_prep_id: int, flush: bool = True) -> None:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
 
         for library in lab_prep.libraries:
             library.lab_prep_id = None
@@ -148,14 +148,14 @@ class LabPrepBP(DBBlueprint):
         query = self.db.session.query(models.LabPrep)
 
         if checklist_type is not None:
-            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+            query = query.where(models.LabPrep.checklist_type == checklist_type)
         elif checklist_type_in is not None:
-            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
+            query = query.where(models.LabPrep.checklist_type.in_(checklist_type_in))
 
         if status is not None:
-            query = query.where(models.LabPrep.status_id == status.id)
+            query = query.where(models.LabPrep.status == status)
         elif status_in is not None:
-            query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.LabPrep.status.in_(status_in))
 
         if name is not None:
             query = query.order_by(
@@ -184,7 +184,7 @@ class LabPrepBP(DBBlueprint):
             raise TypeError(f"Pool type {checklist_type} does not have an identifier")
 
         if (latest_prep := self.db.session.query(models.LabPrep).where(
-            models.LabPrep.checklist_type_id == checklist_type.id
+            models.LabPrep.checklist_type == checklist_type
         ).order_by(
             models.LabPrep.prep_number.desc()
         ).first()) is not None:
@@ -202,10 +202,10 @@ class LabPrepBP(DBBlueprint):
         self, lab_prep_id: int, library_id: int
     ) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
+            raise exceptions.NotFoundException(f"Library with id '{library_id}', not found.")
         
         if library.status < LibraryStatus.PREPARING:
             library.status = LibraryStatus.PREPARING
@@ -219,10 +219,10 @@ class LabPrepBP(DBBlueprint):
         self, lab_prep_id: int, library_id: int, flush: bool = True
     ) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
+            raise exceptions.NotFoundException(f"Library with id '{library_id}', not found.")
         
         if library.status == LibraryStatus.PREPARING:
             library.status = LibraryStatus.ACCEPTED
@@ -236,5 +236,5 @@ class LabPrepBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{id}', not found.")
         return lab_prep

@@ -4,7 +4,8 @@ from flask_htmx import make_response
 from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import queries as Q, models
+from opengsync_db.core.blueprints import pd_transforms as T
 
 from .... import db
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -32,7 +33,9 @@ class DilutePoolsForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
         self.experiment = experiment
         self._context["experiment"] = experiment
-        self.df = db.pd.get_experiment_pools(experiment.id)
+        self.df = T.experiment_pools(
+            db.session.get_pandas(Q.pd.experiment_pools(experiment.id), limit=None)
+        )
         
     def prepare(self):
         self.df["molarity"] = self.df["qubit_concentration"] / (self.df["avg_fragment_size"] * 660) * 1_000_000
@@ -57,12 +60,9 @@ class DilutePoolsForm(HTMXFlaskForm):
             if entry.qubit_after_dilution.data is None:
                 continue
             
-            pool_id = int(entry.pool_id.data)
+            pool = db.session.get_one(Q.pool.select(id=int(entry.pool_id.data)))
             
-            if db.pools.get(pool_id) is None:
-                raise ValueError(f"Pool with id {row['id']} not found")
-            
-            db.pools.dilute(pool_id, entry.qubit_after_dilution.data, user.id)
+            db.actions.dilute_pool(pool, entry.qubit_after_dilution.data, user.id)
 
         flash("Dilution successful!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

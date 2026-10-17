@@ -1,0 +1,75 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+<div id="barcode-input-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Specify Barcodes</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+            {% if kits is defined and kits %}
+            {% for identifier, df in kits.items() %}
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#kit-{{ identifier }}-tab" type="button" role="tab"
+                aria-controls="kit-{{ identifier }}-tab" aria-selected="true">
+                {{ identifier }}</button>
+            </li>
+            {% endfor %}
+            {% endif %}
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{ 
+                    form.spreadsheet.render(
+                        submit_btn_id="submit-spreadsheet-btn",
+                        target_element_id="barcode-input-container",
+                    )
+                }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
+                {% include "instructions/barcode_input.html" %}
+            </div>
+            {% if kits is defined and kits %}
+            {% for identifier, (kit, df) in kits.items() %}
+            <div class="tab-pane fade" id="kit-{{ identifier }}-tab" role="tabpanel" tabindex="{{ loop.index + 2 }}">
+                <div hx-get="{{ url_for('render_index_kit_spreadsheet', index_kit_id=kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#barcode-input-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

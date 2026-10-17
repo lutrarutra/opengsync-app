@@ -1,0 +1,58 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="seq_run-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("seq_run-table", table, "id") }}
+                {{ table_col("seq_run-table", table, "experiment") }}
+                {{ table_col("seq_run-table", table, "status") }}
+                {{ table_col("seq_run-table", table, "cycles") }}
+                {{ table_col("seq_run-table", table, "flow_cell_id") }}
+                {{ table_col("seq_run-table", table, "run_folder") }}
+                {{ table_col("seq_run-table", table, "started") }}
+                {{ table_col("seq_run-table", table, "completed") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for seq_run in seq_runs %}
+            <tr>
+                <th scope="row">{{ seq_run.id }}</th>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": seq_run.experiment_name, "label": "Copy Experiment Name"},
+                    ])
+                }}><a href="{{ url_for('seq_run_page', seq_run_id=seq_run.id) }}">{{ seq_run.experiment_name }}</a></td>
+                <td>{{ seq_run.status.icon }} {{ seq_run.status.label }}</td>
+                <td>{{ seq_run.cycles_str }}</td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": seq_run.flowcell_id, "label": "Copy Flowcell ID"},
+                    ])
+                }}>{{ seq_run.flowcell_id }}</td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": seq_run.run_folder, "label": "Copy Run Folder"},
+                    ])
+                }}>{{ seq_run.run_folder }}</td>
+                <td>{{ seq_run.get_timestamp("started") | format_datetime }}</td>
+                <td>{{ seq_run.get_timestamp("completed") | format_datetime }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("seq_run-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_run-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>
+

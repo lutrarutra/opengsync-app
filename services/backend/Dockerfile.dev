@@ -1,0 +1,52 @@
+# --- BASE: Common system deps and uv setup ---
+FROM python:3.14-slim AS base
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- BUILDER: Install dependencies ONLY ---
+FROM base AS builder
+ARG VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION
+COPY pyproject.toml uv.lock ./
+COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
+COPY packages/opengsync-api/pyproject.toml ./packages/opengsync-api/
+COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
+RUN uv sync --frozen --no-install-project
+
+# --- ALEMBIC MIGRATOR ---
+FROM builder AS migrator
+COPY packages/opengsync-db /app/packages/opengsync-db
+COPY services/db/alembic /app/alembic
+RUN uv sync --frozen --no-editable --no-dev
+RUN uv pip install alembic
+CMD alembic --config /app/alembic/alembic.ini upgrade head
+
+# --- SERVER ---
+FROM builder AS opengsync-app
+
+COPY packages /app/packages
+COPY services/backend ./services/backend
+RUN uv sync --frozen
+
+# --- CELERY BASE ---
+FROM builder AS celery-base
+# RUN apt-get update && apt-get install -y cron wget && rm -rf /var/lib/apt/lists/*
+RUN uv pip install celery[redis]
+
+# --- CELERY WORKER ---
+FROM celery-base AS celery-worker
+COPY packages /app/packages
+RUN uv sync --frozen

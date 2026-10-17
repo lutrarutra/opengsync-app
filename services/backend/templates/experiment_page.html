@@ -1,0 +1,324 @@
+{% from "components/overview-graph.jinja2" import overview_button, overview_modal with context %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link, metadata_quantity %}
+{% from "components/status_bar.jinja2" import experiment_status_bar with context %}
+
+{% extends "base.html" %}
+{% set active_page = "experiments-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>{{ experiment.name }} <span class="desc">{{ experiment.workflow.display_name }}</span></h1>
+        </div>
+        <div class="page-controls">
+            {{ overview_button("experiment-overview") }}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+            hx-get="{{ url_for('MediaFileForm.Upload', experiment_id=experiment.id) }}">
+                Attach File
+            </button>
+            <button type="button" class="btn btn-primary"
+                data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                hx-get="{{ url_for('ExperimentForm.Edit', experiment_id=experiment.id) }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal"
+                hx-swap="innerHTML" hx-trigger="click">
+                Edit Experiment
+            </button>
+            <span
+            {% if not experiment.is_deleteable() %}
+            {{ tooltip("Only draft experiments can be deleted.", category="danger") }}
+            {% endif %}>
+                <button type="button" class="btn btn-danger"
+                    hx-delete="{{ url_for('delete_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete Experiment \'{{ experiment.name }}\'',
+                        showDenyButton: true,
+                        text: 'Are you sure?',
+                        icon: 'question',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                    {% if not experiment.is_deleteable() %}disabled{% endif %}>
+                    Delete Experiment
+                </button>
+            </span>
+        </div>
+    </div>
+
+    <div style="margin: 0; padding: 0;">
+        <p style="margin: 0; padding: 0;">
+            <b>Config: </b>{{ experiment.read_config }} <b>Lanes: </b>{{ experiment.num_lanes }}
+            {% if experiment.workflow.combined_lanes %}<span class="desc">shared</span>{% endif %}
+            {% if experiment.match_seq_run_config() is false %}
+            <span class="text-danger">❗ Experiment config (num. cycles) does not match the associated run config. Please update the experiment or run config to match.</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="status_bar">
+        {{ experiment_status_bar(experiment) }}
+    </div>
+
+    <ul class="nav nav-tabs page-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pools-tab-btn" data-bs-toggle="tab" data-bs-target="#pools-tab"
+                type="button" role="tab" aria-controls="pools-tab" aria-selected="true">
+                Pools {{ tab_count(experiment.num_pools) }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#checklist-tab"
+                type="button" role="tab" aria-controls="checklist-tab" aria-selected="false">
+                Checklist {{ tab_count(checklist_steps_completed, checklist_total_steps) }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#libraries-tab"
+                type="button" role="tab" aria-controls="libraries-tab" aria-selected="false">
+                Libraries {{ tab_count(experiment.num_libraries) }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="dilutions-tab-btn" data-bs-toggle="tab" data-bs-target="#dilutions-tab"
+                type="button" role="tab" aria-controls="dilutions-tab" aria-selected="false">
+                Dilutions {{ tab_count(experiment.num_dilutions) }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="metadata-tab-btn" data-bs-toggle="tab" data-bs-target="#metadata-tab"
+                type="button" role="tab" aria-controls="metadata-tab" aria-selected="false">
+                Metadata
+            </button>
+        </li>
+        {% if current_user.is_insider %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#experiment-status-tab" type="button" role="tab"
+                aria-controls="experiment-status-tab" aria-selected="false">
+                Status
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#experiment-files-tab" type="button" role="tab"
+                aria-controls="experiment-files-tab" aria-selected="true"
+                id="experiment-files-tab-btn">
+                Files {{ tab_count(experiment.num_files) }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#experiment-comments-tab" type="button" role="tab"
+            aria-controls="experiment-comments-tab" aria-selected="true"
+            id="experiment-comments-tab-btn">
+                Comments {{ tab_count(experiment.num_comments) }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if not experiment.seq_run %}disabled{% endif %}" data-bs-toggle="tab"
+            data-bs-target="#experiment-seq_run-tab" type="button" role="tab"
+            aria-controls="experiment-seq_run-tab" aria-selected="true"
+            id="experiment-seq_run-tab-btn" {% if not experiment.seq_run %}disabled{% endif %}>
+                Run
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#experiment-projects-tab" type="button" role="tab"
+            aria-controls="experiment-projects-tab" aria-selected="false">
+            Projects {{ tab_count(experiment.num_projects) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#experiment-data_paths-tab" type="button" role="tab"
+            aria-controls="experiment-data_paths-tab" aria-selected="true">
+            Data {{ tab_count(experiment.num_data_paths) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#experiment-stats-tab" type="button" role="tab"
+            aria-controls="experiment-stats-tab" aria-selected="true">
+                📊 Stats
+            </button>
+        </li>
+    </ul>
+</div>
+
+<div class="page-content">
+    <div class="tab-content pt-1">
+        <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Pools <img {{ tooltip('Right click on a pool name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_pool_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="checklist-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Checklist</h3>
+                </div>
+                <div style="height: 100%; display: flex; align-items: center;">
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('experiment_checklist', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="libraries-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_library_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="dilutions-tab" role="tabpanel" tabindex="3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Dilutions</h2>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="4">
+            <div class="row">
+                {{
+                    metadata_group_link(
+                        "Operator", experiment.operator.name,
+                        url_for("user_page", user_id=experiment.operator.id),
+                        class="col"
+                    )
+                }}
+                {{
+                    metadata_group_email_link(
+                        "Operator Email", experiment.operator.email, class="col",
+                        subject=organization_name + " Sequencing Experiment: " + experiment.id | string
+                    )
+                }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Created", experiment.timestamp_created_str(), class="col-3") }}
+                {{
+                    metadata_group_link(
+                        "Sequencer", experiment.sequencer.name,
+                        url_for("sequencer_page", sequencer_id=experiment.sequencer.id),
+                        class="col-3"
+                    )
+                }}
+                {{ metadata_group("Flow Cell", experiment.flowcell_type.display_name, class="col-2") }}
+                {{ metadata_group("Workflow", experiment.workflow.display_name, class="col-2") }}
+                {{ metadata_group("Lanes", experiment.num_lanes, class="col-2") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("R1 Cycles", experiment.r1_cycles, class="col") }}
+                {{ metadata_group("I1 Cycles", experiment.i1_cycles, class="col") }}
+                {{ metadata_group("I2 Cycles", experiment.i2_cycles, class="col") }}
+                {{ metadata_group("R2 Cycles", experiment.r2_cycles, class="col") }}
+            </div>
+        </div>
+        {% if current_user.is_insider %}
+        <div class="tab-pane fade" id="experiment-status-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('render_status', entity='experiment', obj_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+        <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="6">
+            <div hx-get="{{ url_for('render_media_file_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="experiment-comments-tab" role="tabpanel" tabindex="7">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Comments</h2>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('CommentForm.Begin', experiment_id=experiment.id) }}">
+                    Comment
+                </button>
+            </div>
+
+            <div hx-get="{{ url_for('render_comment_thread', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>  
+        {% if experiment.seq_run %}
+        <div class="tab-pane fade" id="experiment-seq_run-tab" role="tabpanel" tabindex="8">
+            <div class="row">
+                {{ metadata_group("Started", experiment.seq_run.get_timestamp("started") | format_datetime, class="col-6") }}
+                {{ metadata_group("Completed", experiment.seq_run.get_timestamp("completed") | format_datetime, class="col-6") }}
+            </div>
+            <div class="row">
+                {{
+                    metadata_group_link(
+                        "Run", experiment.seq_run.id,
+                        url_for("seq_run_page", seq_run_id=experiment.seq_run.id, from="experiment@" + experiment.id | string),
+                        class="col-3"
+                    )
+                }}
+                {{ metadata_group("Run Folder", experiment.seq_run.run_folder, class="col-3") }}
+                {{ metadata_group("Flowcell ID", experiment.seq_run.flowcell_id, class="col-3") }}
+                {{ metadata_group("Read Type", experiment.seq_run.read_type.label, class="col-3") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("RTA Version", experiment.seq_run.rta_version, class="col") }}
+                {{ metadata_group("Recipe Version", experiment.seq_run.recipe_version, class="col") }}
+                {{ metadata_group("Side", experiment.seq_run.side, class="col") }}
+                {{ metadata_group("Mode", experiment.seq_run.flowcell_mode, class="col") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("R1 Cycles", experiment.seq_run.r1_cycles, class="col") }}
+                {{ metadata_group("I1 Cycles", experiment.seq_run.i1_cycles, class="col") }}
+                {{ metadata_group("I2 Cycles", experiment.seq_run.i2_cycles, class="col") }}
+                {{ metadata_group("R2 Cycles", experiment.seq_run.r2_cycles, class="col") }}
+            </div>
+            <h2 class="pt-2">Statistics</h2>
+            <div class="row">
+                {{ metadata_quantity("Reads PF", experiment.seq_run.get_quantity("reads_pf"), class="col-4") }}
+                {{ metadata_quantity("Reads", experiment.seq_run.get_quantity("reads"), class="col-4") }}
+                {% if experiment.seq_run.get_quantity("reads") and experiment.seq_run.get_quantity("reads_pf") %}
+                {{ metadata_group("Reads PF %", "%.1f" | format (100.0 * experiment.seq_run.get_quantity("reads_pf").value / experiment.seq_run.get_quantity("reads").value), unit="%", class="col-4") }}
+                {% else %}
+                {{ metadata_group("Reads PF %", "N/A", class="col-4") }}
+                {% endif %}
+            </div>
+            <div class="row">
+                {{ metadata_quantity("Q>=30", experiment.seq_run.get_quantity("pct>=q30"), class="col-4") }}
+                {{ metadata_quantity("Occupied", experiment.seq_run.get_quantity("pct_occupied"), class="col-4") }}
+                {{ metadata_quantity("Phi X Aligned", experiment.seq_run.get_quantity("pct_aligned"), class="col-4") }}
+            </div>
+        </div>
+        {% endif %}
+        <div class="tab-pane fadee" id="experiment-projects-tab" role="tabpanel" tabindex="9">
+            <div hx-get="{{ url_for('render_project_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="experiment-data_paths-tab" role="tabpanel" tabindex="10">
+            <div hx-get="{{ url_for('render_data_path_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="experiment-stats-tab" role="tabpanel" tabindex="11">
+            <div hx-get="{{ url_for('experiment_stats', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ overview_modal("experiment-overview", url_for('experiment_overview', experiment_id=experiment.id), 'Overview · ' ~ experiment.name) }}
+{% endblock content %}

@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
-from ... import db, logger
+from ... import db
 from ...core import wrappers, exceptions
 
 events_htmx = Blueprint("events_htmx", __name__, url_prefix="/htmx/events/")
@@ -13,7 +13,7 @@ events_htmx = Blueprint("events_htmx", __name__, url_prefix="/htmx/events/")
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_calendar_month(current_user: models.User, year: int | None = None, month: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     try:
         if month is None:
@@ -28,9 +28,10 @@ def render_calendar_month(current_user: models.User, year: int | None = None, mo
     start_date = start_date - timedelta(days=start_date.weekday())
     end_date = end_date + timedelta(days=6 - end_date.weekday())
 
-    events, _ = db.events.find(
-        start_date=start_date, end_date=end_date, limit=None,
-        sort_by="timestamp_utc", descending=False,
+    events = db.session.get_all(
+        Q.event.select(start_date=start_date, end_date=end_date),
+        order_by=models.Event.timestamp_utc.asc(),
+        limit=None,
     )
 
     calendar = {}
@@ -56,7 +57,7 @@ def render_calendar_month(current_user: models.User, year: int | None = None, mo
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_calendar_week(current_user: models.User, year: int | None = None, week: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     try:
         if week is None:
@@ -67,10 +68,11 @@ def render_calendar_week(current_user: models.User, year: int | None = None, wee
         end_date = datetime.fromisocalendar(year, week, 7)
     except TypeError:
         raise exceptions.BadRequestException()
-
-    events, _ = db.events.find(
-        start_date=start_date, end_date=end_date, limit=None,
-        sort_by="timestamp_utc", descending=False,
+    
+    events = db.session.get_all(
+        Q.event.select(start_date=start_date, end_date=end_date),
+        order_by=models.Event.timestamp_utc.asc(),
+        limit=None,
     )
 
     calendar = {}
@@ -104,7 +106,7 @@ def render_calendar_week(current_user: models.User, year: int | None = None, wee
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_calendar_day(current_user: models.User, year: int | None = None, month: int | None = None, day: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     try:
         if day is None:
@@ -118,9 +120,10 @@ def render_calendar_day(current_user: models.User, year: int | None = None, mont
     except TypeError:
         raise exceptions.BadRequestException()
     
-    events, _ = db.events.find(
-        start_date=start_date, end_date=end_date, limit=None,
-        sort_by="timestamp_utc", descending=False,
+    events = db.session.get_all(
+        Q.event.select(start_date=start_date, end_date=end_date),
+        order_by=models.Event.timestamp_utc.asc(),
+        limit=None,
     )
 
     return make_response(render_template(

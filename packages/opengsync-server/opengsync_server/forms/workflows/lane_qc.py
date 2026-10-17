@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -31,7 +32,9 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.pd.get_experiment_lanes(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
         df = df.drop(columns=["lane"]).reset_index(drop=True)
 
@@ -43,7 +46,9 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            df = db.pd.get_experiment_lanes(self.experiment.id)
+            df = db.session.get_pandas(
+                Q.pd.experiment_lanes(self.experiment.id), limit=None
+            )
             self._context["df"] = df
             return self.make_response()
 
@@ -52,7 +57,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = self.avg_fragment_size.data
             lane.original_qubit_concentration = self.qubit_concentration.data
 
-            db.lanes.update(lane)
+            db.session.save(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
@@ -81,7 +86,9 @@ class QCLanesForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.pd.get_experiment_lanes(self.experiment.id)
+        df = db.session.get_pandas(
+            Q.pd.experiment_lanes(self.experiment.id), limit=None
+        )
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
 
         for i, (_, row) in enumerate(df.iterrows()):
@@ -103,12 +110,14 @@ class QCLanesForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            df = db.pd.get_experiment_lanes(self.experiment.id)
+            df = db.session.get_pandas(
+                Q.pd.experiment_lanes(self.experiment.id), limit=None
+            )
             self._context["df"] = df
             return self.make_response()
         
         for sub_form in self.input_fields:
-            if (lane := db.lanes.get(sub_form.lane_id.data)) is None:
+            if (lane := db.session.first(Q.lane.select(id=sub_form.lane_id.data))) is None:
                 logger.error(f"Lane with id {sub_form.lane_id.data} not found")
                 raise ValueError(f"Lane with id {sub_form.lane_id.data} not found")
                 
@@ -116,7 +125,7 @@ class QCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.phi_x = sub_form.phi_x.data
 
-            db.lanes.update(lane)
+            db.session.save(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

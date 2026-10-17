@@ -1,0 +1,29 @@
+{% from "components/status_bar.jinja2" import experiment_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{# first page: fill the count badge in the dashboard header #}
+{% if current_page == 0 %}<span id="dash-count-experiments" hx-swap-oob="true">{{ tab_count(total) }}</span>{% endif %}
+{% for experiment in experiments %}
+<div class="element-banner"
+{% if loop.last and limit == loop.index %}
+hx-get="{{ url_for('render_experiment_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-feed-indicator" hx-swap="outerHTML" hx-indicator="#experiments-feed-indicator"
+{% endif %}>
+    <div class="feed-head">
+        <div class="feed-title">
+            <a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a>
+        </div>
+        <div class="feed-actions">
+            <span class="badge assignee-badge {% if experiment.operator == current_user %}badge-success{% endif %}" {{ tooltip(experiment.operator.name, category="success" if experiment.operator == current_user else "primary") }}>{{ experiment.operator.initials }}</span>
+        </div>
+    </div>
+    <div class="feed-meta">
+        <span><i class="bi bi-calendar3"></i>{{ experiment.timestamp_created_str("%-d. %b.") }}</span>
+    </div>
+    <div class="status-row">
+        {{ experiment_status_bar(experiment) }}
+        <span class="status-label">{{ experiment.status.label }} {{ experiment.status.icon | safe }}</span>
+    </div>
+</div>
+{% endfor %}
+{{ spinner(id="experiments-feed-indicator") }}

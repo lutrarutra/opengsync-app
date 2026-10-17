@@ -1,0 +1,102 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+{% from 'components/spinner.jinja2' import spinner %}
+
+{% set project_id = form.workflow.metadata.get("project_id") %}
+<div id="library-annotation-workflow-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Sample Annotation</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
+                aria-controls="form-tab-spreadsheet" aria-selected="true">
+                Sheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-help" type="button" role="tab"
+                aria-controls="form-tab-help" aria-selected="false">
+                Help</button>
+            </li>
+            {% if project_id %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-project-samples" type="button" role="tab"
+                aria-controls="form-tab-project-samples" aria-selected="false">
+                Project Samples</button>
+            </li>
+            {% endif %}
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
+                {{ form.spreadsheet.render(target_element_id="library-annotation-workflow-container", submit_btn_id="parse-spreadsheet-btn") }}
+                
+            </div>
+            <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ul>
+                        <li>Add one row per sample. Copy-paste from Excel or another spreadsheet works.</li>
+                        {% if project_id %}
+                        <li>To reuse samples of the project, start typing a sample name and pick it from the list, or copy the names from the <b>Project Samples</b> tab.</li>
+                        <li>A name that is not a sample of the project creates a new sample. The list shows it as <i>Create new</i> and the cell marks it as <i>new</i>.</li>
+                        {% else %}
+                        <li>The project is new, so every sample in the spreadsheet is a new sample.</li>
+                        {% endif %}
+                    </ul>
+                    <h5>Columns</h5>
+                    <ul>
+                        <li>
+                            <b>Sample Name</b> <span class="desc">required</span>
+                            <ul>
+                                <li>The name of the biological sample, e.g. the tissue, cell line or condition with a replicate number.</li>
+                                <li>At least 4 characters: letters, numbers and underscores. Other characters, e.g. spaces, are replaced with underscores.</li>
+                                <li>Each sample appears only once.</li>
+                                {% if project_id %}
+                                <li>Rejected samples of the project cannot be reused, please give the sample another name.</li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        <li>
+                            <b>Organism</b> <span class="desc">required</span>
+                            <ul>
+                                <li>The organism the sample comes from. Its reference genome is used for the analysis.</li>
+                                <li>Select <i>Custom</i> if the organism is not listed.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <h5>Example</h5>
+                </div>
+                {% if example_spreadsheet is defined %}{{ example_spreadsheet.render(height="220px") }}{% endif %}
+            </div>
+            {% if project_id %}
+            <div class="tab-pane fade" id ="form-tab-project-samples" role="tabpanel" tabindex="2">
+                <div hx-get="{{ url_for('render_project_sample_attribute_spreadsheet', project_id=project_id) }}" hx-swap="outerHTML" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#library-annotation-workflow-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

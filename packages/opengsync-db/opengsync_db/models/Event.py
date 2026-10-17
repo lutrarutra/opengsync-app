@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from ..categories import EventType
+from ..core.EnumColumn import EnumColumn
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -19,17 +20,13 @@ class Event(Base):
     title: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     note: Mapped[Optional[str]] = mapped_column(sa.String(512), nullable=True)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
-    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    type: Mapped[EventType] = mapped_column(EnumColumn[EventType](EventType), nullable=False, name="type_id", key="type")
 
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", lazy="select")
  
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest")
     
-    @property
-    def type(self) -> EventType:
-        return EventType.get(self.type_id)
-
     @property
     def timestamp(self) -> datetime:
         return localize(self.timestamp_utc)

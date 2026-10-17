@@ -1,4 +1,5 @@
 from flask import Response
+from opengsync_db import queries as Q
 
 from opengsync_db import models
 
@@ -47,7 +48,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
                 except ValueError:
                     self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                     continue
-                if (library := db.libraries.get(_id)) is None:
+                if (library := db.session.first(Q.library.select(id=_id))) is None:
                     self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                 elif library.name != row["library_name"]:
                     self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))

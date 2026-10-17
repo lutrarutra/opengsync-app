@@ -1,0 +1,34 @@
+{# SearchableInputField (server/components/inputs/searchable.py), driven by static/js/search-select.js #}
+<div class="form-group {{ container_class }} {% if field.hidden %}d-none{% endif %}">
+    <div class="search-select{% if field.read_only %} read-only{% endif %}{% if field.value %} has-value{% endif %}{% if field.is_new %} is-new{% endif %}"
+        id="{{ field.id }}-container" data-search-select data-url="{{ field.url() }}"
+        {% if field.allow_new %}data-allow-new data-new-label="{{ field.new_label }}"{% endif %}>
+        {% if not hide_label %}
+        <a>{{ field.label }}</a>
+        {% endif %}
+        <div class="search-select-field">
+            <div class="search-select-control form-control{% if field.errors %} is-invalid{% endif %}">
+                <span class="search-select-badge" title="{% if field.is_new %}New{% else %}ID{% endif %}">{{ field.value or "—" }}</span>
+                <input type="text" class="search-select-input" id="{{ field.id }}-input"
+                    role="combobox" aria-label="{{ field.label }}" aria-autocomplete="list" aria-expanded="false"
+                    aria-controls="{{ field.id }}-listbox" autocomplete="off" spellcheck="false" value="{{ field.display_text }}"
+                    placeholder="{{ field.placeholder or ('Search or type a new name…' if field.allow_new else 'Search…') }}"
+                    {% if field.read_only %}readonly tabindex="-1"{% endif %}>
+                {% if not field.read_only %}
+                <button type="button" class="search-select-clear" aria-label="Clear" tabindex="-1"><i class="bi bi-x-lg"></i></button>
+                <span class="search-select-caret" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+                {% endif %}
+            </div>
+            <ul class="search-select-list minimal-scrollbar" id="{{ field.id }}-listbox" role="listbox" hidden></ul>
+        </div>
+        <input type="hidden" class="search-select-value" id="{{ field.id }}" name="{{ field.name }}" value="{{ field.value }}">
+        <input type="hidden" class="search-select-text" name="{{ field.text_name }}" value="{{ field.display_text }}">
+    </div>
+    {% if not hide_errors %}
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

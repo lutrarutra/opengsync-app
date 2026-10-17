@@ -1,0 +1,145 @@
+{# where this form submits, read by the chat widget for context #}
+<span hidden data-submit-url="{{ form.post_url }}"></span>
+<div id="share_project_data-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Share Project</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body tab-body" id="share_project_data-form">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#share_project_data-form-tab"
+                    type="button" role="tab" aria-controls="share_project_data-form-tab" aria-selected="true">
+                    Form
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#share_project_data-paths-tab"
+                    type="button" role="tab" aria-controls="share_project_data-paths-tab" aria-selected="true">
+                    Paths {{ tab_count(form.paths | length) }}
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content ba">
+            <div class="tab-pane fade show active" id="share_project_data-form-tab" role="tabpanel" tabindex="0">
+                <div class="row pb-2 pt-3">
+                    <div style="display: flex; gap: 10px;" class="col-6">
+                        {{ form.send_to_owner.render() }} {{ project.owner.email }}
+                    </div>
+                    {% if current_user.is_insider %}
+                    {{ form.anonymous_send.render("col-3") }}
+                    {{ form.internal_share.render("col-3") }}
+                    {% endif %}
+                </div>
+                {% if current_user.is_insider %}
+                <div class="pb-3">
+                    {{ form.mark_project_delivered.render("col-6") }}
+                </div>
+                {% endif %}
+                <div class="row">
+                    {{ form.time_valid_min.render("col-6") }}
+                    {{ form.custom_email.render("col-6") }}
+                </div>
+
+                <div class="pt-1">
+                    <div class="invalid-feedback-container">
+                        {% for error in form.errors.get(None, []) %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <ul class="nav nav-tabs page-tabs" role="tablist">
+                        {% for seq_request in project.seq_requests %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab"
+                            data-bs-target="#request-{{ seq_request.id }}-tab" type="button" role="tab"
+                            aria-controls="request-{{ seq_request.id }}-tab" aria-selected="true">
+                            BSR_{{ "%04d" % seq_request.id }}</button>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="tab-content pt-3">
+                        {% for seq_request in project.seq_requests %}
+                        {% set is_latest_seq_request = loop.first %}
+                        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="request-{{ seq_request.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Email</th>
+                                        <th scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for link in seq_request.delivery_email_links %}
+                                    <tr class="recipient-row{% if is_latest_seq_request and link.status == C.DeliveryStatus.PENDING and not form.errors %} selected{% endif %}" data-email="{{ link.email }}">
+                                        <th scope="row">{{ link.email }}</th>
+                                        <th>{{ link.status.display_name }}</th>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="share_project_data-paths-tab" role="tabpanel" tabindex="1">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-5">Path</th>
+                            <th scope="col" class="col-5">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data_path in form.data_paths %}
+                        <tr>
+                            <th scope="row">{{ data_path.id }}</th>
+                            <td>{{ data_path.path }}</td>
+                            <td>{{ data_path.type }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success" id="submit-select_users-form-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+
+        $("#submit-select_users-form-btn").off("click").on("click", function() {
+            const selected_recipient_emails = [];
+            $(".recipient-row.selected").each(function() {
+                selected_recipient_emails.push($(this).data("email"));
+            });
+
+            htmx.ajax("POST", "{{ form.post_url | safe }}", {
+                target: "#share_project_data-form-container",
+                swap: "outerHTML",
+                values: {
+                    csrf_token: "{{ form.csrf_token_value }}",
+                    recipients: JSON.stringify(selected_recipient_emails),
+                    anonymous_send: $("#anonymous_send").is(":checked"),
+                    send_to_owner: $("#send_to_owner").is(":checked"),
+                    time_valid_min: parseInt($("#time_valid_min").val()),
+                    internal_share: $("#internal_share").is(":checked"),
+                    custom_email: $("#custom_email").val(),
+                    mark_project_delivered: $("#mark_project_delivered").is(":checked"),
+                },
+            });
+            disable_button($("#submit-select_users-form-btn"));
+        });
+
+        $(".recipient-row").off("click").on("click", function() {
+            var email = $(this).data("email");
+            $(this).toggleClass("selected");
+        });
+    </script>
+</div>

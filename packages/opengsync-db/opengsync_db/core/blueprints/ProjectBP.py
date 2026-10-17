@@ -62,10 +62,10 @@ class ProjectBP(DBBlueprint):
             )
 
         if status is not None:
-            query = query.where(models.Project.status_id == status.id)
+            query = query.where(models.Project.status == status)
 
         if status_in is not None:
-            query = query.where(models.Project.status_id.in_([s.id for s in status_in]))
+            query = query.where(models.Project.status.in_(status_in))
 
         if library_types_in is not None:
             query = query.where(
@@ -73,7 +73,7 @@ class ProjectBP(DBBlueprint):
                     (models.Sample.project_id == models.Project.id) &
                     (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
                     (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                    (models.Library.type_id.in_([lt.id for lt in library_types_in]))
+                    (models.Library.type.in_(library_types_in))
                 )
             )
 
@@ -93,7 +93,7 @@ class ProjectBP(DBBlueprint):
     ) -> models.Project:
         if group_id is not None:
             if self.db.session.get(models.Group, group_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
+                raise exceptions.NotFoundException(f"Group with id {group_id} does not exist")
 
         project = models.Project(
             identifier=identifier,
@@ -101,7 +101,7 @@ class ProjectBP(DBBlueprint):
             description=description.strip(),
             owner_id=owner_id,
             group_id=group_id,
-            status_id=status.id,
+            status=status,
         )
 
         self.db.session.add(project)
@@ -207,7 +207,7 @@ class ProjectBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, project_id: int, flush: bool = True):
         if (project := self.db.session.get(models.Project, project_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
+            raise exceptions.NotFoundException(f"Project with id {project_id} does not exist")
 
         self.db.session.delete(project)
 
@@ -222,9 +222,9 @@ class ProjectBP(DBBlueprint):
     def get_access_type(self, project: models.Project, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
-        if user.is_admin():
+        if user.is_admin:
             return AccessType.ADMIN
-        if user.is_insider():
+        if user.is_insider:
             return AccessType.INSIDER
         if project.owner_id == user.id:
             return AccessType.OWNER
@@ -330,6 +330,6 @@ class ProjectBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int | str) -> models.Project:
         if (project := self.get(id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Project with identifier '{id}' does not exist")
+            raise exceptions.NotFoundException(f"Project with identifier '{id}' does not exist")
         return project
     

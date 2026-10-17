@@ -1,0 +1,60 @@
+{% from "components/legends.jinja2" import index_badge_legend %}
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+
+<div id="experiment-library-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("experiment-library-table", table, "id") }}
+                {{ table_col("experiment-library-table", table, "name") }}
+                {{ table_col("experiment-library-table", table, "type") }}
+                {{ table_col("experiment-library-table", table, "pool_name") }}
+                <th scope="col" class="col-4">
+                    Index
+                    <a type="button" role="button" onclick="toggle_index_display()">
+                        <i class="bi bi-upc-scan"></i>
+                    </a>
+                    {{ index_badge_legend() }}
+                </th>
+
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr>
+                <th scope="row">{{ library.id }}</th>
+                <td class="library-name-cell cm-callback" id="library-name-cell-{{library.id}}"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                    ])
+                }}>
+                    <a href="{{ url_for('library_page', library_id=library.id, from='experiment@' + experiment_id | string) }}">
+                    {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
+                    </a>
+                </td>
+                <td>
+                    <span {{ tooltip(library.type.label) }}>
+                        {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
+                    </span>
+                </td>
+                <td>{% if library.pool_id %}<a href="{{ url_for('pool_page', pool_id=library.pool_id, from='experiment@' + experiment_id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
+                <td class="x-scroll-cell">
+                    {{ library_index_cell(library) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("experiment-library-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#experiment-library-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

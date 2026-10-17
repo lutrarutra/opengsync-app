@@ -12,8 +12,8 @@ class DataDeliveryModeEnum(DBEnum):
 class DataDeliveryMode(ExtendedEnum):
     label: str
     description: str
-    CUSTOM = DataDeliveryModeEnum(0, "Custom", "I am not sure...")
-    READS_ONLY = DataDeliveryModeEnum(1, "Reads only", "We will provide you with the raw reads (fastq/bam-files).")
+    CUSTOM = DataDeliveryModeEnum(0, "Default", "Depending on the technology, this will usually include some processing of the data and QC.")
+    READS_ONLY = DataDeliveryModeEnum(1, "Reads only", "We will provide you with the raw reads (fastq or unaligned bam-files).")
     ALIGNMENT = DataDeliveryModeEnum(2, "Alignment", "In addition to raw reads, we will provide you with the aligned reads (bam-files).")
     CELLRANGER_ANALYSIS = DataDeliveryModeEnum(3, "CellRanger analysis", "In addition to raw reads, we will provide you with the CellRanger analysis output. 10X Only.")
     DOWNSTREAM = DataDeliveryModeEnum(4, "Downstream analysis", "We will provide you with the results of the downstream analysis. Pick this option only if we have agreed on a collaboration project beforehand.")

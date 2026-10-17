@@ -1,9 +1,11 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
+from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.categories import AttributeType
 
 from .. import logger, db
@@ -26,7 +28,10 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         self.project = project
 
         self._context["project"] = project
-        df = db.pd.get_project_samples(self.project.id).sort_values("sample_id").reset_index(drop=True)
+        df = T.project_samples(
+            db.session.get_pandas(Q.pd.project_samples(self.project.id), limit=None),
+            pivot=True,
+        ).sort_values("sample_id").reset_index(drop=True)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
 
@@ -69,7 +74,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             return False
             
         for idx, row in df.iterrows():
-            if (sample := db.samples.get(row["sample_id"])) is None:
+            if (sample := db.session.first(Q.sample.select(id=row["sample_id"]))) is None:
                 self.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['id']} does not exist"))
                 continue
             
@@ -92,22 +97,22 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
 
-        for idx, row in self.df.iterrows():
-            sample_id = row["sample_id"]
+        for _, row in self.df.iterrows():
+            sample = db.session.get_one(Q.sample.select(id=row["sample_id"]))
             for attribute_name in self.df.columns:
                 if attribute_name in ["sample_id", "sample_name"]:
                     continue
                 attribute_type = AttributeType.get_attribute_by_label(attribute_name)
                 if pd.isna(val := row[attribute_name]):
-                    if (_ := db.samples.get_attribute(sample_id=row["sample_id"], name=attribute_name)) is not None:
-                        db.samples.delete_attribute(sample_id=sample_id, name=attribute_name)
+                    if (_ := sample.get_attribute(attribute_name)) is not None:
+                        sample.delete_sample_attribute(attribute_name)
                 else:
-                    db.samples.set_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
+                    sample.set_attribute(attribute_name, val, attribute_type)
 
         for label, col in self.spreadsheet.columns.items():
             if label not in self.df.columns and col.can_be_deleted:
                 for sample in self.project.samples:
-                    db.samples.delete_attribute(sample_id=sample.id, name=label)
+                    sample.delete_sample_attribute(label)
 
         flash("Changes Saved!", "success")
-        return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))
+        return make_response(redirect=url_for("project_page", project_id=self.project.id, tab="project-attributes-tab"))
