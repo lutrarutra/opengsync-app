@@ -58,13 +58,25 @@ docker compose -f compose.yaml ps
 
 ## Deploying Updates
 
-Images are built and published to `ghcr.io/lutrarutra/opengsync-app/*` by the GitHub Actions workflow (`.github/workflows/images.yml`) on every push to `main` or `fastapi`.
+Images are built and published to `ghcr.io/lutrarutra/opengsync-app/*` by the GitHub Actions workflow (`.github/workflows/images.yml`):
 
-To deploy the latest images on production:
+| Event | Tests | Images |
+|---|---|---|
+| Pull request into `main` | When backend inputs change | Changed images are built, not pushed |
+| Push to `main` | When backend inputs change | Changed images pushed as `:main` and `:sha-<short>` |
+| Tag `vX.Y.Z` | Always | All images pushed as `:vX.Y.Z` and `:latest`, only if tests pass |
+
+Production pulls `:latest` (or `${APP_VERSION}`), so it only changes when a release tag is pushed.
+
+Image tags match git tags (`v2.0.0`). To deploy a release on production, check out its tag; `make` sets `APP_VERSION` to it, so the compose file and the images come from the same release:
 
 ```bash
+git fetch --tags
+git checkout v2.0.0
 make deploy
 ```
+
+Off a tag, `APP_VERSION` from `.env` applies, falling back to `latest` (the newest release). `make deploy APP_VERSION=v2.0.1` overrides both. Rolling back means checking out the older tag and deploying again; database migrations are not rolled back automatically (see `make prod-downgrade`).
 
 This runs `docker compose pull` followed by `docker compose up -d`, which restarts only services whose images changed.
 

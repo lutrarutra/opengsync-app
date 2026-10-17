@@ -8,6 +8,15 @@ help:
 .PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-logs prod-logs-all prod-stop deploy test pentest gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
+
+# Image tag compose.yaml pulls (${APP_VERSION}). Defaults to the release tag of the
+# checked-out commit, so `git checkout v2.0.0 && make deploy` runs the v2.0.0 images.
+# Off a tag it is left unset, so .env's APP_VERSION or compose's `latest` applies.
+# Override with `make deploy APP_VERSION=v2.0.1`.
+APP_VERSION ?= $(shell git describe --tags --exact-match --match 'v*' 2>/dev/null)
+ifneq ($(APP_VERSION),)
+export APP_VERSION
+endif
 OVERRIDE_FILE := $(wildcard compose.override.yaml)
 
 OVERRIDE_FILE ?= compose.override.yaml

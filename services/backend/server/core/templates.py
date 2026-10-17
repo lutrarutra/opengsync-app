@@ -10,8 +10,9 @@ from fastapi.routing import iter_route_contexts
 from fastapi.templating import Jinja2Templates
 from starlette.datastructures import URL
 
-from opengsync_db import categories as C, models, units
+from opengsync_db import categories as C, models, units, __version__ as db_version
 
+from .. import __version__
 from . import context
 from .search import SEARCH_KINDS
 from .config import settings
@@ -152,9 +153,10 @@ def tab_count(count, total=None) -> Markup:
 j2.env.globals["tab_count"] = tab_count
 
 # ─── Globals ported from add_context ───
-j2.env.globals["app_version"] = "dev"
-j2.env.globals["api_version"] = "dev"
-j2.env.globals["db_version"] = "dev"
+j2.env.globals["app_version"] = __version__
+# The API is served by this backend, so it shares the app's version.
+j2.env.globals["api_version"] = __version__
+j2.env.globals["db_version"] = db_version
 j2.env.globals["debug"] = settings.ENVIRONMENT == "dev"
 
 # Categories — whole module injected so templates use C.EnumName

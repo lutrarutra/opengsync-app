@@ -22,6 +22,9 @@ RUN chmod 777 /app
 FROM base AS builder
 ARG VERSION=0.0.0
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION
+# The backend itself is not installed as a package (tool.uv.package = false),
+# so server.__version__ reads this instead of package metadata.
+ENV OPENGSYNC_VERSION=$VERSION
 COPY pyproject.toml uv.lock ./
 COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
 COPY packages/opengsync-api/pyproject.toml ./packages/opengsync-api/
