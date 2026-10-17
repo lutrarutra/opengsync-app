@@ -1,14 +1,13 @@
 name: Container images
 
 # PRs into main: run tests and build changed images, push nothing.
-# Push to main: test, then publish changed images as :main and :sha-<short>.
-# Tag v*.*.*: test, then publish every image as :<tag> and :latest.
-# Production deploys :latest, so only a release tag reaches it.
+# Tag v*.*.* (new or force-moved): test, then publish every image as :<tag>,
+# :latest and :sha-<short>. Pushes to main publish nothing; only a release
+# tag reaches production.
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
     tags: ["v*.*.*"]
 
 permissions:
@@ -53,9 +52,6 @@ jobs:
         if: github.ref_type != 'tag'
         id: filter
         with:
-          # On pushes, diff against the previous commit of the branch rather
-          # than the merge-base with the default branch. PRs use the PR's files.
-          base: ${{ github.ref }}
           filters: |
             backend:
               - "services/backend/**"
@@ -133,7 +129,6 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
-            type=ref,event=branch
             type=sha,prefix=sha-,format=short
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -178,7 +173,6 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
-            type=ref,event=branch
             type=sha,prefix=sha-,format=short
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -225,7 +219,6 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
-            type=ref,event=branch
             type=sha,prefix=sha-,format=short
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -268,7 +261,6 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
-            type=ref,event=branch
             type=sha,prefix=sha-,format=short
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -313,7 +305,6 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
-            type=ref,event=branch
             type=sha,prefix=sha-,format=short
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
