@@ -188,6 +188,7 @@ class ProjectForm(HTMXFlaskForm):
         self.project.description = self.description.data
         self.project.status = ProjectStatus.get(self.status.data)
         self.project.group_id = self.group.selected.data
+        self.project.owner_id = self.owner.selected.data
 
         db.session.save(self.project)
 
