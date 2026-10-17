@@ -1,9 +1,11 @@
 name: Container images
 
 # PRs into main: run tests and build changed images, push nothing.
-# Tag v*.*.* (new or force-moved): test, then publish every image as :<tag>,
-# :latest and :sha-<short>. Pushes to main publish nothing; only a release
-# tag reaches production.
+# Tag v*.*.* (new or force-moved): compare against the previous release tag.
+# Changed images are rebuilt and published as :<tag>, :latest and :sha-<short>;
+# unchanged images are re-tagged from the previous release without a rebuild,
+# so every image exists under every release tag. Tests run only when code
+# changed. Pushes to main publish nothing; only a release tag reaches production.
 on:
   pull_request:
     branches: [main]
@@ -23,12 +25,16 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    # On a tag with no earlier release tag to compare against, everything counts
+    # as changed.
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      worker: ${{ steps.filter.outputs.worker }}
-      postgres: ${{ steps.filter.outputs.postgres }}
-      migrator: ${{ steps.filter.outputs.migrator }}
-      nginx: ${{ steps.filter.outputs.nginx }}
+      tests: ${{ steps.filter.outputs.tests == 'true' || steps.previous.outputs.full == 'true' }}
+      backend: ${{ steps.filter.outputs.backend == 'true' || steps.previous.outputs.full == 'true' }}
+      worker: ${{ steps.filter.outputs.worker == 'true' || steps.previous.outputs.full == 'true' }}
+      postgres: ${{ steps.filter.outputs.postgres == 'true' || steps.previous.outputs.full == 'true' }}
+      migrator: ${{ steps.filter.outputs.migrator == 'true' || steps.previous.outputs.full == 'true' }}
+      nginx: ${{ steps.filter.outputs.nginx == 'true' || steps.previous.outputs.full == 'true' }}
+      previous: ${{ steps.previous.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v5
@@ -46,27 +52,52 @@ jobs:
             version="${desc#v}"
           fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
-      # Releases rebuild everything, so tag pushes skip the filter and every
-      # output is empty; the jobs below check github.ref_type instead.
+      # The nearest earlier release tag on this commit's history. A force-moved
+      # tag is excluded by name, so it compares against the release before it.
+      - name: Previous release
+        id: previous
+        if: github.ref_type == 'tag'
+        run: |
+          prev=$(git describe --tags --abbrev=0 --match 'v*.*.*' --exclude "$GITHUB_REF_NAME" HEAD 2>/dev/null || true)
+          echo "tag=${prev}" >> "$GITHUB_OUTPUT"
+          if [ -n "$prev" ]; then
+            echo "sha=$(git rev-list -n 1 "$prev")" >> "$GITHUB_OUTPUT"
+          else
+            echo "full=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Comparing ${GITHUB_REF_NAME} against: ${prev:-<none, building everything>}"
+      # PRs diff against the PR base (base/ref are ignored for pull_request);
+      # tags diff the previous release's commit against this one, both as SHAs
+      # so the action runs a plain `git diff` between them.
+      # Each image filter must cover every file its Dockerfile stage copies in:
+      # an image whose filter misses a change is re-tagged, not rebuilt.
       - uses: dorny/paths-filter@v3
-        if: github.ref_type != 'tag'
+        if: github.event_name == 'pull_request' || steps.previous.outputs.tag != ''
         id: filter
         with:
+          base: ${{ steps.previous.outputs.sha }}
+          ref: ${{ github.sha }}
           filters: |
-            backend:
+            tests:
               - "services/backend/**"
-              - "packages/opengsync-db/**"
-              - "packages/opengsync-worker/**"
+              - "packages/**"
               - "services/db/**"
               - "services/pytest/**"
               - "compose.test.yaml"
               - "uv.lock"
               - "pyproject.toml"
               - ".github/workflows/images.yml"
+            backend:
+              - "services/backend/**"
+              - "packages/**"
+              - "docs/*.md"
+              - "uv.lock"
+              - "pyproject.toml"
+              - ".github/workflows/images.yml"
             worker:
               - "services/backend/Dockerfile"
-              - "packages/opengsync-worker/**"
-              - "packages/opengsync-db/**"
+              - "services/backend/pyproject.toml"
+              - "packages/**"
               - "uv.lock"
               - "pyproject.toml"
               - ".github/workflows/images.yml"
@@ -88,10 +119,10 @@ jobs:
               - "services/backend/static/**"
               - ".github/workflows/images.yml"
 
-  # Runs whenever backend inputs change, and always for a release tag.
+  # Runs when code changed since the PR base or the previous release.
   test:
     needs: changes
-    if: github.ref_type == 'tag' || needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -101,14 +132,16 @@ jobs:
         if: always()
         run: docker compose -f compose.test.yaml down -v
 
-  # Every image job needs a passing (or, when backend inputs didn't change,
-  # skipped) test run, so a failing release tag publishes nothing and :latest
-  # never moves for some images but not others. PRs build without pushing.
+  # Every image job needs a passing (or, when no code changed, skipped) test
+  # run, so a failing release tag publishes nothing and :latest never moves for
+  # some images but not others. PRs build without pushing.
   publish-backend:
     needs: [changes, test]
     if: >-
       !cancelled()
-      && needs.test.result == 'success'
+      && needs.changes.result == 'success'
+      && (needs.test.result == 'success' || needs.test.result == 'skipped')
+      && needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -152,7 +185,7 @@ jobs:
       !cancelled()
       && needs.changes.result == 'success'
       && (needs.test.result == 'success' || needs.test.result == 'skipped')
-      && (github.ref_type == 'tag' || needs.changes.outputs.worker == 'true')
+      && needs.changes.outputs.worker == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -198,7 +231,7 @@ jobs:
       !cancelled()
       && needs.changes.result == 'success'
       && (needs.test.result == 'success' || needs.test.result == 'skipped')
-      && (github.ref_type == 'tag' || needs.changes.outputs.postgres == 'true')
+      && needs.changes.outputs.postgres == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -240,7 +273,7 @@ jobs:
       !cancelled()
       && needs.changes.result == 'success'
       && (needs.test.result == 'success' || needs.test.result == 'skipped')
-      && (github.ref_type == 'tag' || needs.changes.outputs.nginx == 'true')
+      && needs.changes.outputs.nginx == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -275,16 +308,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Alembic migrator. Its filter is a subset of the backend filter, so the
-  # test suite always runs first; a bad migration is the one artifact that can
-  # damage data. Release tags rebuild it like every other image, so compose
-  # can pull migrator:${APP_VERSION} alongside the rest.
+  # Alembic migrator. Its filter is a subset of the tests filter, so the test
+  # suite always runs first; a bad migration is the one artifact that can
+  # damage data.
   publish-migrator:
     needs: [changes, test]
     if: >-
       !cancelled()
       && needs.test.result == 'success'
-      && (github.ref_type == 'tag' || needs.changes.outputs.migrator == 'true')
+      && needs.changes.outputs.migrator == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -321,3 +353,50 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VERSION=${{ needs.changes.outputs.version }}
+
+  # Points this release tag (and :latest) at the previous release's image for
+  # every image that did not change, so compose can pull all of them under
+  # ${APP_VERSION}. Runs last and only if nothing failed, so a broken release
+  # moves no tags. The re-tagged image still reports the version it was built
+  # as, which is the version of its code.
+  retag-unchanged:
+    needs: [changes, test, publish-backend, publish-worker, publish-postgres, publish-nginx, publish-migrator]
+    if: >-
+      !cancelled()
+      && github.event_name == 'push'
+      && needs.changes.outputs.previous != ''
+      && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Re-tag unchanged images
+        env:
+          PREVIOUS: ${{ needs.changes.outputs.previous }}
+          CHANGED: >-
+            backend=${{ needs.changes.outputs.backend }}
+            worker=${{ needs.changes.outputs.worker }}
+            postgres=${{ needs.changes.outputs.postgres }}
+            nginx=${{ needs.changes.outputs.nginx }}
+            migrator=${{ needs.changes.outputs.migrator }}
+        run: |
+          for entry in $CHANGED; do
+            name=${entry%%=*}
+            if [ "${entry#*=}" = "true" ]; then
+              echo "${name}: rebuilt"
+              continue
+            fi
+            image="ghcr.io/${{ github.repository }}/${name}"
+            echo "${name}: unchanged, ${image}:${PREVIOUS} -> ${GITHUB_REF_NAME}, latest"
+            docker buildx imagetools create \
+              --tag "${image}:${GITHUB_REF_NAME}" \
+              --tag "${image}:latest" \
+              "${image}:${PREVIOUS}"
+          done

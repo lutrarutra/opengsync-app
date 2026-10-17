@@ -64,7 +64,9 @@ Images are built and published to `ghcr.io/lutrarutra/opengsync-app/*` by the Gi
 |---|---|---|
 | Pull request into `main` | When backend inputs change | Changed images are built, not pushed |
 | Push to `main` | — | — |
-| Tag `vX.Y.Z` (new or force-moved) | Always | All images pushed as `:vX.Y.Z`, `:latest` and `:sha-<short>`, only if tests pass |
+| Tag `vX.Y.Z` (new or force-moved) | When code changed since the previous release tag | Changed images rebuilt and pushed as `:vX.Y.Z`, `:latest` and `:sha-<short>`; unchanged images re-tagged from the previous release. Nothing moves if anything fails |
+
+Every image therefore exists under every release tag. A re-tagged image still reports the version it was built as (the help page of a `v2.0.2` release whose backend did not change shows `2.0.1`).
 
 Production pulls `:latest` (or `${APP_VERSION}`), so it only changes when a release tag is pushed.
 
