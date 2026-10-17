@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN chmod 777 /app
+# Mount point of the `uploads` named volume; a fresh volume copies this mode, so the
+# app/worker can write to it as any PUID:PGID.
+RUN mkdir -p /uploads && chmod 777 /uploads
 
 # --- BUILDER: Install dependencies ONLY ---
 FROM base AS builder

@@ -27,7 +27,7 @@ services:
         volumes:
             - compiled_css:/static/style/compiled:ro
             - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
-            - ${UPLOADS_DIR}:/uploads
+            - uploads:/uploads
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
         environment:
@@ -80,7 +80,7 @@ services:
             - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder:ro
             - ${LOG_DIR}/celery-worker:/logs
-            - ${UPLOADS_DIR}:/uploads
+            - uploads:/uploads
         depends_on:
             opengsync-celery-beat:
                 condition: service_started
@@ -143,7 +143,6 @@ services:
         volumes:
             - compiled_css:/static/style/compiled:ro
             - ${MEDIA_DIR}:/media:ro
-            - ${UPLOADS_DIR}:/uploads:ro
             - ${NGINX_CONFIG_DIR}:/etc/nginx/conf.d:ro
         depends_on:
             opengsync-app:
@@ -223,6 +222,7 @@ services:
 
 volumes:
     compiled_css:
+    uploads:
     pgadmin_data:
     redis_data:
     postgres_data:

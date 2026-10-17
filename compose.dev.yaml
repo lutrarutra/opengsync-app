@@ -36,7 +36,7 @@ services:
             - ./services/backend/static/style/email.css:/static/style/email.css:ro
             - ./services/backend/templates:/templates:ro
             - ./docs:/app/docs:ro
-            - ${UPLOADS_DIR}:/uploads
+            - uploads:/uploads
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
             - ./share:/share:ro
@@ -93,7 +93,7 @@ services:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${LOG_DIR}/celery-worker:/logs
-            - ${UPLOADS_DIR}:/uploads
+            - uploads:/uploads
         depends_on:
             opengsync-celery-beat:
                 condition: service_started
@@ -203,6 +203,7 @@ services:
 
 volumes:
     compiled_css:
+    uploads:
     pgadmin_data:
     postgres_data:
         external: true

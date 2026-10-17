@@ -53,7 +53,6 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 ## Directories
 1. `templates` - Templates for configuration files `tracked ✅`
 1. `media` - long term storage for uploaded media (pdf/excel/images/etc..) files
-1. `uploads` - short term storage for temporary files
 1. `logs` - Log files
 1. `backup` - Backup of database
 1. `cert` - SSL certificates
@@ -77,7 +76,6 @@ sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/postgres
 sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/archive && sudo chmod -R 750 db/archive
 
 sudo mkdir -p ${MEDIA_DIR} && sudo chown -R ${PUID}:${PGID} ${MEDIA_DIR} && sudo chmod -R 700 ${MEDIA_DIR} 
-sudo mkdir -p ${UPLOADS_DIR} && sudo chown -R ${PUID}:${PGID} ${UPLOADS_DIR} && sudo chmod -R 700 ${UPLOADS_DIR}
 sudo mkdir -p ${LOG_DIR} && sudo chown -R ${PUID}:${PGID} ${LOG_DIR} && sudo chmod -R 700 ${LOG_DIR}
 
 sudo mkdir -p ${LOG_DIR}/{celery-worker,celery-beat,backup,opengsync}
