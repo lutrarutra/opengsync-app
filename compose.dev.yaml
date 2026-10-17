@@ -27,7 +27,6 @@ services:
             dockerfile: ./services/backend/Dockerfile.dev
             target: opengsync-app
         volumes:
-            - ./packages/opengsync-server:/app/packages/opengsync-server
             - ./packages/opengsync-db:/app/packages/opengsync-db
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ./services/backend:/app/services/backend:ro

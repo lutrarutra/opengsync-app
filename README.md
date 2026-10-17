@@ -136,9 +136,9 @@ pg_basebackup \
 
 - or using pip:
     ```bash
-        pip install -e services/opengsync-app/opengsync-db
-        pip install -e services/opengsync-app/opengsync-server
-        pip install -e services/opengsync-app/opengsync-api
+        pip install -e packages/opengsync-db
+        pip install -e packages/opengsync-api
+        pip install -e packages/opengsync-worker
         mkdir -p db
         mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
     ```
