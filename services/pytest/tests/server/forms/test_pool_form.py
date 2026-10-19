@@ -675,7 +675,7 @@ def test_clone_copies_libraries_with_samples_and_indices(client: TestClient, ses
     [cloned_library] = cloned.libraries
     assert cloned_library.id != library.id
     assert cloned_library.original_library_id == library.id
-    assert cloned_library.clone_number == library.clone_number + 1
+    assert cloned_library.clone_number == 1  # first clone of the original
     assert cloned_library.status == C.LibraryStatus.POOLED
     assert [link.sample_id for link in cloned_library.sample_links] == [sample.id]
     assert [(i.sequence_i7, i.sequence_i5) for i in cloned_library.indices] == [("ACGTACGT", "TTGGCCAA")]
@@ -693,6 +693,102 @@ def test_clone_number_counts_the_originals_clones(client: TestClient, session: S
     second = _pool(session, "Clone_Two")
     assert (first.clone_number, first.original_pool_id) == (1, pool.id)
     assert (second.clone_number, second.original_pool_id) == (2, pool.id)  # a clone of a clone points to the original
+
+
+def _library_clones(session: SyncSession, library: models.Library) -> list[models.Library]:
+    session.expire_all()
+    return sorted(
+        session.get_all(Q.library.select().where(models.Library.original_library_id == library.id), limit=None),
+        key=lambda clone: clone.clone_number,
+    )
+
+
+def test_cloning_a_pool_twice_numbers_its_library_clones(client: TestClient, session: SyncSession, user, insider_token):
+    pool, library, _ = _pool_with_library(session, user)
+
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Lib_Clone_One"), token=insider_token)
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Lib_Clone_Two"), token=insider_token)
+
+    [first], [second] = _pool(session, "Lib_Clone_One").libraries, _pool(session, "Lib_Clone_Two").libraries
+    assert [(clone.id, clone.clone_number) for clone in _library_clones(session, library)] == [(first.id, 1), (second.id, 2)]
+
+
+def test_cloning_a_cloned_pool_links_libraries_to_the_original(client: TestClient, session: SyncSession, user, insider_token):
+    pool, library, _ = _pool_with_library(session, user)
+
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Lineage_One"), token=insider_token)
+    first = _pool(session, "Lineage_One")
+    post_form(client, _clone_path(first.id), _clone_payload(pool, "Lineage_Two"), token=insider_token)
+
+    [second_library] = _pool(session, "Lineage_Two").libraries
+    assert (second_library.original_library_id, second_library.clone_number) == (library.id, 2)
+    assert [clone.pool_id for clone in _library_clones(session, library)] == [first.id, _pool(session, "Lineage_Two").id]
+
+
+def test_clone_copies_all_barcodes_of_a_library(client: TestClient, session: SyncSession, user, insider_token):
+    from opengsync_db import actions
+    from ...db.create_units import create_index_kit
+
+    pool, library, _ = _pool_with_library(session, user)
+    kit_i7, kit_i5 = create_index_kit(session), create_index_kit(session)
+    actions.add_index_to_library(
+        session, library_id=library.id, index_kit_i7_id=kit_i7.id, name_i7="SI-A1", sequence_i7="GGGGCCCC",
+        index_kit_i5_id=kit_i5.id, name_i5="SI-B1", sequence_i5="AAAATTTT", orientation=C.BarcodeOrientation.REVERSE_COMPLEMENT,
+    )
+    _commit(session)
+
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Barcode_Clone"), token=insider_token)
+
+    def _barcodes(lib: models.Library) -> list[tuple]:
+        return sorted(
+            ((i.index_kit_i7_id, i.name_i7, i.sequence_i7, i.index_kit_i5_id, i.name_i5, i.sequence_i5, i.orientation) for i in lib.indices),
+            key=lambda barcode: barcode[2],
+        )
+
+    [cloned_library] = _pool(session, "Barcode_Clone").libraries
+    session.expire_all()
+    original = session.get_one(Q.library.select(id=library.id))
+    assert len(original.indices) == 2
+    assert _barcodes(cloned_library) == _barcodes(original)
+    assert {i.id for i in cloned_library.indices}.isdisjoint({i.id for i in original.indices})
+
+
+def test_clone_copies_features_and_sample_mux(client: TestClient, session: SyncSession, user, insider_token):
+    from opengsync_db import actions
+    from ...db.create_units import create_feature, create_project, create_sample
+
+    pool, library, sample = _pool_with_library(session, user)
+    second_sample = create_sample(session, user, create_project(session, user))
+    actions.link_sample_library(session, sample_id=second_sample.id, library_id=library.id, mux={"barcode": "BC002"})
+    feature = create_feature(session)
+    actions.link_feature_library(session, feature_id=feature.id, library_id=library.id)
+    _commit(session)
+
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Feature_Clone"), token=insider_token)
+
+    [cloned_library] = _pool(session, "Feature_Clone").libraries
+    assert [f.id for f in cloned_library.features] == [feature.id]
+    assert sorted((link.sample_id, link.mux) for link in cloned_library.sample_links) == sorted(
+        [(sample.id, None), (second_sample.id, {"barcode": "BC002"})]
+    )
+
+
+def test_clone_keeps_each_librarys_own_request(client: TestClient, session: SyncSession, user, insider_token):
+    from ...db.create_units import create_library
+
+    pool, library, _ = _pool_with_library(session, user)
+    other_request = create_seq_request(session, user)
+    other_library = create_library(session, user, other_request)
+    other_library.pool_id = pool.id
+    session.save(other_library, flush=True)
+    _commit(session)
+
+    post_form(client, _clone_path(pool.id), _clone_payload(pool, "Mixed_Request_Clone"), token=insider_token)
+
+    cloned = _pool(session, "Mixed_Request_Clone")
+    assert sorted((lib.original_library_id, lib.seq_request_id) for lib in cloned.libraries) == sorted(
+        [(library.id, library.seq_request_id), (other_library.id, other_request.id)]
+    )
 
 
 def test_clone_keeps_the_chosen_status(client: TestClient, session: SyncSession, user, insider_token):

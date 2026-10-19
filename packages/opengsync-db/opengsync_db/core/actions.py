@@ -118,6 +118,12 @@ def clone_library(
     if (library := session.get(models.Library, library_id)) is None:
         raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
 
+    original_library_id = library.original_library_id if library.original_library_id is not None else library.id
+    # Clones are numbered across the original's lineage: existing clones of the original + 1
+    clone_number = session.scalar(
+        sa.select(sa.func.count()).select_from(models.Library).where(models.Library.original_library_id == original_library_id)
+    ) + 1
+
     cloned_library = Q.library.create(
         name=library.name,
         sample_name=library.sample_name,
@@ -130,8 +136,8 @@ def clone_library(
         properties=library.properties,
         index_type=library.index_type,
         nuclei_isolation=library.nuclei_isolation,
-        clone_number=library.clone_number + 1,
-        original_library_id=library.original_library_id if library.original_library_id is not None else library.id,
+        clone_number=clone_number,
+        original_library_id=original_library_id,
         status=status
     )
     # The links below need the clone's id
@@ -301,6 +307,12 @@ def clone_pool(session: Session, pool_id: int, status: C.PoolStatus, seq_request
     if (pool := session.get(models.Pool, pool_id)) is None:
         raise exceptions.NotFoundException(f"Pool with id {pool_id} does not exist")
 
+    original_pool_id = pool.original_pool_id if pool.original_pool_id is not None else pool.id
+    # Clones are numbered across the original's lineage: existing clones of the original + 1
+    clone_number = session.scalar(
+        sa.select(sa.func.count()).select_from(models.Pool).where(models.Pool.original_pool_id == original_pool_id)
+    ) + 1
+
     cloned_pool = Q.pool.create(
         name=pool.name,
         owner_id=pool.owner_id,
@@ -311,9 +323,9 @@ def clone_pool(session: Session, pool_id: int, status: C.PoolStatus, seq_request
         contact_name=pool.contact.name,
         contact_phone=pool.contact.phone,
         pool_type=pool.type,
-        original_pool_id=pool.original_pool_id if pool.original_pool_id is not None else pool.id,
+        original_pool_id=original_pool_id,
         status=status,
-        clone_number=pool.clone_number + 1,
+        clone_number=clone_number,
     )
 
     cloned_pool.avg_fragment_size = pool.avg_fragment_size

@@ -1,7 +1,7 @@
 """ReseqAction: clone selected libraries of a request or lab prep for re-sequencing.
 
 As legacy ``reseq_workflow``: insider-only, started from a sequencing request (needs WRITE)
-or a lab prep. Each selected library is cloned (``clone_number + 1``, linked to the original)
+or a lab prep. Each selected library is cloned (numbered existing clones of the original + 1, linked to the original)
 with its samples and features; "Indexed" also copies its indices, "Raw" does not. Clones stay
 in the library's request. Redirects to the request / lab prep page.
 
@@ -128,6 +128,16 @@ def test_resequencing_twice_creates_two_clones(client: TestClient, setup: Setup,
     _submit(client, insider_token, [setup.a.id], seq_request_id=setup.seq_request.id)
 
     assert len(setup.clones(setup.a)) == 2
+
+
+def test_resequencing_the_original_twice_numbers_the_clones(client: TestClient, setup: Setup, insider_token: str):
+    """Like pool clones: numbered by the original's existing clones, not by the source's generation."""
+    _submit(client, insider_token, [setup.a.id], seq_request_id=setup.seq_request.id)
+    _submit(client, insider_token, [setup.a.id], seq_request_id=setup.seq_request.id)
+
+    clones = setup.clones(setup.a)
+    assert sorted(library.clone_number for library in clones) == [1, 2]
+    assert {library.original_library_id for library in clones} == {setup.a.id}
 
 
 def test_cloning_a_clone_links_to_the_original(client: TestClient, setup: Setup, insider_token: str):

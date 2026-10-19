@@ -1,6 +1,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/button.jinja2" import confirm_action_button, modal_button %}
+{% from "components/checklists/history.jinja2" import checklist_history_button, checklist_last_change %}
 {% from "components/legends.jinja2" import index_badge_legend %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
@@ -142,8 +143,8 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3"aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
-                <b>{% if lanes_assigned is none %}❗{% else %}🔘{% endif %} Check Barcode Clashes</b>
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+                <b>{% if barcode_clashes_checked is none %}❗{% elif barcode_clashes_checked %}✅{% else %}⚠️{% endif %} Check Barcode Clashes</b> {{ checklist_last_change(checklist_history.get("check_barcode_clashes", []), barcode_clashes_checked) }}
             </button>
         </h2>
         <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">

@@ -47,7 +47,7 @@
                 <ul>
                     <li>Required only when multiple samples are multiplexed into a library</li>
                     <li>Samples with the same Pool are combined into a single library.</li>
-                    <li>To fail samples, use the 'Reject Samples'-step. Rejected samples are not listed and stay in their current pool.</li>
+                    <li>To fail samples, use the 'Reject Samples'-step. Rejected samples are listed (marked with {{ C.SampleStatus.REJECTED.icon }}); leave them in their current pool.</li>
                 </ul>
             </div>
         </div>
@@ -73,7 +73,7 @@
                 <b>Notes:</b>
                 <ul>
                     <li>Optional; only for samples in multiplexed libraries.</li>
-                    <li>Rejected samples get status {{ C.SampleStatus.REJECTED.display_name }}, stay in their library and are ignored in the following steps.</li>
+                    <li>Rejected samples get status {{ C.SampleStatus.REJECTED.display_name }}, stay in their library and are ignored in the following steps (except 'Specify how Samples are Pooled', where they are listed).</li>
                     <li>Rejection applies to the sample everywhere it is used. Clear the <span class="code-highlight">x</span> to un-reject a sample.</li>
                     <li>If all samples of a library are rejected, fail the library with <span class="code-highlight">x</span> in the prep-table.</li>
                 </ul>

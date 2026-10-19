@@ -3,7 +3,7 @@
 import sqlalchemy as sa
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncSession, queries as Q, categories as C
+from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ..db.create_units import create_experiment, create_library, create_pool, create_seq_request
 from ._http import get, post_form, assert_htmx_redirect

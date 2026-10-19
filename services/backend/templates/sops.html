@@ -14,13 +14,15 @@
                 <ol>
                     <li>Open the pool page of the pool you want to re-sequence.</li>
                     <li>Click the "Clone Pool"-button on top right.</li>
-                    <li>Give the new pool a name, e.g. add suffix '_re' and fill other fields as required. -> complete</li>
+                    <li>Give the new pool a name, e.g. add suffix '_re' (the name is not changed automatically), and fill other fields as required. -> complete</li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
-                    <li>The libraries associated with the original pool will be cloned to the new pool.</li>
+                    <li>The libraries associated with the original pool will be cloned to the new pool with their samples and indices. Cloned libraries get status {{ C.LibraryStatus.POOLED.display_name }}; the original pool and its libraries are not changed.</li>
                     <li>Each cloned library will retain its original sequencing request.</li>
-                    <li>Re-Sequenced Pools and Libraries will be marked with '(re: X)' where X indicates the number of times the pool/library has been cloned.</li>
+                    <li>The new pool copies the original pool's contact, BA report, fragment size, qubit concentration and dilutions. It is not added to any experiment.</li>
+                    <li>The pool type cannot be changed; the contact is always copied from the original pool.</li>
+                    <li>Re-Sequenced Pools and Libraries will be marked with '(re: X)' where X is the clone number: the number of existing clones of the original pool/library + 1. Cloning a clone counts towards the same original.</li>
                 </ul>
             </div>
         </div>
@@ -41,6 +43,7 @@
                             <li>Open the sequencing request page containing the library you want to re-sequence.</li>
                             <li>Go to 'Libraries'-tab.</li>
                             <li>Find the library you want to re-sequence and click the "Re-Sequence Library"-button in the context menu (right-click on library name).</li>
+                            <li>The clone keeps the indices of the library and gets status {{ C.LibraryStatus.PREPARING.display_name }}.</li>
                         </ol>
                     </li>
                     <li>
@@ -50,7 +53,14 @@
                             <li>Go to 'Workflows'-tab.</li>
                             <li>Start the 'Re-Sequence Libraries' -workflow.</li>
                             <li>Select the library/libraries you want to re-sequence from the list.</li>
-                            <li>Complete the workflow.</li>
+                            <li>
+                                In 'Options'-tab, choose the 'Re-Sequencing Type':
+                                <ul>
+                                    <li><b>Indexed</b>: indices are copied, clones get status {{ C.LibraryStatus.STORED.display_name }}.</li>
+                                    <li><b>Raw</b>: indices are not copied, clones get status {{ C.LibraryStatus.ACCEPTED.display_name }} (library is prepared again).</li>
+                                </ul>
+                            </li>
+                            <li>Click 'Re-Sequence'.</li>
                         </ol>
                     </li>
                 </ol>
@@ -58,7 +68,8 @@
                 <ul>
                     <li>The re-sequenced library will be cloned to the same sequencing request.</li>
                     <li>The cloned library will not be associated with any pool. You need to add it to a pool manually.</li>
-                    <li>Re-Sequenced Libraries will be marked with '(re: X)' where X indicates the number of times the library has been cloned.</li>
+                    <li>The 'Re-Sequence Libraries' -workflow is not available for QC-only requests.</li>
+                    <li>Re-Sequenced Libraries will be marked with '(re: X)' where X is the clone number: the number of existing clones of the original library + 1. Cloning a clone counts towards the same original.</li>
                 </ul>
             </div>
         </div>
@@ -75,10 +86,16 @@
                 <ol>
                     <li>Open 'Pools'-page.</li>
                     <li>Click "New Pool"-button on top right.</li>
-                    <li>Fill in the pool details -> complete</li>
-                    <li>Go to the newly created pool's page -> 'Workflows'-tab.</li>
+                    <li>Fill in the pool details -> complete; you are redirected to the new pool's page.</li>
+                    <li>Go to 'Workflows'-tab.</li>
                     <li>Click "Add Libraries"-button and select the prepared library from the list.</li>
                 </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only libraries that are not yet pooled are listed.</li>
+                    <li>'Add Libraries' only assigns the libraries to the pool; library status and request status are not changed.</li>
+                    <li>If the libraries are part of a lab prep, prefer the 'Pool Libraries'-step in the lab prep checklist: it sets the libraries to {{ C.LibraryStatus.POOLED.display_name }} and updates the request status.</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -92,11 +109,16 @@
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
-                    <li>Start the 'Re-Index Libraries' -workflow</li>
+                    <li>Start the 'Re-Index Libraries' -workflow from the 'Workflows'-tab of the dashboard, the pool page or the sequencing request page (in a lab prep checklist it is the 'Index Libraries'-step).</li>
                     <li>Select the library you want to remove the index from</li>
                     <li>Write <span class="code-highlight">del</span> in the 'Index Well' -column</li>
                     <li>Complete the workflow</li>
                 </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li><span class="code-highlight">del</span> must be lowercase.</li>
+                    <li>An empty row without <span class="code-highlight">del</span> is not accepted; it does not remove the index.</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -116,6 +138,10 @@
                 <b>Notes:</b>
                 <ul>
                     <li>Each <b>plate_well</b> must be unique for the same <b>plate</b>.</li>
+                    <li><b>plate_well</b> is required for every library and must be between A1 and H12. Use one well format consistently (e.g. A1, not A01).</li>
+                    <li>The downloaded prep_table only pre-fills wells for the first 96 libraries; fill in the rest manually.</li>
+                    <li>A plate is created for each distinct <b>plate</b> value; libraries without a <b>plate</b> go to the default plate.</li>
+                    <li>Uploading the prep_table again replaces all plates of the lab prep.</li>
                 </ul>
             </div>
         </div>
@@ -130,13 +156,17 @@
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
-                    <li>On dashboard, select workflow 'Edit Libraries'</li>
+                    <li>On dashboard (or sequencing request page) 'Workflows'-tab, select workflow 'Edit Libraries'</li>
                     <li>Select libraries you want to modify</li>
                     <li>Modify as required.</li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
-                    <li>⚠️ If the library is already sequenced and demultiplexed, do not change the name of the library.</li>
+                    <li>Editable: sample name, library name, library type, genome, assay/service type, nuclei isolation, protocol.</li>
+                    <li>Changing the library type also renames the library: the type suffix of the name is replaced, e.g. <span class="code-highlight">S1_GEX</span> -> <span class="code-highlight">S1_ATAC</span>.</li>
+                    <li>The 'Edit Library'-form on the library page always sets the name to <span class="code-highlight">&lt;sample name&gt;_&lt;library type&gt;</span> on save, even if only other fields are changed.</li>
+                    <li>⚠️ If the library is already sequenced and demultiplexed, do not change its name, sample name or library type (this would rename it).</li>
+                    <li>To change library properties (e.g. Visium metadata), use the 'Properties'-button instead (see below).</li>
                 </ul>
             </div>
         </div>
@@ -160,6 +190,10 @@
                 <b>Notes:</b>
                 <ul>
                     <li>⚠️ Consider potential issues with data privacy; reads from different projects will be combined in the same library. To separate raw reads per project, custom demultiplexing needs to be performed.</li>
+                    <li>⚠️ A library belongs to a single sequencing request. If samples from different requests are pooled into the same library, the library is assigned to only one of the requests, and libraries of the other request that are left without samples are deleted.</li>
+                    <li>The step is only available when the lab prep contains multiplexed libraries and is not completed.</li>
+                    <li>Only samples with the same library type are combined; each Pool/library-type combination becomes one library named <span class="code-highlight">&lt;Pool&gt;_&lt;library type&gt;</span>.</li>
+                    <li>Every sample must be assigned a Pool. A sample that is in several libraries with different barcodes cannot be moved to a new pool.</li>
                 </ul>
             </div>
         </div>
@@ -177,14 +211,16 @@
                     <li>Open the lab prep page -> 'Checklist'-tab.</li>
                     <li>Begin the 'Reject Samples'-step.</li>
                     <li>Specify <span class="code-highlight">x</span> in the 'Reject'-column for the failed samples -> submit.</li>
-                    <li>Continue with the remaining checklist steps; rejected samples are ignored.</li>
+                    <li>Continue with the remaining checklist steps; rejected samples are ignored in checklist checks, sample multiplexing (Flex, OCM, ...) and the prep-table sheets.</li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
+                    <li>The 'Reject Samples'-step is only available when the lab prep contains multiplexed libraries and is not completed.</li>
                     <li>Rejected samples get status {{ C.SampleStatus.REJECTED.display_name }} and stay in their library.</li>
-                    <li>To undo, clear the <span class="code-highlight">x</span> in the 'Reject Samples'-step; the sample status is set back to {{ C.SampleStatus.STORED.display_name }}.</li>
+                    <li>Rejected samples are still listed (marked with {{ C.SampleStatus.REJECTED.icon }}) in the 'Specify how Samples are Pooled'-step. Leave them in their current Pool.</li>
+                    <li>To undo, clear the <span class="code-highlight">x</span> in the 'Reject Samples'-step; the sample status is set back to {{ C.SampleStatus.STORED.display_name }}, regardless of its status before rejection.</li>
                     <li>If all samples of a library are rejected, fail the library with <span class="code-highlight">x</span> as the Pool in the prep-table.</li>
-                    <li>Rejection applies to the sample everywhere it is used. The customer cannot re-use the name of a rejected sample and has to submit it with a different name.</li>
+                    <li>Rejection applies to the sample everywhere it is used. The customer cannot re-use the name of a rejected sample within the same project and has to submit it with a different name.</li>
                     <li>Only insiders can edit a rejected sample.</li>
                 </ul>
             </div>
@@ -203,11 +239,13 @@
                     <li>Open sequencing request containing the library.</li>
                     <li>In libraries-tab, click 'Properties'-button.</li>
                     <li>To add a column, right-click a column header, select "Insert a new column before/after" and enter its name. To rename a column, right-click its header and select "Rename this column".</li>
-                    <li>Edit as required columns <span class="code-highlight">image</span>, <span class="code-highlight">slide</span>, and <span class="code-highlight">area</span>.</li>
+                    <li>Edit as required columns <span class="code-highlight">image</span>, <span class="code-highlight">slide</span>, <span class="code-highlight">area</span>, and optionally <span class="code-highlight">he_image</span> (H&amp;E image).</li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
-                    <li>Only insiders can edit (for now).</li>
+                    <li>Requestors can edit while the request is a draft; after submission, only insiders can edit.</li>
+                    <li>Column names are saved in lowercase with spaces replaced by <span class="code-highlight">_</span>. Removing a column removes that property from the libraries.</li>
+                    <li>Properties of a single library can also be edited on the library page ('Edit Properties').</li>
                 </ul>
             </div>
         </div>
@@ -233,7 +271,8 @@
                 <b>Notes:</b>
                 <ul>
                     <li>This workflow is meant to be used to merge a draft or a submitted project into existing one, in case the customer (or we) forgot to do so.</li>
-                    <li><b>Avoid selecting project that is already sequenced as the source project.</b></li>
+                    <li>Samples of the source project are moved to the destination project. Samples with the same name are merged; differing attribute values block the merge.</li>
+                    <li><b>Avoid selecting project that is already sequenced as the source project.</b> This is not blocked: the source project is left empty (not deleted), its data paths stay with it, and the destination project's status is not updated.</li>
                     <li>More information can be found in the 'Merge Projects' workflow.</li>
                     <li>Only insiders can merge projects.</li>
                 </ul>
@@ -252,13 +291,15 @@
                 <b>Steps:</b>
                 <ol>
                     <li>Create a single sequencing request.</li>
-                    <li>For each project, complete 'Add Samples to the Request' -step separately.</li>
-                    <li>Submit the request.</li>
+                    <li>For each project, complete 'Add Samples to the Request' -step separately (run the workflow once per project).</li>
+                    <li>Complete 'Upload Signed Sequencing Authorization Form' -step.</li>
+                    <li>Complete 'Submit Sequencing Request for Review' -step.</li>
                 </ol>
                 <b>Notes:</b>
                 <ul>
+                    <li>⚠️ Only for projects of the same entity (e.g. the same lab). Projects of different organizations/entities must be submitted in separate sequencing requests.</li>
                     <li>The request will be billed in a single bill. If you want separate billing, create separate sequencing requests for each project.</li>
-                    <li>The data for each project will be delivered separately.</li>
+                    <li>The data for each project will be delivered separately, to recipients chosen from the request's 'Share'-tab.</li>
                 </ul>
             </div>
         </div>
