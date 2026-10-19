@@ -6,6 +6,7 @@ import sqlalchemy as sa
 import loguru
 
 from .AsyncSession import AsyncSession
+from .SyncDBHandler import db_url
 
 class AsyncDBHandler:
     session_factory: async_sessionmaker[AsyncSession]
@@ -28,9 +29,7 @@ class AsyncDBHandler:
     async def connect(
         self, user: str, password: str | SecretStr, host: str, db: str = "token_db", port: str | int = 5432
     ) -> None:
-        if isinstance(password, SecretStr):
-            password = password.get_secret_value()
-        self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
+        self._url = db_url(user, password, host, db, port)
         self.public_url = f"postgresql+psycopg://{host}:{port}/{db}"
         
         self._engine = create_async_engine(self._url, pool_pre_ping=True)

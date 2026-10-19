@@ -10,7 +10,7 @@ from starlette.datastructures import URL
 
 from opengsync_db import models
 
-from .config import settings
+from .config import settings, secret_value
 from . import templates, responses
 from ..utils import parsing
 
@@ -175,7 +175,7 @@ class Mailer:
             if self.use_tls:
                 server.starttls()
 
-            server.login(self.smtp_user, self.smtp_password)
+            server.login(self.smtp_user, secret_value(self.smtp_password))
             server.auth_plain()
 
             if isinstance(recipients, str):

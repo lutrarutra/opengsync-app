@@ -2,10 +2,10 @@
 
 help:
 	@echo "Error: Please specify a target."
-	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
+	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-restart|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-logs prod-logs-all prod-stop deploy test pentest gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop deploy test pentest gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
 
@@ -94,6 +94,12 @@ deploy: prod-pull prod-run
 
 prod-pull:
 	$(COMPOSE_PROD) pull --ignore-pull-failures
+
+# Recreates the running containers from the current images so changes to .env, compose
+# files or mounted configs take effect. No pull, no migration. (`docker compose restart`
+# would keep the old container config and not pick up env changes.)
+prod-restart:
+	$(COMPOSE_PROD) up -d --remove-orphans --wait --force-recreate
 
 # Starts postgres and redis, attaches to the pytest container and exits with its status.
 # The EXIT trap tears the stack down however this ends; the signal trap is there because

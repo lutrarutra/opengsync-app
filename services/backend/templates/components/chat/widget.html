@@ -1,6 +1,6 @@
 {#
-    Floating AI support chat (docs/plans/chat.md, Phase 6).
-    One conversation per user, stored in Redis under the user's id (24h TTL).
+    Floating AI support chat (docs/chat.md).
+    One conversation per user, stored in Redis under the user's id (`chat.history_ttl_hours` TTL).
     Endpoints (always build URLs with url_for, the app may run behind a path prefix):
         chat_conversation   GET  /htmx/chat                  -> components/chat/conversation.html
         chat_post_message   POST /htmx/chat/messages         -> components/chat/message.html (user bubble + assistant placeholder)

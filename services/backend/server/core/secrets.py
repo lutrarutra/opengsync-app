@@ -9,7 +9,7 @@ from loguru import logger
 from opengsync_db.categories import UserRole
 from opengsync_db import models
 
-from .config import settings
+from .config import settings, secret_value
 from . import exceptions as exc
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -28,9 +28,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def require_secret_key() -> str:
     """The key that signs every token. Never empty: with an empty key anyone could sign a valid login token."""
-    if not settings.SECRET_KEY.strip():
+    key = secret_value(settings.SECRET_KEY)
+    if not key.strip():
         raise RuntimeError("SECRET_KEY is not set: refusing to sign or verify tokens with an empty key.")
-    return settings.SECRET_KEY
+    return key
 
 def generate_api_token() -> str:
     return "cf-" + secrets.token_urlsafe(32)

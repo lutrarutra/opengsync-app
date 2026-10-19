@@ -9,6 +9,20 @@ import sqlalchemy as sa
 
 from .SyncSession import SyncSession
 
+
+def db_url(user: str, password: str | SecretStr, host: str, db: str, port: str | int) -> sa.URL:
+    """Postgres URL. The password is unwrapped only here; the URL masks it in `str()`/`repr()` (and in logs)
+    and quotes special characters, unlike an f-string."""
+    return sa.URL.create(
+        "postgresql+psycopg",
+        username=user,
+        password=password.get_secret_value() if isinstance(password, SecretStr) else password,
+        host=host,
+        port=int(port),
+        database=db,
+    )
+
+
 class SyncDBHandler:
     Session: orm.scoped_session
     session_factory: orm.sessionmaker[SyncSession]
@@ -39,9 +53,7 @@ class SyncDBHandler:
     def connect(
         self, user: str, password: str | SecretStr, host: str, db: str = "opengsync_db", port: str | int = 5432
     ) -> None:
-        if isinstance(password, SecretStr):
-            password = password.get_secret_value()
-        self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
+        self._url = db_url(user, password, host, db, port)
         self.public_url = f"postgresql+psycopg://{host}:{port}/{db}"
         
         self._engine = create_engine(
@@ -65,8 +77,8 @@ class SyncDBHandler:
         from . import listeners  # noqa: F401
 
     @staticmethod
-    def AdminURL(user: str, password: str, host: str, db: str, port: str | int) -> str:
-        return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
+    def AdminURL(user: str, password: str | SecretStr, host: str, db: str, port: str | int) -> sa.URL:
+        return db_url(user, password, host, db, port)
 
     @property
     def _session(self) -> SyncSession | None:

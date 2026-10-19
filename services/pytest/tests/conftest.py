@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
+from pydantic import SecretStr
 
 from opengsync_db import SyncDBHandler, SyncSession, queries as Q
 from opengsync_db.models.Base import Base
@@ -126,7 +127,7 @@ def _inject_test_app_config() -> None:
             ),
         ))
     if not settings.SECRET_KEY:
-        settings.SECRET_KEY = "test-secret-key-for-pytest"
+        settings.SECRET_KEY = SecretStr("test-secret-key-for-pytest")
 
 
 class FakeMailer:
@@ -234,7 +235,7 @@ def _create_test_user(session: SyncSession, *, email: str, role: UserRole):
 def _login_token(user) -> str:
     from server.core import config, secrets
     if not config.settings.SECRET_KEY:
-        config.settings.SECRET_KEY = "test-secret-key-for-pytest"
+        config.settings.SECRET_KEY = SecretStr("test-secret-key-for-pytest")
     return secrets.create_login_token(user)
 
 

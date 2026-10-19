@@ -2,8 +2,13 @@ from datetime import datetime, time
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def secret_value(value: SecretStr | str) -> str:
+    """The plain value of a secret. Call it only where the value is handed to the library that needs it."""
+    return value.get_secret_value() if isinstance(value, SecretStr) else value
 
 
 class Personalization(BaseModel):
@@ -39,6 +44,9 @@ class ChatConfig(BaseModel):
     # or, together with `base_url`, the model name served by an OpenAI-compatible endpoint (vLLM, Ollama, ...)
     model: str = "test"
     base_url: str | None = None
+    # vLLM extension (only used with `base_url`): the endpoint sends cumulative usage in every streamed chunk.
+    # Enable for vLLM; other endpoints reject the unknown `stream_options.continuous_usage_stats` parameter
+    continuous_usage_stats: bool = False
     history_ttl_hours: int = 72
     max_history_turns: int = 5  # questions (with answers) kept: shown in the widget and sent back to the model
     max_requests_per_turn: int = 25  # model requests per reply, each tool-call round trip counts as one
@@ -67,7 +75,7 @@ class AppConfig(BaseModel):
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str = ""
+    SECRET_KEY: SecretStr = SecretStr("")
     TZ: str = "UTC"
     SESSION_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
     ENVIRONMENT: Literal["dev", "prod", "test"] = "prod"
@@ -75,12 +83,12 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = ""
     MAIL_PORT: int = 587
     MAIL_USER: str = ""
-    MAIL_PASSWORD: str = ""
+    MAIL_PASSWORD: SecretStr = SecretStr("")
     MAIL_SENDER: str = ""
 
     # Database
     POSTGRES_USER: str = "admin"
-    POSTGRES_PASSWORD: str = "password"
+    POSTGRES_PASSWORD: SecretStr = SecretStr("password")
     POSTGRES_HOST: str = "localhost"
     POSTGRES_DB: str = "codeflower"
     POSTGRES_PORT: int = 5432
@@ -92,7 +100,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     # API key for chat.base_url (OpenAI-compatible endpoint)
-    CHAT_API_KEY: str = ""
+    CHAT_API_KEY: SecretStr = SecretStr("")
 
     # WebAuthn / passkeys. RP ID must be the (registrable) domain users see, e.g. "lims.example.org".
     # Changing it later invalidates every registered passkey. Empty = derive from the request host.

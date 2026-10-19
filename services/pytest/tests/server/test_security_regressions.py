@@ -27,6 +27,7 @@ from urllib.parse import unquote
 
 import pytest
 import sqlalchemy as sa
+from pydantic import SecretStr
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -933,7 +934,7 @@ def test_server_does_not_start_without_secret_key(monkeypatch: pytest.MonkeyPatc
     from fastapi import FastAPI
     from server.core import lifespan
 
-    monkeypatch.setattr(config.settings, "SECRET_KEY", key)
+    monkeypatch.setattr(config.settings, "SECRET_KEY", SecretStr(key))
     app = FastAPI()
 
     async def start():
@@ -949,7 +950,7 @@ def test_server_does_not_start_without_secret_key(monkeypatch: pytest.MonkeyPatc
 def test_tokens_are_not_signed_without_secret_key(monkeypatch: pytest.MonkeyPatch, key: str, user):
     from server.core import secrets
 
-    monkeypatch.setattr(config.settings, "SECRET_KEY", key)
+    monkeypatch.setattr(config.settings, "SECRET_KEY", SecretStr(key))
 
     for sign in (
         lambda: secrets.create_login_token(user),
@@ -964,7 +965,7 @@ def test_tokens_are_not_signed_without_secret_key(monkeypatch: pytest.MonkeyPatc
 def test_forged_tokens_are_not_accepted_without_secret_key(monkeypatch: pytest.MonkeyPatch, key: str, user):
     from server.core import secrets
 
-    monkeypatch.setattr(config.settings, "SECRET_KEY", key)
+    monkeypatch.setattr(config.settings, "SECRET_KEY", SecretStr(key))
     exp = config.settings.now().timestamp() + 3600
 
     for verify in (
@@ -985,7 +986,7 @@ def test_forged_tokens_are_not_accepted_without_secret_key(monkeypatch: pytest.M
 def test_tokens_round_trip_with_secret_key(user):
     from server.core import secrets
 
-    assert config.settings.SECRET_KEY.strip()
+    assert config.settings.SECRET_KEY.get_secret_value().strip()
     assert secrets.validate_login_token(secrets.create_login_token(user))["id"] == user.id
     assert secrets.verify_password_reset_token(secrets.create_password_reset_token(user.id)) == user.id
     assert secrets.verify_registration_token(

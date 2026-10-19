@@ -140,9 +140,9 @@ def _build_model() -> Model | str:
     if cfg.model == "test":
         return FunctionModel(stream_function=_echo_stream, model_name="test")
     if cfg.base_url:
-        provider = OpenAIProvider(base_url=cfg.base_url, api_key=config.settings.CHAT_API_KEY or "none")
+        provider = OpenAIProvider(base_url=cfg.base_url, api_key=config.secret_value(config.settings.CHAT_API_KEY) or "none")
         # The endpoint sends cumulative usage in every streamed chunk; without this flag pydantic-ai sums them up
-        settings = OpenAIChatModelSettings(openai_continuous_usage_stats=True)
+        settings = OpenAIChatModelSettings(openai_continuous_usage_stats=cfg.continuous_usage_stats)
         return OpenAIChatModel(cfg.model, provider=provider, settings=settings)
     return cfg.model
 
