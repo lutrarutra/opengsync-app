@@ -19,7 +19,7 @@
                     {% include "components/dashboard/seq_request-assignees.html" %}
                 </div>
                 <div class="feed-meta">
-                    <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+                    <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted | format_short_date }}</span>
                     <span><i class="bi bi-box-seam"></i>{{ seq_request.submission_type.display_name }}</span>
                     {% for library_type, count in row["library_type_counts"].items() %}
                     <span {{ tooltip(library_type.label, position="top") }}>{{ library_type.abbreviation }} <b>{{ count }}</b></span>

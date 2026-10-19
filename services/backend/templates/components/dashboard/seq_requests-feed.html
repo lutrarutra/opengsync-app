@@ -18,7 +18,7 @@ hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trig
         {% include "components/dashboard/seq_request-assignees.html" %}
     </div>
     <div class="feed-meta">
-        <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+        <span><i class="bi bi-calendar3"></i>{{ seq_request.timestamp_submitted | format_short_date }}</span>
         <span><i class="bi bi-box-seam"></i>{{ seq_request.submission_type.display_name }}</span>
         <span><i class="bi bi-collection"></i>{{ seq_request.num_libraries }} libraries</span>
     </div>

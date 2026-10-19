@@ -18,7 +18,7 @@ hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger=
         {% include "components/dashboard/project-assignees.html" %}
     </div>
     <div class="feed-meta">
-        <span><i class="bi bi-calendar3"></i>{{ project.timestamp_created_str("%-d. %b. %Y") }}</span>
+        <span><i class="bi bi-calendar3"></i>{{ project.timestamp_created | format_short_date }}</span>
         <span><i class="bi bi-eyedropper"></i>{{ project.num_samples }} samples</span>
         {% if project.group %}<span>{{ project.group.type.icon }} {{ project.group.name }}</span>{% endif %}
     </div>

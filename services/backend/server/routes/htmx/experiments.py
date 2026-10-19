@@ -4,13 +4,12 @@ import pandas as pd
 from fastapi import APIRouter, Depends, Query, Path, Request
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, units, actions
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...core import config, dependencies, overview, responses, exceptions as exc, query_options, checklists
 from ...components.tables import HTMXTable, TableCol
-from ...components.tables import StaticSpreadsheet, TextColumn
 from ... import forms
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
@@ -195,63 +194,141 @@ def experiment_overview(
         raise exc.NotFoundException(f"Experiment with ID {experiment_id} not found.")
     return overview.experiment_graph(session, experiment_id)
 
+_STATS_BASE_COLS = {"library_id", "library_name", "pool_id", "pool_name", "num_reads", "lane"}
+
+
+def _opt(value):
+    return None if value is None or pd.isna(value) else value
+
+
+def _qc_value(value):
+    if isinstance(value, (list, dict)):
+        return str(value)
+    if _opt(value) is None:
+        return ""
+    if isinstance(value, float):
+        return round(value, 3)
+    return value
+
+
+def _library_rows(raw: pd.DataFrame, total_reads: int) -> tuple[list[dict], dict | None, list[str]]:
+    """Per-library rows (reads, per-lane split, QC) of an experiment; the undetermined row (no library) separately."""
+    rows: dict[int | None, dict] = {}
+    for rec in raw.itertuples(index=False):
+        key = int(rec.library_id) if _opt(rec.library_id) is not None else None
+        row = rows.setdefault(key, {
+            "id": key,
+            "name": rec.library_name if key is not None else "Undetermined",
+            "pool_id": int(rec.pool_id) if _opt(rec.pool_id) is not None else None,
+            "pool_name": _opt(rec.pool_name),
+            "num_reads": 0, "lanes": {}, "qc": {},
+        })
+        reads = int(_opt(rec.num_reads) or 0)
+        row["num_reads"] += reads
+        row["lanes"][int(rec.lane)] = row["lanes"].get(int(rec.lane), 0) + reads
+
+    # QC metrics are free-form keys, averaged over lanes weighted by reads
+    qc_df = T.experiment_stats(raw.copy(), per_lane=False, expand_qc_=True, weighted_average=True)
+    qc_keys = [
+        col for col in qc_df.columns
+        if isinstance(col, str) and col not in _STATS_BASE_COLS and qc_df[col].notna().any()
+    ]
+    for rec in qc_df.to_dict("records"):
+        key = int(rec["library_id"]) if _opt(rec["library_id"]) is not None else None
+        if key in rows:
+            rows[key]["qc"] = {k: _qc_value(rec.get(k)) for k in qc_keys}
+
+    max_reads = max((row["num_reads"] for row in rows.values()), default=0) or 1
+    for row in rows.values():
+        row["pct_of_run"] = row["num_reads"] / total_reads * 100 if total_reads else 0.0
+        row["bar_pct"] = row["num_reads"] / max_reads * 100
+        row["lanes"] = [
+            {"lane": lane, "num_reads": reads, "width": reads / max_reads * 100,
+             "pct": reads / row["num_reads"] * 100 if row["num_reads"] else 0.0}
+            for lane, reads in sorted(row["lanes"].items()) if reads > 0
+        ]
+
+    undetermined = rows.pop(None, None)
+    libraries = sorted(rows.values(), key=lambda r: r["num_reads"], reverse=True)
+    return libraries, undetermined, qc_keys
+
+
+def _pool_rows(
+    session: SyncSession, experiment_id: int, libraries: list[dict], total_reads: int,
+    cfg: config.ExperimentStatsConfig,
+) -> tuple[list[dict], dict | None]:
+    """Per-pool rows (sequenced vs planned/requested reads, flag, its libraries); the undetermined row separately."""
+    stats = T.pool_num_reads_stats(
+        session.get_pandas(Q.pd.pool_num_reads_stats_sequenced(experiment_id), limit=None),
+        session.get_pandas(Q.pd.pool_num_reads_stats_planned(experiment_id), limit=None),
+    )
+    rows = []
+    undetermined = None
+    for rec in stats.to_dict("records"):
+        pool_id = _opt(rec["pool_id"])
+        seq_vs_planned = _opt(rec["sequenced_vs_planned"])
+        flag = None
+        if seq_vs_planned is not None:
+            if seq_vs_planned < cfg.under_planned_pct:
+                flag = "under"
+            elif seq_vs_planned > cfg.over_planned_pct:
+                flag = "over"
+        row = {
+            "id": int(pool_id) if pool_id is not None else None,
+            "name": rec["pool_name"] if pool_id is not None else "Undetermined",
+            "num_reads": int(_opt(rec["num_reads"]) or 0),
+            "planned": _opt(rec["num_planned_reads"]),
+            "requested": _opt(rec["num_reads_requested"]),
+            "seq_vs_planned": float(seq_vs_planned) if seq_vs_planned is not None else None,
+            "flag": flag,
+            "libraries": [],
+        }
+        if row["id"] is None:
+            undetermined = row
+        else:
+            rows.append(row)
+
+    # pool bars show the share of the whole flow cell, the bars of a pool's libraries their share of that pool
+    by_id = {row["id"]: row for row in rows}
+    for library in libraries:
+        if (pool := by_id.get(library["pool_id"])) is not None:
+            pct_of_pool = library["num_reads"] / pool["num_reads"] * 100 if pool["num_reads"] else 0.0
+            pool["libraries"].append({**library, "bar_pct": pct_of_pool, "pct_of_pool": pct_of_pool})
+    for row in rows + ([undetermined] if undetermined else []):
+        row["pct_of_run"] = row["num_reads"] / total_reads * 100 if total_reads else 0.0
+        row["bar_pct"] = row["pct_of_run"]
+
+    rows.sort(key=lambda r: r["num_reads"], reverse=True)
+    return rows, undetermined
+
+
 @router.get("/{experiment_id}/stats", dependencies=[Depends(dependencies.require_insider)])
 def experiment_stats(
     experiment_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id))
-    
-    library_stats_df = T.experiment_stats(
-        session.get_pandas(Q.pd.experiment_stats(experiment.id), limit=None),
-        per_lane=False,
-        expand_qc_=True,
-        weighted_average=True,
-    ).drop(columns=["library_id"])
-    library_stats_df.loc[library_stats_df["library_name"].isna(), "library_name"] = "Undetermined"
-    library_stats_df = library_stats_df.drop(columns=["pool_id", "pool_name"])
-    library_stats_df = library_stats_df.sort_values(by="num_reads", ascending=False)
-    library_stats_df = library_stats_df.rename(columns={
-        "num_reads": "Sequenced Reads",
-    })
-    library_stats_df["% of the Sequenced"] = (library_stats_df["Sequenced Reads"] / library_stats_df["Sequenced Reads"].sum()).apply(lambda x: f"{x:.1%}")
+    raw = session.get_pandas(Q.pd.experiment_stats(experiment.id), limit=None)
+    if raw.empty:
+        return responses.htmx_response(template="components/experiment-stats.html", experiment=experiment, has_stats=False)
 
-    columns = []
-    for col in library_stats_df.columns:
-        columns.append(TextColumn(col, col.replace("_", " ").title(), {"library_name": 250}.get(col, 150), max_length=1000))
+    cfg = config.settings.app_config.experiment_stats
+    total_reads = int(raw["num_reads"].sum())
+    libraries, undetermined_library, qc_keys = _library_rows(raw, total_reads)
+    pools, undetermined_pool = _pool_rows(session, experiment.id, libraries, total_reads, cfg)
 
-    library_stats = StaticSpreadsheet(df=library_stats_df, columns=columns, id=f"experiment-{experiment_id}-stats")
-
-    sequenced_df = session.get_pandas(
-        Q.pd.pool_num_reads_stats_sequenced(experiment.id),
-        limit=None,
-    )
-    planned_df = session.get_pandas(
-        Q.pd.pool_num_reads_stats_planned(experiment.id),
-        limit=None,
-    )
-    pool_stats_df = T.pool_num_reads_stats(sequenced_df, planned_df)
-    pool_stats_df.loc[pool_stats_df["pool_id"].isna(), "pool_name"] = "Undetermined"
-    pool_stats_df = pool_stats_df[["pool_name", "num_reads", "num_planned_reads", "sequenced_vs_planned", "num_reads_requested"]]
-    pool_stats_df = pool_stats_df.sort_values(by="num_reads", ascending=False)
-    pool_stats_df = pool_stats_df.rename(columns={
-        "num_reads": "Sequenced Reads",
-        "num_planned_reads": "Planned Reads",
-        "sequenced_vs_planned": "Sequenced vs Planned (%)",
-        "num_reads_requested": "Requested Reads"
-    })
-    pool_stats_df["% of the Sequenced"] = (pool_stats_df["Sequenced Reads"] / pool_stats_df["Sequenced Reads"].sum()).apply(lambda x: f"{x:.1%}")
-
-    columns = []
-    for col in pool_stats_df.columns:
-        columns.append(TextColumn(col, col.replace("_", " ").title(), {"pool_name": 250}.get(col, 250), max_length=1000))
-    pool_stats = StaticSpreadsheet(df=pool_stats_df, columns=columns, id=f"experiment-{experiment_id}-pool-stats")
-    
+    undetermined_pct = undetermined_library["pct_of_run"] if undetermined_library else 0.0
     return responses.htmx_response(
         template="components/experiment-stats.html",
-        experiment=experiment, library_stats=library_stats, pool_stats=pool_stats,
-        num_total_reads=units.Quantity(experiment.get_demultiplexed_reads(), units.read),
-        num_library_reads=units.Quantity(experiment.get_demultiplexed_reads(include_undetermined=False), units.read)
+        experiment=experiment, has_stats=True,
+        libraries=libraries, undetermined_library=undetermined_library, qc_keys=qc_keys,
+        pools=pools, undetermined_pool=undetermined_pool,
+        lanes=sorted({int(lane) for lane in raw["lane"].unique()}),
+        num_total_reads=total_reads,
+        num_library_reads=total_reads - (undetermined_library["num_reads"] if undetermined_library else 0),
+        undetermined_pct=undetermined_pct,
+        undetermined_warn=undetermined_pct > cfg.undetermined_warn_pct,
+        stats_config=cfg,
     )
 
 @router.delete("/{experiment_id}/remove-pool/{pool_id}", dependencies=[Depends(dependencies.require_insider)])

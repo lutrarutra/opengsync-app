@@ -85,10 +85,11 @@
         }
     }
 
-    /* Cells only draw their top and left borders. The bottom edge closes the last row when the rows don't fill
-       the frame (when they do, it sits on the frame's bottom border once scrolled to the end) */
+    /* Cells only draw their top and left borders. The right and bottom edges close the last column and row when
+       the grid doesn't fill the frame (when it does, they sit on the frame's border once scrolled to the end) */
     .jss_worksheet {
         border: 0;
+        border-right: 1px solid var(--border_color);
         border-bottom: 1px solid var(--border_color);
 
         > thead > tr > td {

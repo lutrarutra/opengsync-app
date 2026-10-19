@@ -53,6 +53,8 @@
 </head>
 
 <body>
+    <div id="page-loader" aria-hidden="true"><div class="page-loader-bar"></div></div>
+    <script src="{{ url_for('static', filename='js/page-loader.js') }}"></script>
     {% if not current_user %}
     <div style="position: absolute; bottom: 15px; left: 15px; z-index: 1100;">
         <a href="{{ url_for('help') }}" target="_blank" type="button" style="z-index: 1100;">
@@ -219,6 +221,7 @@
     <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/clickable-cards.js') }}"></script>
     <script src="{{ url_for('static', filename='js/callbacks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/experiment-stats.js') }}"></script>
     <script id="passkey-config" type="application/json">{{ {
         "registerOptions": url_for('passkey_register_options') | string,
         "registerVerify": url_for('passkey_register_verify') | string,

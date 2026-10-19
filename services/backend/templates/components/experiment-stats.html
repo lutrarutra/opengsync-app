@@ -1,54 +1,219 @@
-{% from "components/spinner.jinja2" import spinner %}
-{% from "components/metadata_group.jinja2" import metadata_quantity %}
+{% from "components/tooltip.jinja2" import tooltip %}
 
-<div class="accordion" id="experimentStatsAccordion">
-    <!-- Library Section -->
-    <div class="accordion-item">
-        <h2 class="accordion-header" id="headingLibrary">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLibrary"
-                aria-expanded="false" aria-controls="collapseLibrary">
-                <b>Library Stats</b>
-            </button>
-        </h2>
-        <div id="collapseLibrary" class="accordion-collapse collapse" aria-labelledby="headingLibrary"
-            data-bs-parent="#experimentStatsAccordion">
-            <div class="accordion-body">
-                <div class="row">
-                    {{ metadata_quantity("Library Reads", num_library_reads, class="col-3") }}
-                    {{ metadata_quantity("Total Reads", num_total_reads, class="col-3") }}
-                </div>
-                <h4>Library Stats</h4>
-                {{ library_stats.render() }}
-                <div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}"
-                    hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Pool Section -->
-    <div class="accordion-item">
-        <h2 class="accordion-header" id="headingPool">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapsePool" aria-expanded="false" aria-controls="collapsePool">
-                <b>Pool Stats</b>
-            </button>
-        </h2>
-        <div id="collapsePool" class="accordion-collapse collapse" aria-labelledby="headingPool"
-            data-bs-parent="#experimentStatsAccordion">
-            <div class="accordion-body">
-                <h4>Pool Reads</h4>
-                {{ pool_stats.render() }}
+{% macro fmt_reads(n) -%}
+{%- if n is none -%}
+{%- elif n >= 1000000000 -%}{{ "%.2f"|format(n / 1000000000) }} B
+{%- elif n >= 1000000 -%}{{ "%.1f"|format(n / 1000000) }} M
+{%- elif n >= 1000 -%}{{ "%.1f"|format(n / 1000) }} K
+{%- else -%}{{ n|int }}
+{%- endif -%}
+{%- endmacro %}
 
-                <div hx-get="{{ url_for('plots_api.experiment_pool_reads', experiment_id=experiment.id) }}"
-                    hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
-                <div hx-get="{{ url_for('plots_api.experiment_pool_per_library_reads', experiment_id=experiment.id) }}"
-                    hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
-            </div>
-        </div>
+{% macro lane_class(lane) -%}lane-c{{ ((lane - 1) % 10) + 1 }}{%- endmacro %}
+
+{% macro fill_bar(row, undetermined=false, pool_share=false) -%}
+<div class="es-bar">
+    <div class="es-bar-track" {% if pool_share %}{{ tooltip('%.1f %% of pool reads'|format(row.pct_of_pool), position="top") }}{% endif %}>
+        <span class="es-bar-fill {% if undetermined %}is-undetermined{% elif pool_share %}is-pool-share{% endif %}" style="width: {{ '%.2f'|format(row.bar_pct) }}%;"></span>
     </div>
+    <span class="es-bar-label">{{ fmt_reads(row.num_reads) }}</span>
 </div>
+{%- endmacro %}
+
+{% macro lane_bar(row, undetermined=false) -%}
+<div class="es-bar">
+    <div class="es-bar-track">
+        {% for seg in row.lanes %}
+        <span class="es-bar-fill {{ 'is-undetermined' if undetermined else lane_class(seg.lane) }}"
+            style="width: {{ '%.2f'|format(seg.width) }}%;"
+            {% set tip %}<b>Lane {{ seg.lane }}</b><br>{{ "{:,}".format(seg.num_reads)|replace(",", " ") }} reads ({{ fmt_reads(seg.num_reads) }})<br>{{ '%.1f'|format(seg.pct) }} % of {{ 'undetermined' if undetermined else 'library' }} reads{% endset %}
+            {{ tooltip(tip, position="top") }}
+            data-lane="{{ seg.lane }}"></span>
+        {% endfor %}
+    </div>
+    <span class="es-bar-label">{{ fmt_reads(row.num_reads) }}</span>
+</div>
+{%- endmacro %}
+
+{% macro sort_th(title, key, type="num", class="") -%}
+<th scope="col" class="{{ class }}" data-sort-key="{{ key }}" data-sort-type="{{ type }}">
+    <div class="es-col-header">
+        <span>{{ title }}</span>
+        <a class="sort-btn" type="button" role="button" tabindex="0" aria-label="Sort by {{ title }}"><i class="bi bi-filter"></i></a>
+    </div>
+</th>
+{%- endmacro %}
+
+{% set from_ctx = 'experiment@' + experiment.id|string %}
+
+<div class="experiment-stats" id="experiment-stats-{{ experiment.id }}">
+{% if not has_stats %}
+    <div class="es-empty">No demultiplexing stats yet.</div>
+{% else %}
+    <!-- Summary -->
+    <div class="es-tiles">
+        <div class="es-tile">
+            <div class="es-tile-label">Total Reads</div>
+            <div class="es-tile-value">{{ fmt_reads(num_total_reads) }}</div>
+        </div>
+        <div class="es-tile">
+            <div class="es-tile-label">Library Reads</div>
+            <div class="es-tile-value">{{ fmt_reads(num_library_reads) }}</div>
+        </div>
+        <div class="es-tile {% if undetermined_warn %}is-warn{% endif %}"
+            title="Warns above {{ stats_config.undetermined_warn_pct }}%">
+            <div class="es-tile-label">Undetermined</div>
+            <div class="es-tile-value">{{ "%.1f"|format(undetermined_pct) }} %</div>
+        </div>
+        <div class="es-tile">
+            <div class="es-tile-label">Pools</div>
+            <div class="es-tile-value">{{ pools|length }}</div>
+        </div>
+        <div class="es-tile">
+            <div class="es-tile-label">Libraries</div>
+            <div class="es-tile-value">{{ libraries|length }}</div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="es-toolbar">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Stats level">
+            <input type="radio" class="btn-check" name="es-level-{{ experiment.id }}" id="es-level-pools-{{ experiment.id }}" value="pools" autocomplete="off" checked>
+            <label class="btn btn-outline-secondary" for="es-level-pools-{{ experiment.id }}">Pools</label>
+            <input type="radio" class="btn-check" name="es-level-{{ experiment.id }}" id="es-level-libraries-{{ experiment.id }}" value="libraries" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="es-level-libraries-{{ experiment.id }}">Libraries</label>
+        </div>
+        <div class="es-toolbar-right">
+            <div class="es-legend" data-level-only="libraries" hidden>
+                {% for lane in lanes %}
+                <span class="es-legend-item"><span class="es-legend-dot {{ lane_class(lane) }}"></span>Lane {{ lane }}</span>
+                {% endfor %}
+            </div>
+            {% if qc_keys %}
+            <div class="form-check form-switch mb-0" data-level-only="libraries" hidden>
+                <input class="form-check-input" type="checkbox" role="switch" id="es-qc-{{ experiment.id }}" data-qc-toggle>
+                <label class="form-check-label" for="es-qc-{{ experiment.id }}">Show QC metrics</label>
+            </div>
+            {% endif %}
+            <input type="search" class="form-control form-control-sm es-filter" placeholder="Filter by name…" aria-label="Filter by name" data-filter-input>
+        </div>
+    </div>
+
+    <!-- Pools -->
+    <div class="es-pane" data-level-pane="pools">
+        <div class="es-table-wrap">
+            <table class="table table-sm es-table" data-sortable>
+                <thead>
+                    <tr>
+                        <th class="es-col-toggle"></th>
+                        {{ sort_th("Pool", "name", "text", class="") }}
+                        {{ sort_th("Sequenced", "reads", "num", class="es-col-bar") }}
+                        {{ sort_th("Planned", "planned", "num", class="es-num") }}
+                        {{ sort_th("Requested", "requested", "num", class="es-num") }}
+                        {{ sort_th("Seq / Planned", "ratio", "num", class="es-num") }}
+                        {{ sort_th("% of Run", "reads", "num", class="es-num") }}
+                    </tr>
+                </thead>
+                {% for pool in pools %}
+                <tbody data-sort-unit data-name="{{ pool.name|lower }}" data-reads="{{ pool.num_reads }}"
+                    data-planned="{{ pool.planned if pool.planned is not none else '' }}"
+                    data-requested="{{ pool.requested if pool.requested is not none else '' }}"
+                    data-ratio="{{ pool.seq_vs_planned if pool.seq_vs_planned is not none else '' }}"
+                    data-filter="{{ ([pool.name] + pool.libraries|map(attribute='name')|list)|join(' ')|lower }}">
+                    <tr class="es-parent-row">
+                        <td class="es-col-toggle">
+                            {% if pool.libraries %}
+                            <button type="button" class="es-expand" aria-expanded="false" aria-label="Show libraries of {{ pool.name }}" data-expand>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                        <td><a href="{{ url_for('pool_page', pool_id=pool.id, from=from_ctx) }}">{{ pool.name }}</a>
+                            <span class="es-muted">· {{ pool.libraries|length }} lib.</span></td>
+                        <td class="es-col-bar">{{ fill_bar(pool) }}</td>
+                        <td class="es-num">{{ fmt_reads(pool.planned) }}</td>
+                        <td class="es-num">{{ fmt_reads(pool.requested) }}</td>
+                        <td class="es-num">
+                            {% if pool.seq_vs_planned is not none %}
+                            {% if pool.flag %}<span class="badge {{ 'badge-danger' if pool.flag == 'under' else 'badge-warning' }}">{{ "%.1f"|format(pool.seq_vs_planned) }} %</span>{% else %}{{ "%.1f"|format(pool.seq_vs_planned) }} %{% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="es-num">{{ "%.1f"|format(pool.pct_of_run) }} %</td>
+                    </tr>
+                    {% for library in pool.libraries %}
+                    <tr class="es-child-row" data-filter="{{ library.name|lower }}">
+                        <td class="es-col-toggle"></td>
+                        <td class="es-child-name"><a href="{{ url_for('library_page', library_id=library.id, from=from_ctx) }}">{{ library.name }}</a></td>
+                        <td class="es-col-bar">{{ fill_bar(library, pool_share=true) }}</td>
+                        <td class="es-num"></td>
+                        <td class="es-num"></td>
+                        <td class="es-num"></td>
+                        <td class="es-num">{{ "%.1f"|format(library.pct_of_run) }} %</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endfor %}
+                {% if undetermined_pool %}
+                <tbody data-sort-unit data-pin-last data-filter="undetermined">
+                    <tr class="es-parent-row es-undetermined">
+                        <td class="es-col-toggle"></td>
+                        <td>Undetermined</td>
+                        <td class="es-col-bar">{{ fill_bar(undetermined_pool, undetermined=true) }}</td>
+                        <td class="es-num"></td>
+                        <td class="es-num"></td>
+                        <td class="es-num"></td>
+                        <td class="es-num">{{ "%.1f"|format(undetermined_pool.pct_of_run) }} %</td>
+                    </tr>
+                </tbody>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <div class="es-pane" data-level-pane="libraries" hidden>
+        <div class="es-table-wrap">
+            <table class="table table-sm es-table" data-sortable data-qc-table>
+                <thead>
+                    <tr>
+                        {{ sort_th("Library", "name", "text", class="") }}
+                        {{ sort_th("Pool", "pool", "text", class="") }}
+                        {{ sort_th("Sequenced", "reads", "num", class="es-col-bar") }}
+                        {{ sort_th("% of Run", "reads", "num", class="es-num") }}
+                        {% for key in qc_keys %}
+                        {{ sort_th(key.replace("_", " "), "qc" ~ loop.index0, "num", class="es-num es-qc-col") }}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for library in libraries %}
+                    <tr data-sort-unit data-name="{{ library.name|lower }}" data-pool="{{ (library.pool_name or '')|lower }}"
+                        data-reads="{{ library.num_reads }}" data-filter="{{ library.name|lower }} {{ (library.pool_name or '')|lower }}"
+                        {% for key in qc_keys %}data-qc{{ loop.index0 }}="{{ library.qc.get(key, '') }}" {% endfor %}>
+                        <td><a href="{{ url_for('library_page', library_id=library.id, from=from_ctx) }}">{{ library.name }}</a></td>
+                        <td>{% if library.pool_id %}<a href="{{ url_for('pool_page', pool_id=library.pool_id, from=from_ctx) }}">{{ library.pool_name }}</a>{% endif %}</td>
+                        <td class="es-col-bar">{{ lane_bar(library) }}</td>
+                        <td class="es-num">{{ "%.1f"|format(library.pct_of_run) }} %</td>
+                        {% for key in qc_keys %}
+                        <td class="es-num es-qc-col">{{ library.qc.get(key, '') }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    {% if undetermined_library %}
+                    <tr data-sort-unit data-pin-last data-filter="undetermined" class="es-undetermined">
+                        <td>Undetermined</td>
+                        <td></td>
+                        <td class="es-col-bar">{{ lane_bar(undetermined_library, undetermined=true) }}</td>
+                        <td class="es-num">{{ "%.1f"|format(undetermined_library.pct_of_run) }} %</td>
+                        {% for key in qc_keys %}
+                        <td class="es-num es-qc-col">{{ undetermined_library.qc.get(key, '') }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+</div>
+<script>initExperimentStats(document.getElementById("experiment-stats-{{ experiment.id }}"));</script>

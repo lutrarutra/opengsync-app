@@ -37,6 +37,16 @@ def format_datetime(value: datetime | None, format: str = "%Y-%m-%d %H:%M"):
         return value.strftime(format)
     return value.astimezone(settings.TIMEZONE).strftime(format)
 
+def format_short_date(value: datetime | None, format: str = "%-d. %b.", other_year_format: str = "%d.%m.%Y"):
+    """Short date for the current year; full numeric date (with year) for other years."""
+    if value is None:
+        return ""
+    if value.tzinfo is not None:
+        value = value.astimezone(settings.TIMEZONE)
+    if value.year != datetime.now(settings.TIMEZONE).year:
+        format = other_year_format
+    return value.strftime(format)
+
 def weekday_name(value: int):
     return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][value]
 
@@ -57,6 +67,7 @@ def format_markdown(value: str) -> str:
 
 j2.env.filters["format_timestamp"] = format_timestamp
 j2.env.filters["format_datetime"] = format_datetime
+j2.env.filters["format_short_date"] = format_short_date
 j2.env.filters["format_markdown"] = format_markdown
 j2.env.filters["weekday_name"] = weekday_name
 j2.env.filters["filesize"] = filesize

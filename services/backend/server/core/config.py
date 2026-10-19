@@ -52,6 +52,14 @@ class ChatConfig(BaseModel):
     max_requests_per_turn: int = 25  # model requests per reply, each tool-call round trip counts as one
 
 
+class ExperimentStatsConfig(BaseModel):
+    # sequenced / planned reads of a pool (%) outside these bounds is flagged on the experiment stats tab
+    under_planned_pct: float = 80.0
+    over_planned_pct: float = 150.0
+    # share of undetermined reads (%) above which the stats tab warns
+    undetermined_warn_pct: float = 10.0
+
+
 class AppConfig(BaseModel):
     """Pydantic model for opengsync.yaml"""
     personalization: Personalization
@@ -72,6 +80,7 @@ class AppConfig(BaseModel):
     illumina_run_folder: str
     scheduler: SchedulerConfig
     chat: ChatConfig = ChatConfig()
+    experiment_stats: ExperimentStatsConfig = ExperimentStatsConfig()
 
 
 class Settings(BaseSettings):

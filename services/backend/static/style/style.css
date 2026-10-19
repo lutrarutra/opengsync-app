@@ -23,6 +23,8 @@
 @import "./global-search.css";
 @import "./chat.css";
 @import "./spreadsheet.css";
+@import "./page-loader.css";
+@import "./experiment-stats.css";
 
 .assignee-badge {
     height: 24px;
