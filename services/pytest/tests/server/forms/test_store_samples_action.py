@@ -16,6 +16,9 @@ Insider-only access is covered in ``server/test_action_access.py``.
 """
 
 import json
+import re
+
+import pytest
 
 from fastapi.testclient import TestClient
 
@@ -65,6 +68,12 @@ def _pool(session: SyncSession, user: models.User, seq_request: models.SeqReques
     return pool
 
 
+def _selected(html: str, field: str) -> set[int]:
+    match = re.search(rf'name="{field}"\s+id="[^"]*"\s+value="([^"]*)"', html)
+    assert match, field
+    return set(json.loads(match.group(1)))
+
+
 def _reload(session: SyncSession, model):
     session.expire_all()
     return session.get(type(model), model.id)
@@ -94,6 +103,21 @@ def test_render_from_request_limits_every_table_and_posts_back(
     body = response.text.replace("&amp;", "&")
     assert body.count(f"seq_request_id={seq_request.id}") >= 4  # three table URLs + the submit URL
     assert f'{PATH}?seq_request_id={seq_request.id}">Submit</button>' in body  # hx-post is an absolute URL
+
+
+@pytest.mark.parametrize("submission_type", [C.SubmissionType.UNPOOLED_LIBRARIES, C.SubmissionType.QC_ONLY])
+def test_render_from_library_request_preselects_accepted_libraries(
+    client: TestClient, session: SyncSession, user, insider_token: str, submission_type: C.SubmissionType,
+):
+    seq_request = _request(session, user, submission_type)
+    first, second = _library(session, user, seq_request), _library(session, user, seq_request)
+    _library(session, user, seq_request, status=C.LibraryStatus.STORED)
+    session.commit()
+
+    response = get(client, PATH, insider_token, params={"seq_request_id": seq_request.id})
+
+    assert response.status_code == 200
+    assert _selected(response.text, "selected_library_ids") == {first.id, second.id}
 
 
 # ── Storing ─────────────────────────────────────────────────────────────────

@@ -1,7 +1,8 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/button.jinja2" import confirm_action_button, modal_button %}
-{% from "components/checklists/history.jinja2" import checklist_history_button, checklist_last_change %}
+{% from "components/legends.jinja2" import index_badge_legend %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
@@ -57,8 +58,92 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
-                <b>{% if barcode_clashes_checked is none %}❗{% elif barcode_clashes_checked %}✅{% else %}⚠️{% endif %} Check Barcode Clashes</b> {{ checklist_last_change(checklist_history.get("check_barcode_clashes", []), barcode_clashes_checked) }}
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-libraries-indexed" aria-expanded="false" aria-controls="sops-accordiod-collapse-libraries-indexed">
+                <b>{% if libraries_indexed is none %}❗{% elif libraries_indexed %}✅{% else %}⚠️{% endif %} Check Libraries are Indexed</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-libraries-indexed" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Every library in the experiment must have an index.</li>
+                </ul>
+                {% if unindexed_libraries %}
+                <b>Libraries without index:</b>
+                <ul>
+                    {% for library in unindexed_libraries %}
+                    <li>{{ library.name }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% if libraries_indexed is not none and not libraries_indexed %}
+                <i>This step is checked automatically once all libraries are indexed.</i>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-index-orientations" aria-expanded="false" aria-controls="sops-accordiod-collapse-index-orientations">
+                <b>{% if indices_validated is none %}❗{% elif indices_validated %}✅{% else %}⚠️{% endif %} Check Index Orientations</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-index-orientations" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that index orientations are correct (Forward vs Reverse Complement).</li>
+                    <li>Kit-matched indexes will be automatically set to Forward orientation.</li>
+                    <li>Custom indexes require manual verification of orientation.</li>
+                </ul>
+                <hr>
+                <p>
+                    Validate and correct index orientations:
+                    {{
+                        modal_button(
+                            "Begin",
+                            url_for('IndexCheckWorkflow.Begin', experiment_id=experiment.id),
+                            size="fullscreen",
+                            disabled=not can_be_edited or indices_validated is none
+                        )
+                    }}
+                </p>
+                {% if libraries %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-9">
+                                Index
+                                <a type="button" role="button" onclick="toggle_index_display()">
+                                    <i class="bi bi-upc-scan"></i>
+                                </a>
+                                {{ index_badge_legend() }}
+                            </th>
+                        </thead>
+                        <tbody>
+                            {% for library in libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td class="x-scroll-cell">
+                                    {{ library_index_cell(library) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% if indices_validated is not none and not indices_validated %}
+                <i>This step is checked automatically once all indices are validated or from a kit.</i>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3"aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+                <b>{% if lanes_assigned is none %}❗{% else %}🔘{% endif %} Check Barcode Clashes</b>
             </button>
         </h2>
         <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">

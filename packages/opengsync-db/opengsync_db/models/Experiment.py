@@ -9,7 +9,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType, SeqRequestStatus
+from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType, SeqRequestStatus, BarcodeOrientation
 from ..core.EnumColumn import EnumColumn
 from .Base import Base
 from . import links
@@ -93,6 +93,18 @@ class Experiment(Base):
 
         pools_added = len(self.pools) > 0
         lanes_assigned = self.workflow.combined_lanes or all(len(pool.lane_links) > 0 for pool in self.pools) if pools_added else None
+
+        from .Library import Library
+        libraries = session.execute(
+            Q.library.select(experiment_id=self.id).options(orm.selectinload(Library.indices)).order_by(Library.id)
+        ).scalars().all()
+        unindexed_libraries = [library for library in libraries if not library.indices]
+        libraries_indexed = len(unindexed_libraries) == 0 if libraries else None
+        indices_validated = all(
+            index.orientation == BarcodeOrientation.FORWARD or index.is_kit_index()
+            for library in libraries for index in library.indices
+        ) if libraries else None
+
         reads_assigned = True if pools_added else None
         missing_pool_reads = set()
 
@@ -163,6 +175,10 @@ class Experiment(Base):
         return {
             "pools_added": pools_added,
             "lanes_assigned": lanes_assigned,
+            "libraries": libraries,
+            "libraries_indexed": libraries_indexed,
+            "unindexed_libraries": unindexed_libraries,
+            "indices_validated": indices_validated,
             "reads_assigned": reads_assigned,
             "barcode_clashes_checked": barcode_clashes_checked,
             "missing_pool_reads": missing_pool_reads,

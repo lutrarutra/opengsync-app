@@ -104,6 +104,8 @@ class CompleteIndexCheckForm(IndexCheckWorkflowStep):
                 redirect = responses.url_for("lab_prep_page", lab_prep_id=form.workflow.lab_prep_id)
             elif form.workflow.pool_id is not None:
                 redirect = responses.url_for("pool_page", pool_id=form.workflow.pool_id)
+            elif form.workflow.experiment_id is not None:
+                redirect = responses.url_for("experiment_page", experiment_id=form.workflow.experiment_id)
             else:
                 redirect = responses.url_for("dashboard")
 

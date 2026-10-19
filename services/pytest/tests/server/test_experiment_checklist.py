@@ -3,7 +3,7 @@
 import sqlalchemy as sa
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncSession, models, queries as Q, categories as C
+from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ..db.create_units import create_experiment, create_library, create_pool, create_seq_request
 from ._http import get, post_form, assert_htmx_redirect
@@ -42,6 +42,48 @@ def test_checklist_lists_experiment_seq_requests(
     assert response.status_code == 200
     assert "✅ Requests Accepted" in response.text
     assert 'class="table-warning"' not in response.text
+
+
+def test_checklist_libraries_indexed_and_index_orientations(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    experiment = create_experiment(session, user, C.ExperimentWorkFlow.NOVASEQ_6K_S4_STD)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
+    library.experiment_id = experiment.id
+    session.commit()
+
+    response = get(client, f"/htmx/experiments/{experiment.id}/checklist", insider_token, htmx=True)
+
+    assert response.status_code == 200
+    assert "⚠️ Check Libraries are Indexed" in response.text
+    assert "Libraries without index:" in response.text
+    assert "✅ Check Index Orientations" in response.text
+    assert f"/index-check/begin?experiment_id={experiment.id}" in response.text
+
+    index = session.save(Q.library_index.create(
+        library_id=library.id, name_i7="i7", name_i5=None, sequence_i7="ACGTAGGT", sequence_i5=None,
+        index_kit_i7_id=None, index_kit_i5_id=None, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED,
+    ), flush=True)
+    session.commit()
+
+    response = get(client, f"/htmx/experiments/{experiment.id}/checklist", insider_token, htmx=True)
+
+    assert response.status_code == 200
+    assert "✅ Check Libraries are Indexed" in response.text
+    assert "Libraries without index:" not in response.text
+    assert "⚠️ Check Index Orientations" in response.text
+
+    index.orientation = C.BarcodeOrientation.FORWARD
+    session.commit()
+
+    response = get(client, f"/htmx/experiments/{experiment.id}/checklist", insider_token, htmx=True)
+
+    assert response.status_code == 200
+    assert "✅ Check Index Orientations" in response.text
 
 
 # ── Check Barcode Clashes: required, checked by hand ─────────────────────────

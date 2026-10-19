@@ -10,7 +10,7 @@ import pytest
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...db.create_units import (
-    create_user, create_seq_request, create_library, create_index_kit,
+    create_user, create_seq_request, create_library, create_index_kit, create_experiment,
 )
 from .._http import (
     OpenGSyncTestClient, assert_htmx_redirect, assert_form_invalid,
@@ -103,6 +103,48 @@ class TestIndexCheckBegin:
         )
         assert response.status_code == 200
         assert "select-libraries" in response.text or "Check Index" in response.text
+
+    def test_index_check_begin_experiment_preselects_unvalidated(
+        self,
+        client: OpenGSyncTestClient,
+        session: SyncSession,
+        insider: models.User,
+        insider_token: str,
+    ):
+        """Begin with experiment_id preselects only the experiment's unvalidated libraries."""
+        experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_S4_STD)
+        sr = create_seq_request(session, insider)
+        lib_validated = create_library(session, insider, sr)
+        lib_unvalidated = create_library(session, insider, sr)
+        lib_other = create_library(session, insider, sr)
+        for lib in (lib_validated, lib_unvalidated):
+            lib.experiment_id = experiment.id
+        _add_index(session, lib_validated, orientation=C.BarcodeOrientation.FORWARD)
+        _add_index(session, lib_unvalidated, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
+        _add_index(session, lib_other, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
+        session.commit()
+
+        response = get(
+            client, f"{PREFIX}/begin", insider_token,
+            params={"experiment_id": experiment.id},
+            htmx=True,
+        )
+        assert response.status_code == 200
+        match = re.search(r'name="selected_library_ids"\s+id="[^"]*"\s+value="([^"]*)"', response.text)
+        assert match is not None
+        assert set(json.loads(html.unescape(match.group(1)))) == {lib_unvalidated.id}
+
+    def test_index_check_begin_unknown_experiment(
+        self,
+        client: OpenGSyncTestClient,
+        insider_token: str,
+    ):
+        response = get(
+            client, f"{PREFIX}/begin", insider_token,
+            params={"experiment_id": 999999},
+            htmx=True,
+        )
+        assert response.status_code == 404
 
     def test_index_check_begin_insider_only(
         self,
@@ -270,12 +312,16 @@ class TestSelectLibrariesFilters:
         insider: models.User,
         insider_token: str,
     ):
-        """Only unvalidated libraries appear in pre-filtered selection."""
+        """Only unvalidated libraries of the context are preselected."""
         sr = create_seq_request(session, insider)
         lib_validated = create_library(session, insider, sr)
         lib_unvalidated = create_library(session, insider, sr)
+        lib_unset = create_library(session, insider, sr)
+        lib_other_request = create_library(session, insider, create_seq_request(session, insider))
         _add_index(session, lib_validated, orientation=C.BarcodeOrientation.FORWARD)
         _add_index(session, lib_unvalidated, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
+        _add_index(session, lib_unset, orientation=None)
+        _add_index(session, lib_other_request, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
         session.commit()
 
         workflow_uuid = str(uuid_mod.uuid4())
@@ -286,6 +332,9 @@ class TestSelectLibrariesFilters:
             params=params, htmx=True,
         )
         assert response.status_code == 200
+        match = re.search(r'name="selected_library_ids"\s+id="[^"]*"\s+value="([^"]*)"', response.text)
+        assert match is not None
+        assert set(json.loads(html.unescape(match.group(1)))) == {lib_unvalidated.id, lib_unset.id}
 
     def test_select_libraries_table_filters_unvalidated(
         self,

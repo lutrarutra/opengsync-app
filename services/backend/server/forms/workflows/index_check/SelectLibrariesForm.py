@@ -52,6 +52,11 @@ class SelectLibrariesForm(IndexCheckWorkflowStep):
     selected_library_ids = inputs.tables.LibrarySelectTableField(
         "Libraries", "index-check", select_all=True, required=True,
     )
+    UNVALIDATED_ORIENTATIONS: list[C.BarcodeOrientation | None] = [
+        None,
+        C.BarcodeOrientation.FORWARD_NOT_VALIDATED,
+        C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED,
+    ]
 
     def __init__(self, workflow: IndexCheckWorkflow) -> None:
         super().__init__(workflow=workflow)
@@ -61,11 +66,11 @@ class SelectLibrariesForm(IndexCheckWorkflowStep):
             self.selected_library_ids.query_params["lab_prep_id"] = self.workflow.lab_prep_id
         if self.workflow.pool_id is not None:
             self.selected_library_ids.query_params["pool_id"] = self.workflow.pool_id
+        if self.workflow.experiment_id is not None:
+            self.selected_library_ids.query_params["experiment_id"] = self.workflow.experiment_id
 
         self.selected_library_ids.query_params["barcode_orientation_in"] = json.dumps([
-            None,
-            C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id,
-            C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED.id,
+            o.id if o is not None else None for o in self.UNVALIDATED_ORIENTATIONS
         ])
 
     @htmx_route("GET")
@@ -107,6 +112,7 @@ class SelectLibrariesForm(IndexCheckWorkflowStep):
                 seq_request_id=form.workflow.seq_request_id,
                 lab_prep_id=form.workflow.lab_prep_id,
                 pool_id=form.workflow.pool_id,
+                experiment_id=form.workflow.experiment_id,
                 options=[
                     orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i7),
                     orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i5),

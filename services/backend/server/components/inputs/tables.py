@@ -194,17 +194,18 @@ class LibrarySelectTableField(SelectTableField):
         seq_request_id: int | None = None,
         lab_prep_id: int | None = None,
         pool_id: int | None = None,
+        experiment_id: int | None = None,
     ) -> list[models.Library]:
         """Query the database for the selected :class:`Library` objects.
 
         The ids come from the client. Pass the scope the selection table was filtered by
-        (``seq_request_id``/``lab_prep_id``/``pool_id``) so an id outside it is rejected (404).
+        (``seq_request_id``/``lab_prep_id``/``pool_id``/``experiment_id``) so an id outside it is rejected (404).
         """
         if not self.data:
             return []
         return [
             session.get_one(
-                Q.library.select(id=lid, seq_request_id=seq_request_id, lab_prep_id=lab_prep_id, pool_id=pool_id),
+                Q.library.select(id=lid, seq_request_id=seq_request_id, lab_prep_id=lab_prep_id, pool_id=pool_id, experiment_id=experiment_id),
                 options=options,
             )
             for lid in self.data

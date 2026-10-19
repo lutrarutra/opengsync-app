@@ -1,5 +1,5 @@
 from opengsync_db import SyncSession, actions, queries as Q
-from opengsync_db.categories import ExperimentWorkFlow, SeqRequestStatus
+from opengsync_db.categories import ExperimentWorkFlow, SeqRequestStatus, BarcodeOrientation
 
 from .create_units import (
     create_user, create_seq_request, create_library, create_pool,
@@ -190,3 +190,42 @@ def test_experiment_checklist_seq_requests_accepted(session: SyncSession):
     submitted_request.status = SeqRequestStatus.FINISHED
     session.flush()
     assert experiment.get_checklist()["seq_requests_accepted"] is True
+
+
+def test_experiment_checklist_libraries_indexed_and_orientations(session: SyncSession):
+    user = create_user(session)
+    experiment = create_experiment(session, user, ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
+
+    checklist = experiment.get_checklist()
+    assert checklist["libraries_indexed"] is None
+    assert checklist["indices_validated"] is None
+
+    seq_request = create_seq_request(session, user)
+    indexed_library = create_library(session, user, seq_request)
+    unindexed_library = create_library(session, user, seq_request)
+    unrelated_library = create_library(session, user, seq_request)
+    for library in (indexed_library, unindexed_library):
+        library.experiment_id = experiment.id
+    index = session.save(Q.library_index.create(
+        library_id=indexed_library.id, name_i7="i7", name_i5=None, sequence_i7="ACGTAGGT", sequence_i5=None,
+        index_kit_i7_id=None, index_kit_i5_id=None, orientation=BarcodeOrientation.FORWARD_NOT_VALIDATED,
+    ), flush=True)
+    session.save(Q.library_index.create(
+        library_id=unrelated_library.id, name_i7="i7", name_i5=None, sequence_i7="ACGTAGGT", sequence_i5=None,
+        index_kit_i7_id=None, index_kit_i5_id=None, orientation=BarcodeOrientation.FORWARD_NOT_VALIDATED,
+    ), flush=True)
+    session.flush()
+
+    checklist = experiment.get_checklist()
+    assert checklist["libraries_indexed"] is False
+    assert [library.id for library in checklist["unindexed_libraries"]] == [unindexed_library.id]
+    assert checklist["indices_validated"] is False
+
+    unindexed_library.experiment_id = None
+    index.orientation = BarcodeOrientation.FORWARD
+    session.flush()
+
+    checklist = experiment.get_checklist()
+    assert checklist["libraries_indexed"] is True
+    assert checklist["unindexed_libraries"] == []
+    assert checklist["indices_validated"] is True

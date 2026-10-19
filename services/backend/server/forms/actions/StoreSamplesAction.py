@@ -66,13 +66,19 @@ class StoreSamplesAction(HTMXForm):
                     form.selected_sample_ids.data = [
                         sample.id for sample in session.get_all(Q.sample.select(
                             seq_request_id=form.seq_request_id, status=C.SampleStatus.WAITING_DELIVERY
-                        ))
+                        ), limit=None)
+                    ]
+                elif seq_request.submission_type in (C.SubmissionType.UNPOOLED_LIBRARIES, C.SubmissionType.QC_ONLY):
+                    form.selected_library_ids.data = [
+                        library.id for library in session.get_all(Q.library.select(
+                            seq_request_id=form.seq_request_id, status=C.LibraryStatus.ACCEPTED
+                        ), limit=None)
                     ]
                 elif seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES:
                     form.selected_pool_ids.data = [
                         pool.id for pool in session.get_all(Q.pool.select(
                             seq_request_id=form.seq_request_id, status=C.PoolStatus.ACCEPTED
-                        ))
+                        ), limit=None)
                     ]
             return form.make_response()
         return route

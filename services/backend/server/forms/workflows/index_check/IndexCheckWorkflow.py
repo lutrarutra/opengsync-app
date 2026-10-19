@@ -41,6 +41,7 @@ class IndexCheckWorkflow(HTMXWorkflow):
         self.seq_request_id: int | None = None
         self.lab_prep_id: int | None = None
         self.pool_id: int | None = None
+        self.experiment_id: int | None = None
         self._query_params: dict = {}
 
     @classmethod
@@ -49,6 +50,7 @@ class IndexCheckWorkflow(HTMXWorkflow):
             seq_request_id: int | None = Query(None, description="Seq Request ID to filter libraries by"),
             lab_prep_id: int | None = Query(None, description="Lab Prep ID to filter libraries by"),
             pool_id: int | None = Query(None, description="Pool ID to filter libraries by"),
+            experiment_id: int | None = Query(None, description="Experiment ID to filter libraries by"),
             uuid: str | None = Query(None, description="The UUID of the workflow state."),
             current_user: models.User = Depends(dependencies.require_user),
             session: SyncSession = Depends(dependencies.db_session),
@@ -72,11 +74,15 @@ class IndexCheckWorkflow(HTMXWorkflow):
                     raise exc.NotFoundException()
                 if session.get_access_level(Q.pool.permissions(pool_id, current_user.id)) < C.AccessLevel.WRITE:
                     raise exc.NoPermissionsException("You do not have permission to edit this pool.")
+            if experiment_id is not None:
+                if session.first(Q.experiment.select(id=experiment_id)) is None:
+                    raise exc.NotFoundException()
 
             workflow = cls(uuid=uuid, r=r, step=step)
             workflow.seq_request_id = seq_request_id
             workflow.lab_prep_id = lab_prep_id
             workflow.pool_id = pool_id
+            workflow.experiment_id = experiment_id
             workflow._query_params = {}
             if seq_request_id is not None:
                 workflow._query_params["seq_request_id"] = seq_request_id
@@ -84,6 +90,8 @@ class IndexCheckWorkflow(HTMXWorkflow):
                 workflow._query_params["lab_prep_id"] = lab_prep_id
             if pool_id is not None:
                 workflow._query_params["pool_id"] = pool_id
+            if experiment_id is not None:
+                workflow._query_params["experiment_id"] = experiment_id
             return workflow
         return dependency
 
@@ -91,7 +99,20 @@ class IndexCheckWorkflow(HTMXWorkflow):
     def Begin(cls) -> RouteFunc:
         def route(
             form: wf.SelectLibrariesForm = Depends(wf.SelectLibrariesForm.Init()),
+            session: SyncSession = Depends(dependencies.db_session),
         ):
+            workflow = form.workflow
+            if workflow.seq_request_id is not None or workflow.lab_prep_id is not None or workflow.pool_id is not None or workflow.experiment_id is not None:
+                # Pre-select every library in the context that still has unvalidated barcodes.
+                form.selected_library_ids.data = [
+                    library.id for library in session.get_all(Q.library.select(
+                        seq_request_id=workflow.seq_request_id,
+                        lab_prep_id=workflow.lab_prep_id,
+                        pool_id=workflow.pool_id,
+                        experiment_id=workflow.experiment_id,
+                        barcode_orientation_in=wf.SelectLibrariesForm.UNVALIDATED_ORIENTATIONS,
+                    ), limit=None)
+                ]
             return form.make_response()
         return route
 
