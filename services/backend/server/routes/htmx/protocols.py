@@ -3,9 +3,9 @@ from fastapi.responses import Response
 from sqlalchemy import orm
 import sqlalchemy as sa
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
-from ...core import dependencies, responses, exceptions as exc, query_options
+from ...core import dependencies, responses, query_options
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -26,12 +26,16 @@ def render_protocol_table(
     id: str | None = Query(None, description="Search by protocol ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     service_type_in: list[C.ServiceType] | None = Depends(dependencies.parse_enum_ids(C.ServiceType, "service_type_in")),
+    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Protocol, default=models.Protocol.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
-    table = ProtocolTable(route="render_protocol_table", page=page)
+    table = ProtocolTable(route="render_protocol_table", page=page, order_by=order_by)
     table.template = "components/tables/protocol.html"
     stmt = Q.protocol.select(service_type_in=service_type_in)
+
+    if service_type_in:
+        table.filter_values["service_type"] = service_type_in
 
     if name:
         table.active_search_var = "name"
@@ -39,13 +43,11 @@ def render_protocol_table(
     elif id:
         table.active_search_var = "id"
         table.active_query_value = str(id)
-        try:
-            stmt = Q.protocol.select(id=int("".join(filter(str.isdigit, id))), statement=stmt)
-        except ValueError:
-            raise exc.BadRequestException()
+        if digits := "".join(filter(str.isdigit, id)):
+            stmt = Q.protocol.select(id=int(digits), statement=stmt)
     
     stmt = Q.protocol.search(name=name, statement=stmt)
-    protocols = table.paginate(session, stmt, page=page)
+    protocols = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(protocols=protocols)
 
 

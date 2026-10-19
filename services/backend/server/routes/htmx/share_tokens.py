@@ -14,7 +14,7 @@ class ShareTokenTable(HTMXTable):
         TableCol(title="UUID", label="uuid", col_size=1, searchable=True, sortable=True),
         TableCol(title="Expiration", label="expiration", col_size=4),
         TableCol(title="Time Valid", label="time_valid_min", col_size=4),
-        TableCol(title="Owner", label="owner", col_size=4, choices=C.DataPathType.as_selectable(), sortable=True, sort_by="owner_id"),
+        TableCol(title="Owner", label="owner", col_size=4, searchable=True, sortable=True, sort_by="owner_id"),
         TableCol(title="# Paths", label="num_paths", col_size=3, sortable=True),
     ]
 
@@ -23,6 +23,8 @@ class ShareTokenTable(HTMXTable):
 def render_share_token_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     project_id: int | None = Query(None, description="Optional project ID to filter share tokens"),
+    uuid: str | None = Query(None, description="Search by share token UUID prefix"),
+    owner: str | None = Query(None, description="Search by owner name"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.ShareToken, default=models.ShareToken.uuid.asc())),
     session: SyncSession = Depends(dependencies.db_session),
@@ -35,6 +37,14 @@ def render_share_token_table(
         stmt = Q.share_token.select(project_id=project_id)
         table.url_params["project_id"] = project_id
 
+    if uuid:
+        table.active_search_var = "uuid"
+        table.active_query_value = uuid
+        stmt = Q.share_token.search(uuid=uuid, statement=stmt)
+    elif owner:
+        table.active_search_var = "owner"
+        table.active_query_value = owner
+        stmt = Q.share_token.search(owner_name=owner, statement=stmt)
 
     share_tokens = table.paginate(
         session, stmt, page=page, order_by=order_by,
@@ -66,6 +76,7 @@ def render_data_path_table(
     project_id: int | None = Query(None, description="Optional project ID to filter data paths"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter data paths"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter data paths"),
+    type_in: list[C.DataPathType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.DataPathType, query_param="type_in")),
     current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.DataPath, default=models.DataPath.path.asc())),
     session: SyncSession = Depends(dependencies.db_session),
@@ -76,7 +87,11 @@ def render_data_path_table(
         project_id=project_id,
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
+        type_in=type_in,
     )
+
+    if type_in:
+        table.filter_values["type"] = type_in
 
     if library_id is not None:
         if session.get_access_level(Q.library.permissions(library_id=library_id, user_id=current_user.id)) < C.AccessLevel.READ:

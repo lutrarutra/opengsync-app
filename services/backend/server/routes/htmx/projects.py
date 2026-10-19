@@ -67,6 +67,7 @@ def render_project_table(
     title: str | None = Query(None, description="Optional title to search for in project titles"),
     identifier: str | None = Query(None, description="Optional identifier to search for in project identifiers"),
     owner_name: str | None = Query(None, description="Optional owner name to search for in project owners"),
+    id_search: str | None = Query(None, alias="id", description="Search by project ID"),
     status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
@@ -100,6 +101,11 @@ def render_project_table(
     elif owner_name:
         table.active_search_var = "owner_name"
         table.active_query_value = owner_name
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.project.select(id=int(digits), statement=stmt)
 
     stmt = Q.project.search(
         title=title,

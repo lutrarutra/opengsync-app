@@ -9,16 +9,17 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from opengsync_db import SyncSession, actions, models
+from opengsync_db import queries as Q
 from opengsync_db.categories import (
     AffiliationType, ExperimentWorkFlow, LibraryType, LibraryStatus, DataPathType,
-    MediaFileType, PrepStatus, LabChecklistType, ServiceType
+    MediaFileType, PrepStatus, LabChecklistType, ServiceType, BarcodeOrientation, BarcodeType
 )
 from opengsync_db.models import links
 from opengsync_db.models.Base import Base
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
-    create_pool, create_experiment, create_file, create_group, create_feature
+    create_pool, create_experiment, create_file, create_group, create_feature, create_index_kit
 )
 
 
@@ -38,12 +39,13 @@ HYBRID_COVERAGE: dict[type, list[str]] = {
     ],
     models.Experiment: [
         "library_types", "num_pools", "num_libraries", "num_files", "num_comments",
-        "num_projects", "num_data_paths",
+        "num_projects", "num_data_paths", "num_seq_requests",
     ],
     models.Library: [
         "num_samples", "num_features", "num_data_paths",
-        "is_multiplexed", "is_editable", "is_indexed", "is_pooled",
+        "is_multiplexed", "is_editable", "is_indexed", "is_pooled", "barcode_orientation",
     ],
+    models.Adapter: ["name"],
     models.Sample: ["num_libraries"],
     models.Pool: ["num_libraries", "library_types", "molarity"],
     models.ShareToken: ["num_paths", "expiration"],
@@ -415,6 +417,7 @@ def test_experiment_hybrid_properties(session: SyncSession):
         "num_comments": 0,
         "num_projects": 0,
         "num_data_paths": 0,
+        "num_seq_requests": 0,
     })
 
     seq_request = create_seq_request(session, user)
@@ -461,6 +464,7 @@ def test_experiment_hybrid_properties(session: SyncSession):
         "num_comments": 1,
         "num_projects": 1,
         "num_data_paths": 1,
+        "num_seq_requests": 1,
     })
 
 
@@ -476,6 +480,7 @@ def test_library_hybrid_properties(session: SyncSession):
         "is_editable": True,
         "is_indexed": False,
         "is_pooled": False,
+        "barcode_orientation": None,
     })
 
     project = create_project(session, user)
@@ -491,6 +496,14 @@ def test_library_hybrid_properties(session: SyncSession):
     other_feature = create_feature(session)
     actions.link_feature_library(session, other_feature.id, other.id)
     session.add(models.DataPath(path="other_path", library_id=other.id, type=DataPathType.CUSTOM))
+    for lib, orientation in (
+        (library, BarcodeOrientation.REVERSE_COMPLEMENT), (library, BarcodeOrientation.FORWARD_NOT_VALIDATED),
+        (other, BarcodeOrientation.FORWARD),
+    ):
+        session.add(Q.library_index.create(
+            library_id=lib.id, name_i7="i7", name_i5=None, sequence_i7="ACGTAGGT", sequence_i5=None,
+            index_kit_i7_id=None, index_kit_i5_id=None, orientation=orientation,
+        ))
 
     assert_hybrids(session, library, models.Library, {
         "num_samples": 1,
@@ -498,9 +511,23 @@ def test_library_hybrid_properties(session: SyncSession):
         "num_data_paths": 1,
         "is_multiplexed": False,
         "is_editable": True,
-        "is_indexed": False,
+        "is_indexed": True,
         "is_pooled": False,
+        "barcode_orientation": BarcodeOrientation.REVERSE_COMPLEMENT,
     })
+
+
+def test_adapter_hybrid_properties(session: SyncSession):
+    kit = create_index_kit(session)
+    adapter = session.save(Q.adapter.create(index_kit=kit, well="A1"), flush=True)
+    assert_hybrids(session, adapter, models.Adapter, {"name": None})
+
+    session.add(Q.barcode.create(name="i5-name", sequence="ACGTACGT", well="A1", type=BarcodeType.INDEX_I5, adapter=adapter))
+    session.add(Q.barcode.create(name="i7-name", sequence="ACGTACGT", well="A1", type=BarcodeType.INDEX_I7, adapter=adapter))
+    other = session.save(Q.adapter.create(index_kit=kit, well="B1"), flush=True)
+    session.add(Q.barcode.create(name="other", sequence="ACGTACGT", well="B1", type=BarcodeType.INDEX_I7, adapter=other))
+
+    assert_hybrids(session, adapter, models.Adapter, {"name": "i7-name"})
 
 
 def test_api_token_hybrid_properties(session: SyncSession):

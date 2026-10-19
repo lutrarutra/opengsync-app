@@ -131,6 +131,8 @@ def render_media_file_table(
     experiment_id: int | None = Query(None, description="Filter files by experiment ID."),
     lab_prep_id: int | None = Query(None, description="Filter files by lab prep ID."),
     type_in: list[C.MediaFileType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.MediaFileType, query_param="type_in")),
+    uploader: str | None = Query(None, description="Search by uploader name"),
+    id_search: str | None = Query(None, alias="id", description="Search by file ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.MediaFile, default=models.MediaFile.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
@@ -147,6 +149,16 @@ def render_media_file_table(
 
     if type_in:
         table.filter_values["type"] = type_in
+
+    if uploader:
+        table.active_search_var = "uploader"
+        table.active_query_value = uploader
+        stmt = Q.media_file.search(uploader_name=uploader, statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.media_file.select(id=int(digits), statement=stmt)
 
     if seq_request_id is not None:
         if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))) < C.AccessLevel.READ:

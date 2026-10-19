@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 
 from ..models import Experiment, User, Lane, Sample, Library, links
-from ..categories import ExperimentStatus, ExperimentWorkFlow
+from ..categories import ExperimentStatus, ExperimentWorkFlow, LibraryType
 from ..core import utils
 
 
@@ -71,11 +71,12 @@ def select(
     project_id: int | None = None,
     status_in: list[ExperimentStatus] | None = None,
     workflow_in: list[ExperimentWorkFlow] | None = None,
+    library_types_in: list[LibraryType] | None = None,
     statement: sa.Select[tuple[Experiment]] = sa.select(Experiment),
 ) -> sa.Select[tuple[Experiment]]:
     return statement.where(*where_clauses(
         id=id, name=name, status=status, project_id=project_id,
-        status_in=status_in, workflow_in=workflow_in,
+        status_in=status_in, workflow_in=workflow_in, library_types_in=library_types_in,
     ))
 
 
@@ -86,6 +87,7 @@ def where_clauses(
     project_id: int | None = None,
     status_in: list[ExperimentStatus] | None = None,
     workflow_in: list[ExperimentWorkFlow] | None = None,
+    library_types_in: list[LibraryType] | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """Return WHERE clauses for filtering experiments.
     Reusable in correlated subqueries where .subquery() would break correlation.
@@ -102,6 +104,13 @@ def where_clauses(
         clauses.append(Experiment.status.in_(status_in))
     if workflow_in is not None:
         clauses.append(Experiment.workflow.in_(workflow_in))
+    if library_types_in is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Library.experiment_id == Experiment.id) &
+                (Library.type.in_(library_types_in))  # type: ignore
+            ).correlate_except(Library).exists()
+        )
     if project_id is not None:
         clauses.append(
             sa.select(1).where(

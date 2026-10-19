@@ -1,6 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..categories import BarcodeType
@@ -22,6 +23,20 @@ class Adapter(Base):
     index_kit_id: Mapped[int] = mapped_column(sa.ForeignKey("index_kit.id"), nullable=False)
     index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="adapters", lazy="select")
     
+    @hybrid_property
+    def name(self) -> str | None:  # type: ignore[override]
+        """Name of the first i7 barcode (what the adapter table shows as 'Name')."""
+        return self.barcodes_i7[0].name if self.barcodes_i7 else None
+
+    @name.expression
+    def name(cls) -> sa.ScalarSelect[str | None]:
+        from .Barcode import Barcode
+        return sa.select(
+            sa.func.min(Barcode.name)
+        ).where(
+            (Barcode.adapter_id == cls.id) & (Barcode.type == BarcodeType.INDEX_I7)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
     def __str__(self) -> str:
         return f"Adapter({self.id}, '{self.well}')"
         

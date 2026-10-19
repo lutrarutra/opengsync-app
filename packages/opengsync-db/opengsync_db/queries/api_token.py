@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy import sql
 
 from ..models import User, APIToken
+from ..core import utils
 
 def create(
     owner: User,
@@ -19,6 +20,20 @@ def create(
     )
     token.plaintext = plaintext
     return token
+
+
+def search(
+    owner_name: str | None = None,
+    statement: sa.Select[tuple[APIToken]] = sa.select(APIToken),
+) -> sa.Select[tuple[APIToken]]:
+    """Fuzzy search on the owner's full name."""
+    if owner_name is None:
+        return statement
+
+    full_name = User.name.expression
+    return statement.join(User, APIToken.owner_id == User.id).where(
+        utils.safe_trgm_search(full_name, owner_name)
+    ).order_by(sa.func.similarity(full_name, owner_name).desc())
 
 
 def select(

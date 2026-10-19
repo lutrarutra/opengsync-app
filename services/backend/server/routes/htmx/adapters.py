@@ -28,12 +28,24 @@ class AdapterTable(HTMXTable):
 @router.get("/render-table-page")
 def render_adapter_table(
     index_kit_id: int = Query(..., description="Filter by index kit ID"),
+    well: str | None = Query(None, description="Search by well"),
+    id_search: str | None = Query(None, alias="id", description="Search by adapter ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Adapter, default=models.Adapter.id.desc())),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
     table = AdapterTable(route="render_adapter_table", page=page, order_by=order_by)
     stmt = Q.adapter.select(index_kit_id=index_kit_id)
+
+    if well:
+        table.active_search_var = "well"
+        table.active_query_value = well
+        stmt = Q.adapter.select(well=well.strip().upper(), statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.adapter.select(id=int(digits), statement=stmt)
 
     if index_kit_id is not None:
         table.template = "components/tables/index_kit-adapter.html"

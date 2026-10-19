@@ -16,7 +16,7 @@ from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
     LibraryType, LibraryStatus, GenomeRef,
-    ServiceType, MUXType, IndexType
+    ServiceType, MUXType, IndexType, BarcodeOrientation
 )
 
 if TYPE_CHECKING:
@@ -330,6 +330,21 @@ class Library(Base):
         return cls.status == LibraryStatus.POOLED  # type: ignore[return-value]
 
     _is_pooled: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def barcode_orientation(self) -> BarcodeOrientation | None:  # type: ignore[override]
+        """Lowest orientation among the library's indices (None if no index has one); sort key for library tables."""
+        orientations = [index.orientation for index in self.indices if index.orientation is not None]
+        return min(orientations, key=lambda o: o.id) if orientations else None
+
+    @barcode_orientation.expression
+    def barcode_orientation(cls) -> sa.ScalarSelect[int | None]:
+        from .LibraryIndex import LibraryIndex
+        return sa.select(
+            sa.func.min(LibraryIndex.orientation)
+        ).where(
+            LibraryIndex.library_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"

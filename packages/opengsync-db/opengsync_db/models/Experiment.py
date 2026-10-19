@@ -331,6 +331,35 @@ class Experiment(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     _num_libraries: Mapped[int | None] = orm.query_expression()
+
+    @hybrid_property
+    def num_seq_requests(self) -> int:  # type: ignore[override]
+        if self._num_seq_requests is not None:
+            return self._num_seq_requests
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_seq_requests' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_seq_requests was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_seq_requests, Experiment.num_seq_requests.expression) "
+                "in your query options."
+            )
+
+        return session.execute(sa.select(type(self).num_seq_requests).where(type(self).id == self.id)).scalar_one()
+
+    @num_seq_requests.expression
+    def num_seq_requests(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
+        from .SeqRequest import SeqRequest
+        return sa.select(
+            sa.func.count(SeqRequest.id)
+        ).where(
+            *Q.seq_request.where_clauses(experiment_id=cls.id)  # type: ignore[arg-type]
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_seq_requests: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]

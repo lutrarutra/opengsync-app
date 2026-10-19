@@ -25,10 +25,19 @@ def render_api_token_table(
     current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.APIToken, default=models.APIToken.id.desc())),
     user_id: int | None = Query(None, description="Optional owner user ID to filter tokens"),
+    owner_search: str | None = Query(None, alias="owner_id", description="Search by owner ID or name"),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = APITokenTable(route="render_api_token_table", page=page, order_by=order_by)
     stmt = Q.api_token.select(owner_id=user_id)
+
+    if owner_search:
+        table.active_search_var = "owner_id"
+        table.active_query_value = owner_search
+        if owner_search.strip().isdigit():
+            stmt = Q.api_token.select(owner_id=int(owner_search), statement=stmt)
+        else:
+            stmt = Q.api_token.search(owner_name=owner_search, statement=stmt)
 
     if user_id is not None:
         if session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id)) < C.AccessLevel.READ:

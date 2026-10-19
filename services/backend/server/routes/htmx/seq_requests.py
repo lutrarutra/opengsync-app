@@ -81,6 +81,9 @@ def render_seq_request_table(
     name: str | None = Query(None, description="Optional name search term to filter seq requests"),
     group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
     requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
+    id_search: str | None = Query(None, alias="id", description="Search by seq request ID"),
+    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
+    submission_type_in: list[C.SubmissionType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SubmissionType, query_param="submission_type_in")),
     status_in: list[C.SeqRequestStatus] | None = Depends(
         dependencies.parse_enum_ids(
             enum_type=C.SeqRequestStatus, query_param="status_in"
@@ -100,12 +103,18 @@ def render_seq_request_table(
 
     if status_in:
         table.filter_values["status"] = status_in
+    if library_types_in:
+        table.filter_values["library_types"] = library_types_in
+    if submission_type_in:
+        table.filter_values["submission_type"] = submission_type_in
 
     stmt = Q.seq_request.select(
         requestor_id=user_id,
         group_id=group_id,
         project_id=project_id,
         status_in=status_in,
+        library_types_in=library_types_in,
+        submission_type_in=submission_type_in,
     )
 
     if name:
@@ -117,6 +126,11 @@ def render_seq_request_table(
     elif group:
         table.active_search_var = "group"
         table.active_query_value = group
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.seq_request.select(id=int(digits), statement=stmt)
 
     stmt = Q.seq_request.search(
         name=name,

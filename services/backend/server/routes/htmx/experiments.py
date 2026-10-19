@@ -35,6 +35,9 @@ def render_experiment_table(
     status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentStatus, query_param="status_in")),
     workflow_in: list[C.ExperimentWorkFlow] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentWorkFlow, query_param="workflow_in")),
     name: str | None = Query(None, description="Optional name to search experiments"),
+    operator: str | None = Query(None, description="Optional operator name to search experiments"),
+    id_search: str | None = Query(None, alias="id", description="Search by experiment ID"),
+    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     browse: str | None = Query(None, description="Optional browse context for experiment selection component"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Experiment, default=models.Experiment.id.desc())),
@@ -47,16 +50,28 @@ def render_experiment_table(
         table.filter_values["status"] = status_in
     if workflow_in:
         table.filter_values["workflow"] = workflow_in
+    if library_types_in:
+        table.filter_values["library_types"] = library_types_in
 
     stmt = Q.experiment.select(
         project_id=project_id,
         status_in=status_in,
         workflow_in=workflow_in,
+        library_types_in=library_types_in,
     )
     if name:
         table.active_search_var = "name"
         table.active_query_value = name
         stmt = Q.experiment.search(name=name, statement=stmt)
+    elif operator:
+        table.active_search_var = "operator"
+        table.active_query_value = operator
+        stmt = Q.experiment.search(operator_name=operator, statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.experiment.select(id=int(digits), statement=stmt)
 
     if project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:

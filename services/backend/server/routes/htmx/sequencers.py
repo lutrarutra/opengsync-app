@@ -19,13 +19,30 @@ class SequencerTable(HTMXTable):
 
 @router.get("/render-table-page", dependencies=[Depends(dependencies.require_insider)])
 def render_sequencer_table(
+    name: str | None = Query(None, description="Search by sequencer name"),
+    id_search: str | None = Query(None, alias="id", description="Search by sequencer ID"),
+    model_in: list[C.SequencerModel] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SequencerModel, query_param="model_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Sequencer, default=models.Sequencer.id.desc())),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = SequencerTable(route="render_sequencer_table", page=page, order_by=order_by)
     table.template = "components/tables/sequencer.html"
-    stmt = Q.sequencer.select()
+    stmt = Q.sequencer.select(model_in=model_in)
+
+    if model_in:
+        table.filter_values["model"] = model_in
+
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+        stmt = Q.sequencer.search(name=name, statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.sequencer.select(id=int(digits), statement=stmt)
+
     sequencers = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(sequencers=sequencers)
 

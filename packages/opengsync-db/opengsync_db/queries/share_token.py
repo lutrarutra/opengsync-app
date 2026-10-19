@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 
 from ..models import ShareToken, User, SharePath, Project
+from ..core import utils
 
 
 def create(
@@ -13,6 +14,22 @@ def create(
         time_valid_min=time_valid_min,
         paths=[SharePath(path=path) for path in paths],
     )
+
+
+def search(
+    uuid: str | None = None,
+    owner_name: str | None = None,
+    statement: sa.Select[tuple[ShareToken]] = sa.select(ShareToken),
+) -> sa.Select[tuple[ShareToken]]:
+    """Prefix match on the uuid, fuzzy search on the owner's full name."""
+    if uuid is not None:
+        statement = statement.where(ShareToken.uuid.startswith(uuid.strip().lower(), autoescape=True))
+    if owner_name is not None:
+        full_name = User.name.expression
+        statement = statement.join(User, ShareToken.owner_id == User.id).where(
+            utils.safe_trgm_search(full_name, owner_name)
+        ).order_by(sa.func.similarity(full_name, owner_name).desc())
+    return statement
 
 
 def select(

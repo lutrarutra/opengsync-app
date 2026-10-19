@@ -4,6 +4,7 @@ from sqlalchemy import sql
 
 from ..models import MediaFile, User, links, SeqRequest
 from ..categories import MediaFileType, AccessLevel
+from ..core import utils
 
 
 def create(
@@ -47,6 +48,20 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
         (sa.exists(has_read_access), AccessLevel.READ),
         else_=AccessLevel.NONE
     )
+
+
+def search(
+    uploader_name: str | None = None,
+    statement: sa.Select[tuple[MediaFile]] = sa.select(MediaFile),
+) -> sa.Select[tuple[MediaFile]]:
+    """Fuzzy search on the uploader's full name."""
+    if uploader_name is None:
+        return statement
+
+    full_name = User.name.expression
+    return statement.join(User, MediaFile.uploader_id == User.id).where(
+        utils.safe_trgm_search(full_name, uploader_name)
+    ).order_by(sa.func.similarity(full_name, uploader_name).desc())
 
 
 def select(

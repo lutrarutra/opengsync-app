@@ -27,6 +27,9 @@ class FeatureTable(HTMXTable):
 def render_feature_table(
     feature_kit_id: int | None = Query(None, description="Optional feature kit ID to filter features"),
     library_id: int | None = Query(None, description="Filter features by library ID"),
+    name: str | None = Query(None, description="Search by feature name"),
+    identifier: str | None = Query(None, description="Search by feature identifier"),
+    id_search: str | None = Query(None, alias="id", description="Search by feature ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     type_in: list[C.FeatureType] | None = Depends(dependencies.parse_enum_ids(C.FeatureType, "type_in")),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Feature, default=models.Feature.id.desc())),
@@ -45,6 +48,20 @@ def render_feature_table(
 
     if type_in:
         table.filter_values["type"] = type_in
+
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+        stmt = Q.feature.search(name=name, statement=stmt)
+    elif identifier:
+        table.active_search_var = "identifier"
+        table.active_query_value = identifier
+        stmt = Q.feature.search(identifier=identifier, statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.feature.select(id=int(digits), statement=stmt)
 
     if library_id:
         table.template = "components/tables/library-feature.html"

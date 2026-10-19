@@ -25,6 +25,8 @@ class UserTable(HTMXTable):
 @router.get("/render-table-page")
 def render_user_table(
     group_id: int | None = Query(None, description="Optional group ID to filter users"),
+    name: str | None = Query(None, description="Search by user name"),
+    id_search: str | None = Query(None, alias="id", description="Search by user ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.User, default=models.User.id.desc())),
@@ -37,6 +39,16 @@ def render_user_table(
         role_in=role_in,
         group_id=group_id,
     )
+
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+        stmt = Q.user.search(name=name, statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.user.select(id=int(digits), statement=stmt)
 
     if role_in:
         table.filter_values["role"] = role_in
@@ -70,6 +82,8 @@ class AssigneeTable(HTMXTable):
 def render_assignee_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter assignees"),
     project_id: int | None = Query(None, description="Optional project ID to filter assignees"),
+    name: str | None = Query(None, description="Search by user name"),
+    id_search: str | None = Query(None, alias="id", description="Search by user ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.User, default=models.User.id.desc())),
@@ -83,6 +97,16 @@ def render_assignee_table(
         assignees_project_id=project_id,
         role_in=role_in,
     )
+
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+        stmt = Q.user.search(name=name, statement=stmt)
+    elif id_search:
+        table.active_search_var = "id"
+        table.active_query_value = id_search
+        if digits := "".join(filter(str.isdigit, id_search)):
+            stmt = Q.user.select(id=int(digits), statement=stmt)
 
     if role_in:
         table.filter_values["role"] = role_in

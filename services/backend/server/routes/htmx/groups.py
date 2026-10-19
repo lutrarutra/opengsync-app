@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc, query_options
 from ... import forms
@@ -28,12 +28,16 @@ def render_group_table(
     user_id: int | None = Query(None, description="Search by user ID"),
     type_in: list[C.GroupType] | None = Depends(dependencies.parse_enum_ids(C.GroupType, "type_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Group, default=models.Group.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = GroupTable(route="render_group_table", page=page)
+    table = GroupTable(route="render_group_table", page=page, order_by=order_by)
     table.template = "components/tables/group.html"
     stmt = Q.group.select(type_in=type_in, user_id=user_id)
+
+    if type_in:
+        table.filter_values["type"] = type_in
 
     if name:
         table.active_search_var = "name"
@@ -56,7 +60,7 @@ def render_group_table(
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
 
     groups = table.paginate(
-        session, stmt, page=page,
+        session, stmt, page=page, order_by=order_by,
         options=[
             orm.with_expression(models.Group._num_users, models.Group.num_users.expression),
             orm.with_expression(models.Group._num_seq_requests, models.Group.num_seq_requests.expression),
