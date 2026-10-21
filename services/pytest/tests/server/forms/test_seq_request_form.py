@@ -9,6 +9,7 @@ from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ...db.create_units import create_contact, create_group, create_seq_request
 from .._http import assert_form_invalid, get, post_form
+from .._profile import set_profile, PI_NAME, PI_EMAIL
 
 
 def _request_payload(name: str, **overrides: str | None) -> dict[str, str]:
@@ -735,3 +736,92 @@ def test_edit_step_stays_on_step_with_errors(
 
     assert_form_invalid(response, "Request Name is required")
     assert _active_step(response) == "basic_info"
+
+
+# ── PI prefilled from the requestor's profile ───────────────────────────────
+
+
+def _input_value(response, field_id: str) -> str:
+    match = re.search(rf'id="{field_id}" value="([^"]*)"', response.text)
+    assert match is not None, field_id
+    return match.group(1)
+
+
+def _pi(response) -> tuple[str, str]:
+    return _input_value(response, "contact-pi_name"), _input_value(response, "contact-pi_email")
+
+
+def test_create_form_prefills_customer_pi(client: TestClient, session: SyncSession, user, user_token: str):
+    set_profile(session, user)
+    session.commit()
+
+    assert _pi(get(client, "/htmx/seq_requests/create", user_token)) == (PI_NAME, PI_EMAIL)
+
+
+def test_create_form_without_pi_leaves_it_empty(client: TestClient, user_token: str):
+    assert _pi(get(client, "/htmx/seq_requests/create", user_token)) == ("", "")
+
+
+def test_create_form_does_not_prefill_insider_pi(client: TestClient, session: SyncSession, insider, insider_token: str):
+    set_profile(session, insider)
+    session.commit()
+
+    assert _pi(get(client, "/htmx/seq_requests/create", insider_token)) == ("", "")
+
+
+def _requestor_step(client: TestClient, insider_token: str, **overrides: str):
+    payload = _request_payload(
+        f"step-{uuid4().hex}", step="user_selection",
+        **{"contact-pi_name": "", "contact-pi_email": "", **overrides},
+    )
+    return post_form(client, "/htmx/seq_requests/create/step", payload, token=insider_token)
+
+
+def test_requestor_step_prefills_requestor_pi(client: TestClient, session: SyncSession, user_2, insider_token: str):
+    set_profile(session, user_2)
+    session.commit()
+
+    response = _requestor_step(client, insider_token, **{"user_selection-user_id": str(user_2.id)})
+
+    assert _pi(response) == (PI_NAME, PI_EMAIL)
+
+
+def test_requestor_step_keeps_typed_pi(client: TestClient, session: SyncSession, user_2, insider_token: str):
+    set_profile(session, user_2)
+    session.commit()
+
+    response = _requestor_step(
+        client, insider_token,
+        **{"user_selection-user_id": str(user_2.id), "contact-pi_name": "Typed PI", "contact-pi_email": "typed@example.com"},
+    )
+
+    assert _pi(response) == ("Typed PI", "typed@example.com")
+
+
+def test_requestor_step_ignores_insider_and_new_requestors(
+    client: TestClient, session: SyncSession, insider, insider_token: str,
+):
+    set_profile(session, insider)
+    session.commit()
+
+    assert _pi(_requestor_step(client, insider_token, **{"user_selection-user_id": str(insider.id)})) == ("", "")
+    new_user = {
+        "user_selection-email": f"new-{uuid4().hex}@example.com",
+        "user_selection-first_name": "New",
+        "user_selection-last_name": "Requestor",
+    }
+    assert _pi(_requestor_step(client, insider_token, **new_user)) == ("", "")
+
+
+def test_contact_step_is_not_prefilled_again(client: TestClient, session: SyncSession, user_2, insider_token: str):
+    """Once the contact step was completed, an emptied PI stays empty."""
+    set_profile(session, user_2)
+    session.commit()
+
+    payload = _request_payload(
+        f"step-{uuid4().hex}", step="contact",
+        **{"user_selection-user_id": str(user_2.id), "contact-pi_name": "", "contact-pi_email": ""},
+    )
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=insider_token)
+
+    assert _pi(response) == ("", "")

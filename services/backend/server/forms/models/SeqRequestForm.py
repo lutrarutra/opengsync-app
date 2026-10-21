@@ -239,6 +239,22 @@ class SeqRequestForm(HTMXForm):
             if self.bioinformatician.name.data and not self.bioinformatician.email.data:
                 self.bioinformatician.email.errors.append("Email is required when bioinformatician name is provided.")
 
+    def prefill_pi_from_requestor(self, session: SyncSession) -> None:
+        """Fill the empty PI of the contact step with the PI of the selected requestor, if a customer who has one.
+
+        Before the contact step is completed (all steps are re-rendered from the submitted data). Typed values are
+        kept; a new requestor has no PI yet.
+        """
+        if self.user_selection.has_errors or not (user_id := self.user_selection.user_id.data):
+            return
+        pi_name, pi_email = self.contact.pi_name.name, self.contact.pi_email.name
+        if (self.raw_data.get(pi_name) or "").strip() or (self.raw_data.get(pi_email) or "").strip():
+            return
+        requestor = session.first(Q.user.select(id=int(user_id)))
+        if requestor is None or requestor.is_insider or not (requestor.pi_name and requestor.pi_email):
+            return
+        self.raw_data = {**self.raw_data, pi_name: requestor.pi_name, pi_email: requestor.pi_email}
+
     def selected_group(self, session: SyncSession, requestor: models.User) -> models.Group | None:
         """Group selected in the form; a non-insider requestor must be affiliated with it."""
         if not self.basic_info.group_id.data:
@@ -266,6 +282,8 @@ class SeqRequestForm(HTMXForm):
         checked = self.step_names if self.form_type == "edit" else completed
         self.validate_sub_forms(formdata, checked, csrf_token=csrf_token)
         self.validate_rules(session, checked)
+        if self.form_type == "create" and "user_selection" in completed and "contact" not in completed:
+            self.prefill_pi_from_requestor(session)
         # Errors in later steps of an edit form are only flagged; they don't block Next.
         if any(self.sub_form_dict[name].has_errors for name in completed):
             raise exc.FormValidationException(self)
@@ -324,6 +342,10 @@ class SeqRequestForm(HTMXForm):
                 form.disclaimer.accepted.data = True
             form.contact.name.data = current_user.name or ""
             form.contact.email.data = current_user.email or ""
+            # A customer's own PI by default; an insider's requestor's PI is filled once selected (validate_step)
+            if not current_user.is_insider and current_user.pi_name and current_user.pi_email:
+                form.contact.pi_name.data = current_user.pi_name
+                form.contact.pi_email.data = current_user.pi_email
             return form.make_response()
         return route
 

@@ -23,8 +23,8 @@ def search(
     group_name: str | None = None,
     user_name_weight: float = 0.5,
     group_name_weight: float = 0.5,
-    statement: sa.Select[tuple[UserAffiliation]] = sa.select(UserAffiliation),
-) -> sa.Select[tuple[UserAffiliation]]:
+    statement: sa.Select[UserAffiliation] = sa.select(UserAffiliation),
+) -> sa.Select[UserAffiliation]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -53,8 +53,8 @@ def select(
     user_id: int | None = None,
     group_id: int | None = None,
     affiliation_type_in: list[AffiliationType] | None = None,
-    statement: sa.Select[tuple[UserAffiliation]] = sa.select(UserAffiliation),
-) -> sa.Select[tuple[UserAffiliation]]:
+    statement: sa.Select[UserAffiliation] = sa.select(UserAffiliation),
+) -> sa.Select[UserAffiliation]:
     if affiliation_type_in is not None:
         statement = statement.where(UserAffiliation.affiliation_type.in_(affiliation_type_in))
     if user_id is not None:

@@ -21,8 +21,8 @@ def select(
     status: TaskStatus | None = None,
     status_in: list[TaskStatus] | None = None,
     archived: bool | None = None,
-    statement: sa.Select[tuple[FlowCellDesign]] = sa.select(FlowCellDesign),
-) -> sa.Select[tuple[FlowCellDesign]]:
+    statement: sa.Select[FlowCellDesign] = sa.select(FlowCellDesign),
+) -> sa.Select[FlowCellDesign]:
     if id is not None:
         statement = statement.where(FlowCellDesign.id == id)
 

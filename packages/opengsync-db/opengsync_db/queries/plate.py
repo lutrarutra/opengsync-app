@@ -15,8 +15,8 @@ def create(
 def select(
     id: int | None = None,
     lab_prep_id: int | None = None,
-    statement: sa.Select[tuple[Plate]] = sa.select(Plate),
-) -> sa.Select[tuple[Plate]]:
+    statement: sa.Select[Plate] = sa.select(Plate),
+) -> sa.Select[Plate]:
     statement = statement.where(*where_clauses(id=id, lab_prep_id=lab_prep_id))
     return statement
 

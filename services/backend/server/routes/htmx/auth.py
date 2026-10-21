@@ -58,6 +58,7 @@ def activate_user(
     current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
     email: mailer.Mailer = Depends(dependencies.mail_client),
+    r: rds.RedisClient = Depends(dependencies.redis),
 ):
     
     user = session.get_one(Q.user.select(id=user_id))
@@ -66,10 +67,12 @@ def activate_user(
         raise exc.BadRequestException("User is already active.")
     
     auth.set_role(user, C.UserRole.CLIENT)
+    r.delete(f"user:{user.id}")
 
-    token = secrets.create_password_reset_token(user_id=user.id)
-    link = responses.external_url_for("reset_password_page", token=token)
-    email.send_password_reset(recipient_email=user.email, reset_link=link)
+    # The user sets a password and, if missing, their organization and PI
+    token = secrets.create_activation_token(user_id=user.id)
+    link = responses.external_url_for("activation_page", token=token)
+    email.send_activation(recipient_email=user.email, activation_link=link)
 
     return responses.htmx_response(
         redirect=responses.url_for("login_page"),
@@ -110,5 +113,6 @@ def start_user_session(
 router.include_router(forms.auth.LoginForm.Router(dependencies=public_rate_limit))
 router.include_router(forms.auth.RegisterForm.Router(dependencies=public_rate_limit))
 router.include_router(forms.auth.ResetPasswordForm.Router(dependencies=public_rate_limit))
+router.include_router(forms.auth.ActivationForm.Router(dependencies=public_rate_limit))
 router.include_router(forms.auth.CompleteRegistrationForm.Router(dependencies=public_rate_limit))
 router.include_router(forms.auth.ChangePasswordForm.Router())

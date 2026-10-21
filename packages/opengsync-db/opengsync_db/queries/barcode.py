@@ -27,8 +27,8 @@ def select(
     adapter_id: int | None = None,
     type: BarcodeType | None = None,
     search_sequence: str | None = None,
-    statement: sa.Select[tuple[Barcode]] = sa.select(Barcode),
-) -> sa.Select[tuple[Barcode]]:
+    statement: sa.Select[Barcode] = sa.select(Barcode),
+) -> sa.Select[Barcode]:
     if id is not None:
         statement = statement.where(Barcode.id == id)
     if index_kit_id is not None:

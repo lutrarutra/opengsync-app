@@ -16,6 +16,10 @@
  * element.
  * Elements with `data-search-select-new-only="<value input id>"` are shown only while the field holds a new name, and
  * their inputs are disabled (not submitted) otherwise.
+ *
+ * With `data-key-values` (ColumnValueInputField, components/inputs/column_value.py) option ids are string keys
+ * instead of numbers and are not shown. `data-query-fields` (JSON `{param: field id}`) adds the shown value of other
+ * fields to the search, e.g. the institute of a department.
  */
 window.SearchSelect = (() => {
     const NEW = "new";
@@ -51,6 +55,9 @@ window.SearchSelect = (() => {
             this.url = root.dataset.url;
             this.allowNew = root.hasAttribute("data-allow-new");
             this.newLabel = root.dataset.newLabel || "Create New";
+            this.keyValues = root.hasAttribute("data-key-values");
+            this.queryFields = root.dataset.queryFields ? JSON.parse(root.dataset.queryFields) : {};
+            this.queryFieldsKey = null;
             this.readOnly = root.classList.contains("read-only");
             this.control = root.querySelector(".search-select-control");
             this.input = root.querySelector(".search-select-input");
@@ -105,7 +112,7 @@ window.SearchSelect = (() => {
             this.root.dispatchEvent(new CustomEvent("search-select:change", {
                 bubbles: true,
                 detail: {
-                    id: this.value && !this.isNew ? Number(this.value) : null,
+                    id: this.value && !this.isNew ? (this.keyValues ? this.value : Number(this.value)) : null,
                     isNew: this.isNew,
                     text: this.textInput.value,
                     option: this.option,
@@ -196,6 +203,7 @@ window.SearchSelect = (() => {
                 this.open();
                 const word = this.input.value.trim();
                 clearTimeout(this.timer);
+                this._checkQueryFields();
                 if (this.cache.has(word)) {
                     this._search(word);
                 } else {
@@ -311,8 +319,13 @@ window.SearchSelect = (() => {
             if (!this.typed) {
                 this.input.value = this.textInput.value;
             }
-            this.badge.textContent = this.value || "—";
-            this.badge.title = this.isNew ? "New" : "ID";
+            if (this.keyValues) {
+                this.badge.textContent = this.isNew ? "New" : "";
+                this.badge.title = "New";
+            } else {
+                this.badge.textContent = this.value || "—";
+                this.badge.title = this.isNew ? "New" : "ID";
+            }
             this.root.classList.toggle("is-new", this.isNew);
             this.root.classList.toggle("has-value", !!this.value);
         }
@@ -336,9 +349,28 @@ window.SearchSelect = (() => {
             }
         }
 
+        // Shown values of the fields in `data-query-fields`, by query parameter
+        _queryFieldValues() {
+            const values = {};
+            for (const [param, id] of Object.entries(this.queryFields)) {
+                const other = document.getElementById(`${id}-container`)?.searchSelect;
+                values[param] = other ? other.textInput.value : document.getElementById(id)?.value ?? "";
+            }
+            return values;
+        }
+
+        // Options loaded for other values of the query fields are stale
+        _checkQueryFields() {
+            const key = JSON.stringify(this._queryFieldValues());
+            if (key !== this.queryFieldsKey) {
+                this.queryFieldsKey = key;
+                this.cache.clear();
+            }
+        }
+
         async _fetch(params, signal) {
             const url = new URL(this.url, window.location.href);
-            for (const [key, value] of Object.entries(params)) {
+            for (const [key, value] of Object.entries({ ...this._queryFieldValues(), ...params })) {
                 url.searchParams.set(key, value);
             }
             const response = await fetch(url, { signal, headers: { Accept: "application/json" } });
@@ -358,6 +390,7 @@ window.SearchSelect = (() => {
 
         _search(word) {
             clearTimeout(this.timer);
+            this._checkQueryFields();
             this.state?.controller?.abort();
             const cached = this.cache.get(word);
             this.state = cached

@@ -86,8 +86,8 @@ def search(
     name_weight: float = 0.5,
     requestor_name_weight: float = 0.25,
     group_name_weight: float = 0.25,
-    statement: sql.Select[tuple[SeqRequest]] = sa.select(SeqRequest),
-) -> sql.Select[tuple[SeqRequest]]:
+    statement: sql.Select[SeqRequest] = sa.select(SeqRequest),
+) -> sql.Select[SeqRequest]:
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -131,8 +131,8 @@ def select(
     experiment_id: int | None = None,
     group_id: int | None = None,
     viewer_id: int | None = None,
-    statement: sql.Select[tuple[SeqRequest]] = sa.select(SeqRequest),
-) -> sql.Select[tuple[SeqRequest]]:
+    statement: sql.Select[SeqRequest] = sa.select(SeqRequest),
+) -> sql.Select[SeqRequest]:
     return statement.where(*where_clauses(
         id=id,
         status=status,
@@ -149,7 +149,7 @@ def select(
         viewer_id=viewer_id,
     ))
 
-def permissions(seq_request_id: int, user_id: int) -> sql.Select[tuple[AccessLevel]]:
+def permissions(seq_request_id: int, user_id: int) -> sql.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(SeqRequest.id == seq_request_id)
 
 

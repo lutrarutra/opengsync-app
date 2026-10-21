@@ -30,8 +30,8 @@ def select(
     id: int | None = None,
     user_id: int | None = None,
     credential_id: bytes | None = None,
-    statement: sql.Select[tuple[UserPasskey]] = sa.select(UserPasskey),
-) -> sql.Select[tuple[UserPasskey]]:
+    statement: sql.Select[UserPasskey] = sa.select(UserPasskey),
+) -> sql.Select[UserPasskey]:
     statement = statement.where(*where_clauses(
         id=id, user_id=user_id, credential_id=credential_id,
     ))

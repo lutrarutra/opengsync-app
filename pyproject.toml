@@ -26,7 +26,7 @@ dependencies = [
     "pandas >= 3.0",
     "loguru >= 0.7",
     "psycopg[binary] >= 3.2",
-    "SQLAlchemy >= 2.0",
+    "SQLAlchemy >= 2.1",
     "pytz >= 2023.3.post1",
     "tzlocal >= 5.2",
     "uuid6",

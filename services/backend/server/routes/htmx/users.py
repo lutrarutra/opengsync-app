@@ -163,3 +163,4 @@ def search_users(
 
 router.include_router(forms.models.UserForm.Router())
 router.include_router(forms.auth.APITokenForm.Router())
+router.include_router(forms.actions.MergeUsersAction.Router())

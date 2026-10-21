@@ -373,10 +373,10 @@ def test_empty_folder_is_still_empty(client: TestClient, index: Path, share_root
     assert "no longer exists" not in text
 
 
-def test_share_form_warns_about_a_gone_path(client: TestClient, gone: str, insider_token: str):
-    text = get(client, "/htmx/files/share-path", insider_token, params={"path": gone}).text
+def test_share_form_warns_about_a_gone_path(client: TestClient, gone: str, bioinformatician_token: str):
+    text = get(client, "/htmx/files/share-path", bioinformatician_token, params={"path": gone}).text
     assert "Not found on the share" in text
-    existing = get(client, "/htmx/files/share-path", insider_token, params={"path": "BSF_PROJECTS/P1_Smith"}).text
+    existing = get(client, "/htmx/files/share-path", bioinformatician_token, params={"path": "BSF_PROJECTS/P1_Smith"}).text
     assert "Not found on the share" not in existing
 
 

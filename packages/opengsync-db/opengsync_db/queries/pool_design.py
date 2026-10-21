@@ -27,8 +27,8 @@ def select(
     flow_cell_design_id: int | None = None,
     orphan: bool | None = None,
     archived: bool | None = None,
-    statement: sa.Select[tuple[PoolDesign]] = sa.select(PoolDesign),
-) -> sa.Select[tuple[PoolDesign]]:
+    statement: sa.Select[PoolDesign] = sa.select(PoolDesign),
+) -> sa.Select[PoolDesign]:
     if id is not None:
         statement = statement.where(PoolDesign.id == id)
 

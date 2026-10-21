@@ -33,21 +33,17 @@ def test_project_merge(session: SyncSession):
     project_a = actions.merge_projects(session, project_dst=project_a, project_src=project_b)
     session.flush()
     session.refresh(project_a)
-    session.refresh(project_b)
+    project_b_id = project_b.id
 
     assert session.count(Q.sample.select()) == 2 * NUM_SAMPLES
     assert session.count(Q.library.select()) == 2 * NUM_SAMPLES
     assert session.count(Q.seq_request.select()) == 2
-    assert session.count(Q.project.select()) == 2
+    assert session.count(Q.project.select()) == 1
+    assert session.first(Q.project.select(id=project_b_id)) is None
     assert len(project_a.samples) == 2 * NUM_SAMPLES
     assert len(project_a.libraries) == 2 * NUM_SAMPLES
     assert len(project_a.seq_requests) == 2
     assert project_a.num_samples == 2 * NUM_SAMPLES
     assert project_a.num_seq_requests == 2
-    assert len(project_b.samples) == 0
-    assert len(project_b.libraries) == 0
-    assert len(project_b.seq_requests) == 0
-    assert project_b.num_samples == 0
-    assert project_b.num_seq_requests == 0
 
 

@@ -39,8 +39,8 @@ def search(
     operator_name: str | None = None,
     name_weight: float = 0.5,
     operator_name_weight: float = 0.5,
-    statement: sa.Select[tuple[Experiment]] = sa.select(Experiment),
-) -> sa.Select[tuple[Experiment]]:
+    statement: sa.Select[Experiment] = sa.select(Experiment),
+) -> sa.Select[Experiment]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -72,8 +72,8 @@ def select(
     status_in: list[ExperimentStatus] | None = None,
     workflow_in: list[ExperimentWorkFlow] | None = None,
     library_types_in: list[LibraryType] | None = None,
-    statement: sa.Select[tuple[Experiment]] = sa.select(Experiment),
-) -> sa.Select[tuple[Experiment]]:
+    statement: sa.Select[Experiment] = sa.select(Experiment),
+) -> sa.Select[Experiment]:
     return statement.where(*where_clauses(
         id=id, name=name, status=status, project_id=project_id,
         status_in=status_in, workflow_in=workflow_in, library_types_in=library_types_in,

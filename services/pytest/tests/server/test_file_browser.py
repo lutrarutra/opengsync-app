@@ -10,7 +10,7 @@ from ._http import get
 
 def test_file_browser_renders_list_and_lazy_directory_fragments(
     client: TestClient,
-    insider_token: str,
+    bioinformatician_token: str,
     tmp_path: Path,
 ):
     share_root = tmp_path / "share"
@@ -22,7 +22,7 @@ def test_file_browser_renders_list_and_lazy_directory_fragments(
     original_share_root = config.settings.app_config.share_root
     config.settings.app_config.share_root = str(share_root)
     try:
-        page = get(client, "/browser/", insider_token)
+        page = get(client, "/browser/", bioinformatician_token)
         assert page.status_code == 200
         assert 'id="file-browser-root"' in page.text
         assert "hx-trigger=\"load\"" in page.text
@@ -32,17 +32,31 @@ def test_file_browser_renders_list_and_lazy_directory_fragments(
         assert 'data-max-paths="50"' in page.text
         assert "js/path-selection.js" in page.text
 
-        root = get(client, "/htmx/files/", insider_token)
+        root = get(client, "/htmx/files/", bioinformatician_token)
         assert root.status_code == 200
         assert "nested/" in root.text
         assert 'hx-trigger="click once"' in root.text
         assert "browser-children" in root.text
 
-        children = get(client, "/htmx/files/nested", insider_token)
+        children = get(client, "/htmx/files/nested", bioinformatician_token)
         assert children.status_code == 200
         assert "child.txt" in children.text
     finally:
         config.settings.app_config.share_root = original_share_root
+
+
+def test_file_browser_has_no_selection_panel_for_technicians(
+    client: TestClient, insider_token: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    """Associate/Share are for admins and bioinformaticians; technicians only browse."""
+    (tmp_path / "share").mkdir()
+    monkeypatch.setattr(config.settings.app_config, "share_root", str(tmp_path / "share"))
+    page = get(client, "/browser/", insider_token)
+    assert page.status_code == 200
+    assert 'id="file-browser-root"' in page.text
+    assert 'id="path-selection-panel"' not in page.text
+    assert "/htmx/files/share-path" not in page.text
+    assert "/htmx/files/associate-path" not in page.text
 
 
 @pytest.fixture

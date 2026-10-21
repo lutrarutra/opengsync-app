@@ -1823,7 +1823,7 @@ requires-dist = [
     { name = "pytz", specifier = ">=2023.3.post1" },
     { name = "redis" },
     { name = "server", virtual = "services/backend" },
-    { name = "sqlalchemy", specifier = ">=2.0" },
+    { name = "sqlalchemy", specifier = ">=2.1" },
     { name = "tzlocal", specifier = ">=5.2" },
     { name = "uuid6" },
 ]
@@ -1860,7 +1860,7 @@ requires-dist = [
     { name = "pathspec", specifier = ">=1.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pytz", specifier = ">=2023.3.post1" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.1" },
     { name = "tzlocal", specifier = ">=5.2" },
     { name = "uuid6" },
 ]
@@ -1893,7 +1893,7 @@ requires-dist = [
     { name = "pytz", specifier = ">=2023.3" },
     { name = "pyyaml" },
     { name = "redis" },
-    { name = "sqlalchemy", specifier = ">=2.0" },
+    { name = "sqlalchemy", specifier = ">=2.1" },
     { name = "tzlocal", specifier = ">=5.2" },
 ]
 

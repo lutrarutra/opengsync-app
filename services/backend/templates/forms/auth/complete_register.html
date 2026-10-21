@@ -1,31 +1,19 @@
-<div class="modal-content" id="complete-register-form-container">
-    <div class="modal-header">
-        <h1 class="modal-title fs-5" >Register</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="complete-register-form-container">
+    <div id="complete-register-form">
+        {{ form.csrf_token.render() }}
+        <div class="row">
+            {{ form.email.render("col-4") }}
+            {{ form.first_name.render("col-4") }}
+            {{ form.last_name.render("col-4") }}
+        </div>
+        <div class="row">
+            {{ form.password.render("col-6") }}
+            {{ form.confirm.render("col-6") }}
+        </div>
+        <h3>Organization & Principal Investigator</h3>
+        {% include "forms/user-profile-fields.html" %}
     </div>
-    <div class="modal-body">
-        <div id="complete-register-form">
-            {{ form.csrf_token.render() }}
-            <div class="row">
-                {{ form.email.render("col-4") }}
-                {{ form.first_name.render("col-4") }}
-                {{ form.last_name.render("col-4") }}
-            </div>
-            <div class="row">
-                {{ form.password.render("col-6") }}
-                {{ form.confirm.render("col-6") }}
-            </div>
-        </div>
-    </div>
-    <div class="modal-footer" id="popup-footer">
-        <div class="footer-id">
-        </div>
-        <div class="footer-info">
-        </div>
-        <div class="footer-controls">
-            <button id="submit-complete-register-btn" class="btn btn-success"
-            hx-include="#complete-register-form" hx-target="#complete-register-form-container" hx-swap="outerHTML"
-            hx-post="{{ form.post_url }}">Register</button>
-        </div>
-    </div>
+    <button id="submit-complete-register-btn" class="btn btn-success"
+    hx-include="#complete-register-form" hx-target="#complete-register-form-container" hx-swap="outerHTML"
+    hx-post="{{ form.post_url }}">Register</button>
 </div>

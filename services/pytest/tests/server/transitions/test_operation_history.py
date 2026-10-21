@@ -97,7 +97,7 @@ def test_comment_field_only_when_status_is_editable(client: TestClient, session:
     assert 'name="status_comment"' not in as_owner.text
 
 
-def test_release_api_records_api_operation(client: TestClient, session: SyncSession, user, insider, insider_token: str):
+def test_release_api_records_api_operation(client: TestClient, session: SyncSession, user, bioinformatician, bioinformatician_token: str):
     project = create_project(session, user)
     project.identifier = "P0001"
     seq_request = create_seq_request(session, user)
@@ -112,13 +112,13 @@ def test_release_api_records_api_operation(client: TestClient, session: SyncSess
     response = client.post(
         "/api/shares/release-project_data",
         json={"project_id": project.id, "internal_access": False, "time_valid_min": 60, "recipients": ["customer@example.com"]},
-        headers=auth(insider_token),
+        headers=auth(bioinformatician_token),
     )
     assert response.status_code == 200, response.text
 
     [run] = _runs(session, "api.release_project")
     assert run.kind == C.OperationKind.API
-    assert run.actor_id == insider.id
+    assert run.actor_id == bioinformatician.id
     assert {(c.entity_type, c.to_status) for c in run.changes} == {
         ("project", C.ProjectStatus.DELIVERED.id),
         ("library", C.LibraryStatus.SHARED.id),

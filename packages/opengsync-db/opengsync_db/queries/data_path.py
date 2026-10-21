@@ -31,8 +31,8 @@ def select(
     seq_request_id: int | None = None,
     library_id: int | None = None,
     experiment_id: int | None = None,
-    statement: sa.Select[tuple[DataPath]] = sa.select(DataPath),
-) -> sa.Select[tuple[DataPath]]:
+    statement: sa.Select[DataPath] = sa.select(DataPath),
+) -> sa.Select[DataPath]:
     statement = statement.where(*where_clauses(
         id=id, path=path, type=type, type_in=type_in,
         project_id=project_id, seq_request_id=seq_request_id,

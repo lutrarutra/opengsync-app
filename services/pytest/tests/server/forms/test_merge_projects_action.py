@@ -8,6 +8,8 @@ Expected behaviour is legacy ``merge_projects_workflow`` + ``MergeProjectsForm``
   move over, missing attributes are copied, measurements the destination lacks
   are filled in, the more advanced status wins; then the source sample is deleted;
 - source assignees are added to the destination (no duplicates);
+- the source's data paths move to the destination, then the source project is
+  deleted so only the destination remains (legacy left it empty);
 - rejected before anything changes: same project twice, missing or unknown
   project, same-name samples with attributes of a different type or value;
 - a failure during the merge leaves both projects untouched.
@@ -93,26 +95,37 @@ def test_unique_samples_move_to_destination(
     _sample(session, user, src, "moved-1")
     _sample(session, user, src, "moved-2")
     session.commit()
+    src_id = src.id
 
     response = post_form(client, PATH, _payload(dst, src), token=insider_token)
 
     assert_htmx_redirect(response, f"/projects/{dst.id}")
     assert_flash(response, "Projects merged successfully!", category="success")
     assert set(_samples(session, dst)) == {"kept", "moved-1", "moved-2"}
-    assert _samples(session, src) == {}
+    assert session.count(Q.sample.select(project_id=src_id)) == 0
 
 
-def test_source_project_is_left_empty_not_deleted(
-    client: TestClient, session: SyncSession, user, insider_token: str, projects,
+def test_source_project_is_deleted(
+    client: TestClient, session: SyncSession, user, insider, insider_token: str, projects,
 ):
     dst, src = projects
+    src.assignees.append(insider)
     _sample(session, user, src, "moved")
+    data_path = models.DataPath(path="/data/src", type=C.DataPathType.DIRECTORY, project_id=src.id)
+    session.add(data_path)
     session.commit()
+    src_id, dst_id, data_path_id = src.id, dst.id, data_path.id
+    num_projects = session.count(Q.project.select())
 
-    post_form(client, PATH, _payload(dst, src), token=insider_token)
+    response = post_form(client, PATH, _payload(dst, src), token=insider_token)
 
+    assert_htmx_redirect(response, f"/projects/{dst_id}")
     session.expire_all()
-    assert session.get(models.Project, src.id) is not None
+    assert session.get(models.Project, src_id) is None
+    assert session.get(models.Project, dst_id) is not None
+    assert session.count(Q.project.select()) == num_projects - 1
+    assert set(_samples(session, dst)) == {"moved"}
+    assert session.get(models.DataPath, data_path_id).project_id == dst_id
 
 
 def test_same_name_sample_is_merged_into_destination_sample(
@@ -214,17 +227,20 @@ def test_assignees_are_merged_without_duplicates(
     assert sorted(u.id for u in session.get(models.Project, dst.id).assignees) == sorted([insider.id, admin.id])
 
 
-def test_empty_source_project_changes_nothing(
+def test_empty_source_project_is_just_deleted(
     client: TestClient, session: SyncSession, user, insider_token: str, projects,
 ):
     dst, src = projects
     _sample(session, user, dst, "kept")
     session.commit()
+    src_id = src.id
 
     response = post_form(client, PATH, _payload(dst, src), token=insider_token)
 
     assert_htmx_redirect(response, f"/projects/{dst.id}")
     assert set(_samples(session, dst)) == {"kept"}
+    session.expire_all()
+    assert session.get(models.Project, src_id) is None
 
 
 # ── Rejected before anything changes ────────────────────────────────────────

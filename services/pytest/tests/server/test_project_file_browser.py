@@ -418,14 +418,26 @@ def test_prod_caches_lookups_and_listings(
     assert get(client, _file(project, "other/private.pdf"), user_token).status_code == 200
 
 
-def test_admin_browser_entries_have_context_menu(
+def test_technician_browser_entries_have_no_actions(
     client: TestClient, project_data: ProjectData, insider_token: str,
+):
+    """Technicians browse the share but can't select, assign or share."""
+    for subpath in ("", "other"):
+        listing = get(client, f"/htmx/files/{subpath}", insider_token)
+        assert listing.status_code == 200
+        assert "cm-callback" not in listing.text
+        assert "SharePathAction" not in listing.text and "/htmx/files/share-path" not in listing.text
+        assert "/htmx/files/associate-path" not in listing.text
+
+
+def test_admin_browser_entries_have_context_menu(
+    client: TestClient, project_data: ProjectData, bioinformatician_token: str,
 ):
     """Files and folders alike: Select (for the selection panel), Assign and Share.
     Share roots (the top level) can't be assigned, only what is inside them."""
     from html import unescape
 
-    root = get(client, "/htmx/files/", insider_token)
+    root = get(client, "/htmx/files/", bioinformatician_token)
     assert root.status_code == 200
     assert root.text.count("cm-callback") == 3  # other/, proj/, single.pdf
     menus = unescape(root.text)
@@ -435,7 +447,7 @@ def test_admin_browser_entries_have_context_menu(
     assert '"label": "Assign"' not in menus
     assert "Share Directory" not in menus
 
-    inside = unescape(get(client, "/htmx/files/other", insider_token).text)
+    inside = unescape(get(client, "/htmx/files/other", bioinformatician_token).text)
     assert '"path": "other/private.pdf"' in inside
     assert '"label": "Assign"' in inside
     assert '"label": "Share"' in inside

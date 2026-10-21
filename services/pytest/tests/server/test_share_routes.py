@@ -129,7 +129,7 @@ def test_share_routes_reject_invalid_expired_and_unshared_paths(
 
     assert client.get("/api/shares/validate/not-a-token").status_code == 404
     unshared = client.get(f"/api/shares/browse/{token}/unshared.txt")
-    assert unshared.status_code == 200
+    assert unshared.status_code == 404
     assert "private" not in unshared.text
 
     expired = session.save(Q.share_token.create(

@@ -193,17 +193,17 @@ def _associate(client: TestClient, token: str, project: models.Project, *paths: 
     }, token=token)
 
 
-def test_associate_path_control(client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout):
-    response = _associate(client, insider_token, project, "shared/report.txt")
+def test_associate_path_control(client: TestClient, session: SyncSession, project, bioinformatician_token: str, layout: Layout):
+    response = _associate(client, bioinformatician_token, project, "shared/report.txt")
     assert response.status_code == 204
     assert _data_path_count(session, project) == 1
 
 
 @pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
 def test_associate_path_rejects_escape(
-    client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout, path: str,
+    client: TestClient, session: SyncSession, project, bioinformatician_token: str, layout: Layout, path: str,
 ):
-    response = _associate(client, insider_token, project, _fill(path, layout))
+    response = _associate(client, bioinformatician_token, project, _fill(path, layout))
     assert_form_invalid(response, "outside of share root")
     assert _data_path_count(session, project) == 0
 
@@ -228,14 +228,14 @@ def test_data_tab_control(client: TestClient, session: SyncSession, project, use
 
 
 @pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
-@pytest.mark.parametrize("viewer", ["project_owner", "insider"])
+@pytest.mark.parametrize("viewer", ["project_owner", "bioinformatician"])
 def test_data_tab_rejects_planted_escape(
-    client: TestClient, session: SyncSession, project, user_token: str, insider_token: str,
+    client: TestClient, session: SyncSession, project, user_token: str, bioinformatician_token: str,
     layout: Layout, path: str, viewer: str,
 ):
     path = _fill(path, layout)
     _plant(session, project, path)
-    token = user_token if viewer == "project_owner" else insider_token
+    token = user_token if viewer == "project_owner" else bioinformatician_token
 
     for route in ("browse", "files"):
         response = _data_tab(client, token, project, route, path.lstrip("/"))
@@ -245,21 +245,28 @@ def test_data_tab_rejects_planted_escape(
 
 
 def test_data_tab_rechecks_symlink_retargeted_after_association(
-    client: TestClient, session: SyncSession, project, user_token: str, insider_token: str, layout: Layout,
+    client: TestClient, session: SyncSession, project, user_token: str, bioinformatician_token: str, layout: Layout,
 ):
     """A symlinked folder that was safe when associated is re-checked when listed."""
+    run = layout.root / "shared" / "run1"
+    run.mkdir()
+    (run / "report.txt").write_text(SHARED)
     link = layout.root / "shared" / "latest"
-    link.symlink_to(layout.root / "shared", target_is_directory=True)
-    response = _associate(client, insider_token, project, "shared/latest")
+    # not to shared itself: a link to its own folder is a cycle and never listed (test_share_symlink_cycles.py)
+    link.symlink_to(run, target_is_directory=True)
+    response = _associate(client, bioinformatician_token, project, "shared/latest")
     assert response.status_code == 204
-    assert "report.txt" in _data_tab(client, user_token, project, "browse", "shared/latest").text
+    # the data tab lists the link's target
+    assert "shared/run1" in _data_tab(client, user_token, project, "browse").text
+    assert "report.txt" in _data_tab(client, user_token, project, "browse", "shared/run1").text
 
     link.unlink()
     link.symlink_to(layout.tmp / "outside-dir", target_is_directory=True)
 
-    response = _data_tab(client, user_token, project, "browse", "shared/latest")
-    assert response.status_code in (200, 403, 404)
-    assert_no_leak(response)
+    for path in ("", "shared/latest", "shared/run1"):
+        response = _data_tab(client, user_token, project, "browse", path)
+        assert response.status_code in (200, 403, 404)
+        assert_no_leak(response)
 
 
 # ── Staff: SharePathAction ─────────────────────────────────────────────────
@@ -274,19 +281,19 @@ def _share_paths(client: TestClient, token: str, *paths: str, recipients: tuple[
 
 
 def test_share_paths_control(
-    client: TestClient, session: SyncSession, insider: models.User, insider_token: str, fake_mailer, layout: Layout,
+    client: TestClient, session: SyncSession, bioinformatician: models.User, bioinformatician_token: str, fake_mailer, layout: Layout,
 ):
-    response = _share_paths(client, insider_token, "shared")
+    response = _share_paths(client, bioinformatician_token, "shared")
     assert response.status_code in (200, 204), response.text
-    [share_token] = session.get_all(Q.share_token.select(owner_id=insider.id), limit=None)
+    [share_token] = session.get_all(Q.share_token.select(owner_id=bioinformatician.id), limit=None)
     assert [p.path for p in share_token.paths] == ["shared"]
     assert len(fake_mailer.sent) == 1
 
 
 def test_share_paths_sends_to_every_recipient(
-    client: TestClient, insider_token: str, fake_mailer, layout: Layout,
+    client: TestClient, bioinformatician_token: str, fake_mailer, layout: Layout,
 ):
-    response = _share_paths(client, insider_token, "shared", recipients=("a@example.com", "b@example.com"))
+    response = _share_paths(client, bioinformatician_token, "shared", recipients=("a@example.com", "b@example.com"))
     assert response.status_code in (200, 204), response.text
     [sent] = fake_mailer.sent
     assert sorted(sent["kwargs"]["recipients"]) == ["a@example.com", "b@example.com"]
@@ -294,49 +301,49 @@ def test_share_paths_sends_to_every_recipient(
 
 @pytest.mark.parametrize("recipients", [(), ("a@example.com", "not-an-email"), ("a@example.com", "")])
 def test_share_paths_rejects_bad_recipients(
-    client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
+    client: TestClient, session: SyncSession, bioinformatician: models.User, bioinformatician_token: str,
     fake_mailer, layout: Layout, recipients: tuple[str, ...],
 ):
-    response = _share_paths(client, insider_token, "shared", recipients=recipients)
+    response = _share_paths(client, bioinformatician_token, "shared", recipients=recipients)
 
     assert_form_invalid(response)
     session.expire_all()
-    assert session.count(Q.share_token.select(owner_id=insider.id)) == 0
+    assert session.count(Q.share_token.select(owner_id=bioinformatician.id)) == 0
     assert fake_mailer.sent == []
 
 
 @pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
 def test_share_paths_rejects_escape(
-    client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
+    client: TestClient, session: SyncSession, bioinformatician: models.User, bioinformatician_token: str,
     fake_mailer, layout: Layout, path: str,
 ):
-    response = _share_paths(client, insider_token, _fill(path, layout))
+    response = _share_paths(client, bioinformatician_token, _fill(path, layout))
 
     assert_form_invalid(response)
     session.expire_all()
-    assert session.count(Q.share_token.select(owner_id=insider.id)) == 0
+    assert session.count(Q.share_token.select(owner_id=bioinformatician.id)) == 0
     assert fake_mailer.sent == []
 
 
 @pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
 def test_share_paths_rejects_escape_next_to_a_valid_path(
-    client: TestClient, session: SyncSession, insider: models.User, insider_token: str,
+    client: TestClient, session: SyncSession, bioinformatician: models.User, bioinformatician_token: str,
     fake_mailer, layout: Layout, path: str,
 ):
     """One escaping path rejects the whole share: the valid path is not shared on its own."""
-    response = _share_paths(client, insider_token, "shared/report.txt", _fill(path, layout))
+    response = _share_paths(client, bioinformatician_token, "shared/report.txt", _fill(path, layout))
 
     assert_form_invalid(response)
     session.expire_all()
-    assert session.count(Q.share_token.select(owner_id=insider.id)) == 0
+    assert session.count(Q.share_token.select(owner_id=bioinformatician.id)) == 0
     assert fake_mailer.sent == []
 
 
 @pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
 def test_associate_path_rejects_escape_next_to_a_valid_path(
-    client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout, path: str,
+    client: TestClient, session: SyncSession, project, bioinformatician_token: str, layout: Layout, path: str,
 ):
-    response = _associate(client, insider_token, project, "shared/report.txt", _fill(path, layout))
+    response = _associate(client, bioinformatician_token, project, "shared/report.txt", _fill(path, layout))
     assert_form_invalid(response, "outside of share root")
     assert _data_path_count(session, project) == 0
 
@@ -344,17 +351,17 @@ def test_associate_path_rejects_escape_next_to_a_valid_path(
 # ── Staff: insider file browser ─────────────────────────────────────────────
 
 
-def test_insider_file_browser_control(client: TestClient, insider_token: str, layout: Layout):
-    response = get(client, "/htmx/files/shared", insider_token)
+def test_insider_file_browser_control(client: TestClient, bioinformatician_token: str, layout: Layout):
+    response = get(client, "/htmx/files/shared", bioinformatician_token)
     assert response.status_code == 200
     assert "report.txt" in response.text
 
 
 @pytest.mark.parametrize("segment", [pytest.param(seg, id=vid) for vid, seg, kind in URL_ESCAPES if kind == "dir"])
 def test_insider_file_browser_does_not_list_outside_root(
-    client: TestClient, insider_token: str, layout: Layout, segment: str,
+    client: TestClient, bioinformatician_token: str, layout: Layout, segment: str,
 ):
-    response = get(client, f"/htmx/files/{_fill_url(segment, layout)}", insider_token)
+    response = get(client, f"/htmx/files/{_fill_url(segment, layout)}", bioinformatician_token)
     assert_no_leak(response)
 
 
@@ -372,9 +379,9 @@ def _add_data_path(client: TestClient, token: str, project: models.Project, path
 
 
 def test_add_data_path_api_control(
-    client: TestClient, session: SyncSession, project, insider_token: str, layout: Layout, share_mapping,
+    client: TestClient, session: SyncSession, project, bioinformatician_token: str, layout: Layout, share_mapping,
 ):
-    response = _add_data_path(client, insider_token, project, (layout.root / "shared" / "report.txt").as_posix())
+    response = _add_data_path(client, bioinformatician_token, project, (layout.root / "shared" / "report.txt").as_posix())
     assert response.status_code == 200, response.text
     assert _data_path_count(session, project) == 1
 
@@ -389,12 +396,12 @@ def test_add_data_path_api_control(
     pytest.param("../outside-secret.txt", id="relative"),
 ])
 def test_add_data_path_api_rejects_escape(
-    client: TestClient, session: SyncSession, project, insider_token: str,
+    client: TestClient, session: SyncSession, project, bioinformatician_token: str,
     layout: Layout, share_mapping, path: str,
 ):
     real_path = path.replace("{root}", layout.root.as_posix()).replace("{tmp}", layout.tmp.as_posix())
 
-    response = _add_data_path(client, insider_token, project, real_path)
+    response = _add_data_path(client, bioinformatician_token, project, real_path)
 
     assert response.status_code in (400, 404), response.text
     assert _data_path_count(session, project) == 0

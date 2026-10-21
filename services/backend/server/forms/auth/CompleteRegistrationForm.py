@@ -10,10 +10,12 @@ from opengsync_db.categories import UserRole
 from ...core import responses, secrets, dependencies, exceptions as exc
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ..common import UserProfileMixin
 
 
-class CompleteRegistrationForm(HTMXForm):
-    """Register form handler — validation, rendering, and response logic."""
+class CompleteRegistrationForm(UserProfileMixin, HTMXForm):
+    """Register form handler — validation, rendering, and response logic. Customers must give their organization
+    and PI; insiders may leave them empty."""
 
     template_path = "forms/auth/complete_register.html"
 
@@ -27,6 +29,8 @@ class CompleteRegistrationForm(HTMXForm):
         super().__init__()
         self.token = token
         self.post_url = responses.url_for("CompleteRegistrationForm.Submit", token=token)
+        self.role: UserRole | None = None
+        self.init_profile_fields(token=token)
 
         data = secrets.verify_registration_token(token=token)
         if data is None:
@@ -68,6 +72,7 @@ class CompleteRegistrationForm(HTMXForm):
                 raise exc.FormValidationException(form)
 
             email, role = data
+            profile = form.validate_profile(session, required=not role.insider)
             if session.exists(Q.user.select(email=email)):
                 form.email.errors.append("User already exists.")
                 raise exc.FormValidationException(form)
@@ -82,6 +87,10 @@ class CompleteRegistrationForm(HTMXForm):
                 hashed_password=bcrypt.generate_password_hash(form.password.data),
                 pw_set_datetime=dt.datetime.now(dt.timezone.utc),
                 role=UserRole.get(role),
+                institute=profile.institute,
+                department=profile.department,
+                pi_name=profile.pi_name,
+                pi_email=profile.pi_email,
             ), flush=True)
 
             logger.info(f"User {user.email} completed registration.")

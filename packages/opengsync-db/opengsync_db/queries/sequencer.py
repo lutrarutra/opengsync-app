@@ -19,8 +19,8 @@ def create(
 
 def search(
     name: str | None = None,
-    statement: sa.Select[tuple[Sequencer]] = sa.select(Sequencer),
-) -> sa.Select[tuple[Sequencer]]:
+    statement: sa.Select[Sequencer] = sa.select(Sequencer),
+) -> sa.Select[Sequencer]:
     if name is None:
         return statement
     return (
@@ -35,8 +35,8 @@ def select(
     model: SequencerModel | None = None,
     model_in: list[SequencerModel] | None = None,
     name: str | None = None,
-    statement: sa.Select[tuple[Sequencer]] = sa.select(Sequencer),
-) -> sa.Select[tuple[Sequencer]]:
+    statement: sa.Select[Sequencer] = sa.select(Sequencer),
+) -> sa.Select[Sequencer]:
     if id is not None:
         statement = statement.where(Sequencer.id == id)
     if model is not None:

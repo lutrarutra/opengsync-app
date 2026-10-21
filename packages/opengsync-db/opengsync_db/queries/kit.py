@@ -22,8 +22,8 @@ def search(
     identifier: str | None = None,
     name_weight: float = 0.5,
     identifier_weight: float = 0.5,
-    statement: sa.Select[tuple[Kit]] = sa.select(Kit),
-) -> sa.Select[tuple[Kit]]:
+    statement: sa.Select[Kit] = sa.select(Kit),
+) -> sa.Select[Kit]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -53,8 +53,8 @@ def select(
     type_in: list[KitType] | None = None,
     protocol_id: int | None = None,
     not_in_protocol_id: int | None = None,
-    statement: sa.Select[tuple[Kit]] = sa.select(Kit),
-) -> sa.Select[tuple[Kit]]:
+    statement: sa.Select[Kit] = sa.select(Kit),
+) -> sa.Select[Kit]:
     if id is not None:
         statement = statement.where(Kit.id == id)
     if name is not None:

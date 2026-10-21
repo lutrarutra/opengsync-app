@@ -4,7 +4,7 @@ The ``/htmx`` routers only require a login, so each action has to enforce the
 role itself. Two checks per action:
 
 - every route of the action (GET and POST) has ``require_insider``/``require_admin``
-  in its dependency tree. POST is checked this way because an empty POST can be
+  (or ``require_data_assigner`` for sharing/assigning data) in its dependency tree. POST is checked this way because an empty POST can be
   rejected by form validation (202) before the role check runs, which would hide
   a missing check.
 - a real GET: a client gets 403, the required role gets past the check.
@@ -32,12 +32,14 @@ from ._http import get
 
 INSIDER = (dependencies.require_insider, dependencies.require_admin)
 ADMIN = (dependencies.require_admin,)
+DATA_ASSIGNER = (dependencies.require_data_assigner,)
+REQUIRED = {"insider": INSIDER, "admin": ADMIN, "data_assigner": DATA_ASSIGNER}
 
 
 @dataclass(frozen=True)
 class Spec:
     prefix: str  # route-name prefix: an action class, or a workflow class for all its steps
-    role: str  # "insider" or "admin"
+    role: str  # "insider", "admin" or "data_assigner"
     params: tuple[tuple[str, str], ...] = ()  # path param -> entity key
     query: tuple[tuple[str, str], ...] = ()
     get_route: str | None = "Begin"  # GET route to call for real; None to only check dependencies
@@ -49,6 +51,7 @@ class Spec:
 SPECS = [
     Spec("StoreSamplesAction", "insider"),
     Spec("MergeProjectsAction", "insider"),
+    Spec("MergeUsersAction", "admin"),
     Spec("SamplePoolingAction", "insider", (("lab_prep_id", "lab_prep"),)),
     Spec("RejectSamplesAction", "insider", (("lab_prep_id", "lab_prep"),)),
     Spec("DilutePoolsAction", "insider", (("experiment_id", "separate_experiment"),)),
@@ -66,8 +69,8 @@ SPECS = [
     Spec("ProcessSeqRequestAction", "insider", (("seq_request_id", "seq_request"),)),
     Spec("AddSeqRequestAssigneeAction", "insider", (("seq_request_id", "seq_request"),)),
     Spec("AddProjectAssigneeAction", "insider", (("project_id", "project"),)),
-    Spec("SharePathAction", "insider"),
-    Spec("AssociatePathAction", "insider", query=(("path", "some/file.txt"),)),
+    Spec("SharePathAction", "data_assigner"),
+    Spec("AssociatePathAction", "data_assigner", query=(("path", "some/file.txt"),)),
     Spec("LanePoolsCombinedAction", "insider", (("experiment_id", "combined_experiment"),)),
     Spec("LanePoolsSeparateAction", "insider", (("experiment_id", "separate_experiment"),)),
     Spec("LoadFlowCellCombinedAction", "insider", (("experiment_id", "combined_experiment"),)),
@@ -98,7 +101,7 @@ def _dependency_calls(dependant):
 def test_every_route_requires_role(client: TestClient, spec: Spec):
     routes = _routes(client.app, spec.prefix)
     assert routes, f"no routes named {spec.prefix}.*"
-    required = ADMIN if spec.role == "admin" else INSIDER
+    required = REQUIRED[spec.role]
 
     unguarded = [
         f"{','.join(sorted(r.methods))} {r.path} [{r.name}]"
@@ -141,16 +144,16 @@ def test_client_is_denied(client: TestClient, entities, user_token: str, spec: S
 
 @pytest.mark.parametrize("spec", [s for s in SPECS if s.get_route], ids=str)
 def test_required_role_passes_the_check(
-    client: TestClient, entities, insider_token: str, admin_token: str, spec: Spec,
+    client: TestClient, entities, insider_token: str, admin_token: str, bioinformatician_token: str, spec: Spec,
 ):
     # Some of these templates are not ported yet and raise; only access is asserted here.
     lenient = TestClient(client.app, raise_server_exceptions=False)
-    token = admin_token if spec.role == "admin" else insider_token
+    token = {"admin": admin_token, "data_assigner": bioinformatician_token}.get(spec.role, insider_token)
     response = get(lenient, _get_url(client, spec, entities), token, params=dict(spec.query))
     assert response.status_code not in (303, 401, 403), response.text[:300]
 
 
-@pytest.mark.parametrize("spec", [s for s in SPECS if s.role == "admin" and s.get_route], ids=str)
-def test_insider_is_denied_admin_only_action(client: TestClient, entities, insider_token: str, spec: Spec):
+@pytest.mark.parametrize("spec", [s for s in SPECS if s.role != "insider" and s.get_route], ids=str)
+def test_insider_is_denied_restricted_action(client: TestClient, entities, insider_token: str, spec: Spec):
     response = get(client, _get_url(client, spec, entities), insider_token, params=dict(spec.query))
     assert response.status_code == 403

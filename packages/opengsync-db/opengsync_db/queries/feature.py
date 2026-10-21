@@ -34,8 +34,8 @@ def search(
     identifier: str | None = None,
     name_weight: float = 0.5,
     identifier_weight: float = 0.5,
-    statement: sa.Select[tuple[Feature]] = sa.select(Feature),
-) -> sa.Select[tuple[Feature]]:
+    statement: sa.Select[Feature] = sa.select(Feature),
+) -> sa.Select[Feature]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -63,8 +63,8 @@ def select(
     library_id: int | None = None,
     type: FeatureType | None = None,
     type_in: list[FeatureType] | None = None,
-    statement: sa.Select[tuple[Feature]] = sa.select(Feature),
-) -> sa.Select[tuple[Feature]]:
+    statement: sa.Select[Feature] = sa.select(Feature),
+) -> sa.Select[Feature]:
     return statement.where(*where_clauses(
         id=id, feature_kit_id=feature_kit_id, library_id=library_id, type=type, type_in=type_in,
     ))

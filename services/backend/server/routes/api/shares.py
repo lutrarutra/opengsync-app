@@ -363,6 +363,14 @@ def _subpath(subpath: str) -> Path:
     return Path(subpath)
 
 
+def _require_empty_dir(browser: SharedFileBrowser, current_path: Path) -> None:
+    """Nothing listed and no file: 404 unless it is an empty shared folder (loops, dangling links, missing paths)."""
+    if current_path == Path():
+        return
+    if not browser.is_safe(current_path) or not (browser.root_dir / current_path).is_dir():
+        raise exc.NotFoundException(f"Not found: {current_path}")
+
+
 @access_router.get("/validate/{token}", name="file_share.validate")
 def validate(
     token: str,
@@ -391,6 +399,8 @@ def rclone(
             content_type=mimetype,
             disposition="attachment" if config.settings.ENVIRONMENT != "prod" else None,
         )
+    if not paths:
+        _require_empty_dir(browser, current_path)
 
     return responses.html_response(
         template="share/rclone.html",
@@ -421,6 +431,8 @@ def browse(
             content_type=mimetype,
             disposition="inline" if is_browser_friendly(mimetype) else "attachment",
         )
+    if not paths:
+        _require_empty_dir(browser, current_path)
 
     paths = sorted(paths, key=lambda p: p.path.name.lower())
 

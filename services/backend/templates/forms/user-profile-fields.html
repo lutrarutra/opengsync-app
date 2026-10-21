@@ -1,0 +1,11 @@
+{# Fields of forms/common/UserProfileMixin.py #}
+<div class="row">
+  {{ form.institute.render("col-md-6") }}
+  {{ form.department.render("col-md-6") }}
+</div>
+<div class="row">
+  {{ form.pi.render("col-md-6") }}
+  <div class="col-md-6{% if not form.pi.is_new %} d-none{% endif %}" data-search-select-new-only="{{ form.pi.id }}">
+    {{ form.pi_email.render() }}
+  </div>
+</div>

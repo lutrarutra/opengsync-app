@@ -21,7 +21,7 @@ def flash(message: str, category: Literal["info", "success", "warning", "error"]
     return FlashMessage(message=message, category=category)
 
 class QueryOption(TypedDict):
-    id: int
+    id: int | str  # str: key of a column value (core/column_values.py)
     name: str
     header: NotRequired[str]
     description: NotRequired[str]

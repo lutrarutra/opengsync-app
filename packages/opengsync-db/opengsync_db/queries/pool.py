@@ -88,8 +88,8 @@ def search(
     owner_name: str | None = None,
     name_weight: float = 0.5,
     owner_name_weight: float = 0.5,
-    statement: sa.Select[tuple[Pool]] = sa.select(Pool),
-) -> sa.Select[tuple[Pool]]:
+    statement: sa.Select[Pool] = sa.select(Pool),
+) -> sa.Select[Pool]:
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -127,8 +127,8 @@ def select(
     library_types_in: list[LibraryType] | None = None,
     type_in: list[PoolType] | None = None,
     viewer_id: int | None = None,
-    statement: sa.Select[tuple[Pool]] = sa.select(Pool),
-) -> sa.Select[tuple[Pool]]:
+    statement: sa.Select[Pool] = sa.select(Pool),
+) -> sa.Select[Pool]:
     return statement.where(*where_clauses(
         id=id,
         user_id=user_id,
@@ -146,7 +146,7 @@ def select(
     ))
 
 
-def permissions(pool_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+def permissions(pool_id: int, user_id: int) -> sa.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(Pool.id == pool_id)
 
 

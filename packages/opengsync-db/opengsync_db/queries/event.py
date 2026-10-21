@@ -26,8 +26,8 @@ def select(
     type_in: list[EventType] | None = None,
     start_date: datetime | None = None,
     end_date: datetime | None = None,
-    statement: sql.Select[tuple[Event]] = sa.select(Event),
-) -> sql.Select[tuple[Event]]:
+    statement: sql.Select[Event] = sa.select(Event),
+) -> sql.Select[Event]:
     if id is not None:
         statement = statement.where(Event.id == id)
     if type is not None:

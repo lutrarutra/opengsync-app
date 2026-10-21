@@ -50,13 +50,13 @@ def test_submit_associates_path_with_project(
     client: TestClient,
     session: SyncSession,
     user,
-    insider_token: str,
+    bioinformatician_token: str,
     share_root: Path,
 ):
     project = create_project(session, user)
     session.commit()
 
-    response = post_form(client, SUBMIT_PATH, {"project": project.id, **_paths("results/report.html")}, token=insider_token)
+    response = post_form(client, SUBMIT_PATH, {"project": project.id, **_paths("results/report.html")}, token=bioinformatician_token)
 
     # Empty OK response; the form closes its modal, and the browser updates the row's badges from HX-Trigger.
     assert response.status_code == 204
@@ -92,13 +92,13 @@ def test_submit_requires_insider(
 
 
 @pytest.fixture
-def targets(session: SyncSession, user, insider) -> dict:
+def targets(session: SyncSession, user, bioinformatician) -> dict:
     from opengsync_db import categories as C
     from ...db.create_units import create_experiment, create_library, create_seq_request
 
     seq_request = create_seq_request(session, user)
     library = create_library(session, user, seq_request)
-    experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
+    experiment = create_experiment(session, bioinformatician, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
     project = create_project(session, user)
     session.commit()
     return {"project": project, "experiment": experiment, "seq_request": seq_request, "library": library}
@@ -110,9 +110,9 @@ def _associate(client: TestClient, token: str, path: str, **fields):
 
 @pytest.mark.parametrize("target", ["experiment", "seq_request", "library"])
 def test_submit_associates_path_with_each_target(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict, target: str,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict, target: str,
 ):
-    response = _associate(client, insider_token, "results/report.html", **{target: targets[target]})
+    response = _associate(client, bioinformatician_token, "results/report.html", **{target: targets[target]})
 
     assert response.status_code == 204, response.text
     [data_path] = _data_paths(session, "results/report.html")
@@ -122,9 +122,9 @@ def test_submit_associates_path_with_each_target(
 
 
 def test_submit_associates_several_targets_at_once(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict,
 ):
-    response = _associate(client, insider_token, "results/run1", **targets)
+    response = _associate(client, bioinformatician_token, "results/run1", **targets)
 
     assert response.status_code == 204, response.text
     data_paths = _data_paths(session, "results/run1")
@@ -142,14 +142,14 @@ def test_submit_associates_several_targets_at_once(
     ("results/notes.txt", "CUSTOM"),
 ])
 def test_path_type_follows_the_file(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict, path: str, expected: str,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict, path: str, expected: str,
 ):
     from opengsync_db import categories as C
 
     if not (share_root / path).exists():
         (share_root / path).write_text("x")
 
-    _associate(client, insider_token, path, project=targets["project"])
+    _associate(client, bioinformatician_token, path, project=targets["project"])
 
     [data_path] = _data_paths(session, path)
     assert data_path.type == getattr(C.DataPathType, expected)
@@ -157,13 +157,13 @@ def test_path_type_follows_the_file(
 
 @pytest.mark.parametrize("root", ["results", "results/", "./results"])
 def test_a_share_root_is_rejected(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict, root: str,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict, root: str,
 ):
     """Only what is inside a share root (a mount like BSF_PROJECTS) can be linked, not the root itself."""
     response = post_form(
         client, SUBMIT_PATH,
         {"project": str(targets["project"].id), **_paths(root, "results/report.html")},
-        token=insider_token,
+        token=bioinformatician_token,
     )
 
     assert_form_invalid(response, "A whole share folder can't be associated")
@@ -171,12 +171,12 @@ def test_a_share_root_is_rejected(
 
 
 def test_associating_the_same_path_twice_keeps_one_link(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict,
 ):
     """Legacy meant to skip existing links (``LinkAlreadyExists``), but that was never raised, so it stored duplicates."""
-    _associate(client, insider_token, "results/report.html", project=targets["project"])
+    _associate(client, bioinformatician_token, "results/report.html", project=targets["project"])
 
-    response = _associate(client, insider_token, "results/report.html", project=targets["project"], library=targets["library"])
+    response = _associate(client, bioinformatician_token, "results/report.html", project=targets["project"], library=targets["library"])
 
     assert response.status_code == 204
     data_paths = _data_paths(session, "results/report.html")
@@ -186,19 +186,19 @@ def test_associating_the_same_path_twice_keeps_one_link(
 
 
 def test_same_path_may_be_linked_to_different_projects(
-    client: TestClient, session: SyncSession, user, insider_token: str, share_root: Path, targets: dict,
+    client: TestClient, session: SyncSession, user, bioinformatician_token: str, share_root: Path, targets: dict,
 ):
     other = create_project(session, user)
     session.commit()
 
-    _associate(client, insider_token, "results/report.html", project=targets["project"])
-    _associate(client, insider_token, "results/report.html", project=other)
+    _associate(client, bioinformatician_token, "results/report.html", project=targets["project"])
+    _associate(client, bioinformatician_token, "results/report.html", project=other)
 
     assert sorted(dp.project_id for dp in _data_paths(session, "results/report.html")) == sorted([targets["project"].id, other.id])
 
 
 def test_submit_associates_several_paths(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict,
 ):
     """Each path gets its own link; a path inside another submitted path is covered by it and skipped."""
     from opengsync_db import categories as C
@@ -207,7 +207,7 @@ def test_submit_associates_several_paths(
     response = post_form(
         client, SUBMIT_PATH,
         {"project": str(targets["project"].id), **_paths("results/run1", "results/notes.txt", "results/run1/report.html", "results/run1")},
-        token=insider_token,
+        token=bioinformatician_token,
     )
 
     assert response.status_code == 204, response.text
@@ -222,11 +222,11 @@ def test_submit_associates_several_paths(
     assert all(len(associations) == 1 for associations in updated.values())
 
 
-def test_render_lists_each_path_once(client: TestClient, insider_token: str, share_root: Path):
+def test_render_lists_each_path_once(client: TestClient, bioinformatician_token: str, share_root: Path):
     """Paths inside a selected folder are not listed, the same list as the share form."""
     from .._http import get
 
-    response = get(client, SUBMIT_PATH, insider_token, params=[
+    response = get(client, SUBMIT_PATH, bioinformatician_token, params=[
         ("path", "results/report.html"), ("path", "results"), ("path", "results"), ("path", "other.txt"),
     ])
 
@@ -239,19 +239,19 @@ def test_render_lists_each_path_once(client: TestClient, insider_token: str, sha
     assert "bi-folder" in response.text and "bi-file-earmark" in response.text
 
 
-def test_too_many_paths_is_rejected(client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict):
+def test_too_many_paths_is_rejected(client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict):
     from server.utils.file_browser import MAX_SELECTED_PATHS
 
     paths = _paths(*(f"results/file-{i}.txt" for i in range(MAX_SELECTED_PATHS + 1)))
-    response = post_form(client, SUBMIT_PATH, {"project": str(targets["project"].id), **paths}, token=insider_token)
+    response = post_form(client, SUBMIT_PATH, {"project": str(targets["project"].id), **paths}, token=bioinformatician_token)
 
     assert_form_invalid(response, f"At most {MAX_SELECTED_PATHS} paths")
     session.expire_all()
     assert session.count(Q.data_path.select(project_id=targets["project"].id)) == 0
 
 
-def test_no_path_is_rejected(client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict):
-    response = post_form(client, SUBMIT_PATH, {"project": str(targets["project"].id)}, token=insider_token)
+def test_no_path_is_rejected(client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict):
+    response = post_form(client, SUBMIT_PATH, {"project": str(targets["project"].id)}, token=bioinformatician_token)
 
     assert_form_invalid(response, "At least 1")
     session.expire_all()
@@ -259,27 +259,27 @@ def test_no_path_is_rejected(client: TestClient, session: SyncSession, insider_t
 
 
 def test_unknown_target_is_404_and_saves_nothing(
-    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict,
+    client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path, targets: dict,
 ):
     response = post_form(
         client, SUBMIT_PATH, {"project": str(targets["project"].id), "library": "999999", **_paths("results/report.html")},
-        token=insider_token,
+        token=bioinformatician_token,
     )
 
     assert response.status_code == 404
     assert _data_paths(session, "results/report.html") == []
 
 
-def test_no_target_saves_nothing(client: TestClient, session: SyncSession, insider_token: str, share_root: Path):
+def test_no_target_saves_nothing(client: TestClient, session: SyncSession, bioinformatician_token: str, share_root: Path):
     """As legacy: nothing selected is accepted and does nothing."""
-    response = post_form(client, SUBMIT_PATH, _paths("results/report.html"), token=insider_token)
+    response = post_form(client, SUBMIT_PATH, _paths("results/report.html"), token=bioinformatician_token)
 
     assert response.status_code == 204
     assert _data_paths(session, "results/report.html") == []
 
 
-def test_render_requires_insider(client: TestClient, user_token: str, insider_token: str, share_root: Path):
+def test_render_requires_insider(client: TestClient, user_token: str, bioinformatician_token: str, share_root: Path):
     from .._http import get
 
     assert get(client, SUBMIT_PATH, user_token, params={"path": "results"}).status_code == 403
-    assert get(client, SUBMIT_PATH, insider_token, params={"path": "results"}).status_code == 200
+    assert get(client, SUBMIT_PATH, bioinformatician_token, params={"path": "results"}).status_code == 200

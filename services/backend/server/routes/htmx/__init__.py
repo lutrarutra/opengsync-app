@@ -37,10 +37,13 @@ from . import (
     chat,
     search,
     status,
+    column_values,
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
 router.include_router(auth.router)
+# Logged-in users, or registration/activation tokens (checked by the route)
+router.include_router(column_values.router)
 router.include_router(files.router, dependencies=[])
 router.include_router(files.share_files_router)
 router.include_router(workflows.router, dependencies=[Depends(auth.dependencies.require_user_id)])

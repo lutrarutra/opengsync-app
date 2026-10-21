@@ -26,11 +26,6 @@ from server.utils.shared_file_browser import SharedFileBrowser
 # far deeper than the layout: reaching it means the walk went round a cycle
 MAX_DEPTH = 12
 
-CYCLE_BUG = (
-    "a symlink to an ancestor folder is followed: shared/self/self/... and shared/sub/up/sub/up/... "
-    "list and serve the same folder again at every depth, so recursive clients (rclone, wget, WebDAV) never end"
-)
-
 
 @pytest.fixture
 def share_root(client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -128,7 +123,6 @@ def test_walk_without_cycles_is_the_control(share_root: Path):
     assert sorted(p.as_posix() for p in _walk(browser, Path("shared"))) == ["shared/report.txt", "shared/sub/data.txt"]
 
 
-@pytest.mark.xfail(strict=True, reason=CYCLE_BUG)
 def test_recursive_walk_ends_and_reaches_each_file_once(share_root: Path):
     browser = SharedFileBrowser(share_root, ["shared"], cache_key="cycles")
     files = _walk(browser, Path("shared"))
@@ -140,7 +134,6 @@ def test_recursive_walk_ends_and_reaches_each_file_once(share_root: Path):
     assert len(resolved) == len(set(resolved)), f"files reached more than once: {sorted(map(str, files))}"
 
 
-@pytest.mark.xfail(strict=True, reason=CYCLE_BUG)
 @pytest.mark.parametrize("method,route", LIST_ROUTES)
 @pytest.mark.parametrize("path", ["shared/self/self/sub", "shared/sub/up/sub/up/sub"])
 def test_listing_through_a_cycle_is_refused(
@@ -150,7 +143,6 @@ def test_listing_through_a_cycle_is_refused(
     assert "data.txt" not in response.text
 
 
-@pytest.mark.xfail(strict=True, reason=CYCLE_BUG)
 @pytest.mark.parametrize("method,route", FILE_ROUTES)
 @pytest.mark.parametrize("path", ["shared/self/self/report.txt", "shared/sub/up/sub/up/sub/data.txt"])
 def test_file_through_a_cycle_is_not_served(

@@ -29,8 +29,8 @@ def search(
     creator_name: str | None = None,
     name_weight: float = 0.5,
     creator_name_weight: float = 0.5,
-    statement: sql.Select[tuple[LabPrep]] = sa.select(LabPrep),
-) -> sql.Select[tuple[LabPrep]]:
+    statement: sql.Select[LabPrep] = sa.select(LabPrep),
+) -> sql.Select[LabPrep]:
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -64,8 +64,8 @@ def select(
     service_type: ServiceType | None = None,
     checklist_type_in: Sequence[LabChecklistType] | None = None,
     service_type_in: Sequence[ServiceType] | None = None,
-    statement: sql.Select[tuple[LabPrep]] = sa.select(LabPrep),
-) -> sql.Select[tuple[LabPrep]]:
+    statement: sql.Select[LabPrep] = sa.select(LabPrep),
+) -> sql.Select[LabPrep]:
     return statement.where(*where_clauses(
         id=id,
         status=status,

@@ -24,8 +24,8 @@ def search(
     identifier: str | None = None,
     name_weight: float = 0.5,
     identifier_weight: float = 0.5,
-    statement: sa.Select[tuple[FeatureKit]] = sa.select(FeatureKit),
-) -> sa.Select[tuple[FeatureKit]]:
+    statement: sa.Select[FeatureKit] = sa.select(FeatureKit),
+) -> sa.Select[FeatureKit]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -53,8 +53,8 @@ def select(
     identifier: str | None = None,
     type: FeatureType | None = None,
     type_in: list[FeatureType] | None = None,
-    statement: sa.Select[tuple[FeatureKit]] = sa.select(FeatureKit),
-) -> sa.Select[tuple[FeatureKit]]:
+    statement: sa.Select[FeatureKit] = sa.select(FeatureKit),
+) -> sa.Select[FeatureKit]:
     if id is not None:
         statement = statement.where(FeatureKit.id == id)
     if name is not None:

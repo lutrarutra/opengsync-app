@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from sqlalchemy import sql
 
 from ..models import Project, User, Sample, Library, links
-from ..categories import ProjectStatus, LibraryType, UserRole, AccessLevel
+from ..categories import ProjectStatus, LibraryType, AccessLevel
 from ..core import utils
 
 
@@ -58,8 +58,8 @@ def search(
     title_weight: float = 0.3,
     identifier_weight: float = 0.5,
     owner_name_weight: float = 0.2,
-    statement: sql.Select[tuple[Project]] = sa.select(Project),
-) -> sql.Select[tuple[Project]]:
+    statement: sql.Select[Project] = sa.select(Project),
+) -> sql.Select[Project]:
     
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
@@ -100,8 +100,8 @@ def select(
     experiment_id: int | None = None,
     library_types_in: list[LibraryType] | None = None,
     user_id: int | None = None,
-    statement: sql.Select[tuple[Project]] = sa.select(Project),
-) -> sql.Select[tuple[Project]]:
+    statement: sql.Select[Project] = sa.select(Project),
+) -> sql.Select[Project]:
     return statement.where(*where_clauses(
         id=id,
         identifier=identifier,
@@ -117,7 +117,7 @@ def select(
         user_id=user_id,
     ))
     
-def permissions(project_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+def permissions(project_id: int, user_id: int) -> sa.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(Project.id == project_id)
 
 

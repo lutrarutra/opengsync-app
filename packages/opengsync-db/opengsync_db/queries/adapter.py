@@ -13,8 +13,8 @@ def create(
 
 def search(
     name: str | None = None,
-    statement: sa.Select[tuple[Adapter]] = sa.select(Adapter),
-) -> sa.Select[tuple[Adapter]]:
+    statement: sa.Select[Adapter] = sa.select(Adapter),
+) -> sa.Select[Adapter]:
     if name is None:
         return statement
     return (
@@ -30,8 +30,8 @@ def select(
     id: int | None = None,
     index_kit_id: int | None = None,
     well: str | None = None,
-    statement: sa.Select[tuple[Adapter]] = sa.select(Adapter),
-) -> sa.Select[tuple[Adapter]]:
+    statement: sa.Select[Adapter] = sa.select(Adapter),
+) -> sa.Select[Adapter]:
     if id is not None:
         statement = statement.where(Adapter.id == id)
     if index_kit_id is not None:
