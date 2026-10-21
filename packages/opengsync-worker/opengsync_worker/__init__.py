@@ -73,4 +73,17 @@ beat_schedule = {
     },
 }
 
+fs_index_config = config.get("fs_index") or {}
+if fs_index_config.get("enabled", False):
+    beat_schedule["fs_index_import"] = {
+        "task": "opengsync_worker.tasks.fs_index_import_wrapper",
+        "schedule": parse_schedule(fs_index_config.get("import_schedule", 600)),
+        "args": (),
+    }
+    beat_schedule["fs_index_crawl"] = {
+        "task": "opengsync_worker.tasks.fs_index_crawl_wrapper",
+        "schedule": parse_schedule(fs_index_config.get("crawl_schedule", 60)),
+        "args": (),
+    }
+
 celery.conf.beat_schedule = beat_schedule

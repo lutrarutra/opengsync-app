@@ -16,6 +16,7 @@ from sqlalchemy.orm import make_transient_to_detached
 
 from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, models, categories as C, utils
 from opengsync_db.transitions import tracking
+from opengsync_db.fs_index import FsIndexUnavailable
 
 from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache, responses, redis as rds
 from .context import ctx
@@ -52,6 +53,24 @@ def db_session(request: runtime.Request = Depends(get_runtime_request)):
         session = request.app.state.db_handler.get_session()
         request.state.db_session = session
     return session
+
+def fs_index_session(request: runtime.Request = Depends(get_runtime_request)):
+    """Read-only session on the fs-index, or None when it is disabled or not built yet. Not the Postgres
+    session: the commit middleware doesn't see it, so it is closed here."""
+    handler = getattr(request.app.state, "fs_index_db", None)
+    if handler is None:
+        yield None
+        return
+    try:
+        session = handler.get_session()
+    except FsIndexUnavailable as e:
+        logger.warning(f"fs-index unavailable: {e}")
+        yield None
+        return
+    try:
+        yield session
+    finally:
+        session.close()
 
 def authenticate(token: str = Depends(auth.oauth2_scheme)):
     payload = secrets.validate_login_token(token)

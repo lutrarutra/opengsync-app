@@ -1,0 +1,224 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+{#
+  fs-index search results (server/utils/fs_index.py SearchResult), swapped into #file-browser-root.
+  Page 0 renders the header and the first rows; later pages ("Show more") only rows.
+
+  search_route / route_params: this search; entries_route: the live listing folders expand into
+  file_route / servable_extensions: project Data tab, files open in the browser
+  insider_actions: Select / Share / Assign (insider file browser)
+#}
+{% set file_route = file_route if file_route is defined else none %}
+{% set servable_extensions = servable_extensions if servable_extensions is defined else none %}
+
+{% macro search_url(page=0, kind_=kind, root_=root) -%}
+{{ url_for(search_route, q=query, kind=kind_ if kind_ != "all" else none, root=root_, page=page if page else none, **route_params) }}
+{%- endmacro %}
+
+{% macro folder_button(path, label, title=none) -%}
+<button type="button" class="search-result-location-part"
+        title="{{ title or ('Open ' ~ path) }}"
+        hx-get="{{ url_for(entries_route, subpath=path | urlencode, page=0, located=1, **route_params) }}"
+        hx-target="#file-browser-root"
+        hx-swap="innerHTML">{{ label }}</button>
+{%- endmacro %}
+
+{% macro result_row(result) %}
+{% set entry_id = uuid4() %}
+{% set is_linked_file = file_route and not result.is_dir and (servable_extensions is none or result.suffix in servable_extensions) %}
+{% if insider_actions %}
+    {% set entry_actions = [
+        {"type": "select", "label": "Select", "config": {"path": result.path}},
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=result.path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {"url": url_for('SharePathAction.Begin', path=result.path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
+    ] %}
+{% else %}
+    {% set entry_actions = [] %}
+{% endif %}
+<div class="search-result{% if result.is_dir %} browser-directory{% endif %}{% if result.data_paths and not insider_actions %} browser-data-path{% endif %}">
+    <div class="browser-entry-row search-result-row{% if entry_actions %} cm-callback{% endif %}"
+         {% if insider_actions %}data-path="{{ result.path }}"{% endif %}
+         {% if entry_actions %}{{ context_menu(entry_actions) }}{% endif %}>
+        <div class="search-result-main">
+            {% set name %}
+                <i class="bi {{ result.icon }} search-result-icon" aria-hidden="true"></i>
+                <span class="search-result-name" title="{{ result.path }}">{% for text, is_match in result.name_parts %}{% if is_match %}<mark>{{ text }}</mark>{% else %}{{ text }}{% endif %}{% endfor %}{% if result.is_dir %}/{% endif %}</span>
+                {% if result.is_link %}<i class="bi bi-link-45deg search-result-link-icon" title="Symbolic link" aria-label="Symbolic link"></i>{% endif %}
+            {% endset %}
+            {% if result.is_dir %}
+            {% set children_id = "search-children-" ~ entry_id %}
+            <button class="browser-entry-toggle search-result-title"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="{{ children_id }}"
+                    hx-get="{{ url_for(entries_route, subpath=result.path | urlencode, page=0, sort_by='name', sort_order='asc', **route_params) }}"
+                    hx-trigger="click once"
+                    hx-target="#{{ children_id }}"
+                    hx-swap="innerHTML"
+                    onclick="toggleBrowserDirectory(this)">
+                <i class="bi bi-chevron-right browser-directory-chevron" aria-hidden="true"></i>
+                {{ name }}
+            </button>
+            {% elif is_linked_file %}
+            <a class="search-result-title" href="{{ url_for(file_route, subpath=result.path | urlencode, **route_params) }}" target="_blank">{{ name }}</a>
+            {% else %}
+            <span class="search-result-title search-result-file">{{ name }}</span>
+            {% endif %}
+
+            <div class="search-result-meta">
+                {% if result.parents %}
+                <span class="search-result-location">
+                    <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                    {% for label, path in result.parents %}
+                    {{ folder_button(path, label) }}{% if not loop.last %}<i class="bi bi-chevron-right search-result-location-sep" aria-hidden="true"></i>{% endif %}
+                    {% endfor %}
+                </span>
+                {% endif %}
+                {% if result.hidden %}
+                <span class="badge search-result-badge search-result-badge-warning" title="A .ngsignore hides this from share links">
+                    <i class="bi bi-eye-slash" aria-hidden="true"></i> Hidden from share links
+                </span>
+                {% endif %}
+                {% if result.unsafe %}
+                <span class="badge search-result-badge search-result-badge-warning" title="Share links refuse symlinks that leave the share">
+                    <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Points outside the share
+                </span>
+                {% endif %}
+                {% for data_path in result.data_paths %}
+                    {% if insider_actions %}
+                        {% if data_path.project %}<a href="{{ url_for('project_page', project_id=data_path.project.id) }}" class="badge search-result-badge">{{ data_path.project.identifier or data_path.project.title }}</a>{% endif %}
+                        {% if data_path.experiment %}<span class="badge search-result-badge">{{ data_path.experiment.name }}</span>{% endif %}
+                        {% if data_path.seq_request %}<span class="badge search-result-badge">{{ data_path.seq_request.name }}</span>{% endif %}
+                        {% if data_path.library %}<a href="{{ url_for('library_page', library_id=data_path.library.id) }}" class="badge search-result-badge">{{ data_path.library.name }}</a>{% endif %}
+                    {% elif loop.first %}
+                        <span class="badge search-result-badge">Project data</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <span class="browser-entry-size" {% if result.is_dir %}title="Total size of the folder"{% endif %}>{{ result.size | bytes_to_human }}</span>
+        <time class="browser-entry-mtime" datetime="{{ result.mtime }}" title="{{ result.mtime | from_timestamp }}">{{ result.mtime | time_ago }}</time>
+        <span class="search-result-actions">
+            {% if insider_actions %}
+            <button type="button" class="btn btn-sm search-result-action search-result-select"
+                    title="Add to selection (Ctrl/Cmd+click)" aria-label="Select {{ result.path }}"
+                    data-select-path="{{ result.path }}"
+                    onclick="window.pathSelection && window.pathSelection.toggle(this.dataset.selectPath)">
+                <i class="bi bi-check2-square" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn btn-sm search-result-action"
+                    title="Share" aria-label="Share {{ result.path }}"
+                    hx-get="{{ url_for('SharePathAction.Begin', path=result.path) }}"
+                    hx-target="#xl-modal-content"
+                    hx-swap="innerHTML"
+                    hx-on::before-request="$('#xl-modal').modal('show')">
+                <i class="bi bi-share" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+            {% if result.parent %}
+            <button type="button" class="btn btn-sm search-result-action"
+                    title="Open the folder it is in" aria-label="Open the folder of {{ result.path }}"
+                    hx-get="{{ url_for(entries_route, subpath=result.parent | urlencode, page=0, located=1, **route_params) }}"
+                    hx-target="#file-browser-root"
+                    hx-swap="innerHTML">
+                <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+        </span>
+    </div>
+    {% if result.is_dir %}
+    <div id="{{ children_id }}" class="browser-children" role="group" aria-label="Contents of {{ result.name }}">
+        <div class="browser-directory-loading">Loading…</div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro more_button() %}
+{% if has_more %}
+<div class="search-results-more">
+    <button type="button" class="btn btn-sm btn-outline-secondary"
+            hx-get="{{ search_url(page=page + 1) }}"
+            hx-target="closest .search-results-more"
+            hx-swap="outerHTML">
+        Show more
+    </button>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% if page > 0 %}
+{% for result in results %}{{ result_row(result) }}{% endfor %}
+{{ more_button() }}
+{% else %}
+<div class="file-browser-search-results">
+    {% if error == "unavailable" %}
+    <div class="search-empty">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        <div class="search-empty-title">Search isn't available yet</div>
+        <div class="search-empty-hint">The file index is still being built. Browsing works as usual.</div>
+    </div>
+    {% elif error == "too_short" %}
+    <div class="search-empty">
+        <i class="bi bi-keyboard" aria-hidden="true"></i>
+        <div class="search-empty-title">Keep typing…</div>
+        <div class="search-empty-hint">Use at least one word of {{ min_term_length }} or more characters, or paste a path such as <code>BSF_PROJECTS/…</code></div>
+    </div>
+    {% else %}
+    <div class="search-results-header">
+        <div class="search-results-summary">
+            {% if results %}
+            <strong>{{ results | length }}{% if has_more %}+{% endif %}</strong> result{{ "s" if results | length != 1 or has_more }} for <strong>“{{ query }}”</strong>
+            {% else %}
+            No results for <strong>“{{ query }}”</strong>
+            {% endif %}
+            {% if indexed_at %}
+            <span class="search-results-age" title="Index updated {{ indexed_at | from_timestamp }}">· Index updated {{ indexed_at | time_ago }}</span>
+            {% endif %}
+        </div>
+        <div class="search-results-filters">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Show">
+                {% for value, label, icon in [("all", "All", "bi-grid"), ("dirs", "Folders", "bi-folder"), ("files", "Files", "bi-file-earmark")] %}
+                <button type="button" class="btn {{ 'btn-primary' if kind == value else 'btn-outline-secondary' }}"
+                        aria-pressed="{{ 'true' if kind == value else 'false' }}"
+                        hx-get="{{ search_url(kind_=value) }}" hx-target="#file-browser-root" hx-swap="innerHTML">
+                    <i class="bi {{ icon }}" aria-hidden="true"></i> {{ label }}
+                </button>
+                {% endfor %}
+            </div>
+            {% if roots | length > 1 %}
+            <select class="form-select form-select-sm search-results-root" aria-label="Limit to a share folder"
+                    name="root" hx-get="{{ search_url(root_=none) }}" hx-target="#file-browser-root" hx-swap="innerHTML">
+                <option value="" {% if not root %}selected{% endif %}>All folders</option>
+                {% for name in roots %}
+                <option value="{{ name }}" {% if root == name %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if results %}
+    <div class="browser-columns search-result-columns" aria-hidden="true">
+        <span class="browser-columns-name">Name</span>
+        <span class="browser-columns-size">Size</span>
+        <span class="browser-columns-mtime">Edited</span>
+    </div>
+    <div class="search-results-list">
+        {% for result in results %}{{ result_row(result) }}{% endfor %}
+        {{ more_button() }}
+    </div>
+    {% else %}
+    <div class="search-empty">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <div class="search-empty-title">Nothing found</div>
+        <div class="search-empty-hint">
+            {% if kind != "all" or root %}Try <a href="#" hx-get="{{ search_url(kind_='all', root_=none) }}" hx-target="#file-browser-root" hx-swap="innerHTML">all files and folders</a>, fewer words, or part of a name.
+            {% else %}Try fewer words, part of a name, or paste a path such as <code>BSF_PROJECTS/…</code>
+            {% endif %}
+            Data added in the last few minutes may not be indexed yet.
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endif %}

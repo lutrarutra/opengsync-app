@@ -3,6 +3,8 @@
 Paths are virtual: the first segment names an allowlisted root (`server/`, `opengsync_db/`, `templates/`, `docs/`).
 Everything is resolved and checked against the root, so `..`, absolute paths and symlinks can't escape it.
 `docs/` is flat: only its top-level files are exposed, not subfolders such as `docs/plans/` (unimplemented plans).
+Configured data folders (media, uploads, app data, shares, logs, run folders) are never exposed, even if they
+are configured inside a root.
 """
 import time
 from functools import cache
@@ -12,7 +14,7 @@ import opengsync_db
 import regex  # unlike `re`, supports timeouts, so a pathological pattern can't hang a worker thread
 from pydantic_ai import ModelRetry
 
-from ...core import templates
+from ...core import config, templates
 
 ALLOWED_SUFFIXES = {".py", ".html", ".jinja", ".jinja2", ".j2", ".md", ".txt"}
 MAX_LIST_ENTRIES = 300
@@ -43,8 +45,21 @@ def _roots() -> dict[str, Path]:
     return {name: root for name, root in roots.items() if root.is_dir()}
 
 
-def _is_hidden(root_name: str, rel: Path) -> bool:
+@cache
+def _data_dirs() -> tuple[Path, ...]:
+    """Data folders that lie inside a root; everything below them is hidden."""
+    cfg = config.settings.app_config
+    folders = (cfg.media_folder, cfg.uploads_folder, cfg.app_data_folder, cfg.share_root, cfg.log_folder, cfg.illumina_run_folder)
+    resolved = {Path(folder).resolve() for folder in folders if folder}
+    return tuple(d for d in resolved if any(d.is_relative_to(root) for root in _roots().values()))
+
+
+def _is_hidden(root_name: str, root: Path, path: Path) -> bool:
+    """Whether `path` (inside `root`) must not be exposed."""
+    rel = path.relative_to(root)
     if root_name in FLAT_ROOTS and len(rel.parts) > 1:
+        return True
+    if (data_dirs := _data_dirs()) and any(path.resolve().is_relative_to(d) for d in data_dirs):
         return True
     return any(part.startswith(".") or part == "__pycache__" for part in rel.parts)
 
@@ -65,7 +80,7 @@ def _resolve(path: str) -> tuple[Path, str]:
     if not real.is_relative_to(root):
         raise ModelRetry(f"Path {path!r} is outside the allowed directories.")
     rel = real.relative_to(root)
-    if _is_hidden(parts[0], rel) or (parts[0] in FLAT_ROOTS and real.is_dir() and rel.parts):
+    if _is_hidden(parts[0], root, real) or (parts[0] in FLAT_ROOTS and real.is_dir() and rel.parts):
         raise ModelRetry(f"Path {path!r} is not accessible.")
     if not real.exists():
         raise ModelRetry(f"Path {path!r} does not exist. Use list_dir or grep_code to find files.")
@@ -73,18 +88,22 @@ def _resolve(path: str) -> tuple[Path, str]:
 
 
 def _iter_files(real: Path):
-    """Source files under `real` (a resolved path inside a root), skipping symlinks that leave the root."""
+    """Source files under `real` (a resolved path inside a root). Symlinks are checked by both their own path
+    and their target, so neither one leaving the root nor one pointing at a hidden file is followed."""
     if real.is_file():
         if real.suffix in ALLOWED_SUFFIXES:
             yield real
         return
     root_name, root = _root_of(real)
     for file in sorted(real.rglob("*")):
+        target = file.resolve()
         if (
             file.is_file()
+            and target.is_relative_to(root)
             and file.suffix in ALLOWED_SUFFIXES
-            and not _is_hidden(root_name, file.relative_to(root))
-            and file.resolve().is_relative_to(root)
+            and target.suffix in ALLOWED_SUFFIXES
+            and not _is_hidden(root_name, root, file)
+            and not _is_hidden(root_name, root, target)
         ):
             yield file
 
@@ -113,7 +132,7 @@ def list_dir(path: str = "") -> str:
     entries = []
     for child in sorted(real.iterdir(), key=lambda p: (not p.is_dir(), p.name)):
         if (
-            _is_hidden(root_name, child.relative_to(root))
+            _is_hidden(root_name, root, child)
             or (root_name in FLAT_ROOTS and child.is_dir())
             or not child.resolve().is_relative_to(root)  # symlink pointing outside the root
         ):

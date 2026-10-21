@@ -13,9 +13,11 @@ from loguru import logger
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc, config
+from ...core.redis import RedisClient
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
 from ...utils.file_browser import FileBrowser, is_within_root
+from ...utils import fs_index
 from ...utils.io import is_browser_friendly, render_markdown
 from ...forms.actions import SharePathAction, AssociatePathAction
 
@@ -331,6 +333,62 @@ def delete_media_file(
     )
 
 
+# Before the catch-all browser route below, which would otherwise take /search as a subpath.
+@router.get("/search", name="file_browser_search")
+def file_browser_search(
+    q: str = Query("", max_length=512),
+    kind: Literal["all", "dirs", "files"] = Query("all"),
+    root: str | None = Query(None, max_length=255),
+    page: int = Query(0, ge=0),
+    session: SyncSession = Depends(dependencies.db_session),
+    fs_index_session: SyncSession | None = Depends(dependencies.fs_index_session),
+    _: models.User = Depends(dependencies.require_insider),
+):
+    """Searches the fs-index; folders expand into the live browser."""
+    entries, has_more, error, roots = [], False, None, []
+    if fs_index_session is None:
+        error = "unavailable"
+    else:
+        roots = fs_index.roots(fs_index_session)
+        try:
+            entries, has_more = fs_index.search_page(fs_index_session, q, page=page, kind=kind, root=root)
+        except fs_index.QueryTooShort:
+            error = "too_short"
+
+    return responses.htmx_response(
+        template="components/file-browser/search-results.html",
+        results=fs_index.to_results(entries, q, session),
+        query=q,
+        kind=kind,
+        root=root,
+        roots=roots,
+        page=page,
+        has_more=has_more,
+        error=error,
+        min_term_length=fs_index.MIN_TERM_LENGTH,
+        indexed_at=fs_index.indexed_at(fs_index_session),
+        search_route="file_browser_search",
+        entries_route="render_file_browser_page",
+        route_params={},
+        insider_actions=True,
+    )
+
+
+@router.get("/index-status", name="fs_index_status")
+def fs_index_status(
+    fs_index_session: SyncSession | None = Depends(dependencies.fs_index_session),
+    redis: RedisClient = Depends(dependencies.redis),
+    _: models.User = Depends(dependencies.require_insider),
+):
+    """fs-index summary for the insider dashboard's System tab."""
+    return responses.htmx_response(
+        template="components/fs-index-status.html",
+        # not `status`: that is htmx_response's HTTP status code
+        index=fs_index.index_status(fs_index_session, redis),
+        enabled=config.settings.app_config.fs_index.enabled,
+    )
+
+
 def _subpath(subpath: str) -> Path:
     if not subpath or subpath in (".", "/"):
         return Path()
@@ -344,7 +402,9 @@ def render_file_browser_page(
     page: int = Query(0, ge=0),
     sort_by: Literal["name", "size", "mtime"] = Query("name"),
     sort_order: Literal["asc", "desc"] | None = Query(None),
+    located: bool = Query(False, description="Opened as the current location: render a path bar above the entries"),
     session: SyncSession = Depends(dependencies.db_session),
+    redis: RedisClient = Depends(dependencies.redis),
     _: int = Depends(dependencies.require_user_id),
 ):
     PAGE_LIMIT = 50
@@ -352,7 +412,8 @@ def render_file_browser_page(
         sort_order = "asc" if sort_by == "name" else "desc"
 
     current_path = _subpath(subpath)
-    browser = FileBrowser(Path(config.settings.app_config.share_root), session)
+    share_root = Path(config.settings.app_config.share_root)
+    browser = FileBrowser(share_root, session)
     paths = browser.list_contents(
         current_path,
         limit=PAGE_LIMIT,
@@ -360,6 +421,14 @@ def render_file_browser_page(
         sort_by=sort_by,
         sort_order=sort_order,
     )
+    # e.g. a stale search result: say so instead of showing an empty folder
+    missing = (
+        page == 0 and bool(current_path.parts) and is_within_root(share_root, current_path)
+        and not (share_root / current_path).is_dir()
+    )
+    if page == 0:
+        # a missing folder too: the crawler then drops it from the index
+        fs_index.touch(redis, current_path)
 
     return responses.htmx_response(
         template="components/file-browser/entries.html",
@@ -370,4 +439,6 @@ def render_file_browser_page(
         sort_by=sort_by,
         sort_order=sort_order,
         share_token=None,
+        location_header=located and page == 0,
+        missing=missing,
     )

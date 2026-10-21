@@ -47,6 +47,14 @@ class SelectedPathsMixin:
             raise exc.FormValidationException(self)
 
     @staticmethod
+    def exists(path: str | None) -> bool:
+        """Whether the path is on the share now, so the form can warn about e.g. stale search results."""
+        if not path:
+            return False
+        share_root = Path(config.settings.app_config.share_root)
+        return is_within_root(share_root, path) and (share_root / path).exists()
+
+    @staticmethod
     def is_directory(path: str | None) -> bool:
         """For the list's folder/file icon. Only looks inside the share root."""
         if not path:

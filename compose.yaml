@@ -28,6 +28,7 @@ services:
             - compiled_css:/static/style/compiled:ro
             - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
             - uploads:/uploads
+            - app_data:/app_data
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
         environment:
@@ -81,6 +82,8 @@ services:
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder:ro
             - ${LOG_DIR}/celery-worker:/logs
             - uploads:/uploads
+            # fs-index (SQLite + dumps); the /share/<NAME>:ro mounts go in compose.override.yaml (docs/file-share.md)
+            - app_data:/app_data
         depends_on:
             opengsync-celery-beat:
                 condition: service_started
@@ -223,6 +226,8 @@ services:
 volumes:
     compiled_css:
     uploads:
+    # disposable caches, e.g. the fs-index (rebuilt from the share when lost)
+    app_data:
     pgadmin_data:
     redis_data:
     postgres_data:

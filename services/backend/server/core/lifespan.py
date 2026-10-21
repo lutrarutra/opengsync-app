@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from opengsync_db import SyncDBHandler
+from opengsync_db.fs_index import FsIndexDBHandler
 
 from . import config, mailer, redis, secrets, templates
 
@@ -104,6 +105,12 @@ async def lifespan(app: FastAPI):
     if app.state.db_handler._engine is None:
         raise Exception("DB connection could not be established")
     
+    fs_index_config = config.settings.app_config.fs_index
+    app.state.fs_index_db = (
+        FsIndexDBHandler(fs_index_config.db_path(config.settings.app_config.app_data_folder))
+        if fs_index_config.enabled else None
+    )
+
     app.state.mailer = mailer.Mailer()
     app.state.redis_pool = redis.create_pool(config.settings.REDIS_URL)
     app.state.bcrypt = secrets.BcryptCompat()
@@ -117,6 +124,7 @@ async def lifespan(app: FastAPI):
     j2.env.globals["organization_name"] = settings.app_config.personalization.organization
     j2.env.globals["chat_enabled"] = settings.app_config.chat.enabled
     j2.env.globals["chat_history_ttl_hours"] = settings.app_config.chat.history_ttl_hours
+    j2.env.globals["fs_index_enabled"] = settings.app_config.fs_index.enabled
 
     # FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix=cache.PREFIX)
     yield
@@ -124,5 +132,8 @@ async def lifespan(app: FastAPI):
     app.state.db_handler.close()
     if app.state.db_handler._engine:
         app.state.db_handler._engine.dispose()
+
+    if app.state.fs_index_db is not None:
+        app.state.fs_index_db.close()
 
     app.state.redis_pool.disconnect()

@@ -25,6 +25,28 @@
 <span class="browser-entry-name middle-ellipsis" title="{{ name }}{{ suffix }}{% if hint %} ({{ hint }}){% endif %}"><span class="begin">{{ begin }}</span><span class="end">{{ end }}{{ suffix }}</span></span>
 {% endmacro %}
 
+{# location_header: opened as the current location (search result parents, /browser/<path>): a clickable path bar #}
+{% if location_header is defined and location_header %}
+<div class="browser-location"
+     data-entries-url="{{ url_for(entries_route, subpath=current_path.as_posix() | urlencode, located=1, **route_params) }}">
+    <button type="button" class="browser-location-part" title="Back to the top"
+            hx-get="{{ url_for(entries_route, page=0, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
+            hx-target="#file-browser-root" hx-swap="innerHTML">
+        <i class="bi bi-house-door" aria-hidden="true"></i><span class="visually-hidden">Top</span>
+    </button>
+    {% for part in current_path.parts %}
+    <i class="bi bi-chevron-right browser-location-sep" aria-hidden="true"></i>
+    {% if loop.last %}
+    <span class="browser-location-part is-current" aria-current="location">{{ part }}</span>
+    {% else %}
+    <button type="button" class="browser-location-part"
+            hx-get="{{ url_for(entries_route, subpath=current_path.parts[:loop.index] | join('/') | urlencode, page=0, located=1, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
+            hx-target="#file-browser-root" hx-swap="innerHTML">{{ part }}</button>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
 {% for browser_path in paths %}
 {% set relative_path = browser_path.rel_path.as_posix() %}
 {% set entry_id = uuid4() %}
@@ -73,17 +95,17 @@
             hx-on::after-request="this.dataset.browserLoaded = 'true'"
             onclick="toggleBrowserDirectory(this)">
             <i class="bi bi-chevron-right browser-directory-chevron" aria-hidden="true"></i>
-            <i class="bi bi-folder browser-entry-icon" aria-hidden="true"></i>
+            <i class="bi bi-folder-fill browser-entry-icon" aria-hidden="true"></i>
             {{ entry_name_label(entry_name, "/") }}
         </button>
         {% elif is_linked_file %}
         <a class="browser-entry-file-name" href="{{ url_for(file_route, subpath=relative_path | urlencode, **route_params) }}" target="_blank">
-            <i class="bi bi-file-earmark browser-entry-icon" aria-hidden="true"></i>
+            <i class="bi {{ browser_path.path.name | file_icon }} browser-entry-icon" aria-hidden="true"></i>
             {{ entry_name_label(entry_name) }}
         </a>
         {% else %}
         <span class="browser-entry-file-name{% if file_route %} browser-entry-unavailable{% endif %}">
-            <i class="bi bi-file-earmark browser-entry-icon" aria-hidden="true"></i>
+            <i class="bi {{ browser_path.path.name | file_icon }} browser-entry-icon" aria-hidden="true"></i>
             {{ entry_name_label(entry_name, hint="not viewable in the browser, available via the data share link" if file_route else none) }}
         </span>
         {% endif %}
@@ -124,7 +146,23 @@
 </div>
 {% endfor %}
 
-{% if not paths and current_page == 0 %}
+{% if missing is defined and missing %}
+{% if location_header is defined and location_header %}
+<div class="search-empty">
+    <i class="bi bi-folder-x" aria-hidden="true"></i>
+    <div class="search-empty-title">This folder no longer exists</div>
+    <div class="search-empty-hint">
+        <code>{{ current_path.as_posix() }}</code> was probably moved or deleted recently.
+        Search results can be a few minutes behind the share.
+    </div>
+</div>
+{% else %}
+<div class="browser-empty browser-missing">
+    <i class="bi bi-folder-x" aria-hidden="true"></i>
+    This folder no longer exists. It was probably moved or deleted recently.
+</div>
+{% endif %}
+{% elif not paths and current_page == 0 %}
 <div class="browser-empty">{% if is_root_listing %}No data has been added to this project yet.{% else %}This directory is empty.{% endif %}</div>
 {% endif %}
 

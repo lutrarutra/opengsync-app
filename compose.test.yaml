@@ -19,6 +19,8 @@ services:
             - ./docs:/app/docs:ro
             # Alembic migrations mounted so migration tests run the current versions.
             - ./services/db/alembic:/app/alembic:ro
+            # Cluster-side fs-index dump script, run by tests/worker/test_fs_index.py.
+            - ./scripts/fs_index_dump.py:/app/tools/fs_index_dump.py:ro
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password

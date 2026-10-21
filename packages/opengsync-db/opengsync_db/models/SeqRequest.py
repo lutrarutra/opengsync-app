@@ -124,12 +124,12 @@ class SeqRequest(Base):
         is_submittable = self.is_submittable()
         request_submitted = self.status >= SeqRequestStatus.SUBMITTED if samples_added else None
 
-        return dict(
-            samples_added=samples_added,
-            authorization_form_added=authorization_form_added,
-            is_submittable=is_submittable,
-            request_submitted=request_submitted,
-        )
+        return {
+            "samples_added": samples_added,
+            "authorization_form_added": authorization_form_added,
+            "is_submittable": is_submittable,
+            "request_submitted": request_submitted,
+        }
     
     def get_review_checklist(self) -> dict[str, bool]:
         if orm.object_session(self) is None:

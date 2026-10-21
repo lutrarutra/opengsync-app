@@ -31,14 +31,20 @@ def roots(tmp_path: Path, monkeypatch) -> dict[str, Path]:
     (outside / "secret.py").write_text("PASSWORD = 'hunter2'\n")
     (server / "link.py").symlink_to(outside / "secret.py")
     (server / "linkdir").symlink_to(outside)
+    (server / "alias.py").symlink_to(server / ".env")  # innocent name, hidden target inside the root
 
     docs = tmp_path / "docs"
     (docs / "plans").mkdir(parents=True)
     (docs / "feature.md").write_text("# Feature\nShare links expire after two weeks.\n")
     (docs / "plans" / "idea.md").write_text("# Plan\nShare links will get passwords.\n")
 
+    # a data folder (e.g. uploads) misconfigured to live inside a root
+    (server / "uploads").mkdir()
+    (server / "uploads" / "upload.txt").write_text("PATIENT_ID = 1234\n")
+
     fake = {"server": server.resolve(), "docs": docs.resolve()}
     monkeypatch.setattr(code, "_roots", lambda: fake)
+    monkeypatch.setattr(code, "_data_dirs", lambda: ((server / "uploads").resolve(),))
     return fake
 
 
@@ -51,7 +57,7 @@ def test_list_dir_hides_sensitive_entries(roots):
     listing = code.list_dir("server").splitlines()
     assert "routes/" in listing
     assert "big.py" in listing
-    for hidden in (".env", "settings.yaml", "__pycache__/", "link.py", "linkdir/"):
+    for hidden in (".env", "settings.yaml", "__pycache__/", "link.py", "linkdir/", "uploads/"):
         assert hidden not in listing
 
 
@@ -65,13 +71,17 @@ def test_list_dir_hides_sensitive_entries(roots):
     "server/settings.yaml",
     "server/__pycache__/requests.py",
     "docs/plans/idea.md",
+    "server/uploads/upload.txt",
+    "media/file.txt",
+    "uploads/upload.txt",
+    "/app_data/fs_index/fs_index.sqlite3",
 ])
 def test_read_file_refuses(roots, path):
     with pytest.raises(ModelRetry):
         code.read_file(path)
 
 
-@pytest.mark.parametrize("path", ["server/linkdir", "docs/plans", "server/.."])
+@pytest.mark.parametrize("path", ["server/linkdir", "docs/plans", "server/..", "server/uploads", "/media"])
 def test_list_dir_refuses(roots, path):
     with pytest.raises(ModelRetry):
         code.list_dir(path)
@@ -94,7 +104,7 @@ def test_grep_finds_code(roots):
 
 
 def test_grep_skips_symlinks_and_hidden_files(roots):
-    assert code.grep_code("PASSWORD|SECRET_KEY|cached") == "No matches."
+    assert code.grep_code("PASSWORD|SECRET_KEY|cached|PATIENT_ID") == "No matches."
 
 
 def test_grep_docs_is_flat(roots):

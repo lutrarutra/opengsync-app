@@ -36,13 +36,27 @@
         return { "X-CSRF-Token": getCookie("csrf_token") || "" };
     }
 
-    function isNearBottom() {
-        return messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
+    // Follow new output while the user is at the bottom; scrolling up pauses it until they scroll back down.
+    // Tracked on scroll instead of checked after each swap: one SSE message re-renders the whole reply and can
+    // grow it by more than any threshold, which would otherwise unstick the view mid-stream.
+    let stickToBottom = true;
+
+    function isAtBottom() {
+        return messages.scrollHeight - messages.scrollTop - messages.clientHeight < 24;
     }
 
     function scrollToBottom(force = false) {
-        if (force || isNearBottom()) messages.scrollTop = messages.scrollHeight;
+        if (!force && !stickToBottom) return;
+        messages.scrollTop = messages.scrollHeight;
+        stickToBottom = true;
     }
+
+    messages.addEventListener("scroll", () => { stickToBottom = isAtBottom(); }, { passive: true });
+
+    // Catches every content change (SSE swaps, new turns, async rendering) without wiring each event
+    new MutationObserver(() => scrollToBottom()).observe(messages, {
+        childList: true, subtree: true, characterData: true,
+    });
 
     function setStreaming(value) {
         streaming = value;
@@ -113,6 +127,7 @@
         showConsent(false);
         storageSet(STORAGE_OPEN, "1");
         if (!loaded) loadConversation();
+        else scrollToBottom();  // output may have arrived while the panel was closed
         setTimeout(() => input.focus(), 50);
     }
 
@@ -191,12 +206,9 @@
 
     widget.addEventListener("htmx:sendError", () => showError("Could not reach the server."));
 
-    widget.addEventListener("htmx:sseMessage", () => scrollToBottom());
-
     widget.addEventListener("htmx:sseClose", (e) => {
         e.detail.elt.classList.remove("chat-streaming");
         if (!messages.querySelector(".chat-streaming")) setStreaming(false);
-        scrollToBottom();
     });
 
     widget.addEventListener("htmx:sseError", (e) => {

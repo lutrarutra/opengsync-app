@@ -4,7 +4,8 @@
 {% block content %}
 {% set entries_route = 'shared_browser_entries' if share_token else 'render_file_browser_page' %}
 {% set route_params = {'token': share_token} if share_token else {} %}
-{% call file_browser(entries_route, route_params, sort_by=sort_by, sort_order=sort_order) %}
+{% set search_route = 'file_browser_search' if not share_token and fs_index_enabled is defined and fs_index_enabled and current_user and current_user.is_insider else none %}
+{% call file_browser(entries_route, route_params, sort_by=sort_by, sort_order=sort_order, search_route=search_route, initial_subpath=current_path if not share_token else none) %}
     <div class="file-browser-storage-status">
         <span>Storage status:</span>
         <strong id="mount-status-badge">

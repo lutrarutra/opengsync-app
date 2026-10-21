@@ -28,6 +28,38 @@ def is_servable(path: Path, extensions: frozenset[str] = PROJECT_SERVABLE_EXTENS
         return False
 
 
+_EXTENSION_ICONS = {
+    "bi-file-earmark-text": (".fastq", ".fq", ".fasta", ".fa", ".txt", ".log", ".md", ".vcf", ".bed", ".gtf", ".gff"),
+    "bi-file-earmark-binary": (".bam", ".cram", ".bai", ".crai", ".cbcl", ".bcl", ".bgzf", ".sam"),
+    "bi-file-earmark-bar-graph": (".h5ad", ".h5", ".hdf5", ".loom", ".rds", ".mtx", ".zarr", ".parquet", ".npz"),
+    "bi-file-earmark-spreadsheet": (".csv", ".tsv", ".xlsx", ".xls"),
+    "bi-file-earmark-code": (".html", ".htm", ".json", ".yaml", ".yml", ".xml", ".py", ".r", ".sh", ".nf", ".ipynb"),
+    "bi-file-earmark-pdf": (".pdf",),
+    "bi-file-earmark-image": (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".tif", ".tiff"),
+    "bi-file-earmark-zip": (".zip", ".tar", ".tgz", ".bz2", ".xz", ".zst", ".7z"),
+}
+# compression suffixes that don't change what kind of file it is (reads.fastq.gz is a FASTQ)
+_COMPRESSION_SUFFIXES = (".gz", ".bz2", ".xz", ".zst")
+
+
+def file_icon(name: str, is_dir: bool = False) -> str:
+    """Bootstrap icon class for a file or folder name."""
+    if is_dir:
+        return "bi-folder-fill"
+    lower = name.lower()
+    for suffix in _COMPRESSION_SUFFIXES:
+        if lower.endswith(suffix) and lower.count(".") > 1:
+            lower = lower[: -len(suffix)]
+            break
+    extension = Path(lower).suffix
+    for icon, extensions in _EXTENSION_ICONS.items():
+        if extension in extensions:
+            return icon
+    if lower.endswith(_COMPRESSION_SUFFIXES):
+        return "bi-file-earmark-zip"
+    return "bi-file-earmark"
+
+
 # Paths one Share or Associate may take from the insider browser's selection; keeps the GET that opens the form short.
 MAX_SELECTED_PATHS = 50
 

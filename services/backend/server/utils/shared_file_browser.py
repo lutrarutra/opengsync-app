@@ -1,5 +1,4 @@
 import os
-import re
 import html
 import hashlib
 import stat as stat_module
@@ -11,13 +10,14 @@ from collections.abc import Iterable, Iterator
 from typing import Any, Literal
 
 from opengsync_db import models
+from opengsync_db.fs_index.ignore import OS_JUNK_REGEX
 
 from ..core import exceptions as exc
 from ..core.redis import RedisClient
 from .file_browser import BrowserPath
 from .parsing import filter_subpaths
 from .share_ignore import ShareIgnore
-from . import share_fs_cache
+from . import share_fs_cache, fs_index
 
 
 @dataclass
@@ -40,20 +40,7 @@ class DAVResponse:
 
 
 class SharedFileBrowser:
-    OS_JUNK_REGEX = re.compile(
-        r'(^|/)'
-        r'('
-        r'\._'                        # AppleDouble
-        r'|\.DS_Store'                # macOS folder config
-        r'|Thumbs\.db|desktop\.ini'   # Windows junk
-        r'|\.Spotlight-V100|\.Trashes|\.metadata_|\.com\.apple\.timemachine' # macOS indexing/system
-        r'|\.hidden'                  # Linux hidden file list
-        r'|\.ignored'                 # Common user-level ignore file
-        r'|^Network Trash Folder$'    # Old macOS network junk
-        r'|^Temporary Items$'         # macOS temp folder
-        r')',
-        re.IGNORECASE
-    )
+    OS_JUNK_REGEX = OS_JUNK_REGEX
 
     @classmethod
     def _is_junk(cls, path: Path) -> bool:
@@ -231,6 +218,8 @@ class SharedFileBrowser:
             if limit is not None:
                 paths_with_stats = paths_with_stats[:limit]
             result = self._to_browser_paths(paths_with_stats)
+            if not offset:
+                fs_index.touch(self.redis, subpath)
 
         share_fs_cache.set_listing(
             self.redis,

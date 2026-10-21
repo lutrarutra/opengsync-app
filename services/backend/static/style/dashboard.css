@@ -325,3 +325,167 @@
     }
 }
 
+/* ── status cards on the insider dashboard's System tab (dashboard-insider.html, components/fs-index-status.html) ── */
+
+.status-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    background: var(--color-white);
+}
+
+.status-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.status-card-title {
+    font-weight: 600;
+}
+
+.status-card-title .bi {
+    margin-right: 0.25rem;
+    color: var(--color-cemm-secondary);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-pill::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-pill.is-ok { background: color-mix(in srgb, var(--color-green) 12%, white); color: #146c43; }
+.status-pill.is-busy { background: color-mix(in srgb, var(--color-cemm-blue) 14%, white); color: var(--color-cemm-blue-dark); }
+.status-pill.is-warning { background: color-mix(in srgb, var(--color-orange) 14%, white); color: #8a4a0b; }
+.status-pill.is-off { background: var(--color-gray-200); color: var(--color-gray-700); }
+
+.status-pill.is-busy::before {
+    animation: status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+    50% { opacity: 0.3; }
+}
+
+.status-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.5rem;
+}
+
+.status-tile {
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.4rem;
+    background: var(--color-gray-100);
+}
+
+.status-tile-label {
+    color: var(--color-gray-600);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.status-tile-value {
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.status-tile-sub {
+    color: var(--color-gray-600);
+    font-size: 0.75rem;
+}
+
+.status-table {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+.status-table th {
+    color: var(--color-gray-600);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-bar {
+    height: 0.25rem;
+    margin-top: 0.25rem;
+    border-radius: 999px;
+    background: var(--color-gray-200);
+    overflow: hidden;
+}
+
+.status-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--color-cemm-blue);
+}
+
+.status-note {
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.4rem;
+    background: color-mix(in srgb, var(--color-cemm-blue) 8%, white);
+    font-size: 0.85rem;
+}
+
+.status-card-hint {
+    margin: 0;
+    color: var(--color-gray-600);
+    font-size: 0.875rem;
+}
+
+.status-bar.is-warning > span { background: var(--color-orange); }
+.status-bar.is-danger > span { background: var(--color-red); }
+
+.status-pill.is-danger { background: color-mix(in srgb, var(--color-red) 12%, white); color: #a71d2a; }
+
+.status-tile-value .status-pill {
+    font-size: 0.85rem;
+}
+
+.status-tile-value code {
+    color: inherit;
+    font-size: 0.95rem;
+}
+
+.status-tiles.is-compact {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+}
+
+/* the System tab's cards can be taller than the panel */
+.dash-component-content #tab-system {
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+#tab-system > * {
+    flex-shrink: 0;
+}
+
+.status-tiles.is-compact .status-tile-value {
+    font-size: 0.85rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.status-tiles.is-compact .status-tile-value code {
+    font-size: inherit;
+}

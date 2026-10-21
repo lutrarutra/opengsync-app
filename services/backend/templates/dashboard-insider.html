@@ -108,30 +108,44 @@
                         {% include "components/workflow-container.html"%}
                     </div>
                     <div class="tab-pane fade p-2 d-flex flex-column gap-3" id="tab-system" role="tabpanel" tabindex="2">
-                        <div>
-                            Cluster Storage Status:
-                            <span id="mount-status-badge" style="font-weight: bold;">
-                                <div class="spinner-border cemm-blue spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                        <section class="status-card" aria-label="Storage">
+                            <header class="status-card-header">
+                                <span class="status-card-title"><i class="bi bi-hdd-network" aria-hidden="true"></i> Storage</span>
+                            </header>
+                            <div class="status-tiles">
+                                <div class="status-tile">
+                                    <div class="status-tile-label">Cluster storage</div>
+                                    <div class="status-tile-value">
+                                        <span class="status-pill is-off" id="mount-status-badge">Checking…</span>
+                                    </div>
+                                    <div class="status-tile-sub" id="mount-status-details">Share mounts from the cluster</div>
                                 </div>
-                            </span>
-                            <small id="mount-status-details" style="margin-left: 10px;"></small>
-                        </div>
-                        <div>
-                            VM Storage Usage:
-                            <span id="storage-usage-badge" style="font-weight: bold;">
-                                <div class="spinner-border cemm-blue spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                                <div class="status-tile">
+                                    <div class="status-tile-label">Server storage</div>
+                                    <div class="status-tile-value" id="storage-usage-badge">…</div>
+                                    <div class="status-bar" aria-hidden="true"><span id="storage-usage-bar" style="width: 0%"></span></div>
+                                    <div class="status-tile-sub" id="storage-usage-details"></div>
                                 </div>
-                            </span>
+                            </div>
+                        </section>
+                        {% if fs_index_enabled is defined and fs_index_enabled %}
+                        <div hx-get="{{ url_for('fs_index_status') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                            {{ spinner() }}
                         </div>
-                        <div>
-                            <ul>
-                                <li>Version: {{ app_version }}</li>
-                                <li>API Version: {{ api_version }}</li>
-                                <li>DB Version: {{ db_version }}</li>
-                            </ul>
-                        </div>
+                        {% endif %}
+                        <section class="status-card" aria-label="Versions">
+                            <header class="status-card-header">
+                                <span class="status-card-title"><i class="bi bi-box-seam" aria-hidden="true"></i> Versions</span>
+                            </header>
+                            <div class="status-tiles is-compact">
+                                {% for label, version in [("App", app_version), ("API", api_version), ("Database", db_version)] %}
+                                <div class="status-tile">
+                                    <div class="status-tile-label">{{ label }}</div>
+                                    <div class="status-tile-value"><code>{{ version }}</code></div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -187,32 +201,22 @@ $(document).ready(function() {
     function renderStatus(data) {
         var $badge = $("#mount-status-badge");
         var $details = $("#mount-status-details");
-        
-        // Reset details
-        $details.text("");
-
-        if (data.status === "online") {
-            $badge.text("🟢 Online");
-            
-        } else if (data.status === "degraded") {
-            $badge.text("🟠 Degraded");
-            
-            // Find which specific mounts are offline to show to the user
-            let offlineMounts = [];
-            for (const [name, status_msg] of Object.entries(data.details)) {
-                if (status_msg !== "online") {
-                    offlineMounts.push(name);
-                }
-            }
-            $details.text("Missing: " + offlineMounts.join(", "));
-            
-        } else if (data.status === "offline") {
-            $badge.text("🔴 Offline");
-            $details.text("Cannot connect to cluster storage.");
-        } else {
-            $badge.text("⚫ Unknown");
-            $details.text("Share status is not configured.");
+        var states = {
+            online: ["Online", "is-ok", "All share mounts respond"],
+            degraded: ["Degraded", "is-warning", null],
+            offline: ["Offline", "is-danger", "Cannot connect to cluster storage"],
+        };
+        var state = states[data.status] || ["Unknown", "is-off", "Share status is not configured"];
+        var details = state[2];
+        if (data.status === "degraded") {
+            // which mounts are down
+            var offlineMounts = Object.entries(data.details || {})
+                .filter(function(entry) { return entry[1] !== "online"; })
+                .map(function(entry) { return entry[0]; });
+            details = "Not responding: " + offlineMounts.join(", ");
         }
+        $badge.removeClass("is-ok is-warning is-danger is-off").addClass(state[1]).text(state[0]);
+        $details.text(details);
     }
 
     function fetchMountStatus() {
@@ -229,9 +233,8 @@ $(document).ready(function() {
                 if (jqXHR.responseJSON) {
                     renderStatus(jqXHR.responseJSON);
                 } else {
-                    $("#mount-status-badge").text("⚫ Unknown Error");
-                    $("#mount-status-badge").css("color", "black");
-                    $("#mount-status-details").text("Failed to reach server API.");
+                    $("#mount-status-badge").removeClass("is-ok is-warning").addClass("is-danger").text("Error");
+                    $("#mount-status-details").text("Failed to reach the server API");
                 }
             }
         });
@@ -239,8 +242,11 @@ $(document).ready(function() {
     fetchMountStatus();
 
     function renderStorageUsage(data) {
-        var $badge = $("#storage-usage-badge");
-        $badge.text(`${data.used} / ${data.total} (${data.percent_used})`);
+        var percent = parseFloat(data.percent_used) || 0;
+        $("#storage-usage-badge").text(data.percent_used + " used");
+        $("#storage-usage-bar").css("width", Math.min(percent, 100) + "%")
+            .parent().toggleClass("is-warning", percent >= 80 && percent < 90).toggleClass("is-danger", percent >= 90);
+        $("#storage-usage-details").text(data.used + " of " + data.total + " · " + data.free + " free");
     }
 
     function fetchStorageUsage() {
@@ -252,7 +258,8 @@ $(document).ready(function() {
                 renderStorageUsage(data);
             },
             error: function(jqXHR) {
-                $("#storage-usage-badge").text("⚫ Unknown Error");
+                $("#storage-usage-badge").text("Unknown");
+                $("#storage-usage-details").text("Failed to reach the server API");
             }
         });
     }

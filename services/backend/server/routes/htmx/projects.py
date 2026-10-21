@@ -18,6 +18,7 @@ from ...core.context import ctx
 from ...utils.file_browser import PROJECT_SERVABLE_EXTENSIONS, is_servable
 from ...utils.io import is_browser_friendly
 from ...utils.shared_file_browser import SharedFileBrowser
+from ...utils import fs_index
 from ... import forms
 
 
@@ -571,6 +572,7 @@ def project_browser_entries(
     page: int = Query(0, ge=0),
     sort_by: Literal["name", "size", "mtime"] = Query("name"),
     sort_order: Literal["asc", "desc"] | None = Query(None),
+    located: bool = Query(False, description="Opened as the current location: render a path bar above the entries"),
     _: C.AccessLevel = Depends(dependencies.project_permissions),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
@@ -582,6 +584,15 @@ def project_browser_entries(
 
     current_path = _subpath(subpath)
     browser, data_paths = _project_browser(project_id, session, redis)
+
+    # a folder below the project's data paths that is gone, e.g. a stale search result
+    missing = (
+        page == 0 and bool(current_path.parts)
+        and any(current_path == Path(dp.path) or current_path.is_relative_to(dp.path) for dp in data_paths)
+        and not (browser.root_dir / current_path).is_dir()
+    )
+    if missing:
+        fs_index.touch(redis, current_path)
 
     limit: int | None = PROJECT_BROWSER_PAGE_LIMIT
     if is_root_listing := not current_path.parts:
@@ -620,6 +631,62 @@ def project_browser_entries(
         highlight_data_paths=True,
         remove_from_project_id=project_id if current_user.is_insider else None,
         is_root_listing=is_root_listing,
+        location_header=located and page == 0,
+        missing=missing,
+    )
+
+
+@router.get("/{project_id}/data-search", name="project_browser_search")
+def project_browser_search(
+    project_id: int,
+    q: str = Query("", max_length=512),
+    kind: Literal["all", "dirs", "files"] = Query("all"),
+    page: int = Query(0, ge=0),
+    _: C.AccessLevel = Depends(dependencies.project_permissions),
+    session: SyncSession = Depends(dependencies.db_session),
+    fs_index_session: SyncSession | None = Depends(dependencies.fs_index_session),
+    redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    """Searches the fs-index within the project's data paths, showing only what its share link would serve."""
+    browser, data_paths = _project_browser(project_id, session, redis)
+    entries, has_more, error = [], False, None
+    if fs_index_session is None:
+        error = "unavailable"
+    else:
+        try:
+            entries, has_more = fs_index.search_page(
+                fs_index_session, q, page=page, kind=kind,
+                prefixes=[data_path.path for data_path in data_paths], visible_only=True,
+            )
+        except fs_index.QueryTooShort:
+            error = "too_short"
+
+    # the index can lag behind .ngsignore edits and symlink changes: check the (few) results live
+    results = [result for result in fs_index.to_results(entries, q) if browser.is_safe(Path(result.path))]
+    by_path: dict[str, list[models.DataPath]] = {}
+    for data_path in data_paths:
+        by_path.setdefault(Path(data_path.path).as_posix(), []).append(data_path)
+    for result in results:
+        result.data_paths = by_path.get(result.path, [])
+
+    return responses.htmx_response(
+        template="components/file-browser/search-results.html",
+        results=results,
+        query=q,
+        kind=kind,
+        root=None,
+        roots=[],
+        page=page,
+        has_more=has_more,
+        error=error,
+        min_term_length=fs_index.MIN_TERM_LENGTH,
+        indexed_at=fs_index.indexed_at(fs_index_session),
+        search_route="project_browser_search",
+        entries_route="project_browser_entries",
+        route_params={"project_id": project_id},
+        file_route="serve_project_file",
+        servable_extensions=PROJECT_SERVABLE_EXTENSIONS,
+        insider_actions=False,
     )
 
 
@@ -634,7 +701,7 @@ def serve_project_file(
     """Serve a file under the project's data paths. The URL mirrors the share root, so relative links in HTML reports resolve."""
     browser, _data_paths = _project_browser(project_id, session, redis)
     if (path := browser.get_file(_subpath(subpath))) is None:
-        raise exc.NotFoundException("File not found.")
+        raise exc.NotFoundException("File not found. It may have been moved or deleted recently.")
     if not is_servable(path):
         raise exc.NoPermissionsException("This file can only be downloaded through a data share link.")
 

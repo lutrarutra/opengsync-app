@@ -159,7 +159,7 @@ def test_browse_link_points_to_the_new_token(
 
 
 @pytest.mark.parametrize("paths, error", [
-    (("missing",), "does not exist"),
+    (("missing",), "No longer exists on the share"),
     (("",), None),
     ((".",), "share root itself"),
     ((), "At least 1"),
@@ -233,9 +233,9 @@ def test_each_invalid_path_reports_its_own_error(
     """One bad path rejects the whole share, and the error is shown on that path's row."""
     response = _share(client, insider_token, paths=("results", "missing"))
 
-    assert_form_invalid(response, "does not exist")
+    assert_form_invalid(response, "No longer exists on the share")
     assert 'id="paths-1-path"' in response.text
-    assert response.text.count("does not exist") == 1
+    assert response.text.count("No longer exists on the share") == 1
     assert _tokens(session, insider) == []
     assert fake_mailer.sent == []
 

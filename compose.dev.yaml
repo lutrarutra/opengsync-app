@@ -37,6 +37,7 @@ services:
             - ./services/backend/templates:/templates:ro
             - ./docs:/app/docs:ro
             - uploads:/uploads
+            - app_data:/app_data
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
             - ./share:/share:ro
@@ -94,6 +95,8 @@ services:
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${LOG_DIR}/celery-worker:/logs
             - uploads:/uploads
+            - app_data:/app_data
+            - ./share:/share:ro
         depends_on:
             opengsync-celery-beat:
                 condition: service_started
@@ -204,6 +207,7 @@ services:
 volumes:
     compiled_css:
     uploads:
+    app_data:
     pgadmin_data:
     postgres_data:
         external: true

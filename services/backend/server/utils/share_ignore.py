@@ -24,14 +24,12 @@ from typing import Any
 import pathspec
 from loguru import logger
 
+from opengsync_db.fs_index.ignore import IGNORE_FILENAME, Specs, decide, parse_ignore_text
+
 from ..core import config
 
-IGNORE_FILENAME = ".ngsignore"
 PROCESS_CACHE_TTL = 60
 PROCESS_CACHE_MAX_DIRS = 10_000
-
-# (directory path relative to the spec's directory, spec), nearest spec first
-Specs = tuple[tuple[str, pathspec.GitIgnoreSpec], ...]
 
 _MISSING = object()
 
@@ -145,12 +143,7 @@ class ShareIgnore:
             is_dir = os.path.isdir(path)
         return self._decide(specs, name + "/" if is_dir else name)
 
-    @staticmethod
-    def _decide(specs: Specs, name: str) -> bool:
-        for prefix, spec in specs:
-            if (include := spec.check_file(prefix + name).include) is not None:
-                return include
-        return False
+    _decide = staticmethod(decide)
 
     def _dir_state(self, directory: str) -> tuple[bool, Specs]:
         """(everything below `directory` is hidden, the specs that apply to its entries)"""
@@ -192,12 +185,6 @@ class ShareIgnore:
             logger.warning(f"Could not read {ignore_file}, hiding {directory} from share links")
             return None, True
 
-        lines = []
-        for line in text.splitlines():
-            try:
-                pathspec.GitIgnoreSpec.from_lines([line])
-            except ValueError:
-                logger.warning(f"Skipping invalid pattern {line!r} in {ignore_file}")
-                continue
-            lines.append(line)
-        return pathspec.GitIgnoreSpec.from_lines(lines), False
+        return parse_ignore_text(
+            text, on_invalid=lambda line: logger.warning(f"Skipping invalid pattern {line!r} in {ignore_file}"),
+        ), False

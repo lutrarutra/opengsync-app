@@ -1,46 +1,84 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 {#
-  Sort toolbar, lazily loaded entry tree and the directory toggle script. One per page: entries.html targets #file-browser-root.
-  Import `with context` so url_for sees the request. The caller block renders between the toolbar and the tree.
+  One card: a header (search, sorting, the caller block) above the lazily loaded entry tree, plus the directory
+  toggle script. One per page: entries.html targets #file-browser-root.
+  Import `with context` so url_for sees the request. The caller block renders at the end of the header.
+  search_route: when set (fs-index enabled), a search box whose results replace the tree until it is cleared.
+  initial_subpath: open at this folder (with a path bar) instead of the top.
 #}
-{% macro file_browser(entries_route, route_params, sort_by="name", sort_order="asc", trigger="load") %}
+{% macro file_browser(entries_route, route_params, sort_by="name", sort_order="asc", trigger="load", search_route=none, initial_subpath=none) %}
+{% set initial = initial_subpath.as_posix() if initial_subpath and initial_subpath.parts else none %}
 <div class="file-browser" id="file-browser-container">
-    <div class="file-browser-toolbar" role="toolbar" aria-label="File browser sorting"
-         data-entries-url="{{ url_for(entries_route, **route_params) }}"
-         data-sort-by="{{ sort_by }}"
-         data-sort-order="{{ sort_order }}">
-        <span class="file-browser-toolbar-label">Sort by:</span>
-        {% for key, default_order, icon, label in [
-            ("name", "asc", "bi-sort-alpha-down", "Filename"),
-            ("mtime", "desc", "bi-clock-history", "Edited"),
-            ("size", "desc", "bi-sort-numeric-down", "Size"),
-        ] %}
-        {% set active = sort_by == key %}
-        <button
-            type="button"
-            class="btn btn-sm file-browser-sort {% if active %}btn-primary{% else %}btn-outline-primary{% endif %}"
-            data-sort-key="{{ key }}"
-            data-default-order="{{ default_order }}"
-            aria-pressed="{{ 'true' if active else 'false' }}"
-            hx-indicator="#file-browser-root-loading"
-            onclick="sortFileBrowser(this)">
-            <i class="bi {{ icon }}" aria-hidden="true"></i>
-            {{ label }}
-            <i class="bi file-browser-sort-arrow{% if active %} {{ 'bi-arrow-up' if sort_order == 'asc' else 'bi-arrow-down' }}{% endif %}" aria-hidden="true"></i>
-        </button>
-        {% endfor %}
-        <span class="file-browser-root-loading htmx-indicator" id="file-browser-root-loading">
-            {{ spinner() }}
-        </span>
+    <div class="file-browser-header">
+        {% if search_route %}
+        <div class="file-browser-search-field" role="search">
+            <i class="bi bi-search file-browser-search-icon" aria-hidden="true"></i>
+            <input
+                type="text"
+                class="form-control form-control-sm file-browser-search"
+                placeholder="Search files and folders, or paste a path…"
+                aria-label="Search files and folders"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="512"
+                data-search-url="{{ url_for(search_route, **route_params) }}"
+                oninput="searchFileBrowser(this)"
+                onkeydown="if (event.key === 'Escape') clearFileBrowserSearch()">
+            <span class="file-browser-search-loading htmx-indicator" id="file-browser-search-loading" aria-hidden="true">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
+            <button type="button" class="file-browser-search-clear" title="Clear search (Esc)" aria-label="Clear search"
+                    onclick="clearFileBrowserSearch()" hidden>
+                <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+            </button>
+        </div>
+        {% endif %}
+        <div class="file-browser-toolbar" role="toolbar" aria-label="File browser sorting"
+             data-entries-url="{{ url_for(entries_route, subpath=initial | urlencode if initial else none, located=1 if initial else none, **route_params) }}"
+             data-base-entries-url="{{ url_for(entries_route, **route_params) }}"
+             data-sort-by="{{ sort_by }}"
+             data-sort-order="{{ sort_order }}">
+            <span class="file-browser-root-loading htmx-indicator" id="file-browser-root-loading">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
+            <span class="file-browser-sort-group">
+                <span class="file-browser-toolbar-label">Sort</span>
+                <span class="btn-group btn-group-sm" role="group">
+                {% for key, default_order, icon, label in [
+                    ("name", "asc", "bi-sort-alpha-down", "Name"),
+                    ("mtime", "desc", "bi-clock-history", "Edited"),
+                    ("size", "desc", "bi-sort-numeric-down", "Size"),
+                ] %}
+                {% set active = sort_by == key %}
+                <button
+                    type="button"
+                    class="btn btn-sm file-browser-sort {% if active %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                    data-sort-key="{{ key }}"
+                    data-default-order="{{ default_order }}"
+                    aria-pressed="{{ 'true' if active else 'false' }}"
+                    hx-indicator="#file-browser-root-loading"
+                    onclick="sortFileBrowser(this)">
+                    <i class="bi {{ icon }}" aria-hidden="true"></i>
+                    {{ label }}
+                    <i class="bi file-browser-sort-arrow{% if active %} {{ 'bi-arrow-up' if sort_order == 'asc' else 'bi-arrow-down' }}{% endif %}" aria-hidden="true"></i>
+                </button>
+                {% endfor %}
+                </span>
+            </span>
+        </div>
+        {% if caller is defined %}<div class="file-browser-header-extra">{{ caller() }}</div>{% endif %}
     </div>
 
-    {% if caller is defined %}{{ caller() }}{% endif %}
-
+    <div class="browser-columns" aria-hidden="true">
+        <span class="browser-columns-name">Name</span>
+        <span class="browser-columns-size">Size</span>
+        <span class="browser-columns-mtime">Edited</span>
+    </div>
     <div
         class="file-browser-root"
         id="file-browser-root"
-        hx-get="{{ url_for(entries_route, page=0, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
+        hx-get="{{ url_for(entries_route, subpath=initial | urlencode if initial else none, located=1 if initial else none, page=0, sort_by=sort_by, sort_order=sort_order, **route_params) }}"
         hx-trigger="{{ trigger }}"
         hx-swap="innerHTML">
         <div class="browser-loading-initial">
@@ -65,12 +103,18 @@ function sortFileBrowser(button) {
     toolbar.querySelectorAll('.file-browser-sort').forEach(function(sortButton) {
         const active = sortButton.dataset.sortKey === key;
         sortButton.classList.toggle('btn-primary', active);
-        sortButton.classList.toggle('btn-outline-primary', !active);
+        sortButton.classList.toggle('btn-outline-secondary', !active);
         sortButton.setAttribute('aria-pressed', active ? 'true' : 'false');
         const arrow = sortButton.querySelector('.file-browser-sort-arrow');
         arrow.classList.toggle('bi-arrow-up', active && order === 'asc');
         arrow.classList.toggle('bi-arrow-down', active && order === 'desc');
     });
+
+    const search = document.querySelector('#file-browser-container .file-browser-search');
+    if (search) {
+        search.value = '';
+        search.closest('.file-browser-search-field').querySelector('.file-browser-search-clear').hidden = true;
+    }
 
     const url = toolbar.dataset.entriesUrl;
     const params = new URLSearchParams({ page: 0, sort_by: key, sort_order: order });
@@ -78,6 +122,72 @@ function sortFileBrowser(button) {
         source: button,
         target: '#file-browser-root',
         swap: 'innerHTML',
+    });
+}
+
+function reloadFileBrowser(source) {
+    const toolbar = document.querySelector('#file-browser-container .file-browser-toolbar');
+    const url = toolbar.dataset.entriesUrl;
+    const params = new URLSearchParams({ page: 0, sort_by: toolbar.dataset.sortBy, sort_order: toolbar.dataset.sortOrder });
+    htmx.ajax('GET', url + (url.includes('?') ? '&' : '?') + params, {
+        source: source || toolbar,
+        target: '#file-browser-root',
+        swap: 'innerHTML',
+    });
+}
+
+// Debounced: a search hits the index, an empty box goes back to the (live) tree with the current sort.
+function searchFileBrowser(input) {
+    input.closest('.file-browser-search-field').querySelector('.file-browser-search-clear').hidden = !input.value;
+    clearTimeout(input._searchTimer);
+    input._searchTimer = setTimeout(function() {
+        const query = input.value.trim();
+        if (!query) {
+            reloadFileBrowser(input);
+            return;
+        }
+        const url = input.dataset.searchUrl;
+        htmx.ajax('GET', url + (url.includes('?') ? '&' : '?') + new URLSearchParams({ q: query }), {
+            source: input,
+            target: '#file-browser-root',
+            swap: 'innerHTML',
+            indicator: '#file-browser-search-loading',
+        });
+    }, 350);
+}
+
+function clearFileBrowserSearch() {
+    const input = document.querySelector('#file-browser-container .file-browser-search');
+    if (!input) return;
+    const wasSearching = document.getElementById('file-browser-container').classList.contains('is-searching');
+    input.value = '';
+    input.closest('.file-browser-search-field').querySelector('.file-browser-search-clear').hidden = true;
+    clearTimeout(input._searchTimer);
+    if (wasSearching) reloadFileBrowser(input);
+}
+
+if (!window.fileBrowserSearchBound) {
+    window.fileBrowserSearchBound = true;
+
+    // What #file-browser-root shows decides the toolbar: search results hide sorting, and a listing
+    // opened at a folder (its path bar) is what sorting reloads.
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        const root = document.getElementById('file-browser-root');
+        if (!root || event.detail.target !== root) return;
+        const container = document.getElementById('file-browser-container');
+        const toolbar = container.querySelector('.file-browser-toolbar');
+        container.classList.toggle('is-searching', !!root.querySelector(':scope > .file-browser-search-results'));
+        const location = root.querySelector(':scope > .browser-location');
+        if (!container.classList.contains('is-searching')) {
+            toolbar.dataset.entriesUrl = location ? location.dataset.entriesUrl : toolbar.dataset.baseEntriesUrl;
+            // left the results, e.g. for a result's folder: the box no longer describes what is shown
+            const input = container.querySelector('.file-browser-search');
+            if (input && input !== document.activeElement) {
+                input.value = '';
+                input.closest('.file-browser-search-field').querySelector('.file-browser-search-clear').hidden = true;
+            }
+        }
+        root.scrollTop = 0;
     });
 }
 

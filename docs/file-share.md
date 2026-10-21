@@ -4,6 +4,7 @@ How opengsync shares files from the share mount with external collaborators thro
 
 - [Overview](#overview)
 - [Selecting paths in the file browser](#selecting-paths-in-the-file-browser)
+- [Searching (fs-index)](#searching-fs-index)
 - [Access routes](#access-routes)
 - [Setting up the share mount](#setting-up-the-share-mount)
 - [What a share link exposes](#what-a-share-link-exposes)
@@ -49,6 +50,50 @@ Details:
 - **One bad path rejects the whole request.** If any path no longer exists or resolves outside the share root, nothing is shared or associated, and the share form marks the path in question.
 - **Single paths work as before.** Right-click → **Share** or **Assign** on a row acts on that row only and leaves the selection alone.
 
+## Searching (fs-index)
+
+The share is a network mount of the cluster filesystem, far too large to search live. With `fs_index.enabled`, the worker keeps a SQLite index of everything under the share root, and two search boxes query it:
+
+- **Insider file browser**: searches everything. Results show full paths; a folder expands into the live browser, and **Select**/**Share**/**Assign** work as usual.
+- **Project Data tab**: searches below the project's data paths, showing only what its share link would serve (no `.ngsignore`d paths, no symlinks leaving the share). Results are checked live before they are shown.
+
+A query matches file and folder names containing all its words (at least one word of 3+ characters). A query with a `/` is a path prefix instead, e.g. `BSF_PROJECTS/P123` or `/share/BSF_PROJECTS/P123`.
+
+**The index lags the mount.** Browsing and sharing always read the mount live, so a stale index only means a search can miss very new files or still show deleted ones.
+
+**Status:** the insider dashboard's **System** tab shows whether the worker is importing or crawling right now, its last crawl (folders checked, changed, added, removed), folders due for a check (and how many are over an hour late, which means the crawler is falling behind), each root's size, file count and dump import time, and dumps waiting for import.
+
+### How the index is built and kept current
+
+1. **Initial build from a cluster dump.** `scripts/fs_index_dump.py` runs on the cluster, where the filesystem is local, and writes one `<NAME>.jsonl.gz` per root (names as in `share_path_mapping`). Copy the files into the worker's `/app_data/fs_index/dumps/`, e.g. `docker cp BSF_PROJECTS.jsonl.gz opengsync-celery-worker:/app_data/fs_index/dumps/`. The import task (every 10 min by default) picks up new or changed dumps; a dump replaces everything indexed for its root. To import right away: `docker exec opengsync-celery-worker python -m opengsync_worker.tasks.fs_index_import`.
+2. **Crawler.** Every minute, for at most `crawl_budget_s`, the worker re-checks the folders that are due. A folder whose mtime is unchanged is not listed again and its check interval doubles (up to `max_interval_s`, a week by default); a changed folder is listed again and its interval drops back to `min_interval_s` (2 min). Folders the app lists live are re-checked on the next run. Without a dump, the crawler builds the index on its own, slowly, starting from the folders under the share root.
+   The crawler never checks more than `crawl_rate` folders per second (default 10, all threads together; listing a big folder counts as more). That caps its load on the share whatever is due: building ~1.5M folders from scratch takes about two days, while after a dump import the steady state is a few checks per second.
+3. **Not indexed below** folders matching `index_ignore` (pipeline internals such as `*_CS`, `work`, `Rtmp*`): the folder itself is stored with its size, its contents are not searchable.
+
+Caveats:
+
+- A folder's mtime only changes when entries are added, removed or renamed directly in it. A file rewritten in place keeps its old size and date in the index until the next dump. Edited `.ngsignore` files are an exception: the crawler checks them on every run.
+- If a root's mount is down (its `canary_files` entry is missing, or the root looks empty), the crawler removes nothing under it.
+- The index is a cache: deleting `/app_data/fs_index/fs_index.sqlite3` is safe; it is rebuilt from the dumps and the crawler. It never touches Postgres, its WAL or its backups.
+
+### Setup
+
+```yaml
+# opengsync.yaml
+fs_index:
+    enabled: true
+    # optional, defaults shown
+    # import_schedule: 600          # seconds or a cron string
+    # crawl_schedule: 60
+    # crawl_budget_s: 50
+    # crawl_rate: 10                # folders per second at most (0: no limit)
+    # crawl_threads: 1              # folders checked at a time
+    # min_interval_s: 120
+    # max_interval_s: 604800
+```
+
+The worker needs the share mounts too (read-only), and both the app and the worker mount the `app_data` volume (`compose.yaml`). See [Setting up the share mount](#setting-up-the-share-mount).
+
 ## Access routes
 
 | Route | Typical client | What it does |
@@ -78,7 +123,7 @@ rclone copy ":webdav,url='https://<host>/api/webdav/<token>':/" BSF_DATA \
 Three settings must agree:
 
 1. `share_root` in `opengsync.yaml`, normally `"/share"`.
-2. `compose.override.yaml` on the production host mounts the host folders under `/share`. They must be mounted into **both** `opengsync-app` and `nginx`, at the **same container paths**, read-only. The app checks each request, and nginx then reads the file from the same path (see [How downloads are served](#how-downloads-are-served)).
+2. `compose.override.yaml` on the production host mounts the host folders under `/share`. They must be mounted into **both** `opengsync-app` and `nginx`, at the **same container paths**, read-only. The app checks each request, and nginx then reads the file from the same path (see [How downloads are served](#how-downloads-are-served)). With the [fs-index](#searching-fs-index) enabled, `opengsync-celery-worker` needs the same mounts.
 3. `share_path_mapping` in `opengsync.yaml` maps each top-level folder under the share root to its host path. The API uses it to turn host paths into share paths, and "internal access" emails use it to show host paths.
 
 Example:
@@ -91,6 +136,10 @@ services:
             - /nobackup/lab_bsf/projects:/share/BSF_PROJECTS:ro
             - /research/lab_bsf/sequences:/share/BSF_SEQUENCES:ro
     nginx:
+        volumes:
+            - /nobackup/lab_bsf/projects:/share/BSF_PROJECTS:ro
+            - /research/lab_bsf/sequences:/share/BSF_SEQUENCES:ro
+    opengsync-celery-worker:  # fs-index crawler
         volumes:
             - /nobackup/lab_bsf/projects:/share/BSF_PROJECTS:ro
             - /research/lab_bsf/sequences:/share/BSF_SEQUENCES:ro
@@ -398,7 +447,10 @@ Notes on `release_project_data`:
 | What | Where |
 |---|---|
 | Access checks, listings, WebDAV | `services/backend/server/utils/shared_file_browser.py` |
-| `.ngsignore` matching | `services/backend/server/utils/share_ignore.py` |
+| `.ngsignore` matching | `services/backend/server/utils/share_ignore.py`, rules shared with the fs-index in `packages/opengsync-db/opengsync_db/fs_index/ignore.py` |
+| fs-index schema and read-only handler | `packages/opengsync-db/opengsync_db/fs_index/` |
+| fs-index import and crawler | `packages/opengsync-worker/opengsync_worker/tasks/fs_index_*.py`, cluster dump `scripts/fs_index_dump.py` |
+| Search queries and routes | `services/backend/server/utils/fs_index.py`, `routes/htmx/files.py` (`file_browser_search`), `routes/htmx/projects.py` (`project_browser_search`) |
 | Share caches | `services/backend/server/utils/share_fs_cache.py` |
 | Token loading and caching, rate limits, audit | `services/backend/server/core/dependencies.py` |
 | `X-Accel-Redirect` | `services/backend/server/core/responses.py` |

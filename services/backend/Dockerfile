@@ -20,6 +20,8 @@ RUN chmod 777 /app
 # Mount point of the `uploads` named volume; a fresh volume copies this mode, so the
 # app/worker can write to it as any PUID:PGID.
 RUN mkdir -p /uploads && chmod 777 /uploads
+# Same for the `app_data` volume (fs-index), written by the worker and read by the app.
+RUN mkdir -p /app_data && chmod 777 /app_data
 
 # --- BUILDER: Install dependencies ONLY ---
 FROM base AS builder

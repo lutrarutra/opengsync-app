@@ -32,7 +32,7 @@ def _resolve_share_path(share_root: str, path: str) -> str:
     """The real path of `path`, relative to the share root. Raises ValueError with the field's error message."""
     p = os.path.join(share_root, path)
     if not os.path.exists(p):
-        raise ValueError("Path does not exist on server.")
+        raise ValueError("No longer exists on the share: it was probably moved or deleted recently. Remove it and try again.")
 
     relative = os.path.relpath(os.path.realpath(p), os.path.realpath(share_root))
     if relative == os.pardir or relative.startswith(os.pardir + os.sep) or os.path.isabs(relative):

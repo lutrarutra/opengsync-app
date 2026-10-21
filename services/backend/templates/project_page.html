@@ -303,7 +303,7 @@
                     {% endif %}
                 </div>
             </div>
-            {{ file_browser('project_browser_entries', {'project_id': project.id}, trigger='intersect once') }}
+            {{ file_browser('project_browser_entries', {'project_id': project.id}, trigger='intersect once', search_route='project_browser_search' if fs_index_enabled is defined and fs_index_enabled else none) }}
         </div>
     </div>
 </div>

@@ -17,6 +17,7 @@ from . import context
 from .search import SEARCH_KINDS
 from .config import settings
 from ..utils import barcodes
+from ..utils.file_browser import file_icon
 
 j2 = Jinja2Templates(env=jinja2.Environment(
     loader=jinja2.FileSystemLoader("/templates"),
@@ -91,6 +92,21 @@ def from_timestamp(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
         return "<error formatting time>"
     return dt.strftime(fmt)
 
+def time_ago(value: float | int | None) -> str:
+    """Unix time as a short relative time ("5 min ago"); the exact time belongs in a title attribute."""
+    if not value:
+        return "never"
+    seconds = max(0, int(datetime.now().timestamp() - float(value)))
+    if seconds < 60:
+        return "just now"
+    if seconds < 3600:
+        return f"{seconds // 60} min ago"
+    if seconds < 2 * 86400:
+        return f"{seconds // 3600} h ago"
+    if seconds < 60 * 86400:
+        return f"{seconds // 86400} days ago"
+    return from_timestamp(value, "%Y-%m-%d")
+
 def bytes_to_human(size: int | None) -> str:
     if size is None or size < 0:
         return ""
@@ -140,6 +156,8 @@ def shell_quote(s) -> str:
 
 j2.env.filters["format_iso"] = format_iso
 j2.env.filters["from_timestamp"] = from_timestamp
+j2.env.filters["time_ago"] = time_ago
+j2.env.filters["file_icon"] = file_icon
 j2.env.filters["bytes_to_human"] = bytes_to_human
 j2.env.filters["highlight_py"] = highlight_py
 j2.env.filters["highlight_sh"] = highlight_sh

@@ -1,0 +1,97 @@
+{#
+  fs-index summary for the insider dashboard's System tab (index: server/utils/fs_index.py IndexStatus).
+#}
+{% if not enabled %}
+    {% set state, state_class, state_hint = "Disabled", "is-off", "fs_index.enabled is off in opengsync.yaml" %}
+{% elif not index.available %}
+    {% set state, state_class, state_hint = "Not built yet", "is-warning", "The worker creates the index on its next run" %}
+{% elif index.running %}
+    {% set state, state_class, state_hint = "Working", "is-busy", "Importing dumps or crawling right now" %}
+{% elif index.overdue %}
+    {% set state, state_class, state_hint = "Behind", "is-warning", "Folders are waiting over an hour for their check" %}
+{% else %}
+    {% set state, state_class, state_hint = "Up to date", "is-ok", "Waiting for the next crawl" %}
+{% endif %}
+{% set total_size = index.roots | sum(attribute="total_size") %}
+
+<section class="status-card" aria-label="Share search index">
+    <header class="status-card-header">
+        <span class="status-card-title"><i class="bi bi-search" aria-hidden="true"></i> Share Search Index</span>
+        <span class="status-pill {{ state_class }}" title="{{ state_hint }}">{{ state }}</span>
+    </header>
+
+    {% if index.available %}
+    <div class="status-tiles">
+        <div class="status-tile">
+            <div class="status-tile-label">Last crawl</div>
+            <div class="status-tile-value" {% if index.last_crawl %}title="{{ index.last_crawl.at | from_timestamp }}"{% endif %}>
+                {{ (index.last_crawl.at if index.last_crawl else none) | time_ago }}
+            </div>
+            {% if index.last_crawl %}
+            <div class="status-tile-sub">
+                {{ "{:,}".format(index.last_crawl.checked) }} checked · {{ index.last_crawl.changed }} changed · {{ index.last_crawl.seconds }} s
+                {% if index.last_crawl.errors %}<span class="text-danger">· {{ index.last_crawl.errors }} errors</span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="status-tile">
+            <div class="status-tile-label">Last change found</div>
+            <div class="status-tile-value" {% if index.last_change_at %}title="{{ index.last_change_at | from_timestamp }}"{% endif %}>{{ index.last_change_at | time_ago }}</div>
+            {% if index.last_crawl and (index.last_crawl.added or index.last_crawl.removed) %}
+            <div class="status-tile-sub">last crawl: +{{ index.last_crawl.added }} / −{{ index.last_crawl.removed }} entries</div>
+            {% endif %}
+        </div>
+        <div class="status-tile">
+            <div class="status-tile-label">Folders due</div>
+            <div class="status-tile-value {% if index.overdue %}text-warning-emphasis{% endif %}">{{ "{:,}".format(index.due) }}</div>
+            <div class="status-tile-sub">
+                {% if index.overdue %}{{ "{:,}".format(index.overdue) }} over an hour late{% else %}none late{% endif %}{% if index.queued %} · {{ index.queued }} from browsing{% endif %}
+            </div>
+        </div>
+        <div class="status-tile">
+            <div class="status-tile-label">Indexed data</div>
+            <div class="status-tile-value">{{ total_size | bytes_to_human }}</div>
+            <div class="status-tile-sub">
+                {{ "{:,}".format(index.roots | sum(attribute="n_files")) }} files{% if index.db_size is not none %} · index {{ index.db_size | bytes_to_human }}{% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if index.roots %}
+    <table class="table table-sm status-table">
+        <thead>
+            <tr><th>Folder</th><th class="text-end">Size</th><th class="text-end">Files</th><th>Dump</th></tr>
+        </thead>
+        <tbody>
+            {% for root in index.roots %}
+            <tr>
+                <td>
+                    <code>{{ root.name }}</code>
+                    <div class="status-bar" aria-hidden="true"><span style="width: {{ (100 * root.total_size / total_size) | round(1) if total_size else 0 }}%"></span></div>
+                </td>
+                <td class="text-end">{{ root.total_size | bytes_to_human }}</td>
+                <td class="text-end">{{ "{:,}".format(root.n_files) }}</td>
+                <td>
+                    {% if root.imported_at %}
+                    <span title="Imported {{ root.imported_at | from_timestamp }}{% if root.import_seconds is not none %} in {{ root.import_seconds }} s{% endif %}">imported {{ root.imported_at | time_ago }}</span>
+                    {% if root.dump_started_at %}<div class="status-tile-sub">dump of {{ root.dump_started_at[:16] | replace("T", " ") }} UTC</div>{% endif %}
+                    {% else %}
+                    <span class="text-body-secondary">none, crawled</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    {% else %}
+    <p class="status-card-hint">{{ state_hint }}.</p>
+    {% endif %}
+
+    {% if index.pending_dumps %}
+    <div class="status-note">
+        <i class="bi bi-inbox" aria-hidden="true"></i>
+        Waiting for import: {% for name in index.pending_dumps %}<code>{{ name }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+</section>

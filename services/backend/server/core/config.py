@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, time
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -60,6 +61,32 @@ class ExperimentStatsConfig(BaseModel):
     undetermined_warn_pct: float = 10.0
 
 
+class FsIndexConfig(BaseModel):
+    """SQLite search index over share_root, written by the worker (opengsync_worker.tasks.fs_index_*)."""
+    enabled: bool = False
+    # defaults: <app_data_folder>/fs_index/fs_index.sqlite3 and <app_data_folder>/fs_index/dumps
+    db_file: str | None = None
+    dump_dir: str | None = None
+    # seconds or a 5-field cron string
+    import_schedule: int | str = 600
+    crawl_schedule: int | str = 60
+    crawl_budget_s: int = 50
+    crawl_batch: int = 500
+    crawl_threads: int = 1
+    # folders checked per second, all threads together (0: no limit); keeps the load on the share's metadata server low
+    crawl_rate: float = 10
+    min_interval_s: int = 120
+    max_interval_s: int = 7 * 24 * 3600
+    # directory names whose contents are not indexed (still counted in folder sizes); None: worker defaults
+    index_ignore: list[str] | None = None
+
+    def db_path(self, app_data_folder: str) -> str:
+        return self.db_file or os.path.join(app_data_folder, "fs_index", "fs_index.sqlite3")
+
+    def dump_path(self, app_data_folder: str) -> str:
+        return self.dump_dir or os.path.join(app_data_folder, "fs_index", "dumps")
+
+
 class AppConfig(BaseModel):
     """Pydantic model for opengsync.yaml"""
     personalization: Personalization
@@ -81,6 +108,7 @@ class AppConfig(BaseModel):
     scheduler: SchedulerConfig
     chat: ChatConfig = ChatConfig()
     experiment_stats: ExperimentStatsConfig = ExperimentStatsConfig()
+    fs_index: FsIndexConfig = FsIndexConfig()
 
 
 class Settings(BaseSettings):
