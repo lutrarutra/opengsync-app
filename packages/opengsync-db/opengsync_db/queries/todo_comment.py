@@ -21,8 +21,8 @@ def create(
 
 def select(
     id: int | None = None,
-    statement: sa.Select[tuple[TODOComment]] = sa.select(TODOComment),
-) -> sa.Select[tuple[TODOComment]]:
+    statement: sa.Select[TODOComment] = sa.select(TODOComment),
+) -> sa.Select[TODOComment]:
     if id is not None:
         statement = statement.where(TODOComment.id == id)
     return statement

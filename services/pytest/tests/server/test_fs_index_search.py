@@ -258,6 +258,34 @@ def test_project_search_hides_what_the_index_missed(
     assert "old_matrix" in text
 
 
+def test_project_search_hides_symlink_the_index_thinks_is_safe(
+    client: TestClient, index: Path, project: models.Project, user_token: str, share_root: Path, tmp_path: Path,
+):
+    """The dump maps absolute cluster links onto the share, but inside the container this one leaves it."""
+    outside = tmp_path / "outside_matrix.tsv"
+    outside.write_text("secret")
+    (share_root / "BSF_PROJECTS" / "P1_Smith" / "abs_matrix.tsv").symlink_to(outside)
+    conn = connect_writer(str(index))
+    try:
+        parent_id = conn.execute("SELECT id FROM entry WHERE path = 'BSF_PROJECTS/P1_Smith'").fetchone()[0]
+        values = {
+            "path": "BSF_PROJECTS/P1_Smith/abs_matrix.tsv", "parent_id": parent_id, "name": "abs_matrix.tsv",
+            "kind": "l", "size": 30, "mtime": 1_700_000_000, "link_target": "BSF_PROJECTS/P2_Other/other_matrix.tsv",
+            "target_kind": "f", "target_size": 5, "hidden": False, "unsafe": False, "searchable": True,
+            "opaque": False, "total_size": None, "n_files": None, "max_mtime": None,
+        }
+        conn.execute(
+            f"INSERT INTO entry ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))})",
+            tuple(values[c] for c in COLUMNS),
+        )
+    finally:
+        conn.close()
+
+    text = _project_search(client, user_token, project, "matrix").text
+    assert "counts_matrix.h5ad" in text
+    assert "abs_matrix.tsv" not in text
+
+
 def test_project_search_needs_project_access(
     client: TestClient, index: Path, project: models.Project, user_2_token: str,
 ):
@@ -345,10 +373,10 @@ def test_empty_folder_is_still_empty(client: TestClient, index: Path, share_root
     assert "no longer exists" not in text
 
 
-def test_share_form_warns_about_a_gone_path(client: TestClient, gone: str, insider_token: str):
-    text = get(client, "/htmx/files/share-path", insider_token, params={"path": gone}).text
+def test_share_form_warns_about_a_gone_path(client: TestClient, gone: str, bioinformatician_token: str):
+    text = get(client, "/htmx/files/share-path", bioinformatician_token, params={"path": gone}).text
     assert "Not found on the share" in text
-    existing = get(client, "/htmx/files/share-path", insider_token, params={"path": "BSF_PROJECTS/P1_Smith"}).text
+    existing = get(client, "/htmx/files/share-path", bioinformatician_token, params={"path": "BSF_PROJECTS/P1_Smith"}).text
     assert "Not found on the share" not in existing
 
 

@@ -1,0 +1,17 @@
+<div id="activate-form">
+    {{ form.csrf_token.render() }}
+    {{ form.email.render() }}
+
+    <div class="row">
+        {{ form.password.render("col") }}
+        {{ form.confirm.render("col") }}
+    </div>
+    {% if form.asks_profile %}
+    <h3>Organization & Principal Investigator</h3>
+    <p class="text-muted small">Please complete your profile to activate your account.</p>
+    {% include "forms/user-profile-fields.html" %}
+    {% endif %}
+    <button type="button" class="btn btn-success"
+    hx-include="#activate-form" hx-target="#activate-form" hx-swap="outerHTML"
+    hx-post="{{ form.post_url }}">Activate</button>
+</div>

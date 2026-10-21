@@ -48,6 +48,10 @@
         background-color: var(--color-gray-200);
         color: var(--color-gray-700);
     }
+    /* ColumnValueInputField: keys are not shown, only that a value is new */
+    &.key-values:not(.is-new) .search-select-badge {
+        display: none;
+    }
     &.is-new .search-select-badge {
         background-color: var(--color-cemm-green, var(--color-green));
         color: var(--color-white);

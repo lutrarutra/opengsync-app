@@ -19,8 +19,8 @@ def create(
 
 def search(
     name: str | None = None,
-    statement: sa.Select[tuple[Protocol]] = sa.select(Protocol),
-) -> sa.Select[tuple[Protocol]]:
+    statement: sa.Select[Protocol] = sa.select(Protocol),
+) -> sa.Select[Protocol]:
     if name is not None:
         statement = statement.where(
             utils.safe_trgm_search(Protocol.name, name)
@@ -33,8 +33,8 @@ def select(
     name: str | None = None,
     service_type: ServiceType | None = None,
     service_type_in: list[ServiceType] | None = None,
-    statement: sa.Select[tuple[Protocol]] = sa.select(Protocol),
-) -> sa.Select[tuple[Protocol]]:
+    statement: sa.Select[Protocol] = sa.select(Protocol),
+) -> sa.Select[Protocol]:
     if id is not None:
         statement = statement.where(Protocol.id == id)
     if name is not None:

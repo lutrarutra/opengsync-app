@@ -8,9 +8,11 @@
             {{ form.csrf_token.render() }}
             {{ form.role.render() }}
             <div class="row">
-                {{ form.first_name.render("col-6") }}
-                {{ form.last_name.render("col-6") }}
+                {{ form.first_name.render("col-md-4") }}
+                {{ form.last_name.render("col-md-4") }}
+                {{ form.email.render("col-md-4") }}
             </div>
+            {% include "forms/user-profile-fields.html" %}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">

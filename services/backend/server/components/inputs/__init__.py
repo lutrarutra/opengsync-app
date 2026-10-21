@@ -1,5 +1,5 @@
 from .BaseInputField import BaseInputField
-from . import dynamic, file, string, numeric, selectable, searchable, spreadsheet, tables, datetime, boolean
+from . import dynamic, file, string, numeric, selectable, searchable, column_value, spreadsheet, tables, datetime, boolean
 
 __all__ = [
     "BaseInputField",
@@ -8,6 +8,7 @@ __all__ = [
     "numeric",
     "selectable",
     "searchable",
+    "column_value",
     "spreadsheet",
     "tables",
     "datetime",

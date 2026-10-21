@@ -139,6 +139,7 @@ class FakeMailer:
         self.welcome_back: list[str] = []
         self.registration: list[tuple[str, str]] = []
         self.password_reset: list[tuple[str, str]] = []
+        self.activation: list[tuple[str, str]] = []
 
     def _record(self, method: str, *args, **kwargs) -> None:
         if self.fail:
@@ -156,6 +157,10 @@ class FakeMailer:
     def send_password_reset(self, recipient_email: str, reset_link) -> None:
         self._record("send_password_reset", recipient_email, reset_link)
         self.password_reset.append((recipient_email, str(reset_link)))
+
+    def send_activation(self, recipient_email: str, activation_link) -> None:
+        self._record("send_activation", recipient_email, activation_link)
+        self.activation.append((recipient_email, str(activation_link)))
 
     def __getattr__(self, name: str):
         """Record other Mailer.send_* methods without making SMTP calls."""

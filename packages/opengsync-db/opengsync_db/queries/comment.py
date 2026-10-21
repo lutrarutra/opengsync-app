@@ -28,8 +28,8 @@ def select(
     seq_request_id: int | None = None,
     experiment_id: int | None = None,
     lab_prep_id: int | None = None,
-    statement: sa.Select[tuple[Comment]] = sa.select(Comment),
-) -> sa.Select[tuple[Comment]]:
+    statement: sa.Select[Comment] = sa.select(Comment),
+) -> sa.Select[Comment]:
     statement = statement.where(*where_clauses(
         id=id,
         author_id=author_id,

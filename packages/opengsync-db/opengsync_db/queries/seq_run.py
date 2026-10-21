@@ -39,8 +39,8 @@ def search(
     experiment_name: str | None = None,
     run_folder: str | None = None,
     flow_cell_id: str | None = None,
-    statement: sa.Select[tuple[SeqRun]] = sa.select(SeqRun),
-) -> sa.Select[tuple[SeqRun]]:
+    statement: sa.Select[SeqRun] = sa.select(SeqRun),
+) -> sa.Select[SeqRun]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
 
     if experiment_name is not None:
@@ -76,8 +76,8 @@ def select(
     status_in: list[RunStatus] | None = None,
     experiment_status: ExperimentStatus | None = None,
     experiment_status_in: list[ExperimentStatus] | None = None,
-    statement: sa.Select[tuple[SeqRun]] = sa.select(SeqRun),
-) -> sa.Select[tuple[SeqRun]]:
+    statement: sa.Select[SeqRun] = sa.select(SeqRun),
+) -> sa.Select[SeqRun]:
     if id is not None:
         statement = statement.where(SeqRun.id == id)
     if status is not None:

@@ -89,6 +89,12 @@ class User(Base, UserMixin):
     role: Mapped[UserRole] = mapped_column(EnumColumn[UserRole](UserRole), nullable=False, name="role_id", key="role")
     # Opaque WebAuthn user.id; generated on first passkey registration and stored by password managers.
     webauthn_user_handle: Mapped[bytes | None] = mapped_column(sa.LargeBinary(64), nullable=True, unique=True, default=None)
+    # Organization and PI: free text, normalized on input to existing spellings (opengsync_db.core.utils.norm_text).
+    # Required from customers on registration/activation; optional for insiders.
+    institute: Mapped[str | None] = mapped_column(sa.String(256), nullable=True, default=None)
+    department: Mapped[str | None] = mapped_column(sa.String(256), nullable=True, default=None)
+    pi_name: Mapped[str | None] = mapped_column(sa.String(128), nullable=True, default=None)
+    pi_email: Mapped[str | None] = mapped_column(sa.String(128), nullable=True, default=None)
 
     affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
@@ -302,6 +308,11 @@ class User(Base, UserMixin):
     @is_admin.expression
     def is_admin(cls) -> sa.ColumnElement[bool]:
         return cls.role == UserRole.ADMIN  # type: ignore[arg-type]
+
+    @property
+    def profile_complete(self) -> bool:
+        """Organization and PI are all set."""
+        return bool(self.institute and self.department and self.pi_name and self.pi_email)
 
     @property
     def can_assign_data(self) -> bool:

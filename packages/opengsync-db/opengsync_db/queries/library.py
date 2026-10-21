@@ -88,8 +88,8 @@ def search(
     pool_name: str | None = None,
     name_weight: float = 0.5,
     pool_name_weight: float = 0.5,
-    statement: sa.Select[tuple[Library]] = sa.select(Library),
-) -> sa.Select[tuple[Library]]:
+    statement: sa.Select[Library] = sa.select(Library),
+) -> sa.Select[Library]:
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -132,8 +132,8 @@ def select(
     indexed: bool | None = None,
     status: LibraryStatus | None = None,
     viewer_id: int | None = None,
-    statement: sa.Select[tuple[Library]] = sa.select(Library),
-) -> sa.Select[tuple[Library]]:
+    statement: sa.Select[Library] = sa.select(Library),
+) -> sa.Select[Library]:
     return statement.where(*where_clauses(
         id=id,
         ids=ids,
@@ -156,7 +156,7 @@ def select(
         barcode_orientation_in=barcode_orientation_in,
     ))
 
-def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+def permissions(library_id: int, user_id: int) -> sa.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(Library.id == library_id)
 
 

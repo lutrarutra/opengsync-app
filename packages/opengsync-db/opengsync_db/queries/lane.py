@@ -15,8 +15,8 @@ def create(
 
 def search(
     experiment_name: str | None = None,
-    statement: sa.Select[tuple[Lane]] = sa.select(Lane),
-) -> sa.Select[tuple[Lane]]:
+    statement: sa.Select[Lane] = sa.select(Lane),
+) -> sa.Select[Lane]:
     if experiment_name is None:
         return statement
     return (
@@ -31,8 +31,8 @@ def select(
     id: int | None = None,
     number: int | None = None,
     experiment_id: int | None = None,
-    statement: sa.Select[tuple[Lane]] = sa.select(Lane),
-) -> sa.Select[tuple[Lane]]:
+    statement: sa.Select[Lane] = sa.select(Lane),
+) -> sa.Select[Lane]:
     if id is not None:
         statement = statement.where(Lane.id == id)
     if experiment_id is not None:

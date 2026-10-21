@@ -16,9 +16,11 @@ from ...core import dependencies, responses, exceptions as exc, config
 from ...core.redis import RedisClient
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
-from ...utils.file_browser import FileBrowser, is_within_root
+from ...utils.file_browser import (
+    FileBrowser, PROJECT_SERVABLE_EXTENSIONS, is_servable, is_within_root, servable_mimetype,
+)
 from ...utils import fs_index
-from ...utils.io import render_markdown
+from ...utils.io import is_browser_friendly, render_markdown
 from ...forms.actions import SharePathAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
@@ -43,6 +45,8 @@ ACTIVE_CONTENT_EXTENSIONS = {".svg", ".html", ".htm", ".xml"}
 SANDBOX_HEADERS = {"Content-Security-Policy": "sandbox", "X-Content-Type-Options": "nosniff"}
 
 router = APIRouter(prefix="/files", tags=["files"])
+# Its own prefix: under /files the catch-all browser route would take it, or it would shadow a share folder of that name.
+share_files_router = APIRouter(prefix="/share-files", tags=["files"])
 
 # Register form routes before the catch-all browser routes below. Starlette
 # matches routes in declaration order, so otherwise GET /upload is consumed by
@@ -341,6 +345,8 @@ def file_browser_search(
         route_params={"pick": 1} if pick else {},
         insider_actions=True,
         picker=pick,
+        file_route=None if pick else "serve_share_file",
+        servable_extensions=PROJECT_SERVABLE_EXTENSIONS,
     )
 
 
@@ -412,6 +418,33 @@ def render_file_browser_page(
         share_token=None,
         route_params={"pick": 1} if pick else {},
         picker=pick,
+        file_route=None if pick else "serve_share_file",
+        servable_extensions=PROJECT_SERVABLE_EXTENSIONS,
         location_header=located and page == 0,
         missing=missing,
+    )
+
+
+@share_files_router.get("/{subpath:path}", name="serve_share_file")
+def serve_share_file(
+    subpath: str,
+    _: models.User = Depends(dependencies.require_insider),
+):
+    """Opens a file from the insider browser, like the Data tab's serve_<entity>_file but over the whole share.
+    The URL mirrors the share root, so relative links in HTML reports resolve."""
+    share_root = Path(config.settings.app_config.share_root)
+    rel_path = _subpath(subpath)
+    path = share_root / rel_path
+    if not rel_path.parts or not is_within_root(share_root, rel_path) or not path.is_file():
+        raise exc.NotFoundException("File not found. It may have been moved or deleted recently.")
+    if not is_servable(path):
+        raise exc.NoPermissionsException("This file can't be opened in the browser, only downloaded through a data share link.")
+
+    mimetype = servable_mimetype(path)
+    return responses.file_response(
+        path=path,
+        filename=path.name,
+        content_type=mimetype,
+        disposition="inline" if is_browser_friendly(mimetype) else "attachment",
+        require_accel=True,
     )

@@ -33,7 +33,16 @@ class UserRole(ExtendedEnum):
     def data_assigners(cls) -> list["UserRole"]:
         """Roles that add share paths to projects, requests, experiments and libraries."""
         return [cls.ADMIN, cls.BIOINFORMATICIAN]
-    
+
+    @classmethod
+    def by_privilege(cls) -> list["UserRole"]:
+        """Roles from least to most privileged."""
+        return [cls.DEACTIVATED, cls.TEMPORARY, cls.CLIENT, cls.TECHNICIAN, cls.BIOINFORMATICIAN, cls.ADMIN]
+
+    @property
+    def privilege_rank(self) -> int:
+        return UserRole.by_privilege().index(self)
+
     @property
     def select_name(self) -> str:
         return self.icon

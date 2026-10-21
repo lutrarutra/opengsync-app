@@ -19,8 +19,8 @@ def create(
 
 def select(
     id: int | None = None,
-    statement: sa.Select[tuple[Contact]] = sa.select(Contact),
-) -> sa.Select[tuple[Contact]]:
+    statement: sa.Select[Contact] = sa.select(Contact),
+) -> sa.Select[Contact]:
     if id is not None:
         statement = statement.where(Contact.id == id)
     return statement

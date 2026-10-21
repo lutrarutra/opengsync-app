@@ -8,8 +8,8 @@ def select(
     pool_id: int | None = None,
     identifier: str | None = None,
     experiment_id: int | None = None,
-    statement: sa.Select[tuple[PoolDilution]] = sa.select(PoolDilution),
-) -> sa.Select[tuple[PoolDilution]]:
+    statement: sa.Select[PoolDilution] = sa.select(PoolDilution),
+) -> sa.Select[PoolDilution]:
     if id is not None:
         statement = statement.where(PoolDilution.id == id)
     if pool_id is not None:

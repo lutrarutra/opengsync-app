@@ -81,6 +81,24 @@ def compact_key(column: sql.ColumnElement | InstrumentedAttribute) -> sql.Column
     )
 
 
+def norm_text(column: sql.ColumnElement | InstrumentedAttribute) -> sql.ColumnElement[str]:
+    """Trimmed, lowercased, whitespace runs collapsed: "Medical  University " and "medical university" compare equal.
+
+    Same key as `norm_text_py`.
+    """
+    return sa.func.lower(sa.func.trim(sa.func.regexp_replace(
+        column,
+        sa.literal_column(r"'\s+'"),
+        sa.literal_column("' '"),
+        sa.literal_column("'g'"),
+    )))
+
+
+def norm_text_py(value: str) -> str:
+    """Python counterpart of `norm_text`."""
+    return " ".join(value.split()).lower()
+
+
 def safe_trgm_search(
     column: sql.ColumnElement | InstrumentedAttribute, value: str, threshold: float = 0.05,
 ) -> sql.ColumnElement[bool]:
@@ -93,7 +111,7 @@ def safe_trgm_search(
 
 
 def apply_settings(
-    statement: sa.Select[tuple[SAModelType]],
+    statement: sa.Select[SAModelType],
     order_by: OrderBy | None = None,
     limit: int | None = None,
     options: QueryOptions | None = None,

@@ -6,6 +6,7 @@ from opengsync_db import SyncSession, queries as Q
 from opengsync_db.categories import UserRole
 
 from ....conftest import PASSWORD
+from ..._profile import new_profile_payload, set_profile, INSTITUTE, DEPARTMENT, PI_NAME, PI_EMAIL
 from ..._http import (
     assert_flash,
     assert_form_invalid,
@@ -45,6 +46,7 @@ def _payload(email: str = NEW_EMAIL, **overrides: object) -> dict[str, object]:
         "last_name": "Lovelace",
         "password": PASSWORD,
         "confirm": PASSWORD,
+        **new_profile_payload(),
     }
     data.update(overrides)
     return data
@@ -273,4 +275,91 @@ def test_complete_registration_csrf_mismatch_rerenders(
     response = post_form_csrf_mismatch(client, _path(token), _payload())
     assert_form_invalid(response)
     assert_flash(response, CSRF_FLASH, category="error")
+    assert session.first(Q.user.select(email=NEW_EMAIL)) is None
+
+
+# ── Organization & PI ───────────────────────────────────────────────────────
+
+_NO_PROFILE = {key: "" for key in new_profile_payload()}
+
+
+def test_complete_registration_stores_profile(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL))
+    assert_htmx_redirect(response, contains="/auth/login")
+    user = session.get_one(Q.user.select(email=NEW_EMAIL))
+    assert (user.institute, user.department, user.pi_name, user.pi_email) == (INSTITUTE, DEPARTMENT, PI_NAME, PI_EMAIL)
+
+
+def test_complete_registration_customer_requires_profile(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL), **_NO_PROFILE)
+    assert_form_invalid(response)
+    assert "Institute is required." in response.text
+    assert "Department is required." in response.text
+    assert "Principal Investigator is required." in response.text
+    assert session.first(Q.user.select(email=NEW_EMAIL)) is None
+
+
+def test_complete_registration_insider_profile_is_optional(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL, role=UserRole.TECHNICIAN), **_NO_PROFILE)
+    assert_htmx_redirect(response, contains="/auth/login")
+    user = session.get_one(Q.user.select(email=NEW_EMAIL))
+    assert user.institute is None and user.pi_email is None
+
+
+def test_complete_registration_new_pi_needs_email(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL), pi_email="")
+    assert_form_invalid(response, contains="Enter the email of the new PI.")
+    assert session.first(Q.user.select(email=NEW_EMAIL)) is None
+
+
+def test_complete_registration_new_values_snap_to_existing_spelling(
+    client: TestClient, session: SyncSession, user,
+):
+    set_profile(session, user)
+    session.commit()
+
+    response = _complete(
+        client, _token(NEW_EMAIL),
+        **{
+            "institute-text": "  medical  UNIVERSITY of vienna ",
+            "department-text": "department of medicine i",
+            "pi-text": "G. Hopper",
+            "pi_email": "Grace.Hopper@Example.com",
+        },
+    )
+    assert_htmx_redirect(response, contains="/auth/login")
+    new_user = session.get_one(Q.user.select(email=NEW_EMAIL))
+    assert (new_user.institute, new_user.department) == (INSTITUTE, DEPARTMENT)
+    # A PI is identified by the email: the stored name is kept
+    assert (new_user.pi_name, new_user.pi_email) == (PI_NAME, PI_EMAIL)
+
+
+def test_complete_registration_selects_existing_values_by_key(
+    client: TestClient, session: SyncSession, user,
+):
+    from server.core import column_values
+
+    set_profile(session, user)
+    session.commit()
+    sources = column_values.SOURCES
+
+    response = _complete(
+        client, _token(NEW_EMAIL),
+        **{
+            "institute": column_values.key_of(sources["user_institute"], (INSTITUTE,)), "institute-text": INSTITUTE,
+            "department": column_values.key_of(sources["user_department"], (DEPARTMENT,)), "department-text": DEPARTMENT,
+            "pi": column_values.key_of(sources["user_pi"], (PI_NAME, PI_EMAIL)), "pi-text": PI_NAME,
+            "pi_email": "",
+        },
+    )
+    assert_htmx_redirect(response, contains="/auth/login")
+    new_user = session.get_one(Q.user.select(email=NEW_EMAIL))
+    assert (new_user.institute, new_user.department, new_user.pi_name, new_user.pi_email) == (
+        INSTITUTE, DEPARTMENT, PI_NAME, PI_EMAIL,
+    )
+
+
+def test_complete_registration_unknown_key_rerenders(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL), institute="no such institute", **{"institute-text": "X"})
+    assert_form_invalid(response, contains="Invalid institute selected.")
     assert session.first(Q.user.select(email=NEW_EMAIL)) is None

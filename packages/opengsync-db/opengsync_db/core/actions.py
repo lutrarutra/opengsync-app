@@ -1,4 +1,5 @@
 import string
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Literal, Sequence
 import sqlalchemy as sa
@@ -582,8 +583,193 @@ def _merge_projects(session: Session, project_dst: models.Project, project_src: 
         if user.id not in dst_assignee_ids:
             project_dst.assignees.append(user)
 
+    for data_path in list(project_src.data_paths):
+        data_path.project = project_dst
+        session.add(data_path)
+
     session.add(project_dst)
+    session.flush()
+    # Reload the source's collections, otherwise the delete would detach the moved samples.
+    # Only the destination project remains; the source's assignee links are removed with it.
+    session.expire(project_src)
+    session.delete(project_src)
     return project_dst
+
+
+# Plain foreign keys to `lims_user.id` that `merge_users` re-points to the destination user.
+# Assignee links, affiliations and passkeys need extra handling and are merged separately.
+USER_REFERENCES: dict[str, sa.orm.InstrumentedAttribute] = {
+    "Projects": models.Project.owner_id,
+    "Sequencing requests": models.SeqRequest.requestor_id,
+    "Samples": models.Sample.owner_id,
+    "Libraries": models.Library.owner_id,
+    "Pools": models.Pool.owner_id,
+    "Plates": models.Plate.owner_id,
+    "Lab preps": models.LabPrep.creator_id,
+    "Experiments (operator)": models.Experiment.operator_id,
+    "Pool dilutions": models.PoolDilution.operator_id,
+    "Media files": models.MediaFile.uploader_id,
+    "Comments": models.Comment.author_id,
+    "TODO comments": models.TODOComment.author_id,
+    "Events": models.Event.creator_id,
+    "API tokens": models.APIToken.owner_id,
+    "Share tokens": models.ShareToken.owner_id,
+    "Status history entries": models.OperationRun.actor_id,
+    "Checklist log entries": models.ChecklistLog.actor_id,
+}
+
+_USER_ASSIGNEE_LINKS = (
+    ("Project assignments", models.links.ProjectAssigneeLink, models.links.ProjectAssigneeLink.project_id),
+    ("Sequencing request assignments", models.links.SeqRequestAssigneeLink, models.links.SeqRequestAssigneeLink.seq_request_id),
+)
+
+
+@dataclass
+class UserMergePreview:
+    counts: list[tuple[str, int]]
+    """Rows referencing the source user that move to the destination (non-zero only)."""
+    role: C.UserRole
+    """Role the destination user ends up with."""
+    affiliation_upgrades: list[tuple[str, C.AffiliationType]]
+    """Shared groups where the destination user gets the source user's stronger affiliation."""
+    num_passkeys: int
+    passkeys_move: bool
+    """True if the source passkeys move over, False if they are deleted with the source user."""
+    conflicts: list[str]
+    """Problems that block the merge."""
+
+
+def _user_merge_conflicts(session: Session, user_dst: models.User, user_src: models.User) -> list[str]:
+    if user_dst.id == user_src.id:
+        return ["Source and destination users cannot be the same."]
+
+    dst_titles = sa.select(models.Project.title).where(models.Project.owner_id == user_dst.id)
+    clashing_titles = session.scalars(
+        sa.select(models.Project.title)
+        .where(models.Project.owner_id == user_src.id, models.Project.title.in_(dst_titles))
+        .order_by(models.Project.title)
+    ).all()
+    if clashing_titles:
+        return [
+            "Both users own projects with the same title, merge or rename them first: "
+            + ", ".join(f"'{title}'" for title in clashing_titles)
+        ]
+    return []
+
+
+def _merged_role(user_dst: models.User, user_src: models.User) -> C.UserRole:
+    return max(user_dst.role, user_src.role, key=lambda role: role.privilege_rank)
+
+
+def _passkeys_move(user_dst: models.User, user_src: models.User, num_passkeys: int) -> bool:
+    # A passkey only works with the WebAuthn user handle it was registered under,
+    # so it can move only if the destination user has no handle of its own yet.
+    return num_passkeys > 0 and user_dst.webauthn_user_handle is None and user_src.webauthn_user_handle is not None
+
+
+def merge_users_preview(session: Session, user_dst: models.User, user_src: models.User) -> UserMergePreview:
+    counts = []
+    for label, column in USER_REFERENCES.items():
+        if (count := session.scalar(sa.select(sa.func.count()).select_from(column.class_).where(column == user_src.id))):
+            counts.append((label, count))
+    for label, link, _ in _USER_ASSIGNEE_LINKS:
+        if (count := session.scalar(sa.select(sa.func.count()).select_from(link).where(link.user_id == user_src.id))):
+            counts.append((label, count))
+
+    UA = models.links.UserAffiliation
+    dst_types = {
+        group_id: affiliation_type for group_id, affiliation_type
+        in session.execute(sa.select(UA.group_id, UA.affiliation_type).where(UA.user_id == user_dst.id))
+    }
+    affiliation_upgrades = []
+    num_groups = 0
+    for affiliation in session.scalars(sa.select(UA).where(UA.user_id == user_src.id)):
+        if (dst_type := dst_types.get(affiliation.group_id)) is None:
+            num_groups += 1
+        elif affiliation.affiliation_type < dst_type:
+            affiliation_upgrades.append((affiliation.group.name, affiliation.affiliation_type))
+    if num_groups:
+        counts.append(("Group memberships", num_groups))
+
+    num_passkeys = session.scalar(
+        sa.select(sa.func.count()).select_from(models.UserPasskey).where(models.UserPasskey.user_id == user_src.id)
+    ) or 0
+
+    return UserMergePreview(
+        counts=counts,
+        role=_merged_role(user_dst, user_src),
+        affiliation_upgrades=affiliation_upgrades,
+        num_passkeys=num_passkeys,
+        passkeys_move=_passkeys_move(user_dst, user_src, num_passkeys),
+        conflicts=_user_merge_conflicts(session, user_dst, user_src),
+    )
+
+
+def merge_users(session: Session, user_dst: models.User, user_src: models.User) -> models.User:
+    """Moves everything that references ``user_src`` to ``user_dst`` and deletes ``user_src``.
+
+    ``user_dst`` keeps its email and password, gets the more privileged of both roles and,
+    in groups both users belong to, the stronger affiliation. Raises ``ValueError`` before
+    changing anything if the users cannot be merged.
+    """
+    if (conflicts := _user_merge_conflicts(session, user_dst, user_src)):
+        raise ValueError(" ".join(conflicts))
+
+    src_id, dst_id = user_src.id, user_dst.id
+
+    num_passkeys = session.scalar(
+        sa.select(sa.func.count()).select_from(models.UserPasskey).where(models.UserPasskey.user_id == src_id)
+    ) or 0
+    if _passkeys_move(user_dst, user_src, num_passkeys):
+        handle = user_src.webauthn_user_handle
+        user_src.webauthn_user_handle = None
+        session.flush()  # free the unique handle before the destination takes it
+        user_dst.webauthn_user_handle = handle
+        session.execute(
+            sa.update(models.UserPasskey).where(models.UserPasskey.user_id == src_id).values(user_id=dst_id),
+            execution_options={"synchronize_session": False},
+        )
+
+    user_dst.role = _merged_role(user_dst, user_src)
+    if user_src.last_login is not None and (user_dst.last_login is None or user_dst.last_login < user_src.last_login):
+        user_dst.last_login = user_src.last_login
+
+    # Shared groups: keep the stronger affiliation (OWNER has the lowest id) and drop the source row.
+    UA = models.links.UserAffiliation
+    dst_affiliations = {a.group_id: a for a in session.scalars(sa.select(UA).where(UA.user_id == dst_id))}
+    for affiliation in session.scalars(sa.select(UA).where(UA.user_id == src_id)).all():
+        if (dst_affiliation := dst_affiliations.get(affiliation.group_id)) is None:
+            continue
+        if affiliation.affiliation_type < dst_affiliation.affiliation_type:
+            dst_affiliation.affiliation_type = affiliation.affiliation_type
+        session.delete(affiliation)
+    session.flush()
+
+    sync = {"synchronize_session": False}
+    session.execute(sa.update(UA).where(UA.user_id == src_id).values(user_id=dst_id), execution_options=sync)
+
+    for _, link, other_id in _USER_ASSIGNEE_LINKS:
+        session.execute(
+            sa.delete(link).where(link.user_id == src_id, other_id.in_(sa.select(other_id).where(link.user_id == dst_id))),
+            execution_options=sync,
+        )
+        session.execute(sa.update(link).where(link.user_id == src_id).values(user_id=dst_id), execution_options=sync)
+
+    for column in USER_REFERENCES.values():
+        session.execute(
+            sa.update(column.class_).where(column == src_id).values({column.key: dst_id}),
+            execution_options=sync,
+        )
+
+    # The bulk statements bypassed the identity map: reload before deleting the source user,
+    # so its delete cascades see the now-empty collections.
+    session.expire_all()
+    if (src := session.get(models.User, src_id)) is not None:
+        session.delete(src)
+    session.flush()
+    if (dst := session.get(models.User, dst_id)) is None:
+        raise exceptions.NotFoundException(f"User with id {dst_id} does not exist")
+    return dst
 
 
 def split_project(

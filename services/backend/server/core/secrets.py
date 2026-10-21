@@ -69,6 +69,39 @@ def verify_password_reset_token(
     except jwt.InvalidTokenError:
         return None
     
+def create_activation_token(user_id: int, valid_minutes: int = 60 * 24) -> str:
+    """Link of the reactivation email: the user sets a password (and missing profile fields)."""
+    issued = dt.datetime.now(settings.TIMEZONE)
+    expire = issued + dt.timedelta(minutes=valid_minutes)
+    payload = {
+        "user_id": user_id,
+        "exp": expire,
+        "iat": issued.timestamp(),
+        "action": "activation"
+    }
+    return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
+
+def verify_activation_token(
+    token: str,
+    pw_set_datetime: dt.datetime | None = None,
+) -> int | None:
+    """User id of a valid activation token; with ``pw_set_datetime`` it is single-use (invalid once the password
+    was set after it was issued)."""
+    try:
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("action") != "activation":
+            return None
+        if (
+            pw_set_datetime is not None
+            and not is_login_token_valid_after_password_change(payload, pw_set_datetime)
+        ):
+            return None
+        return payload.get("user_id")
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
 def generate_registration_token(email: str, role: UserRole, valid_minutes: int = 60 * 24) -> str:
     expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(minutes=valid_minutes)
     payload = {

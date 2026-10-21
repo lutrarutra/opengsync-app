@@ -27,8 +27,8 @@ def search(
     identifier: str | None = None,
     name_weight: float = 0.5,
     identifier_weight: float = 0.5,
-    statement: sql.Select[tuple[IndexKit]] = sa.select(IndexKit),
-) -> sql.Select[tuple[IndexKit]]:
+    statement: sql.Select[IndexKit] = sa.select(IndexKit),
+) -> sql.Select[IndexKit]:
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -57,8 +57,8 @@ def select(
     type: IndexType | None = None,
     protocol_id: int | None = None,
     identifier: str | None = None,
-    statement: sql.Select[tuple[IndexKit]] = sa.select(IndexKit),
-) -> sql.Select[tuple[IndexKit]]:
+    statement: sql.Select[IndexKit] = sa.select(IndexKit),
+) -> sql.Select[IndexKit]:
     statement = statement.where(IndexKit.kit_type == KitType.INDEX_KIT)
 
     if id is not None:

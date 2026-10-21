@@ -387,7 +387,7 @@ def require_insider(user: models.User = Depends(require_user)) -> models.User:
 
 def require_data_assigner(user: models.User = Depends(require_user)) -> models.User:
     if not user.can_assign_data:
-        raise exc.NoPermissionsException(detail="Only admins and bioinformaticians can add data.")
+        raise exc.NoPermissionsException(detail="Only admins and bioinformaticians can assign or share data.")
     return user
 
 def mail_client(request: runtime.Request) -> mailer.Mailer:

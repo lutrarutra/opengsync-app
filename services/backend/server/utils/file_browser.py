@@ -1,3 +1,4 @@
+import mimetypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -7,15 +8,26 @@ from sqlalchemy import orm
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 
-# What the project data browser serves: documents, images, tables, HTML reports and the assets reports load.
+# What the data browsers serve: documents, images, tables, plain text, HTML reports and the assets reports load.
 # Everything else (bam, fastq.gz, h5ad, ...) is listed but only downloadable through share links.
 PROJECT_SERVABLE_EXTENSIONS = frozenset({
     ".pdf",
     ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
     ".csv", ".tsv", ".xlsx", ".xls",
+    ".txt", ".log", ".md",
     ".html", ".htm",
     ".css", ".js", ".json", ".woff", ".woff2", ".ttf",
 })
+
+
+# Served as plain text: mimetypes doesn't know .log, and browsers download text/markdown instead of showing it.
+_PLAIN_TEXT_EXTENSIONS = frozenset({".txt", ".log", ".md"})
+
+
+def servable_mimetype(path: Path) -> str:
+    if path.suffix.lower() in _PLAIN_TEXT_EXTENSIONS:
+        return "text/plain"
+    return mimetypes.guess_type(path.name)[0] or "application/octet-stream"
 
 
 def is_servable(path: Path, extensions: frozenset[str] = PROJECT_SERVABLE_EXTENSIONS) -> bool:

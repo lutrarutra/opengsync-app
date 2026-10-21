@@ -1,0 +1,75 @@
+<div id="merge-users-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Merge Users</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="merge-users-form">
+            <div class="help">
+                <ul>
+                    <li>Use this when the same person has two accounts, e.g. because of an email alias.</li>
+                    <li>Everything the source user owns or authored (projects, requests, samples, libraries, pools, comments, API tokens, ...) is moved to the destination user.</li>
+                    <li><b>The source user is deleted.</b> The destination user keeps its email and password.</li>
+                    <li>The destination user gets the more privileged of the two roles and, in groups both users belong to, the stronger affiliation.</li>
+                    <li>If both users own a project with the same title, merge or rename those projects first.</li>
+                </ul>
+            </div>
+            {% if preview is defined and preview %}
+            <input type="hidden" name="user_dst" value="{{ dst_user.id }}">
+            <input type="hidden" name="user_src" value="{{ src_user.id }}">
+            <div class="mb-3">
+                <b>Destination (kept):</b> {{ dst_user.role.icon }} {{ dst_user.name }} &lt;{{ dst_user.email }}&gt;<br>
+                <b>Source (deleted):</b> {{ src_user.role.icon }} {{ src_user.name }} &lt;{{ src_user.email }}&gt;
+            </div>
+            {% if preview.conflicts %}
+            <div class="alert alert-danger" id="merge-users-conflicts">
+                {% for conflict in preview.conflicts %}<div>{{ conflict }}</div>{% endfor %}
+            </div>
+            {% endif %}
+            <table class="table table-sm" id="merge-users-preview">
+                <thead><tr><th>Moved to destination</th><th>Count</th></tr></thead>
+                <tbody>
+                    {% for label, count in preview.counts %}
+                    <tr><td>{{ label }}</td><td>{{ count }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2" class="desc">Nothing references the source user.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <ul>
+                <li>Resulting role: {{ preview.role.display_name }}{% if preview.role != dst_user.role %} (was {{ dst_user.role.display_name }}){% endif %}</li>
+                {% for group_name, affiliation_type in preview.affiliation_upgrades %}
+                <li>Group '{{ group_name }}': affiliation becomes {{ affiliation_type.display_name }}</li>
+                {% endfor %}
+                {% if preview.num_passkeys %}
+                <li>{{ preview.num_passkeys }} passkey(s) of the source user will be {% if preview.passkeys_move %}moved{% else %}deleted (the destination user already has its own passkeys){% endif %}.</li>
+                {% endif %}
+            </ul>
+            {% else %}
+            {{ form.user_dst.render() }}
+            {{ form.user_src.render() }}
+            {% endif %}
+            {{ form.csrf_token.render() }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if preview is defined and preview %}
+            <button id="back-merge-users-btn" class="btn btn-secondary"
+            hx-get="{{ url_for('MergeUsersAction.Begin') }}" hx-target="#merge-users-form-container" hx-swap="outerHTML">Back</button>
+            <button id="submit-merge-users-btn" class="btn btn-danger"
+            hx-include="#merge-users-form" hx-target="#merge-users-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}"
+            {% if preview.conflicts %}disabled{% endif %}>Merge</button>
+            {% else %}
+            <button id="preview-merge-users-btn" class="btn btn-primary"
+            hx-include="#merge-users-form" hx-target="#merge-users-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.preview_url }}">Preview</button>
+            {% endif %}
+        </div>
+    </div>
+</div>

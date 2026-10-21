@@ -50,6 +50,15 @@ class Mailer:
             mime_type="html"
         )
 
+    def send_activation(self, recipient_email: str, activation_link: str | URL):
+        style = self._get_email_style()
+        self.__send_email(
+            recipients=recipient_email,
+            subject="OpeNGSync Account Activation",
+            body=templates.render_template("email/user-activation.html", link=activation_link, style=style),
+            mime_type="html"
+        )
+
     def send_password_reset(self, recipient_email: str, reset_link: str | URL):
         style = self._get_email_style()
         self.__send_email(

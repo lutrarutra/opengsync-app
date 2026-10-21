@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
+from .._profile import new_profile_payload, set_profile, INSTITUTE, DEPARTMENT, PI_NAME, PI_EMAIL
 from .._http import (
     assert_flash,
     assert_form_invalid,
@@ -36,6 +37,7 @@ def _payload(**overrides: object) -> dict[str, str]:
         "last_name": "User",
         "email": "updated@example.com",
         "role": str(C.UserRole.CLIENT.id),
+        **new_profile_payload(),
     }
     data.update({key: str(value) for key, value in overrides.items() if value is not None})
     return data
@@ -347,3 +349,105 @@ def test_edit_csrf_mismatch_rerenders(
     assert_form_invalid(response)
     assert_flash(response, CSRF_FLASH, category="error")
     assert _reload(session, user).first_name != "CSRF_User"
+
+# ── Organization & PI ───────────────────────────────────────────────────────
+
+_NO_PROFILE = {key: "" for key in new_profile_payload()}
+
+
+def _profile(user: models.User) -> tuple:
+    return (user.institute, user.department, user.pi_name, user.pi_email)
+
+
+def test_edit_form_get_prefills_profile(client: TestClient, session: SyncSession, user, user_token: str):
+    set_profile(session, user)
+    session.commit()
+
+    response = get(client, _edit_path(user.id), user_token)
+
+    assert response.status_code == 200
+    for value in (INSTITUTE, DEPARTMENT, PI_NAME):
+        assert value in response.text
+    # PI emails are not shown to customers (the key is a hash)
+    assert PI_EMAIL not in response.text
+
+
+def test_edit_owner_saves_profile(client: TestClient, session: SyncSession, user, user_token: str):
+    response = post_form(client, _edit_path(user.id), _payload(email=user.email), token=user_token)
+
+    assert_htmx_redirect(response)
+    assert _profile(_reload(session, user)) == (INSTITUTE, DEPARTMENT, PI_NAME, PI_EMAIL)
+
+
+def test_edit_owner_customer_must_give_profile(client: TestClient, session: SyncSession, user, user_token: str):
+    response = post_form(
+        client, _edit_path(user.id), _payload(email=user.email, first_name="Changed", **_NO_PROFILE), token=user_token,
+    )
+
+    assert_form_invalid(response, contains="Institute is required.")
+    assert _reload(session, user).first_name != "Changed"
+
+
+def test_edit_insider_may_leave_customer_profile_empty(
+    client: TestClient, session: SyncSession, user, insider_token: str,
+):
+    response = post_form(
+        client, _edit_path(user.id), _payload(email=user.email, first_name="Changed", **_NO_PROFILE),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response)
+    reloaded = _reload(session, user)
+    assert reloaded.first_name == "Changed"
+    assert _profile(reloaded) == (None, None, None, None)
+
+
+def test_edit_insider_may_clear_customer_profile(
+    client: TestClient, session: SyncSession, user, insider_token: str,
+):
+    set_profile(session, user)
+    session.commit()
+
+    response = post_form(client, _edit_path(user.id), _payload(email=user.email, **_NO_PROFILE), token=insider_token)
+
+    assert_htmx_redirect(response)
+    assert _profile(_reload(session, user)) == (None, None, None, None)
+
+
+def test_edit_owner_cannot_clear_profile(client: TestClient, session: SyncSession, user, user_token: str):
+    set_profile(session, user, department=None)
+    session.commit()
+
+    response = post_form(
+        client, _edit_path(user.id), _payload(email=user.email, **{"institute": "", "institute-text": ""}),
+        token=user_token,
+    )
+
+    assert_form_invalid(response, contains="Institute is required.")
+    assert _reload(session, user).institute == INSTITUTE
+
+
+def test_edit_owner_insider_profile_is_optional(
+    client: TestClient, session: SyncSession, insider, insider_token: str,
+):
+    response = post_form(
+        client, _edit_path(insider.id),
+        _payload(email=insider.email, role=str(insider.role.id), **_NO_PROFILE), token=insider_token,
+    )
+
+    assert_htmx_redirect(response)
+
+
+def test_edit_form_email_read_only_except_for_admin(
+    client: TestClient, user, user_token: str, admin_token: str,
+):
+    import re
+
+    def email_input(token: str) -> str:
+        text = get(client, _edit_path(user.id), token).text
+        match = re.search(r'<input[^>]*name="email"[^>]*>', text, re.S)
+        assert match is not None
+        return match.group(0)
+
+    assert "readonly" in email_input(user_token)
+    assert "readonly" not in email_input(admin_token)

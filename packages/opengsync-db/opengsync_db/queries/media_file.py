@@ -52,8 +52,8 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 
 def search(
     uploader_name: str | None = None,
-    statement: sa.Select[tuple[MediaFile]] = sa.select(MediaFile),
-) -> sa.Select[tuple[MediaFile]]:
+    statement: sa.Select[MediaFile] = sa.select(MediaFile),
+) -> sa.Select[MediaFile]:
     """Fuzzy search on the uploader's full name."""
     if uploader_name is None:
         return statement
@@ -73,8 +73,8 @@ def select(
     type_in: list[MediaFileType] | None = None,
     type: MediaFileType | None = None,
     viewer_id: int | None = None,
-    statement: sa.Select[tuple[MediaFile]] = sa.select(MediaFile),
-) -> sa.Select[tuple[MediaFile]]:
+    statement: sa.Select[MediaFile] = sa.select(MediaFile),
+) -> sa.Select[MediaFile]:
     statement = statement.where(*where_clauses(
         id=id, uploader_id=uploader_id, experiment_id=experiment_id,
         seq_request_id=seq_request_id, lab_prep_id=lab_prep_id,
@@ -82,7 +82,7 @@ def select(
     ))
     return statement
 
-def permissions(media_file_id: int, user_id: int) -> sql.Select[tuple[AccessLevel]]:
+def permissions(media_file_id: int, user_id: int) -> sql.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(MediaFile.id == media_file_id)
 
 

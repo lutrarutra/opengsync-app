@@ -13,6 +13,12 @@
             data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
                 New User
             </button>
+            {% if current_user.is_admin %}
+            <button type="button" id="merge-users-btn" class="btn btn-warning" hx-get="{{ url_for('MergeUsersAction.Begin') }}"
+            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
+                Merge Users
+            </button>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -278,10 +278,29 @@ class SharedFileBrowser:
         share_fs_cache.set_file(self.redis, self.cache_key, {"is_file": is_file}, subpath=subpath.as_posix())
         return full_path if is_file else None
 
+    @staticmethod
+    def _is_cycle_link(path: Path) -> bool:
+        """A symlink to its own folder or one above it: following it lists the same folder at every depth."""
+        if not path.is_symlink():
+            return False
+        target = path.resolve()
+        return target.is_dir() and path.parent.resolve().is_relative_to(target)
+
+    def _passes_through_cycle(self, full_path: Path) -> bool:
+        """Whether any component of the unresolved `full_path` below root_dir is a cycle link."""
+        current = self.root_dir
+        for part in full_path.relative_to(self.root_dir).parts:
+            current = current / part
+            if self._is_cycle_link(current):
+                return True
+        return False
+
     def _is_safe(self, full_path: Path, is_dir: bool | None = None) -> bool:
         """Check if the full path is safe and doesn't escape root_dir"""
         try:
             if not full_path.is_relative_to(self.root_dir):
+                return False
+            if self._is_cycle_link(full_path):
                 return False
             if self.allow_symlink_traversal and full_path.is_symlink():
                 abs_path = full_path.resolve()
@@ -299,6 +318,9 @@ class SharedFileBrowser:
         try:
             full_path = self.root_dir / subpath
             if self.ignore.is_ignored(full_path):
+                return False
+            # checked before resolving: shared/self/self/sub resolves to shared/sub
+            if self._passes_through_cycle(full_path):
                 return False
             if not full_path.is_symlink() or not self.allow_symlink_traversal:
                 full_path = full_path.resolve()

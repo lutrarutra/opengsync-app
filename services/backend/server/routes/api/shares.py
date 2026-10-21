@@ -187,7 +187,7 @@ class ReleaseProjectDataRequest(BaseModel):
     comment: str | None = None
 
 
-@router.post("/add-data_path", dependencies=[Depends(dependencies.require_insider)])
+@router.post("/add-data_path", dependencies=[Depends(dependencies.require_data_assigner)])
 def add_data_path(
     body: AddDataPathRequest,
     session: SyncSession = Depends(dependencies.db_session),
@@ -225,7 +225,7 @@ def add_data_path(
     return {"result": "success", "share_path": share_path, "path": body.path, "type": path_type.name}
 
 
-@router.delete("/remove-data_paths", dependencies=[Depends(dependencies.require_insider)])
+@router.delete("/remove-data_paths", dependencies=[Depends(dependencies.require_data_assigner)])
 def remove_data_paths(
     body: RemoveDataPathsRequest,
     session: SyncSession = Depends(dependencies.db_session),
@@ -272,7 +272,7 @@ def release_project_data(
     session: SyncSession = Depends(dependencies.db_session),
     mailer: Mailer = Depends(dependencies.mail_client),
     redis: rds.RedisClient = Depends(dependencies.redis),
-    current_user: models.User = Depends(dependencies.require_insider),
+    current_user: models.User = Depends(dependencies.require_data_assigner),
 ) -> dict[str, Any]:
 
     project = session.first(
@@ -363,6 +363,14 @@ def _subpath(subpath: str) -> Path:
     return Path(subpath)
 
 
+def _require_empty_dir(browser: SharedFileBrowser, current_path: Path) -> None:
+    """Nothing listed and no file: 404 unless it is an empty shared folder (loops, dangling links, missing paths)."""
+    if current_path == Path():
+        return
+    if not browser.is_safe(current_path) or not (browser.root_dir / current_path).is_dir():
+        raise exc.NotFoundException(f"Not found: {current_path}")
+
+
 @access_router.get("/validate/{token}", name="file_share.validate")
 def validate(
     token: str,
@@ -391,6 +399,8 @@ def rclone(
             content_type=mimetype,
             disposition="attachment" if config.settings.ENVIRONMENT != "prod" else None,
         )
+    if not paths:
+        _require_empty_dir(browser, current_path)
 
     return responses.html_response(
         template="share/rclone.html",
@@ -421,6 +431,8 @@ def browse(
             content_type=mimetype,
             disposition="inline" if is_browser_friendly(mimetype) else "attachment",
         )
+    if not paths:
+        _require_empty_dir(browser, current_path)
 
     paths = sorted(paths, key=lambda p: p.path.name.lower())
 

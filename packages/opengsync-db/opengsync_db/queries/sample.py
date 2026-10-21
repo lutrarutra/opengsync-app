@@ -64,8 +64,8 @@ def search(
     owner_name: str | None = None,
     name_weight: float = 0.5,
     owner_name_weight: float = 0.5,
-    statement: sa.Select[tuple[Sample]] = sa.select(Sample),
-) -> sa.Select[tuple[Sample]]:
+    statement: sa.Select[Sample] = sa.select(Sample),
+) -> sa.Select[Sample]:
     filter_conditions: list[sa.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -101,8 +101,8 @@ def select(
     status: SampleStatus | None = None,
     status_in: list[SampleStatus] | None = None,
     viewer_id: int | None = None,
-    statement: sa.Select[tuple[Sample]] = sa.select(Sample),
-) -> sa.Select[tuple[Sample]]:
+    statement: sa.Select[Sample] = sa.select(Sample),
+) -> sa.Select[Sample]:
     return statement.where(*where_clauses(
         id=id,
         name=name,
@@ -118,7 +118,7 @@ def select(
     ))
 
 
-def permissions(sample_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+def permissions(sample_id: int, user_id: int) -> sa.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(Sample.id == sample_id)
 
 

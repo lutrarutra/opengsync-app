@@ -71,7 +71,7 @@ class AssociatePathAction(HTMXForm, SelectedPathsMixin):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "AssociatePathAction" = Depends(AssociatePathAction.Init()),
-            _=Depends(dependencies.require_insider),
+            _=Depends(dependencies.require_data_assigner),
         ):
             return form.make_response()
         return route
@@ -81,7 +81,7 @@ class AssociatePathAction(HTMXForm, SelectedPathsMixin):
         def route(
             form: "AssociatePathAction" = Depends(AssociatePathAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
+            _=Depends(dependencies.require_data_assigner),
         ):
             form.assert_path_count()
 

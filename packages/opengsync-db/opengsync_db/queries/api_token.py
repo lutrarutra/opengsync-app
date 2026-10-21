@@ -24,8 +24,8 @@ def create(
 
 def search(
     owner_name: str | None = None,
-    statement: sa.Select[tuple[APIToken]] = sa.select(APIToken),
-) -> sa.Select[tuple[APIToken]]:
+    statement: sa.Select[APIToken] = sa.select(APIToken),
+) -> sa.Select[APIToken]:
     """Fuzzy search on the owner's full name."""
     if owner_name is None:
         return statement
@@ -40,8 +40,8 @@ def select(
     id: int | None = None,
     token: str | None = None,
     owner_id: int | None = None,
-    statement: sql.Select[tuple[APIToken]] = sa.select(APIToken),
-) -> sql.Select[tuple[APIToken]]:
+    statement: sql.Select[APIToken] = sa.select(APIToken),
+) -> sql.Select[APIToken]:
     statement = statement.where(*where_clauses(
         id=id, token=token,
         owner_id=owner_id,

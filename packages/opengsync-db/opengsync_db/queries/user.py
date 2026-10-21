@@ -14,6 +14,10 @@ def create(
     last_name: str,
     role: UserRole,
     pw_set_datetime: dt.datetime | None = None,
+    institute: str | None = None,
+    department: str | None = None,
+    pi_name: str | None = None,
+    pi_email: str | None = None,
 ) -> User:
     user = User(
         email=email.strip().lower(),
@@ -22,6 +26,10 @@ def create(
         password=hashed_password,
         pw_set_datetime=pw_set_datetime,
         role=role,
+        institute=institute,
+        department=department,
+        pi_name=pi_name,
+        pi_email=pi_email.strip().lower() if pi_email else None,
     )
     return user
 
@@ -39,8 +47,8 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 def search(
     name: str | None = None,
     name_weight: float = 0.5,
-    statement: sql.Select[tuple[User]] = sa.select(User),
-) -> sql.Select[tuple[User]]:
+    statement: sql.Select[User] = sa.select(User),
+) -> sql.Select[User]:
     filter_conditions: list[sql.ColumnElement[bool]] = []
     relevance = sa.literal(0.0)
 
@@ -68,8 +76,8 @@ def select(
     assignees_project_id: int | None = None,
     assignees_seq_request_id: int | None = None,
     last_login_before: dt.datetime | None = None,
-    statement: sql.Select[tuple[User]] = sa.select(User),
-) -> sa.Select[tuple[User]]:
+    statement: sql.Select[User] = sa.select(User),
+) -> sa.Select[User]:
     return statement.where(*where_clauses(
         id=id, email=email, role=role, role_in=role_in, insider=insider,
         assignees_project_id=assignees_project_id,
@@ -137,5 +145,5 @@ def where_clauses(
     return clauses
     
 
-def permissions(user_id: int, viewer_id: int) -> sa.Select[tuple[AccessLevel]]:
+def permissions(user_id: int, viewer_id: int) -> sa.Select[AccessLevel]:
     return sa.select(access_level(viewer_id)).where(User.id == user_id)

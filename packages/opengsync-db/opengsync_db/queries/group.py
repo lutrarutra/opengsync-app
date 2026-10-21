@@ -41,8 +41,8 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
 
 def search(
     name: str,
-    statement: sa.Select[tuple[Group]] = sa.select(Group),
-) -> sa.Select[tuple[Group]]:
+    statement: sa.Select[Group] = sa.select(Group),
+) -> sa.Select[Group]:
     return statement.where(
         utils.safe_trgm_search(Group.name, name)
     ).order_by(sa.func.similarity(Group.name, name).desc())
@@ -54,8 +54,8 @@ def select(
     type: GroupType | None = None,
     name: str | None = None,
     type_in: list[GroupType] | None = None,
-    statement: sa.Select[tuple[Group]] = sa.select(Group),
-) -> sa.Select[tuple[Group]]:
+    statement: sa.Select[Group] = sa.select(Group),
+) -> sa.Select[Group]:
     if id is not None:
         statement = statement.where(Group.id == id)
     if user_id is not None:
@@ -74,5 +74,5 @@ def select(
     return statement
 
 
-def permissions(group_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+def permissions(group_id: int, user_id: int) -> sa.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(Group.id == group_id)

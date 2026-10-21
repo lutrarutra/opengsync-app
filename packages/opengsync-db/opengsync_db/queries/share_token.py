@@ -19,8 +19,8 @@ def create(
 def search(
     uuid: str | None = None,
     owner_name: str | None = None,
-    statement: sa.Select[tuple[ShareToken]] = sa.select(ShareToken),
-) -> sa.Select[tuple[ShareToken]]:
+    statement: sa.Select[ShareToken] = sa.select(ShareToken),
+) -> sa.Select[ShareToken]:
     """Prefix match on the uuid, fuzzy search on the owner's full name."""
     if uuid is not None:
         statement = statement.where(ShareToken.uuid.startswith(uuid.strip().lower(), autoescape=True))
@@ -36,8 +36,8 @@ def select(
     uuid: str | None = None,
     owner_id: int | None = None,
     project_id: int | None = None,
-    statement: sa.Select[tuple[ShareToken]] = sa.select(ShareToken),
-) -> sa.Select[tuple[ShareToken]]:
+    statement: sa.Select[ShareToken] = sa.select(ShareToken),
+) -> sa.Select[ShareToken]:
     statement = statement.where(*where_clauses(uuid=uuid, owner_id=owner_id, project_id=project_id))
     return statement
 
