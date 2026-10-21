@@ -1,4 +1,5 @@
 {% from "components/file-browser/browser.jinja2" import file_browser with context %}
+{% from "components/file-browser/selection-panel.jinja2" import selection_panel with context %}
 {% extends "base.html" %}
 {% set active_page = "browser-page" %}
 {% block content %}
@@ -18,30 +19,16 @@
 
 {% if not share_token %}
 {# Paths picked with right-click → Select or Ctrl/Cmd+click; static/js/path-selection.js #}
-<section class="path-selection-panel" id="path-selection-panel" aria-label="Selected paths" hidden
-         data-max-paths="{{ max_selected_paths }}"
-         data-associate-url="{{ url_for('AssociatePathAction.Begin') }}"
-         data-share-url="{{ url_for('SharePathAction.Begin') }}">
-    <div class="path-selection-header">
-        <h2 class="path-selection-title path-selection-count"></h2>
-        <button type="button" class="path-selection-icon-button path-selection-clear" title="Clear selection" aria-label="Clear selection">
-            <i class="bi bi-x-circle" aria-hidden="true"></i>
-        </button>
-        <button type="button" class="path-selection-icon-button path-selection-collapse" title="Collapse" aria-label="Collapse" aria-expanded="true">
-            <i class="bi bi-chevron-down" aria-hidden="true"></i>
-        </button>
-    </div>
-    <ul class="path-selection-list"></ul>
-    <div class="path-selection-footer">
-        <button type="button" class="btn btn-sm btn-outline-primary path-selection-associate">
-            <i class="bi bi-link-45deg" aria-hidden="true"></i> Associate
-        </button>
-        <button type="button" class="btn btn-sm btn-primary path-selection-share">
-            <i class="bi bi-share" aria-hidden="true"></i> Share
-        </button>
-    </div>
-</section>
-<script src="{{ url_for('static', filename='js/path-selection.js') }}"></script>
+{% call selection_panel(max_selected_paths, associate_url=url_for('AssociatePathAction.Begin'), share_url=url_for('SharePathAction.Begin')) %}
+<div class="path-selection-footer">
+    <button type="button" class="btn btn-sm btn-outline-primary path-selection-associate">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i> Associate
+    </button>
+    <button type="button" class="btn btn-sm btn-primary path-selection-share">
+        <i class="bi bi-share" aria-hidden="true"></i> Share
+    </button>
+</div>
+{% endcall %}
 {% endif %}
 
 <script>

@@ -79,20 +79,21 @@ class SharedFileBrowser:
         )
 
     @classmethod
-    def for_project(
+    def for_data_paths(
         cls,
         root_dir: Path,
-        project_id: int,
+        owner: str,
         data_paths: Iterable[str],
         redis: RedisClient | None = None,
     ) -> "SharedFileBrowser":
+        """The data paths of one project, request, experiment or library; `owner` names it, e.g. "project:12"."""
         shared_paths = sorted(filter_subpaths(list(data_paths)))
         # adding or removing a data path yields a new key, so the cache never needs invalidating
         digest = hashlib.sha256("\n".join(shared_paths).encode("utf-8")).hexdigest()[:16]
         return cls(
             root_dir,
             shared_paths=shared_paths,
-            cache_key=f"project:{project_id}:{digest}",
+            cache_key=f"{owner}:{digest}",
             redis=redis,
         )
 

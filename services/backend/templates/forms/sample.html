@@ -1,3 +1,4 @@
+{% from 'components/status_change.jinja2' import status_change %}
 <div class="modal-content" id="sample-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Edit Sample</h1>
@@ -7,14 +8,9 @@
         <div id="sample-form">
             {{ form.csrf_token.render() }}
             <div class="row">
-                {{ form.name.render(class="col-6") }}
-                {{ form.status.render(class="col-6") }}
+                {{ form.name.render("col-6") }}
+                {{ status_change(form.status, form.status_comment, form.sample.status.id if form.sample and form.sample.status else none, "col-6") }}
             </div>
-            {% if form.status_comment is defined and not form.status_comment.hidden %}
-            <div class="row">
-                {{ form.status_comment.render("col-12") }}
-            </div>
-            {% endif %}
         </div>
     </div>
     <div class="modal-footer">

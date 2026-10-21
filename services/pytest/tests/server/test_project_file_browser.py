@@ -211,17 +211,17 @@ def _entry(html: str, name: str) -> str:
 
 
 def test_only_data_paths_are_highlighted_and_removable(
-    client: TestClient, project_data: ProjectData, insider_token: str, user_token: str,
+    client: TestClient, project_data: ProjectData, bioinformatician_token: str, user_token: str,
 ):
     project = project_data.project
-    root = get(client, _browse(project), insider_token)
+    root = get(client, _browse(project), bioinformatician_token)
     for name in ("proj/report/", "single.pdf", "missing/dir"):
         entry = _entry(root.text, name)
         assert "browser-data-path" in entry
         assert "Remove from project" in entry
 
     # proj/report/img is a data path nested inside another; its siblings are only contents
-    listing = get(client, _browse(project, "proj/report"), insider_token)
+    listing = get(client, _browse(project, "proj/report"), bioinformatician_token)
     img = _entry(listing.text, "img/")
     assert "browser-data-path" in img
     assert "Remove from project" in img
@@ -240,11 +240,16 @@ def test_only_data_paths_are_highlighted_and_removable(
     assert "Remove from project" not in as_user.text
 
 
-def test_root_offers_removal_to_insiders(client: TestClient, project_data: ProjectData, insider_token: str):
-    root = get(client, _browse(project_data.project), insider_token)
+@pytest.mark.parametrize("token_name, offered", [
+    ("admin_token", True), ("bioinformatician_token", True), ("insider_token", False), ("user_token", False),
+])
+def test_root_offers_removal_to_admins_and_bioinformaticians(
+    request, client: TestClient, project_data: ProjectData, token_name: str, offered: bool,
+):
+    root = get(client, _browse(project_data.project), request.getfixturevalue(token_name))
     assert root.status_code == 200
-    assert "Remove from project" in root.text
-    assert "cm-callback" in root.text
+    assert ("Remove from project" in root.text) is offered
+    assert ("cm-callback" in root.text) is offered
 
 
 def test_listing_links_only_servable_files(client: TestClient, project_data: ProjectData, user_token: str):
@@ -416,7 +421,8 @@ def test_prod_caches_lookups_and_listings(
 def test_admin_browser_entries_have_context_menu(
     client: TestClient, project_data: ProjectData, insider_token: str,
 ):
-    """Files and folders alike: Select (for the selection panel), Assign and Share."""
+    """Files and folders alike: Select (for the selection panel), Assign and Share.
+    Share roots (the top level) can't be assigned, only what is inside them."""
     from html import unescape
 
     root = get(client, "/htmx/files/", insider_token)
@@ -425,6 +431,11 @@ def test_admin_browser_entries_have_context_menu(
     menus = unescape(root.text)
     assert '"type": "select"' in menus
     assert '"path": "single.pdf"' in menus
-    assert '"label": "Assign"' in menus
     assert '"label": "Share"' in menus
+    assert '"label": "Assign"' not in menus
     assert "Share Directory" not in menus
+
+    inside = unescape(get(client, "/htmx/files/other", insider_token).text)
+    assert '"path": "other/private.pdf"' in inside
+    assert '"label": "Assign"' in inside
+    assert '"label": "Share"' in inside

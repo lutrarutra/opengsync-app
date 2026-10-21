@@ -11,8 +11,8 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 class SeqRunForm(HTMXForm):
     template_path = "forms/seq_run.html"
     status_comment = inputs.string.StringInputField(
-        "Why? (optional)", required=False, max_length=512, hidden=True,
-        placeholder="Reason for the status change, stored in the status history",
+        "Reason for status change (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Stored in the status history",
     )
 
     experiment_name = inputs.string.StringInputField(

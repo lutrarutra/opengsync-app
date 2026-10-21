@@ -7,6 +7,40 @@
   search_route: when set (fs-index enabled), a search box whose results replace the tree until it is cleared.
   initial_subpath: open at this folder (with a path bar) instead of the top.
 #}
+{#
+  A Data tab's "Manage data" button (admins and bioinformaticians): opens data-picker.html in #fullscreen-modal.
+  Render it in the tab's .data-tab-toolbar, not inside the file_browser: the picker is a second file browser with the same element ids, so
+  the tab's browser is taken out of the page while the modal is open and put back when it closes. A button inside it
+  would leave with it, and its request's htmx:afterRequest would never reach the document (the page loader waits on it).
+#}
+{% macro add_data_button(picker_route, route_params) %}
+{% if current_user and current_user.can_assign_data %}
+<button type="button" class="btn btn-sm btn-outline-primary file-browser-add-data"
+        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+        hx-get="{{ url_for(picker_route, **route_params) }}"
+        hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
+        hx-on::before-request="detachFileBrowserForPicker()">
+    <i class="bi bi-folder-plus" aria-hidden="true"></i> Manage data
+</button>
+<script>
+function detachFileBrowserForPicker() {
+    const browser = document.getElementById('file-browser-container');
+    if (!browser || window.detachedFileBrowser) return;
+    const placeholder = document.createComment('file browser, back when the picker closes');
+    browser.replaceWith(placeholder);
+    window.detachedFileBrowser = { browser: browser, placeholder: placeholder };
+
+    $('#fullscreen-modal').one('hidden.bs.modal', function() {
+        document.getElementById('fullscreen-modal-content').replaceChildren();
+        const detached = window.detachedFileBrowser;
+        window.detachedFileBrowser = null;
+        detached.placeholder.replaceWith(detached.browser);
+    });
+}
+</script>
+{% endif %}
+{% endmacro %}
+
 {% macro file_browser(entries_route, route_params, sort_by="name", sort_order="asc", trigger="load", search_route=none, initial_subpath=none) %}
 {% set initial = initial_subpath.as_posix() if initial_subpath and initial_subpath.parts else none %}
 <div class="file-browser" id="file-browser-container">

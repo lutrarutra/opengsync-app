@@ -24,6 +24,8 @@ def share_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = tmp_path / "share"
     (root / "results").mkdir(parents=True)
     (root / "results" / "report.html").write_text("<html></html>")
+    (root / "results" / "run1").mkdir()
+    (root / "results" / "run1" / "report.html").write_text("<html></html>")
     monkeypatch.setattr(config.settings.app_config, "share_root", str(root))
     return root
 
@@ -122,16 +124,16 @@ def test_submit_associates_path_with_each_target(
 def test_submit_associates_several_targets_at_once(
     client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict,
 ):
-    response = _associate(client, insider_token, "results", **targets)
+    response = _associate(client, insider_token, "results/run1", **targets)
 
     assert response.status_code == 204, response.text
-    data_paths = _data_paths(session, "results")
+    data_paths = _data_paths(session, "results/run1")
     assert len(data_paths) == 4
-    assert len(_updated(response)["results"]) == 4
+    assert len(_updated(response)["results/run1"]) == 4
 
 
 @pytest.mark.parametrize("path, expected", [
-    ("results", "DIRECTORY"),
+    ("results/run1", "DIRECTORY"),
     ("results/report.html", "HTML"),
     ("results/table.tsv", "TABLE"),
     ("results/summary.pdf", "PDF"),
@@ -151,6 +153,21 @@ def test_path_type_follows_the_file(
 
     [data_path] = _data_paths(session, path)
     assert data_path.type == getattr(C.DataPathType, expected)
+
+
+@pytest.mark.parametrize("root", ["results", "results/", "./results"])
+def test_a_share_root_is_rejected(
+    client: TestClient, session: SyncSession, insider_token: str, share_root: Path, targets: dict, root: str,
+):
+    """Only what is inside a share root (a mount like BSF_PROJECTS) can be linked, not the root itself."""
+    response = post_form(
+        client, SUBMIT_PATH,
+        {"project": str(targets["project"].id), **_paths(root, "results/report.html")},
+        token=insider_token,
+    )
+
+    assert_form_invalid(response, "A whole share folder can't be associated")
+    assert session.count(Q.data_path.select(project_id=targets["project"].id)) == 0
 
 
 def test_associating_the_same_path_twice_keeps_one_link(
@@ -186,22 +203,22 @@ def test_submit_associates_several_paths(
     """Each path gets its own link; a path inside another submitted path is covered by it and skipped."""
     from opengsync_db import categories as C
 
-    (share_root / "notes.txt").write_text("notes")
+    (share_root / "results" / "notes.txt").write_text("notes")
     response = post_form(
         client, SUBMIT_PATH,
-        {"project": str(targets["project"].id), **_paths("results", "notes.txt", "results/report.html", "results")},
+        {"project": str(targets["project"].id), **_paths("results/run1", "results/notes.txt", "results/run1/report.html", "results/run1")},
         token=insider_token,
     )
 
     assert response.status_code == 204, response.text
     assert_flash(response, "2 paths associated.", "success")
-    [directory] = _data_paths(session, "results")
-    [notes] = _data_paths(session, "notes.txt")
+    [directory] = _data_paths(session, "results/run1")
+    [notes] = _data_paths(session, "results/notes.txt")
     assert (directory.type, notes.type) == (C.DataPathType.DIRECTORY, C.DataPathType.CUSTOM)
     assert directory.project_id == notes.project_id == targets["project"].id
-    assert _data_paths(session, "results/report.html") == []
+    assert _data_paths(session, "results/run1/report.html") == []
     updated = _updated(response)
-    assert sorted(updated) == ["notes.txt", "results"]
+    assert sorted(updated) == ["results/notes.txt", "results/run1"]
     assert all(len(associations) == 1 for associations in updated.values())
 
 

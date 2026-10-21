@@ -8,7 +8,7 @@ Every entry point that turns user input into a filesystem path under
 - a sibling directory whose name starts with the share root's name (``share-evil``),
 - a file symlink and a directory symlink inside the share root pointing outside.
 
-Staff side: ``AssociatePathAction``, ``serve_data_file``, ``SharePathAction``,
+Staff side: ``AssociatePathAction``, the project Data tab, ``SharePathAction``,
 the insider file browser, and the ``add-data_path`` API.
 Public side (share-link token, no login): browse, rclone, WebDAV, and the shared
 browser page/entries — these must also hide files inside the root that are not shared.
@@ -208,7 +208,7 @@ def test_associate_path_rejects_escape(
     assert _data_path_count(session, project) == 0
 
 
-# ── Staff → client: serve_data_file ─────────────────────────────────────────
+# ── Staff → client: the project Data tab ────────────────────────────────────
 
 
 def _plant(session: SyncSession, project: models.Project, path: str) -> models.DataPath:
@@ -218,44 +218,47 @@ def _plant(session: SyncSession, project: models.Project, path: str) -> models.D
     return data_path
 
 
-def test_serve_data_file_control(client: TestClient, session: SyncSession, project, user_token: str, layout: Layout):
-    data_path = _plant(session, project, "shared/report.txt")
-    response = get(client, f"/htmx/files/serve-data-file/{data_path.id}", user_token)
-    assert response.status_code == 200
-    assert response.text == SHARED
+def _data_tab(client: TestClient, token: str, project: models.Project, route: str, path: str = ""):
+    return get(client, f"/htmx/projects/{project.id}/{route}" + (f"/{quote(path)}" if path else ""), token)
 
 
-@pytest.mark.parametrize("path", FILE_ESCAPES)
+def test_data_tab_control(client: TestClient, session: SyncSession, project, user_token: str, layout: Layout):
+    _plant(session, project, "shared")
+    assert "report.txt" in _data_tab(client, user_token, project, "browse", "shared").text
+
+
+@pytest.mark.parametrize("path", FILE_ESCAPES + DIR_ESCAPES)
 @pytest.mark.parametrize("viewer", ["project_owner", "insider"])
-def test_serve_data_file_rejects_escape(
+def test_data_tab_rejects_planted_escape(
     client: TestClient, session: SyncSession, project, user_token: str, insider_token: str,
     layout: Layout, path: str, viewer: str,
 ):
-    data_path = _plant(session, project, _fill(path, layout))
+    path = _fill(path, layout)
+    _plant(session, project, path)
     token = user_token if viewer == "project_owner" else insider_token
 
-    response = get(client, f"/htmx/files/serve-data-file/{data_path.id}", token)
+    for route in ("browse", "files"):
+        response = _data_tab(client, token, project, route, path.lstrip("/"))
+        assert response.status_code in (200, 403, 404)
+        assert_no_leak(response)
+    assert_no_leak(_data_tab(client, token, project, "browse"))
 
-    assert response.status_code == 403
-    assert_no_leak(response)
 
-
-def test_serve_data_file_rejects_symlink_retargeted_after_association(
+def test_data_tab_rechecks_symlink_retargeted_after_association(
     client: TestClient, session: SyncSession, project, user_token: str, insider_token: str, layout: Layout,
 ):
-    """A symlink that was safe when associated is re-checked when served."""
+    """A symlinked folder that was safe when associated is re-checked when listed."""
     link = layout.root / "shared" / "latest"
-    link.symlink_to(layout.root / "shared" / "report.txt")
+    link.symlink_to(layout.root / "shared", target_is_directory=True)
     response = _associate(client, insider_token, project, "shared/latest")
     assert response.status_code == 204
-    [data_path] = session.get_all(Q.data_path.select(project_id=project.id), limit=None)
-    assert get(client, f"/htmx/files/serve-data-file/{data_path.id}", user_token).text == SHARED
+    assert "report.txt" in _data_tab(client, user_token, project, "browse", "shared/latest").text
 
     link.unlink()
-    link.symlink_to(layout.tmp / "outside-secret.txt")
+    link.symlink_to(layout.tmp / "outside-dir", target_is_directory=True)
 
-    response = get(client, f"/htmx/files/serve-data-file/{data_path.id}", user_token)
-    assert response.status_code == 403
+    response = _data_tab(client, user_token, project, "browse", "shared/latest")
+    assert response.status_code in (200, 403, 404)
     assert_no_leak(response)
 
 

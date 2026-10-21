@@ -62,6 +62,7 @@ def experiment_page(
         selected_user=experiment.operator,
         checklist_steps_completed=steps_completed,
         checklist_total_steps=len(steps),
+        projects=session.scalars(Q.project.select(experiment_id=experiment.id).order_by(models.Project.id)).all(),
     )
 
 @router.get("/{experiment_id}/lane-pooling-table/{file_id}")

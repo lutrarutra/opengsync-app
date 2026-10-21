@@ -6,15 +6,21 @@
   file_route: when set, file names link to this route (same route_params)
   servable_extensions: when set, only files with these extensions get a link
   highlight_data_paths: mark entries that are data paths themselves (browser_path.data_paths)
-  remove_from_project_id: when set (insiders only), those data path entries get a "Remove from project" menu
+  remove_route: when set (admins and bioinformaticians), those data path entries get a "Remove from <data_owner_label>" menu
+    (route_params + data_path_id)
+  data_owner_label: what the data paths belong to ("project", "request", ...)
+  picker: admin browser picking paths to add to a Data tab (data-picker.html): a checkbox and only Select
+  Share roots (<root> itself) can't be linked as data paths: no Assign, and nothing to pick in the picker.
 #}
 {% set entries_route = entries_route if entries_route is defined else ('shared_browser_entries' if share_token else 'render_file_browser_page') %}
 {% set route_params = route_params if route_params is defined else ({'token': share_token} if share_token else {}) %}
 {% set file_route = file_route if file_route is defined else none %}
 {% set servable_extensions = servable_extensions if servable_extensions is defined else none %}
 {% set highlight_data_paths = highlight_data_paths if highlight_data_paths is defined else false %}
-{% set remove_from_project_id = remove_from_project_id if remove_from_project_id is defined else none %}
+{% set remove_route = remove_route if remove_route is defined else none %}
+{% set data_owner_label = data_owner_label if data_owner_label is defined else "project" %}
 {% set is_root_listing = is_root_listing if is_root_listing is defined else false %}
+{% set picker = picker if picker is defined else false %}
 {% set admin_browser = not share_token and entries_route == 'render_file_browser_page' %}
 
 {# Collapses in the middle when space runs out: a path keeps its last component, a name its tail (the extension). #}
@@ -55,17 +61,25 @@
 {% set entry_mtime = browser_path.mtime if browser_path.mtime is not none else browser_path.path.stat().st_mtime %}
 {% set entry_name = relative_path if is_root_listing else browser_path.path.name %}
 {% set is_data_path = highlight_data_paths and browser_path.data_paths %}
+{% set is_share_root = browser_path.rel_path.parts | length < 2 %}
 {% set is_linked_file = file_route and (servable_extensions is none or browser_path.path.suffix | lower in servable_extensions) %}
-{% if admin_browser %}
+{% if admin_browser and picker %}
+    {% set entry_actions = [] if is_share_root else [{"type": "select", "label": "Select", "config": {"path": relative_path}}] %}
+{% elif admin_browser and is_share_root %}
+    {% set entry_actions = [
+        {"type": "select", "label": "Select", "config": {"path": relative_path}},
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {"url": url_for('SharePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
+    ] %}
+{% elif admin_browser %}
     {# "select" adds the path to the selection panel (static/js/path-selection.js); its label is set when the menu opens #}
     {% set entry_actions = [
         {"type": "select", "label": "Select", "config": {"path": relative_path}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {"url": url_for('SharePathAction.Begin', path=relative_path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
     ] %}
-{% elif remove_from_project_id is not none and is_data_path %}
+{% elif remove_route and is_data_path %}
     {% set entry_actions = [
-        {"type": "hxdelete", "label": "Remove from project", "config": {"url": url_for('remove_project_data_path', project_id=remove_from_project_id, data_path_id=browser_path.data_paths[0].id), "title": "Remove '" ~ relative_path ~ "' from project?", "text": "The files stay on disk.", "swap": "none"}}
+        {"type": "hxdelete", "label": "Remove from " ~ data_owner_label, "config": {"url": url_for(remove_route, data_path_id=browser_path.data_paths[0].id, **route_params), "title": "Remove '" ~ relative_path ~ "' from " ~ data_owner_label ~ "?", "text": "The files stay on disk.", "swap": "none"}}
     ] %}
 {% else %}
     {% set entry_actions = [] %}
@@ -129,6 +143,11 @@
             </a>
             {% endif %}
             {% endfor %}
+            {% if picker and browser_path.exists and not is_share_root %}
+            <input type="checkbox" class="form-check-input browser-entry-pick" title="Select (Ctrl/Cmd+click)"
+                   aria-label="Select {{ relative_path }}" data-select-path="{{ relative_path }}"
+                   onclick="window.pathSelection && window.pathSelection.toggle(this.dataset.selectPath)">
+            {% endif %}
         </span>
         {% endif %}
         {% if browser_path.exists %}
@@ -163,7 +182,7 @@
 </div>
 {% endif %}
 {% elif not paths and current_page == 0 %}
-<div class="browser-empty">{% if is_root_listing %}No data has been added to this project yet.{% else %}This directory is empty.{% endif %}</div>
+<div class="browser-empty">{% if is_root_listing %}No data has been added to this {{ data_owner_label }} yet.{% else %}This directory is empty.{% endif %}</div>
 {% endif %}
 
 {% if limit and paths | length == limit %}

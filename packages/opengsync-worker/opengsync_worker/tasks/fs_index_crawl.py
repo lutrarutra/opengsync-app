@@ -5,7 +5,9 @@ doubles up to `max_interval_s` while it doesn't, so finished data is rarely look
 only changes for direct children, so every non-opaque directory is checked on its own schedule.
 
 The share is a network mount: a root whose mount is down looks empty or missing, so nothing is deleted
-under a root that fails its online check.
+under a root that fails its online check. The check runs again before every removal (a mount can drop or
+come back mid-run), and the removed paths are looked up once more, so a listing taken while the mount was
+away never empties the index.
 """
 import errno
 import json
@@ -15,7 +17,7 @@ import stat
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from opengsync_db.fs_index import (
     IGNORE_FILENAME, IgnoreRules, connect_writer, ensure_schema, is_junk, parent_path,
@@ -33,6 +35,8 @@ MAX_IGNORE_FILE_SIZE = 1024 * 1024
 RACY_S = 1
 # listing this many entries costs as much of the rate limit as checking one more folder
 ENTRIES_PER_RATE_UNIT = 200
+# missing children looked up again before a listing may remove them
+RECHECK_MISSING = 5
 # a directory row as the crawler reads it
 DIR_COLUMNS = "id, path, mtime, check_interval, hidden, total_size, n_files"
 
@@ -93,6 +97,8 @@ class Probe:
     error: str | None = None
     # wall-clock time just before the listing
     listed_at: float = 0.0
+    # listed but could not be stat'ed: their rows are kept as they are
+    unreadable: set[str] = field(default_factory=set)
 
 
 class Crawler:
@@ -167,6 +173,7 @@ class Crawler:
             return Probe("same", mtime=mtime)
 
         children: list[Child] = []
+        unreadable: set[str] = set()
         ignore: object = _ABSENT
         listed_at = time.time()
         try:
@@ -175,6 +182,7 @@ class Crawler:
                     try:
                         child = self._child(entry)
                     except OSError:
+                        unreadable.add(entry.name)
                         continue
                     if child is None:
                         continue
@@ -185,25 +193,41 @@ class Crawler:
             return Probe("error", error=repr(e))
         # a big listing (and its per-entry stats) pays for itself before the next check starts
         self.limiter.wait(len(children) / ENTRIES_PER_RATE_UNIT)
-        return Probe("changed", mtime=mtime, children=children, ignore=ignore, listed_at=listed_at)
+        return Probe(
+            "changed", mtime=mtime, children=children, ignore=ignore, listed_at=listed_at, unreadable=unreadable,
+        )
 
     def is_online(self, path: str) -> bool:
-        """A root's mount is up: its canary file exists, or (without one) it has any entries."""
+        """A root's mount is up: its canary file exists, or (without one) it has any entries.
+
+        Only "offline" is remembered for the rest of the run; "online" is checked again before every removal.
+        """
         root = path.split("/", 1)[0]
-        if (online := self.online.get(root)) is None:
-            canary = self.settings.canaries.get(root)
-            try:
-                if canary is not None:
-                    online = os.path.isfile(self._full(canary))
-                else:
-                    with os.scandir(self._full(root)) as it:
-                        online = next(it, None) is not None
-            except OSError:
-                online = False
-            self.online[root] = online
-            if not online:
-                logger.warning(f"fs-index: {root} looks offline, not removing anything under it")
+        if self.online.get(root) is False:
+            return False
+        canary = self.settings.canaries.get(root)
+        try:
+            if canary is not None:
+                online = os.path.isfile(self._full(canary))
+            else:
+                with os.scandir(self._full(root)) as it:
+                    online = next(it, None) is not None
+        except OSError:
+            online = False
+        if not online:
+            self.online[root] = False
+            logger.warning(f"fs-index: {root} looks offline, not removing anything under it")
         return online
+
+    def exists(self, path: str, is_dir: bool = False) -> bool:
+        """Something (a directory, with `is_dir`) is at `path` right now; errors count as present."""
+        try:
+            st = os.lstat(self._full(path))
+        except (FileNotFoundError, NotADirectoryError):
+            return False
+        except OSError:
+            return True
+        return stat.S_ISDIR(st.st_mode) or not is_dir
 
     # ── index updates (main thread, inside a transaction) ────────
 
@@ -216,6 +240,13 @@ class Crawler:
         self.conn.execute(
             "UPDATE entry SET check_interval = ?, next_check_at = ? WHERE id = ?",
             (interval, self.now() + interval, row.id),
+        )
+
+    def _relist(self, row: DirRow) -> None:
+        """The listing disagrees with a second look: list it again next run instead of removing anything."""
+        self.conn.execute(
+            "UPDATE entry SET mtime = NULL, check_interval = ?, next_check_at = ? WHERE id = ?",
+            (self.settings.min_interval_s, self.now(), row.id),
         )
 
     def _remove_dir(self, row: DirRow) -> None:
@@ -303,6 +334,9 @@ class Crawler:
             if not self.is_online(row.path):
                 self._backoff(row)
                 return
+            if self.exists(row.path, is_dir=True):
+                self._relist(row)
+                return
             self.stats["gone"] += 1
             self._remove_dir(row)
             return
@@ -319,13 +353,19 @@ class Crawler:
             )
         }
         current = {c.name: c for c in probe.children if not is_junk(f"{row.path}/{c.name}")}
-        if any(name not in current for name in existing) and not self.is_online(row.path):
-            self._backoff(row)
-            return
+        if missing := [name for name in existing if name not in current and name not in probe.unreadable]:
+            if not self.is_online(row.path):
+                self._backoff(row)
+                return
+            if any(self.exists(f"{row.path}/{name}") for name in missing[:RECHECK_MISSING]):
+                self._relist(row)
+                return
 
         rules_changed = self._apply_ignore(row, probe.ignore)
         for name, e in existing.items():
             child = current.get(name)
+            if name in probe.unreadable:
+                continue
             if child is None or child.kind != e[1]:
                 self._remove_child(f"{row.path}/{name}", e[1])
         for name, child in current.items():

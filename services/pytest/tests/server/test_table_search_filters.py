@@ -258,19 +258,6 @@ def test_share_token_table_search(client: TestClient, session: SyncSession, insi
     _only(_html(client, insider_token, path, owner=HIT), HIT, MISS)
 
 
-def test_data_path_table_type_filter(client: TestClient, session: SyncSession, insider, insider_token: str):
-    project = create_project(session, insider)
-    session.save(Q.data_path.create(path="hit/zephyrine", type=C.DataPathType.DIRECTORY, project=project), flush=True)
-    session.save(Q.data_path.create(path="miss/bodkin.txt", type=C.DataPathType.CUSTOM, project=project), flush=True)
-    session.commit()
-
-    html = _html(
-        client, insider_token, "/htmx/share_tokens/render-data_path-table-page",
-        project_id=project.id, type_in=_ids(C.DataPathType.DIRECTORY),
-    )
-    _only(html, "hit/zephyrine", "miss/bodkin.txt")
-
-
 def test_api_token_table_owner_search(client: TestClient, session: SyncSession, insider_token: str):
     hit_owner, miss_owner = _named_user(session, HIT), _named_user(session, MISS)
     for owner in (hit_owner, miss_owner):

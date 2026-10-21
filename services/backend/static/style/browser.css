@@ -839,3 +839,129 @@
 .browser-missing {
     color: #8a4a0b;
 }
+
+/* Data tab "Add data": the insider browser over the whole share beside the picked paths (data-picker.html) */
+.data-picker-body {
+    display: flex;
+    gap: 1rem;
+    min-height: 0;
+}
+
+.data-picker-browser {
+    flex: 1;
+    min-width: 0;
+}
+
+.data-picker-browser .file-browser-root {
+    max-height: calc(100vh - 17rem);
+}
+
+.data-picker-selection {
+    flex: none;
+    width: 24rem;
+}
+
+/* in the sidebar, not floating above the page (the modal would cover it) */
+.data-picker-selection .path-selection-panel {
+    position: sticky;
+    top: 0;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-height: calc(100vh - 10rem);
+    box-shadow: none;
+}
+
+.data-picker-empty {
+    display: none;
+    padding: 1rem;
+    border: 1px dashed var(--color-gray-300);
+    border-radius: 0.5rem;
+    color: var(--color-gray-600);
+    text-align: center;
+}
+
+.data-picker-selection .path-selection-panel[hidden] + .data-picker-empty {
+    display: block;
+}
+
+@media (max-width: 992px) {
+    .data-picker-body {
+        flex-direction: column;
+    }
+
+    .data-picker-selection {
+        width: 100%;
+    }
+}
+
+.browser-entry-pick {
+    flex: none;
+    margin: 0 0 0 0.25rem;
+    cursor: pointer;
+}
+
+.path-selection-item.is-removed .path-selection-path {
+    color: var(--color-gray-600);
+    text-decoration: line-through;
+}
+
+.path-selection-item.is-new .path-selection-path {
+    font-weight: 600;
+}
+
+/* above a Data tab's browser: share link status and the tab's actions ("Manage data", "Share data") */
+.data-tab-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+}
+
+.data-tab-toolbar + .file-browser {
+    margin-top: 0.4rem;
+}
+
+.data-tab-toolbar-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.data-tab-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.data-tab-share-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.1rem 0.6rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 999px;
+    line-height: 1.5;
+    color: var(--color-gray-700, #495057);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.data-tab-share-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-gray-400, #adb5bd);
+}
+
+.data-tab-share-status.is-active .data-tab-share-dot { background: #2f9e44; }
+.data-tab-share-status.is-expired .data-tab-share-dot { background: #e03131; }
+.data-tab-share-status.is-none { color: var(--color-gray-600); }
+
+.data-tab-hint {
+    color: var(--color-gray-600);
+    cursor: help;
+}

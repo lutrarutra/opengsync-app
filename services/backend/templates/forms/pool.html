@@ -1,3 +1,4 @@
+{% from 'components/status_change.jinja2' import status_change %}
 <div id="pool-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Pool Form</h1>
@@ -10,13 +11,8 @@
                 {{ form.pool_type.render("col-3") }}
                 {{ form.name.render("col-3") }}
                 {{ form.num_m_reads_requested.render("col-3") }}
-                {{ form.status.render("col-3") }}
+                {{ status_change(form.status, form.status_comment, form.pool.status.id if form.pool else none, "col-3") }}
             </div>
-            {% if form.status_comment is defined and not form.status_comment.hidden %}
-            <div class="row">
-                {{ form.status_comment.render("col-12") }}
-            </div>
-            {% endif %}
             <div class="row">
                 {% if (form.form_type == "create" or form.form_type == "clone") and current_user.is_insider %}
                 {{ form.contact.render("col-4") }}

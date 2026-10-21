@@ -34,7 +34,7 @@ A token's paths are fixed when it is created. Linking more data paths to a proje
 
 The insider file browser (**Files**) can share or associate several files and folders at once:
 
-1. **Select paths.** Right-click a file or folder and choose **Select**, or Ctrl+click (Cmd+click on macOS) the row. Selected rows are highlighted. Right-click a selected row and choose **Deselect**, or Ctrl/Cmd+click it again, to remove it.
+1. **Select paths.** Right-click a file or folder and choose **Select**, or Ctrl+click (Cmd+click on macOS) the row; in [search](#searching-fs-index) results, the **Select** button on a row does the same. Selected rows are highlighted. Right-click a selected row and choose **Deselect**, or Ctrl/Cmd+click it again, to remove it.
 2. **Review them.** A panel in the bottom-right corner lists the selection. Remove single paths with their **×**, or empty the whole selection with **Clear selection** (the circled × in the panel's header, available while the panel is collapsed too).
 3. **Act on them.**
    - **Share** opens the share form with all selected paths and creates **one** token holding them. After the email is sent, the selection is cleared.
@@ -47,52 +47,179 @@ Details:
 - **At most 50 paths** per selection, share and association.
 - **The selection is stored in the browser** (`localStorage`), not on the server or in the account. It survives reloads, is shared by all tabs of that browser, and is not available in another browser or on another computer.
 - **Paths inside a selected folder are left out.** Selecting `run_42/` and `run_42/report.html` lists, shares or associates only `run_42/`, which already covers the file; the form says how many paths it left out. To give a file inside an associated folder its own row on the project's data paths, associate the file on its own.
-- **One bad path rejects the whole request.** If any path no longer exists or resolves outside the share root, nothing is shared or associated, and the share form marks the path in question.
+- **One bad path rejects the whole request.** If any path resolves outside the share root, nothing is shared or associated. Sharing also refuses paths that no longer exist, and marks the path in question.
+- **Paths that are gone are flagged when the form opens.** Both forms warn **Not found on the share** on such a row, e.g. for a stale search result. Associate still accepts them, so data paths can be registered before the data is there.
 - **Single paths work as before.** Right-click → **Share** or **Assign** on a row acts on that row only and leaves the selection alone.
+
+## Data tabs
+
+The **Data** tab of a project, sequencing request, experiment or library is a file browser over the data paths linked to it (`DataPath.project_id`, `seq_request_id`, `experiment_id`, `library_id`; the link is made with **Manage data** on the tab, or **Assign** in the insider browser). It is the same browser and the same rules for all four:
+
+- The top level lists the linked data paths, including ones missing from storage (marked *not found on storage*). Below them the folders are listed live from the mount, with `.ngsignore`d paths and symlinks that leave the share left out, as in a share link.
+- Only documents, images, tables and HTML reports (plus the assets reports load) open in the browser; everything else is listed but only downloadable through a share link (`PROJECT_SERVABLE_EXTENSIONS` in `utils/file_browser.py`).
+- Admins and bioinformaticians get **Manage data**: a full-screen window with the insider browser over the whole share. The linked paths start ticked; tick files and folders (or Ctrl/Cmd+click, or right click → Select) to add them and untick linked ones to remove them, then **Save** (removing asks first, and only unlinks: the files stay on disk). Only paths inside a share root can be added, not `<root>` itself (the same for **Assign**); a ticked folder covers ticked paths inside it, and every added path must exist inside the share (at most 50 at once). Only the changes are sent, so paths linked meanwhile by someone else stay.
+- Admins and bioinformaticians also get **Remove from …** on a data path (right click). It unlinks the path from that page's project, request, experiment or library only; the files stay on disk.
+- With the fs-index enabled, the header has a search box limited to these data paths (see [Using search](#using-search)).
+
+Access is the page's own: project, request and library members can open their Data tab; experiments are insider only. The routes live under the owner, e.g. `/htmx/seq_requests/{id}/browse/…`, `/htmx/seq_requests/{id}/files/…` (`routes/htmx/data_browser.py`).
 
 ## Searching (fs-index)
 
-The share is a network mount of the cluster filesystem, far too large to search live. With `fs_index.enabled`, the worker keeps a SQLite index of everything under the share root, and two search boxes query it:
+The share is a network mount of the cluster filesystem, far too large to search live. With `fs_index.enabled`, the worker keeps a **SQLite index** of everything under the share root, and the file browsers get a search box that queries it. The index is only used to *find* paths: browsing, downloads and share links always read the mount live.
 
-- **Insider file browser**: searches everything. Results show full paths; a folder expands into the live browser, and **Select**/**Share**/**Assign** work as usual.
-- **Project Data tab**: searches below the project's data paths, showing only what its share link would serve (no `.ngsignore`d paths, no symlinks leaving the share). Results are checked live before they are shown.
+- [Using search](#using-search)
+- [How the index is built](#how-the-index-is-built)
+- [Crawler: schedule and limits](#crawler-schedule-and-limits)
+- [Configuration](#configuration)
+- [Rolling it out](#rolling-it-out)
+- [Status on the dashboard](#status-on-the-dashboard)
+- [Caveats](#caveats)
 
-A query matches file and folder names containing all its words (at least one word of 3+ characters). A query with a `/` is a path prefix instead, e.g. `BSF_PROJECTS/P123` or `/share/BSF_PROJECTS/P123`.
+### Using search
 
-**The index lags the mount.** Browsing and sharing always read the mount live, so a stale index only means a search can miss very new files or still show deleted ones.
+The search box sits in the file browser's header, next to the sort buttons:
 
-**Status:** the insider dashboard's **System** tab shows whether the worker is importing or crawling right now, its last crawl (folders checked, changed, added, removed), folders due for a check (and how many are over an hour late, which means the crawler is falling behind), each root's size, file count and dump import time, and dumps waiting for import.
+- **Insider file browser** (**Files**): searches everything under the share root. Hidden paths (`.ngsignore`) are included and marked, because the insider browser shows everything.
+- **Data tabs** (project, request, experiment, library): search below that page's data paths only, and only what a share link of them would serve: no `.ngsignore`d paths, no symlinks leaving the share. Results are checked against the mount before they are shown.
 
-### How the index is built and kept current
+What a query matches:
 
-1. **Initial build from a cluster dump.** `scripts/fs_index_dump.py` runs on the cluster, where the filesystem is local, and writes one `<NAME>.jsonl.gz` per root (names as in `share_path_mapping`). Copy the files into the worker's `/app_data/fs_index/dumps/`, e.g. `docker cp BSF_PROJECTS.jsonl.gz opengsync-celery-worker:/app_data/fs_index/dumps/`. The import task (every 10 min by default) picks up new or changed dumps; a dump replaces everything indexed for its root. To import right away: `docker exec opengsync-celery-worker python -m opengsync_worker.tasks.fs_index_import`.
-2. **Crawler.** Every minute, for at most `crawl_budget_s`, the worker re-checks the folders that are due. A folder whose mtime is unchanged is not listed again and its check interval doubles (up to `max_interval_s`, a week by default); a changed folder is listed again and its interval drops back to `min_interval_s` (2 min). Folders the app lists live are re-checked on the next run. Without a dump, the crawler builds the index on its own, slowly, starting from the folders under the share root.
-   The crawler never checks more than `crawl_rate` folders per second (default 10, all threads together; listing a big folder counts as more). That caps its load on the share whatever is due: building ~1.5M folders from scratch takes about two days, while after a dump import the steady state is a few checks per second.
-3. **Not indexed below** folders matching `index_ignore` (pipeline internals such as `*_CS`, `work`, `Rtmp*`): the folder itself is stored with its size, its contents are not searchable.
+- **Names containing all its words**, case-insensitively: `counts matrix` finds `filtered_counts_matrix.h5ad`. At least one word needs 3 or more characters.
+- **A path prefix** when it contains a `/`: `BSF_PROJECTS/P123` or `/share/BSF_PROJECTS/P123` lists everything below that path.
 
-Caveats:
+Results show folders first, then the most recently changed. Each row has the name with the match highlighted, its parent folders (each one opens that folder), its size (a folder's total), when it changed, and badges for data paths, **Hidden from share links** and **Points outside the share**. Filters narrow results to folders or files and, in the insider browser, to one top-level folder; **Show more** loads the next 50. In the insider browser, hovering a row offers **Select**, **Share** and **Open the folder it is in**; right-click works as on any row.
 
-- A folder's mtime only changes when entries are added, removed or renamed directly in it. A file rewritten in place keeps its old size and date in the index until the next dump. Edited `.ngsignore` files are an exception: the crawler checks them on every run.
-- If a root's mount is down (its `canary_files` entry is missing, or the root looks empty), the crawler removes nothing under it.
-- The index is a cache: deleting `/app_data/fs_index/fs_index.sqlite3` is safe; it is rebuilt from the dumps and the crawler. It never touches Postgres, its WAL or its backups.
+A folder in the results expands into the live listing, and opening a folder shows it with a path bar on top. `/browser/<path>` opens the insider browser at that folder.
 
-### Setup
+**Stale results.** The index can be behind the mount (see [Crawler](#crawler-schedule-and-limits)). Acting on a path that no longer exists says so, instead of failing silently: expanding or opening it shows **This folder no longer exists**, the Share and Associate forms warn **Not found on the share** on its row (sharing then refuses it), and a project file link answers 404 with the same hint. Opening a missing folder also asks the crawler to re-check it, so it drops out of the index within a minute or two.
+
+### How the index is built
+
+The index lives in `/app_data/fs_index/fs_index.sqlite3` on the `app_data` volume. The worker is its only writer; the app opens it read-only.
+
+1. **Cluster dump (recommended for the first build).** `scripts/fs_index_dump.py` runs on the cluster, where the filesystem is local and listing is fast, and writes one `<NAME>.jsonl.gz` per top-level folder (names as in `share_path_mapping`). Each line holds an entry's path, type, size and mtime; symlinks also record their target, and `.ngsignore` files their contents.
+2. **Import.** Dumps copied into `/app_data/fs_index/dumps/` are imported by the import task (every 10 minutes by default), or right away with `python -m opengsync_worker.tasks.fs_index_import` in the worker container. A dump **replaces everything indexed for its folder**, in one transaction: searches see the old index until the import commits. A dump is imported again only when the file changes (mtime or size). A dump without its final line (an interrupted run) is skipped.
+3. **Crawler.** Keeps the index current by re-checking folders on the mount: see the next section. Without a dump, it builds the index itself, starting from the folders under the share root, at its usual rate limit.
+
+What is stored:
+
+- **Every file, folder and symlink**, except OS junk (`.DS_Store`, `._*`, …).
+- **Folders matching `index_ignore`** (pipeline internals such as `*_CS`, `work`, `.nextflow`, `Rtmp*`, `BaseCalls`) are stored as one entry with their total size; their contents are not stored, not searchable and not crawled.
+- **Folder totals**: size and file count of everything below, counted as a share link would serve it: hidden paths and symlinks leaving the share are left out, symlinks to files count their target, symlinks to folders count nothing (the target is counted where it lives).
+
+### Crawler: schedule and limits
+
+The crawler is a Celery beat task. Every `crawl_schedule` (60 s) it runs for at most `crawl_budget_s` (50 s) and checks the folders that are **due**. A Redis lock makes sure crawls and imports never overlap; a run that finds the lock taken is skipped.
+
+**Checking a folder** costs one `stat`. If its mtime is unchanged, nothing else happens. If it changed, the folder is listed again (one `scandir` plus an `lstat` per entry) and the index is updated: new entries added, missing ones removed, sizes updated up the tree.
+
+**When a folder is due.** Each folder has its own check interval:
+
+| Event | Next check |
+|---|---|
+| Folder changed (or was just discovered) | `min_interval_s` (2 min) |
+| Folder unchanged | interval doubles: 2, 4, 8 … min, up to `max_interval_s` (7 days) |
+| Opened live in any browser or share link | next crawl run |
+| Its `.ngsignore` was edited | next crawl run (every run stats all known `.ngsignore` files, since editing one doesn't change its folder's mtime) |
+
+After a dump import, the first interval depends on when anything below the folder last changed, and each first check is placed at a random point within it, so an import never makes everything due at once:
+
+| Last change below the folder | First interval |
+|---|---|
+| under 7 days ago | `min_interval_s` (2 min) |
+| 7 to 90 days ago | 6 h (at most `max_interval_s`) |
+| older | `max_interval_s` (7 days) |
+
+So active data is checked every few minutes, finished data drifts to once a week, and both resettle on their own when something changes.
+
+**Limits.** The crawler is built to never put burst load on the share's metadata server:
+
+- **`crawl_rate`** (default **10 folders per second**) caps all crawler work together. Listing a big folder counts extra: every 200 entries cost as much as one more folder, so listing a folder of 10,000 files uses the budget of about 50 folders. `0` disables the limit.
+- **`crawl_threads`** (default **1**): folders checked at a time. With one thread every check waits for the previous one, so the actual rate is often below `crawl_rate`.
+- **`crawl_budget_s`** (default **50 s**) and **`crawl_schedule`** (default **60 s**): how long each run may work and how often runs start. A run takes only as many folders as fit in its remaining budget at `crawl_rate`, so it ends near its budget; anything left waits for the next run.
+- **`crawl_batch`** (default **500**): folders per database transaction, at most.
+
+What that means for the share, with the defaults:
+
+| Situation | Load |
+|---|---|
+| Steady state after a dump import (~1.5M folders) | ~150 `stat` calls per minute, spread over the week |
+| A day with lots of new data | the changed folders, still at most 10 per second |
+| Building from an empty index (no dump) | at most 10 folders per second, 50 s of each minute: ~1.5M folders take a few days |
+
+**Safety.** If a top-level folder looks offline, the crawler removes nothing below it, so a dropped mount can't empty the index. A folder is offline when its `canary_files` entry is missing, or, with no canary configured for it, when it is empty or missing. Give every share root a canary, because the fallback can't tell a mount that is up but empty from one that is down. The check runs again before every removal, since a mount can drop or come back mid-run. Once a folder fails the check, it stays offline for the rest of that run. Before a removal, the paths are also looked up once more: if they are there again, the folder is listed again on the next run instead. Unreachable folders (an sshfs error) are never removed; they just wait for their next check. A folder changed in the same second it was listed (mtimes have 1 s resolution on sshfs) is listed again on its next check, and so are folders that changed while a dump was running.
+
+### Configuration
+
+All settings are in the `fs_index` section of `opengsync.yaml`; every key is optional.
 
 ```yaml
-# opengsync.yaml
 fs_index:
     enabled: true
-    # optional, defaults shown
-    # import_schedule: 600          # seconds or a cron string
-    # crawl_schedule: 60
-    # crawl_budget_s: 50
-    # crawl_rate: 10                # folders per second at most (0: no limit)
-    # crawl_threads: 1              # folders checked at a time
-    # min_interval_s: 120
-    # max_interval_s: 604800
+    import_schedule: 600
+    crawl_schedule: 60
+    crawl_budget_s: 50
+    crawl_rate: 10
+    crawl_threads: 1
+    min_interval_s: 120
+    max_interval_s: 604800
 ```
 
-The worker needs the share mounts too (read-only), and both the app and the worker mount the `app_data` volume (`compose.yaml`). See [Setting up the share mount](#setting-up-the-share-mount).
+| Key | Default | What it does |
+|---|---|---|
+| `enabled` | `false` | Schedules the import and crawl tasks, shows the search boxes and the dashboard card, and queues live listings for the crawler. Off: nothing runs and nothing is shown; the manual import still works. |
+| `import_schedule` | `600` | How often new dumps are imported: seconds, or a 5-field cron string. |
+| `crawl_schedule` | `60` | How often a crawl run starts: seconds, or a 5-field cron string. |
+| `crawl_budget_s` | `50` | Longest a crawl run works, in seconds. Keep it below `crawl_schedule`. |
+| `crawl_rate` | `10` | Folders checked per second at most, all threads together; big listings count extra. `0`: no limit. |
+| `crawl_threads` | `1` | Folders checked at a time. |
+| `crawl_batch` | `500` | Folders per database transaction, at most. |
+| `min_interval_s` | `120` | Check interval of a folder that just changed or was just found. |
+| `max_interval_s` | `604800` | Longest check interval (7 days), reached by folders that stay unchanged. |
+| `index_ignore` | `*_CS`, `chnk*`, `work`, `.nextflow`, `.snakemake`, `Rtmp*`, `*_temporary`, `BaseCalls` | Folder name patterns whose contents are not indexed (still counted in folder sizes). Setting it replaces the defaults. |
+| `db_file` | `<app_data_folder>/fs_index/fs_index.sqlite3` | The index file. Must be on a local disk, never on a network mount: SQLite's locking doesn't work there. |
+| `dump_dir` | `<app_data_folder>/fs_index/dumps` | Where the import task looks for dumps. |
+
+The worker and beat read the file at startup: restart `opengsync-celery-beat` after changing a schedule, `opengsync-celery-worker` after any other crawler setting, and `opengsync-app` after `enabled`.
+
+Besides the config, the worker needs the share mounts (read-only, the same as `opengsync-app`; see [Setting up the share mount](#setting-up-the-share-mount)), and the app and the worker both mount the `app_data` volume (`compose.yaml`).
+
+### Rolling it out
+
+To start from a dump, so the crawler never builds from an empty index:
+
+1. Deploy with `fs_index.enabled: false`. This brings the code, the `app_data` volume and the worker's share mounts; no fs-index task runs.
+2. On the cluster, make the dumps (as a SLURM job or off-peak; `--threads` controls the parallel listings there):
+   ```bash
+   python3 fs_index_dump.py --out ~/fs_index_dumps --threads 2
+   ```
+3. Copy them into the worker and import them:
+   ```bash
+   docker exec opengsync-celery-worker mkdir -p /app_data/fs_index/dumps
+   for f in /tmp/fs_index_dumps/*.jsonl.gz; do docker cp "$f" opengsync-celery-worker:/app_data/fs_index/dumps/; done
+   docker exec opengsync-celery-worker python -m opengsync_worker.tasks.fs_index_import
+   ```
+   It prints one line per imported folder (entries, skipped, errors, seconds).
+4. Set `enabled: true` and restart `opengsync-app`, `opengsync-celery-worker` and `opengsync-celery-beat`.
+
+A fresh dump can be imported at any time later, e.g. to resynchronize files rewritten in place.
+
+### Status on the dashboard
+
+The insider dashboard's **System** tab has a **Share Search Index** card:
+
+- **State**: *Up to date*, *Working* (an import or crawl is running), *Behind* (folders more than an hour past their check; expected while building from an empty index), *Not built yet* or *Disabled*.
+- **Last crawl**: when, folders checked and changed, how long it took, errors.
+- **Last change found**, **Folders due** (and how many are late, and how many were queued by browsing), **Indexed data** (total size, file count, index file size).
+- **Per top-level folder**: size, file count, and when its dump was imported (or *none, crawled*).
+- **Dumps waiting for import**, if any.
+
+### Caveats
+
+- **A file rewritten in place** keeps its old size and date in the index until the next dump: a folder's mtime only changes when entries are added, removed or renamed directly in it.
+- **New data can take a few minutes** to show up in search: until its parent folder's next check, or right away once someone opens that folder.
+- **Symlinks** are resolved on the cluster by the dump but inside the container by the crawler. Symlinks with absolute cluster paths may count as leaving the share for folders the crawler re-lists, unless the mount resolves them.
+- **The index is a cache.** Deleting `fs_index.sqlite3` is safe: the next import task re-imports the dumps still in `dump_dir`, and the crawler catches up from there. It never touches Postgres, its WAL or its backups.
 
 ## Access routes
 
@@ -347,12 +474,12 @@ In prod, results are cached in Redis, and `.ngsignore` rules in each worker's me
 |---|---|---|---|
 | Token (paths, expiry) | Redis `share-token:<token>` | 5 min | every share-link request |
 | Folder listings | Redis `share-fs:<key>:list:*` | 60 s | browse, rclone, shared browser, Data tab |
-| A project's data paths, top level | Redis `share-fs:<key>:roots:*` | 60 s | Data tab |
+| A Data tab's data paths, top level | Redis `share-fs:<key>:roots:*` | 60 s | Data tab |
 | File lookups (does the path exist, is it shared) | Redis `share-fs:<key>:file:*` | 60 s | downloads, WebDAV `GET`/`HEAD`, Data tab |
 | WebDAV `PROPFIND` | Redis `share-fs:<key>:propfind:*` | 5 min | WebDAV clients |
 | Each folder's parsed `.ngsignore` (or its absence) and resolved path | worker memory, at most 10,000 folders | 60 s | every check that misses the Redis caches |
 
-`<key>` is the token for share links, and `project:<id>:<hash of its data paths>` for a project's Data tab. Linking or unlinking a data path changes the hash, so the Data tab shows the new set immediately.
+`<key>` is the token for share links, and `<owner>:<id>:<hash of its data paths>` for a Data tab (`project`, `seq_request`, `experiment` or `library`). Linking or unlinking a data path changes the hash, so the Data tab shows the new set immediately.
 
 The `.ngsignore` cache exists because every check walks all parent folders of the requested path and tries to open a `.ngsignore` in each. On a remote mount such as sshfs, every one of those attempts is a round trip, even when the file doesn't exist.
 
@@ -450,14 +577,15 @@ Notes on `release_project_data`:
 | `.ngsignore` matching | `services/backend/server/utils/share_ignore.py`, rules shared with the fs-index in `packages/opengsync-db/opengsync_db/fs_index/ignore.py` |
 | fs-index schema and read-only handler | `packages/opengsync-db/opengsync_db/fs_index/` |
 | fs-index import and crawler | `packages/opengsync-worker/opengsync_worker/tasks/fs_index_*.py`, cluster dump `scripts/fs_index_dump.py` |
-| Search queries and routes | `services/backend/server/utils/fs_index.py`, `routes/htmx/files.py` (`file_browser_search`), `routes/htmx/projects.py` (`project_browser_search`) |
+| Search queries and routes | `services/backend/server/utils/fs_index.py`, `routes/htmx/files.py` (`file_browser_search`, `fs_index_status`), `routes/htmx/data_browser.py` (`<owner>_browser_search`) |
+| File browser and search templates | `services/backend/templates/components/file-browser/` (`browser.jinja2`, `entries.html`, `search-results.html`), dashboard card `components/fs-index-status.html` |
 | Share caches | `services/backend/server/utils/share_fs_cache.py` |
 | Token loading and caching, rate limits, audit | `services/backend/server/core/dependencies.py` |
 | `X-Accel-Redirect` | `services/backend/server/core/responses.py` |
 | Share routes | `services/backend/server/routes/api/shares.py`, `routes/api/webdav.py`, `routes/pages/shared_browser.py` |
 | File browser Share and Associate forms | `services/backend/server/forms/actions/SharePathAction.py`, `forms/actions/AssociatePathAction.py`, shared path list in `forms/common/SelectedPathsMixin.py` and `templates/components/selected-paths.jinja2` |
 | File browser selection panel | `services/backend/static/js/path-selection.js`, `templates/files_page.html` |
-| Project Data tab (listing and file routes, allowed file types) | `services/backend/server/routes/htmx/projects.py`, `utils/file_browser.py` |
+| Data tabs (listing, search, file and remove routes, allowed file types) | `services/backend/server/routes/htmx/data_browser.py`, `utils/file_browser.py` |
 | nginx | `services/nginx/nginx.template.conf` |
 
 ## Security

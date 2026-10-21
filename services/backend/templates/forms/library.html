@@ -1,3 +1,4 @@
+{% from 'components/status_change.jinja2' import status_change %}
 <div class="modal-content" id="library-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Edit Library</h1>
@@ -12,13 +13,8 @@
         <div class="row">
             {{ form.genome.render("col-4") }}
             {{ form.mux_type.render("col-4") }}
-            {{ form.status.render("col-4") }}
+            {{ status_change(form.status, form.status_comment, form.library.status.id if form.library else none, "col-4") }}
         </div>
-        {% if form.status_comment is defined and not form.status_comment.hidden %}
-        <div class="row">
-            {{ form.status_comment.render("col-12") }}
-        </div>
-        {% endif %}
         <div class="row">
             {{ form.protocol.render("col-8") }}
         </div>

@@ -16,15 +16,16 @@
     let hideTimer = null;
     let pendingHtmx = 0;
 
-    // Current (possibly mid-transition) scale of the bar
+    // Current (possibly mid-transition) progress of the bar, from its translateX offset
     function currentProgress() {
-        const m = getComputedStyle(bar).transform.match(/^matrix\(([^,]+)/);
-        return m ? parseFloat(m[1]) : 0;
+        const m = getComputedStyle(bar).transform.match(/^matrix\((?:[^,]+,){4}\s*([^,]+)/);
+        const width = bar.offsetWidth;
+        return m && width ? Math.min(1, Math.max(0, 1 + parseFloat(m[1]) / width)) : 0;
     }
 
     function setBar(value, transition) {
         bar.style.transition = transition;
-        bar.style.transform = `scaleX(${value})`;
+        bar.style.transform = `translateX(${(value - 1) * 100}%)`;
     }
 
     function show(from) {

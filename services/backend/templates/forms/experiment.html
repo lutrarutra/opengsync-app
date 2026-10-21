@@ -1,3 +1,4 @@
+{% from 'components/status_change.jinja2' import status_change %}
 <div id="experiment-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Experiment</h1>
@@ -14,13 +15,8 @@
             </div>
             <div class="row">
                 {{ form.operator.render("col-6") }}
-                {{ form.status.render("col-6") }}
+                {{ status_change(form.status, form.status_comment, form.experiment.status.id if form.experiment else none, "col-6") }}
             </div>
-            {% if form.status_comment is defined and not form.status_comment.hidden %}
-            <div class="row">
-                {{ form.status_comment.render("col-12") }}
-            </div>
-            {% endif %}
 
             <div class="row">
                 {{ form.r1_cycles.render("col-3") }}

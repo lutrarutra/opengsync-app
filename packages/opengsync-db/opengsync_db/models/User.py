@@ -303,6 +303,10 @@ class User(Base, UserMixin):
     def is_admin(cls) -> sa.ColumnElement[bool]:
         return cls.role == UserRole.ADMIN  # type: ignore[arg-type]
 
+    @property
+    def can_assign_data(self) -> bool:
+        return self.role in UserRole.data_assigners()
+
     @hybrid_property
     def name(self) -> str:  # type: ignore[override]
         return self.first_name + " " + self.last_name

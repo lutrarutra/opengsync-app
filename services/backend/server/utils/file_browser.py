@@ -4,7 +4,7 @@ from typing import Literal
 
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 
 # What the project data browser serves: documents, images, tables, HTML reports and the assets reports load.
@@ -58,6 +58,29 @@ def file_icon(name: str, is_dir: bool = False) -> str:
     if lower.endswith(_COMPRESSION_SUFFIXES):
         return "bi-file-earmark-zip"
     return "bi-file-earmark"
+
+
+def is_share_root(rel_path: str | Path) -> bool:
+    """`<root>` itself (a mount like BSF_PROJECTS) or the share root: never linked as a data path, only what is below."""
+    return len(Path(rel_path).parts) < 2
+
+
+def infer_data_path_type(full_path: Path) -> C.DataPathType:
+    """DataPath.type of a path being added to a project, request, experiment or library."""
+    if full_path.is_dir():
+        return C.DataPathType.DIRECTORY
+    ext = full_path.suffix.lower()
+    if ext == ".html":
+        return C.DataPathType.HTML
+    if ext == ".pdf":
+        return C.DataPathType.PDF
+    if ext in [".tsv", ".csv"]:
+        return C.DataPathType.TABLE
+    if ext in [".xlsx", ".xls"]:
+        return C.DataPathType.EXCEL
+    if ext in [".png", ".jpg", ".jpeg", ".gif", ".tiff", ".bmp"]:
+        return C.DataPathType.IMAGE
+    return C.DataPathType.CUSTOM
 
 
 # Paths one Share or Associate may take from the insider browser's selection; keeps the GET that opens the form short.

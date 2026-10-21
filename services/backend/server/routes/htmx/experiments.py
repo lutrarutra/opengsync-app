@@ -11,6 +11,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from ...core import config, dependencies, overview, responses, exceptions as exc, query_options, checklists
 from ...components.tables import HTMXTable, TableCol
 from ... import forms
+from .data_browser import DataScope, data_browser_router, experiment_data_permissions
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
@@ -208,6 +209,7 @@ def experiment_overview(
     if not session.exists(Q.experiment.select(id=experiment_id)):
         raise exc.NotFoundException(f"Experiment with ID {experiment_id} not found.")
     return overview.experiment_graph(session, experiment_id)
+
 
 _STATS_BASE_COLS = {"library_id", "library_name", "pool_id", "pool_name", "num_reads", "lane"}
 
@@ -483,3 +485,7 @@ router.include_router(forms.actions.load_flowcell.LoadFlowCellSeparateAction.Rou
 router.include_router(forms.actions.load_flowcell.LoadFlowCellCombinedAction.Router())
 router.include_router(forms.actions.SetExperimentCyclesAction.Router())
 router.include_router(forms.actions.GenerateSequencerLoadingChecklistAction.Router())
+router.include_router(data_browser_router(DataScope(
+    entity="experiment", label="experiment", permissions=experiment_data_permissions,
+    page_route="experiment_page", tab="experiment-data_paths-tab",
+)))

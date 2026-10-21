@@ -22,6 +22,7 @@ from opengsync_db.transitions import run_operation, request as request_ops, crea
 
 from ...core import dependencies, overview, responses, exceptions as exc, config, query_options, checklists
 from ... import forms
+from .data_browser import DataScope, data_browser_router
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
@@ -919,3 +920,7 @@ router.include_router(forms.actions.SubmitSeqRequestAction.Router())
 router.include_router(forms.actions.AddSeqRequestAssigneeAction.Router())
 router.include_router(forms.actions.AddSeqRequestShareEmailAction.Router())
 router.include_router(forms.actions.ProcessSeqRequestAction.Router())
+router.include_router(data_browser_router(DataScope(
+    entity="seq_request", label="request", permissions=dependencies.seq_request_permissions,
+    page_route="seq_request_page", tab="request-data_paths-tab",
+)))

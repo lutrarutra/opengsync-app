@@ -1,0 +1,34 @@
+{% from "components/file-browser/browser.jinja2" import file_browser with context %}
+{% from "components/file-browser/selection-panel.jinja2" import selection_panel with context %}
+{#
+  A Data tab's "Manage data" (data_browser.py), in #fullscreen-modal: the insider browser over the whole share and,
+  beside it, the ticked paths. The linked ones start ticked; what was ticked and unticked is posted to submit_url
+  (which reloads the tab). While the modal is open the tab's own
+  browser is out of the page (add_data_button in browser.jinja2), so this one can use the same element ids.
+#}
+<div class="modal-content data-picker">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Data of {{ data_owner_label }} <strong>{{ data_owner_name }}</strong></h1>
+        <button type="button" class="btn-close" aria-label="Close"
+                onclick="if (window.pathSelection && window.pathSelection.changed()) confirm_close_modal('#fullscreen-modal'); else $('#fullscreen-modal').modal('hide');"></button>
+    </div>
+    <div class="modal-body data-picker-body">
+        <div class="data-picker-browser">
+            <div class="desc">What is ticked is in the {{ data_owner_label }}: tick files and folders to add them, untick to remove them, then press <em>Save</em>. A folder is added with everything in it; removing only unlinks, the files stay on disk.</div>
+            {{ file_browser('render_file_browser_page', {'pick': 1}, search_route='file_browser_search' if fs_index_enabled is defined and fs_index_enabled else none) }}
+        </div>
+        <aside class="data-picker-selection">
+            {% call selection_panel(max_selected_paths, persist=false, allow_roots=false, initial_paths=existing_paths, owner_label=data_owner_label) %}
+            <form class="path-selection-footer path-selection-form" hx-post="{{ submit_url }}" hx-swap="none">
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-check-lg" aria-hidden="true"></i> Save
+                </button>
+            </form>
+            {% endcall %}
+            <div class="data-picker-empty">
+                <i class="bi bi-check2-square" aria-hidden="true"></i>
+                Nothing selected yet.
+            </div>
+        </aside>
+    </div>
+</div>

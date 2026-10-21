@@ -26,7 +26,7 @@ Selected roots, or other ones:
     python3 fs_index_dump.py --out DIR --root BSF_SAMPLES_10X
     python3 fs_index_dump.py --out DIR --root NAME=/some/path
 As a SLURM job:
-    sbatch -c 8 --mem 4G -t 4:00:00 --wrap "python3 fs_index_dump.py --out DIR --threads 8"
+    sbatch -c 2 --mem 4G -t 4:00:00 --wrap "python3 fs_index_dump.py --out DIR --threads 2"
 """
 
 import argparse

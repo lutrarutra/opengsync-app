@@ -28,6 +28,11 @@ class UserRole(ExtendedEnum):
             cls.BIOINFORMATICIAN,
             cls.TECHNICIAN
         ]
+
+    @classmethod
+    def data_assigners(cls) -> list["UserRole"]:
+        """Roles that add share paths to projects, requests, experiments and libraries."""
+        return [cls.ADMIN, cls.BIOINFORMATICIAN]
     
     @property
     def select_name(self) -> str:

@@ -6,9 +6,13 @@
   search_route / route_params: this search; entries_route: the live listing folders expand into
   file_route / servable_extensions: project Data tab, files open in the browser
   insider_actions: Select / Share / Assign (insider file browser)
+  picker: with insider_actions, only Select (picking paths to add to a Data tab)
+  data_owner_label: Data tabs, what the data paths belong to ("project", "request", ...)
 #}
 {% set file_route = file_route if file_route is defined else none %}
 {% set servable_extensions = servable_extensions if servable_extensions is defined else none %}
+{% set data_owner_label = data_owner_label if data_owner_label is defined else "project" %}
+{% set picker = picker if picker is defined else false %}
 
 {% macro search_url(page=0, kind_=kind, root_=root) -%}
 {{ url_for(search_route, q=query, kind=kind_ if kind_ != "all" else none, root=root_, page=page if page else none, **route_params) }}
@@ -25,7 +29,15 @@
 {% macro result_row(result) %}
 {% set entry_id = uuid4() %}
 {% set is_linked_file = file_route and not result.is_dir and (servable_extensions is none or result.suffix in servable_extensions) %}
-{% if insider_actions %}
+{% set is_share_root = "/" not in result.path %}
+{% if insider_actions and picker %}
+    {% set entry_actions = [] if is_share_root else [{"type": "select", "label": "Select", "config": {"path": result.path}}] %}
+{% elif insider_actions and is_share_root %}
+    {% set entry_actions = [
+        {"type": "select", "label": "Select", "config": {"path": result.path}},
+        {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {"url": url_for('SharePathAction.Begin', path=result.path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
+    ] %}
+{% elif insider_actions %}
     {% set entry_actions = [
         {"type": "select", "label": "Select", "config": {"path": result.path}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=result.path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
@@ -90,7 +102,7 @@
                         {% if data_path.seq_request %}<span class="badge search-result-badge">{{ data_path.seq_request.name }}</span>{% endif %}
                         {% if data_path.library %}<a href="{{ url_for('library_page', library_id=data_path.library.id) }}" class="badge search-result-badge">{{ data_path.library.name }}</a>{% endif %}
                     {% elif loop.first %}
-                        <span class="badge search-result-badge">Project data</span>
+                        <span class="badge search-result-badge">{{ data_owner_label | capitalize }} data</span>
                     {% endif %}
                 {% endfor %}
             </div>
@@ -98,13 +110,14 @@
         <span class="browser-entry-size" {% if result.is_dir %}title="Total size of the folder"{% endif %}>{{ result.size | bytes_to_human }}</span>
         <time class="browser-entry-mtime" datetime="{{ result.mtime }}" title="{{ result.mtime | from_timestamp }}">{{ result.mtime | time_ago }}</time>
         <span class="search-result-actions">
-            {% if insider_actions %}
+            {% if insider_actions and not (picker and is_share_root) %}
             <button type="button" class="btn btn-sm search-result-action search-result-select"
                     title="Add to selection (Ctrl/Cmd+click)" aria-label="Select {{ result.path }}"
                     data-select-path="{{ result.path }}"
                     onclick="window.pathSelection && window.pathSelection.toggle(this.dataset.selectPath)">
                 <i class="bi bi-check2-square" aria-hidden="true"></i>
             </button>
+            {% if not picker %}
             <button type="button" class="btn btn-sm search-result-action"
                     title="Share" aria-label="Share {{ result.path }}"
                     hx-get="{{ url_for('SharePathAction.Begin', path=result.path) }}"
@@ -113,6 +126,7 @@
                     hx-on::before-request="$('#xl-modal').modal('show')">
                 <i class="bi bi-share" aria-hidden="true"></i>
             </button>
+            {% endif %}
             {% endif %}
             {% if result.parent %}
             <button type="button" class="btn btn-sm search-result-action"

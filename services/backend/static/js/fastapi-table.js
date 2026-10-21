@@ -26,7 +26,7 @@ function isBrowseTableRequest(path, parameters) {
 
 function isMainTablePath(path) {
     const url = path || "";
-    return /\/render-table-page|\/render-data_path-table-page|\/lab_preps\/render-table/.test(url);
+    return /\/render-table-page|\/lab_preps\/render-table/.test(url);
 }
 
 class HTMXTable {

@@ -26,6 +26,8 @@
         gap: 5px;
         overflow-y: auto;
         padding-bottom: 5px;
+        scrollbar-width: thin;
+        scrollbar-color: #ccc transparent;
 
         .week {
             flex: 1 1 0px;
@@ -72,8 +74,7 @@
             }
 
             ::-webkit-scrollbar-track {
-                background: #f1f1f1;
-                border-radius: 5px;
+                background: transparent;
             }
 
             ::-webkit-scrollbar-thumb {
@@ -85,6 +86,7 @@
                 margin: 0;
                 padding: 0;
                 overflow-y: auto;
+                scrollbar-width: thin;
                 li {
                     width: 100%;
                     display: flex;

@@ -2,6 +2,7 @@
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link, metadata_quantity %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
 
+{% from "components/file-browser/browser.jinja2" import file_browser, add_data_button with context %}
 {% extends "base.html" %}
 {% set active_page = "experiments-page" %}
 {% block content %}
@@ -309,9 +310,12 @@
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-data_paths-tab" role="tabpanel" tabindex="10">
-            <div hx-get="{{ url_for('render_data_path_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
+            {% if current_user.can_assign_data %}
+            <div class="data-tab-toolbar">
+                <div class="data-tab-toolbar-actions">{{ add_data_button('experiment_data_picker', {'experiment_id': experiment.id}) }}</div>
             </div>
+            {% endif %}
+            {{ file_browser('experiment_browser_entries', {'experiment_id': experiment.id}, trigger='intersect once', search_route='experiment_browser_search' if fs_index_enabled is defined and fs_index_enabled else none) }}
         </div>
         <div class="tab-pane fade" id="experiment-stats-tab" role="tabpanel" tabindex="11">
             <div hx-get="{{ url_for('experiment_stats', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
@@ -320,5 +324,9 @@
         </div>
     </div>
 </div>
-{{ overview_modal("experiment-overview", url_for('experiment_overview', experiment_id=experiment.id), 'Overview · ' ~ experiment.name) }}
+{% set overview_views = [("Experiment", url_for('experiment_overview', experiment_id=experiment.id))] %}
+{% for project in projects %}
+{% set _ = overview_views.append((project.identifier_display, url_for('render_project_overview', project_id=project.id), project.title)) %}
+{% endfor %}
+{{ overview_modal("experiment-overview", overview_views, 'Overview · ' ~ experiment.name) }}
 {% endblock content %}

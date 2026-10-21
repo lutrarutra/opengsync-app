@@ -134,6 +134,7 @@
                     height: 100%;
                     overflow-y: auto;
                     scrollbar-width: thin;
+                    scrollbar-color: #ccc transparent;
                 }
             }
         }
@@ -474,6 +475,7 @@
 .dash-component-content #tab-system {
     overflow-y: auto;
     scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
 }
 
 #tab-system > * {

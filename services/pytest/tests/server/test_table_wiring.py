@@ -56,7 +56,7 @@ def _table_routes(app):
 
 def test_table_columns_reach_their_route(client: TestClient):
     table_routes = list(_table_routes(client.app))
-    assert len(table_routes) >= 25, "table route discovery broke"
+    assert len(table_routes) >= 24, "table route discovery broke"
 
     problems = []
     for path, route, table in table_routes:

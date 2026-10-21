@@ -264,6 +264,12 @@ def admin(session: SyncSession):
 
 
 @pytest.fixture  # type: ignore[attr-defined]
+def bioinformatician(session: SyncSession):
+    _ensure_backend_on_path()
+    return _create_test_user(session, email="bioinformatician@example.com", role=UserRole.BIOINFORMATICIAN)
+
+
+@pytest.fixture  # type: ignore[attr-defined]
 def user_token(client, user) -> str:
     return _login_token(user)
 
@@ -281,6 +287,11 @@ def insider_token(client, insider) -> str:
 @pytest.fixture  # type: ignore[attr-defined]
 def admin_token(client, admin) -> str:
     return _login_token(admin)
+
+
+@pytest.fixture  # type: ignore[attr-defined]
+def bioinformatician_token(client, bioinformatician) -> str:
+    return _login_token(bioinformatician)
 
 
 @pytest.fixture  # type: ignore[attr-defined]

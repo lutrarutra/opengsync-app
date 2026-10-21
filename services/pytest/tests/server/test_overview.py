@@ -21,7 +21,7 @@ def _setup(session: SyncSession, user):
     pooled.pool_id = pool.id
     pooled.status = C.LibraryStatus.SEQUENCED
     pooled.seq_depth_requested = 20
-    pool.experiment_id = experiment.id
+    pool.experiment_id = pooled.experiment_id = experiment.id  # as linking the pool to the experiment does
     for library in (pooled, unpooled):
         sample = create_sample(session, user, project)
         sample.status = C.SampleStatus.STORED
@@ -52,7 +52,11 @@ def test_request_overview(client: TestClient, session: SyncSession, user, user_t
     assert ["Reads", "12.0 M"] in library["facts"]
     assert data["groups"][library["group"]] == f"pool {pool.name}"
     assert data["groups"][nodes[f"library-{unpooled.id}"]["group"]] == "not pooled"
-    assert nodes[f"pool-{pool.id}"]["sub"] == "1 library"
+    pool_node = nodes[f"pool-{pool.id}"]
+    assert pool_node["sub"] == "1 library"
+    # the pool's type goes next to its name; its reads are those of its libraries in its experiment
+    assert pool_node["aside"] == pool.type.label
+    assert pool_node["metrics"] == {"reads": 12_000_000} and ["Reads", "12.0 M"] in pool_node["facts"]
     # the pool's lanes go on its edge to the experiment
     assert {"source": f"pool-{pool.id}", "target": f"experiment-{experiment.id}", "lanes": [2]} in data["edges"]
 
@@ -102,6 +106,8 @@ def test_experiment_overview(client: TestClient, session: SyncSession, user, ins
     lane = next(lane for lane in experiment.lanes if lane.number == 2)
     assert nodes[f"lane-{lane.id}"]["sub"] == "1 pool · 12.0 M reads"
     assert nodes[f"lane-{lane.id}"]["ref"] == experiment.id  # links to the experiment
+    assert nodes[f"pool-{pool.id}"]["metrics"]["reads"] == 12_000_000
+    assert "metrics" not in nodes[f"seq_request-{seq_request.id}"]
     assert len([n for n in data["nodes"] if n["kind"] == "lane"]) == len(experiment.lanes)
     assert {(f"seq_request-{seq_request.id}", f"library-{pooled.id}"), (f"library-{pooled.id}", f"pool-{pool.id}"),
             (f"pool-{pool.id}", f"lane-{lane.id}")} <= _edges(data)
@@ -122,3 +128,10 @@ def test_pages_open_the_graph_in_a_popup(client: TestClient, session: SyncSessio
         # a button on the title line opens the full-screen popup; there is no Overview tab any more
         assert f'data-bs-toggle="modal" data-bs-target="#{popup}"' in text and f'id="{popup}"' in text
         assert f"#{popup}-tab" not in text
+    # the experiment's popup switches between its graph and those of its projects, one each
+    other = create_project(session, user)  # nothing on the experiment
+    session.commit()
+    text = get(client, f"/experiments/{experiment.id}", insider_token).text
+    assert 'name="experiment-overview-view"' in text and text.count('class="btn-check" name="experiment-overview-view"') == 2
+    assert f'/htmx/projects/{project.id}/overview"' in text and f"/htmx/projects/{other.id}/overview" not in text
+    assert 'name="project-overview-view"' not in get(client, f"/projects/{project.id}", insider_token).text

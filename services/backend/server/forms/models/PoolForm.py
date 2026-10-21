@@ -14,8 +14,8 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 class PoolForm(HTMXForm):
     template_path = "forms/pool.html"
     status_comment = inputs.string.StringInputField(
-        "Why? (optional)", required=False, max_length=512, hidden=True,
-        placeholder="Reason for the status change, stored in the status history",
+        "Reason for status change (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Stored in the status history",
     )
 
     name = inputs.string.StringInputField("Pool Name", max_length=models.Pool.name.type.length, min_length=4)

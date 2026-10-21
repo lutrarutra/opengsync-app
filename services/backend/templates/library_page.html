@@ -5,6 +5,7 @@
 {% from "components/status_bar.jinja2" import library_status_bar with context %}
 
 
+{% from "components/file-browser/browser.jinja2" import file_browser, add_data_button with context %}
 {% extends "base.html" %}
 {% set active_page = "libraries-page" %}
 {% block content %}
@@ -338,9 +339,12 @@
             </div>
         </div>
         <div class="tab-pane fade" id="library-data_paths-tab" role="tabpanel" tabindex="11">
-            <div hx-get="{{ url_for('render_data_path_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
+            {% if current_user.can_assign_data %}
+            <div class="data-tab-toolbar">
+                <div class="data-tab-toolbar-actions">{{ add_data_button('library_data_picker', {'library_id': library.id}) }}</div>
             </div>
+            {% endif %}
+            {{ file_browser('library_browser_entries', {'library_id': library.id}, trigger='intersect once', search_route='library_browser_search' if fs_index_enabled is defined and fs_index_enabled else none) }}
         </div>
     </div>
 </div>

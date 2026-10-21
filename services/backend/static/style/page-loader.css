@@ -19,8 +19,22 @@
     height: 100%;
     width: 100%;
     /* Dark so it stands out on the navbar (cemm-blue, or cemm-red for admins) */
-    background: var(--color-cemm-blue-darker, #0090aa);
-    transform: scaleX(0);
-    transform-origin: left center;
+    --page-loader-color: var(--color-cemm-blue-dark, #0f5568);
+    position: relative;
+    background: var(--page-loader-color);
+    /* Slid in from the left (not scaled) so the glowing tip keeps its shape */
+    transform: translateX(-100%);
     will-change: transform;
+}
+
+/* Glowing leading edge */
+#page-loader .page-loader-bar::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 100px;
+    height: 100%;
+    box-shadow: 0 0 10px var(--page-loader-color), 0 0 5px var(--page-loader-color);
+    transform: rotate(3deg) translateY(-3px);
 }

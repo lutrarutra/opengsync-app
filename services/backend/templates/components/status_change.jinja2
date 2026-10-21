@@ -1,0 +1,36 @@
+{#
+    Renders a status select with its "reason for change" comment directly underneath.
+    The comment only shows up once the selected status differs from `original`
+    (the status the object currently has). While hidden, the comment input is disabled
+    so it is not submitted.
+#}
+{% macro status_change(status, comment, original, container_class="") -%}
+{% set wrapper_id = "status-change-" ~ status.name %}
+{% set selected = status.data if status.data is not none else status.default %}
+{% set has_comment = comment is not none and not comment.hidden %}
+{% set changed = (selected if selected is not none else '')|string != (original if original is not none else '')|string %}
+{% set show_comment = has_comment and changed %}
+<div class="{{ container_class }}" id="{{ wrapper_id }}" data-original="{{ original if original is not none else '' }}">
+    {{ status.render() }}
+    {% if has_comment %}
+    <div class="status-change-comment border-start border-2 border-primary ps-2 ms-1 mb-2 {% if not show_comment %}d-none{% endif %}">
+        {{ comment.render() }}
+    </div>
+    <script>
+        (function () {
+            const wrapper = document.getElementById("{{ wrapper_id }}");
+            const select = wrapper.querySelector("select");
+            const commentBox = wrapper.querySelector(".status-change-comment");
+            const commentInput = commentBox.querySelector("input, textarea");
+            const update = () => {
+                const changed = select.value !== wrapper.dataset.original;
+                commentBox.classList.toggle("d-none", !changed);
+                commentInput.disabled = !changed;
+            };
+            select.addEventListener("change", update);
+            update();
+        })();
+    </script>
+    {% endif %}
+</div>
+{%- endmacro %}

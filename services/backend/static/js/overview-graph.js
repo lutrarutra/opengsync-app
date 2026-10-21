@@ -17,13 +17,15 @@ const REACT_DOM = "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1";
 const XYFLOW = "https://esm.sh/@xyflow/react@12.3.6?deps=react@18.3.1,react-dom@18.3.1";
 const XYFLOW_CSS = "https://cdn.jsdelivr.net/npm/@xyflow/react@12.3.6/dist/style.css";
 
-const NODE_WIDTH = 240;
+const MIN_NODE_WIDTH = 240; // px; nodes widen to fill the popup up to MAX_NODE_WIDTH, below MIN_NODE_WIDTH the graph zooms out
+const MAX_NODE_WIDTH = 360;
 const ITEM_HEIGHT = 50;
 const BUNDLE_HEIGHT = 76;
 const CHIPS_PER_ROW = 4;    // status chips in a column header
 const LABEL_SIZE = 12;      // px; a long name shrinks down to LABEL_MIN_SIZE to fit, then is cut off
 const LABEL_MIN_SIZE = 9;
-const LABEL_ROOM = NODE_WIDTH - 23;  // padding and borders of a node
+const NODE_CHROME = 23;     // px; padding and borders of a node
+const ASIDE_SIZE = 11;      // px; the muted aside next to a name (e.g. a pool's type)
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 const ROW_GAP = 8;
 const COLUMN_GAP = 52;
@@ -74,7 +76,7 @@ function injectStyles() {
         .ov-bar .ov-hint { margin-left: auto; }
         .ov-flow { flex: 1; min-height: 0; border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 6px; }
         .ov-flow .react-flow__node { cursor: pointer; }
-        .ov-node { width: ${NODE_WIDTH}px; padding: 5px 8px 5px 10px; border-radius: 6px; font-size: 12px; line-height: 1.35; position: relative; overflow: hidden;
+        .ov-node { width: var(--ov-node-width, ${MIN_NODE_WIDTH}px); padding: 5px 8px 5px 10px; border-radius: 6px; font-size: 12px; line-height: 1.35; position: relative; overflow: hidden;
                    font-family: ${FONT};
                    background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529);
                    border: 1px solid var(--bs-border-color, #dee2e6); border-left: 4px solid var(--tone); transition: opacity .12s; }
@@ -88,6 +90,8 @@ function injectStyles() {
         a.ov-label:hover { text-decoration: underline; }
         .ov-status { margin-left: auto; white-space: nowrap; flex-shrink: 0; color: var(--bs-secondary-color, #6c757d); }
         .ov-sub { color: var(--bs-secondary-color, #6c757d); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .ov-aside { margin-left: auto; white-space: nowrap; flex-shrink: 0; font-size: ${ASIDE_SIZE}px; color: var(--bs-secondary-color, #6c757d); }
+        .ov-metric { white-space: nowrap; flex-shrink: 0; color: var(--bs-secondary-color, #6c757d); }
         .ov-btn { margin-left: auto; flex-shrink: 0; border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 4px; background: var(--bs-body-bg, #fff);
                   color: var(--bs-body-color, #212529); font-size: 11px; line-height: 14px; padding: 0 5px; }
         .ov-item .ov-btn { position: absolute; top: 4px; right: 4px; display: none; }
@@ -98,7 +102,7 @@ function injectStyles() {
         .ov-bars { display: flex; gap: 2px; height: 8px; margin: 4px 0 3px; }
         .ov-bars > span { border-radius: 2px; min-width: 3px; }
         .ov-counts { color: var(--bs-secondary-color, #6c757d); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ov-header { width: ${NODE_WIDTH}px; font-size: 12px; cursor: default; }
+        .ov-header { width: var(--ov-node-width, ${MIN_NODE_WIDTH}px); font-size: 12px; cursor: default; }
         .ov-header-title { font-weight: 600; font-size: 13px; color: var(--bs-body-color, #212529); }
         .ov-chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
         .ov-chip { border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 10px; padding: 0 6px; background: var(--bs-body-bg, #fff);
@@ -140,7 +144,7 @@ function prepare(data) {
 }
 
 // Records → units (a record, or a bundle of records), edges between units, and their positions.
-function layout(model, bundled) {
+function layout(model, bundled, nodeWidth) {
     const { data, nodes } = model;
     const units = new Map();
     const unitOf = new Map();
@@ -213,7 +217,7 @@ function layout(model, bundled) {
                 for (const n of ns) { const p = pos.get(n.id); sum += (p.y + p.h / 2) * n.w; weight += n.w; }
                 top = Math.max(top, sum / weight - height(u) / 2);
             }
-            pos.set(u.id, { x: c * (NODE_WIDTH + COLUMN_GAP), y: top, h: height(u) });
+            pos.set(u.id, { x: c * (nodeWidth + COLUMN_GAP), y: top, h: height(u) });
             bottom = top + height(u);
         }
     };
@@ -223,7 +227,7 @@ function layout(model, bundled) {
 
     let maxY = 0;
     for (const p of pos.values()) maxY = Math.max(maxY, p.y + p.h);
-    const width = columns.length * NODE_WIDTH + (columns.length - 1) * COLUMN_GAP;
+    const width = columns.length * nodeWidth + (columns.length - 1) * COLUMN_GAP;
     return {
         units, edges, pos, left, right,
         bounds: { x: -PAD, y: -model.headerHeight - PAD, width: width + 2 * PAD, height: maxY + model.headerHeight + 2 * PAD },
@@ -281,10 +285,17 @@ function laneRuns(lanes) {
     return runs.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`));
 }
 
-// font size that fits a name on its row (names of libraries and samples are often long)
-function labelSize(label) {
+// width of the nodes that fills the canvas with all columns at 1:1, within MIN_NODE_WIDTH–MAX_NODE_WIDTH
+function nodeWidthFor(canvasWidth, columns) {
+    const fill = Math.floor((canvasWidth - 2 - 2 * PAD - (columns - 1) * COLUMN_GAP) / columns);
+    return Math.max(MIN_NODE_WIDTH, Math.min(MAX_NODE_WIDTH, fill));
+}
+
+// font size that fits a name on its row next to its aside (names of libraries and samples are often long)
+function labelSize(label, aside, nodeWidth) {
+    const room = nodeWidth - NODE_CHROME - (aside ? textWidth(aside, `${ASIDE_SIZE}px ${FONT}`) + 6 : 0);
     let size = LABEL_SIZE;
-    while (size > LABEL_MIN_SIZE && textWidth(label, `600 ${size}px ${FONT}`) > LABEL_ROOM) size -= 0.5;
+    while (size > LABEL_MIN_SIZE && textWidth(label, `600 ${size}px ${FONT}`) > room) size -= 0.5;
     return size;
 }
 
@@ -339,15 +350,18 @@ function render(container, [React, ReactDOMClient, XY], data) {
         const href = model.href(n);
         const group = d.unit.groupKey ? model.groups.get(d.unit.groupKey) : null;
         const label = { className: "ov-label", style: { fontSize: `${d.labelSize}px` } };
-        // name alone on the first row; subtitle and status (on the right edge) on the second
+        // name and its aside (on the right edge) on the first row; subtitle, sequenced reads and status (on the right edge) on the second
         return h("div", {
             className: `ov-node ov-item${d.seed ? " ov-seed" : ""}${d.pinned ? " ov-pinned" : ""}`,
             style: { "--tone": status ? TONES[status.tone] : NO_STATUS }, title: tooltip(n),
         },
             h(Handle, { type: "target", position: Position.Left, style: hidden, isConnectable: false }),
-            href ? h("a", { ...label, className: "ov-label nodrag", href, onClick: (ev) => ev.stopPropagation() }, n.label) : h("span", label, n.label),
+            h("div", { className: "ov-row" },
+                href ? h("a", { ...label, className: "ov-label nodrag", href, onClick: (ev) => ev.stopPropagation() }, n.label) : h("span", label, n.label),
+                n.aside ? h("span", { className: "ov-aside" }, n.aside) : null),
             h("div", { className: "ov-row" },
                 h("span", { className: "ov-sub" }, n.sub ?? "\u00a0"),
+                n.metrics?.reads !== undefined ? h("span", { className: "ov-metric" }, `${n.sub ? "· " : ""}${readsText(n.metrics.reads)} reads`) : null,
                 status ? h("span", { className: "ov-status" }, `${status.label} ${status.icon}`) : null),
             group ? h("button", {
                 type: "button", className: "ov-btn nodrag", title: `Bundle the ${group.length} ${plural.get(n.kind)} of ${data.groups[n.group]}`,
@@ -424,7 +438,6 @@ function render(container, [React, ReactDOMClient, XY], data) {
 
     const nodeTypes = { item: ItemNode, bundle: BundleNode, header: HeaderNode };
     const edgeTypes = { lanes: LanesEdge };
-    const labelSizes = new Map(model.nodes.map((n) => [n.id, labelSize(n.label)]));
     const membersOf = new Map(data.columns.map((c) => [c.kind, model.nodes.filter((n) => n.kind === c.kind)]));
 
     function Graph() {
@@ -434,11 +447,12 @@ function render(container, [React, ReactDOMClient, XY], data) {
         const [hover, setHover] = React.useState(null);
         const [query, setQuery] = React.useState("");
         const keep = React.useRef(null);                    // keep a toggled node where it was on screen
-        const view = React.useMemo(() => layout(model, bundled), [bundled]);
-
-        // the canvas fills the popup; the graph is fitted to its width (at most 1:1), top first
+        // the canvas fills the popup; nodes widen to fill it and the graph is fitted to its width (at most 1:1), top first
         const frame = React.useRef(null);
         const [size, setSize] = React.useState({ width: container.clientWidth, height: container.clientHeight - 34 });
+        const nodeWidth = nodeWidthFor(size.width, data.columns.length);
+        const view = React.useMemo(() => layout(model, bundled, nodeWidth), [bundled, nodeWidth]);
+        const labelSizes = React.useMemo(() => new Map(model.nodes.map((n) => [n.id, labelSize(n.label, n.aside, nodeWidth)])), [nodeWidth]);
         React.useEffect(() => {
             const observer = new ResizeObserver(([entry]) => {
                 const { width, height } = entry.contentRect;
@@ -502,7 +516,7 @@ function render(container, [React, ReactDOMClient, XY], data) {
 
         const nodes = React.useMemo(() => {
             const out = data.columns.map((c, i) => ({
-                id: `header:${c.kind}`, type: "header", position: { x: i * (NODE_WIDTH + COLUMN_GAP), y: -model.headerHeight - 4 },
+                id: `header:${c.kind}`, type: "header", position: { x: i * (nodeWidth + COLUMN_GAP), y: -model.headerHeight - 4 },
                 data: { kind: c.kind, label: c.label, members: membersOf.get(c.kind), focus, setFocus },
                 draggable: false, selectable: false, focusable: false,
             }));
@@ -519,7 +533,7 @@ function render(container, [React, ReactDOMClient, XY], data) {
                 });
             }
             return out;
-        }, [view, traced, focus, hover]);
+        }, [view, labelSizes, traced, focus, hover]);
 
         const edges = React.useMemo(() => [...view.edges.values()].map((e) => {
             const on = traced?.edges.has(e.id);
@@ -549,7 +563,7 @@ function render(container, [React, ReactDOMClient, XY], data) {
         const nothingBundled = [...model.bundleable].every((k) => !bundled.has(k));
         const matches = focus?.type === "search" && traced ? traced.seeds.size : null;
 
-        return h("div", { className: "ov-wrap" },
+        return h("div", { className: "ov-wrap", style: { "--ov-node-width": `${nodeWidth}px` } },
             h("div", { className: "ov-bar" },
                 h("input", { type: "search", placeholder: "Find by name…", value: query, onChange: (ev) => search(ev.target.value), "aria-label": "Find by name" }),
                 matches !== null ? h("span", null, matches ? `${matches} found` : "nothing found") : null,
@@ -592,20 +606,30 @@ function render(container, [React, ReactDOMClient, XY], data) {
     ReactDOMClient.createRoot(container).render(h(ReactFlowProvider, null, h(Graph)));
 }
 
-// Mounts the graph into a popup (overview-graph.jinja2) the first time it is opened: the data and the
-// modules load while the popup fades in, the graph renders once it has its full size.
-export function mountOnOpen(modal, url) {
-    const container = modal.querySelector(".overview-graph");
-    let loading = null;
-    const failed = (err) => {
+// Mounts the graphs of a popup (overview-graph.jinja2), each the first time it is shown: the first view's
+// data and the modules load while the popup fades in, the graph renders once it has its full size. A
+// switch in the header (several views) shows another view, loading it then.
+export function mountOnOpen(modal) {
+    const views = new Map([...modal.querySelectorAll(".overview-graph")].map((container) => [container.dataset.view, { container, loading: null, shown: false }]));
+    const failed = (container) => (err) => {
         console.warn("Overview not available:", err);
         container.innerHTML = '<div class="ov-empty">The overview could not be loaded.</div>';
     };
-    modal.addEventListener("show.bs.modal", () => {
-        loading = Promise.all([loadModules(), fetchData(url)]);
-        loading.catch(() => {});  // reported once shown
-    }, { once: true });
-    modal.addEventListener("shown.bs.modal", () => {
-        loading.then(([modules, data]) => render(container, modules, data)).catch(failed);
-    }, { once: true });
+    const load = (view) => {
+        view.loading ??= Promise.all([loadModules(), fetchData(view.container.dataset.url)]);
+        view.loading.catch(() => {});  // reported once shown
+    };
+    const show = (view) => {
+        if (view.shown) return;
+        view.shown = true;
+        load(view);
+        view.loading.then(([modules, data]) => render(view.container, modules, data)).catch(failed(view.container));
+    };
+    const first = views.values().next().value;
+    modal.addEventListener("show.bs.modal", () => load(first), { once: true });
+    modal.addEventListener("shown.bs.modal", () => show(first), { once: true });
+    modal.querySelectorAll(`input[name="${modal.id}-view"]`).forEach((input) => input.addEventListener("change", () => {
+        for (const [key, view] of views) view.container.classList.toggle("d-none", key !== input.value);
+        show(views.get(input.value));
+    }));
 }

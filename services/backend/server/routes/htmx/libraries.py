@@ -13,6 +13,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from ...core import dependencies, responses, exceptions as exc, query_options
 from ...utils import parsing
 from ... import forms
+from .data_browser import DataScope, data_browser_router
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
 
 router = APIRouter(prefix="/libraries", tags=["libraries"])
@@ -455,3 +456,7 @@ def render_library_table_mux_table(
 
 router.include_router(forms.models.LibraryForm.Router())
 router.include_router(forms.actions.LibraryFeaturesAction.Router())
+router.include_router(data_browser_router(DataScope(
+    entity="library", label="library", permissions=dependencies.library_permissions,
+    page_route="library_page", tab="library-data_paths-tab",
+)))

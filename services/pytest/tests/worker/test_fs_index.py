@@ -280,6 +280,69 @@ def test_offline_root_is_not_emptied(tasks, settings, share: Path):
     assert "R1/proj/outs/a.bam" in rows(settings)
 
 
+def test_missing_root_is_not_emptied(tasks, settings, share: Path):
+    _, importer, _ = tasks
+    dump(settings, "R1")
+    importer.import_dumps(settings, now=NOW)
+    os.rename(share / "R1", share.parent / "R1-unmounted")
+
+    _crawl(tasks, settings, NOW + 30 * DAY)
+    assert "R1/proj/outs/a.bam" in rows(settings)
+
+
+def test_listing_taken_while_mount_was_away_removes_nothing(tasks, settings, share: Path, monkeypatch):
+    """The mount drops during a listing and is back by the time it is applied: the online check passes."""
+    _, importer, crawler = tasks
+    dump(settings, "R1")
+    importer.import_dumps(settings, now=NOW)
+    proj, away = share / "R1" / "proj", share.parent / "away"
+    real_probe = crawler.Crawler.probe
+
+    def flaky_probe(self, row):
+        if row.path != "R1/proj":
+            return real_probe(self, row)
+        away.mkdir()
+        for child in list(proj.iterdir()):
+            os.rename(child, away / child.name)
+        try:
+            return real_probe(self, row)
+        finally:
+            for child in list(away.iterdir()):
+                os.rename(child, proj / child.name)
+            away.rmdir()
+
+    monkeypatch.setattr(crawler.Crawler, "probe", flaky_probe)
+    _crawl(tasks, settings, NOW + 30 * DAY)
+    entries = rows(settings)
+    assert "R1/proj/outs/a.bam" in entries
+    assert entries["R1/proj"]["mtime"] is None  # listed again on the next run
+
+    monkeypatch.setattr(crawler.Crawler, "probe", real_probe)
+    old = time.time() - 100  # the renames just changed it: a same-second mtime is not trusted
+    os.utime(proj, (old, old))
+    _crawl(tasks, settings, NOW + 30 * DAY + 1)
+    entries = rows(settings)
+    assert "R1/proj/outs/a.bam" in entries
+    assert entries["R1/proj"]["mtime"] is not None
+
+
+def test_online_is_checked_again_after_the_mount_drops(tasks, settings, share: Path):
+    _, _, crawler = tasks
+    (share / "R1" / ".status.txt").write_text("ok")
+    settings.canaries = {"R1": "R1/.status.txt"}
+    conn = sqlite3.connect(":memory:")
+    try:
+        conn.execute("CREATE TABLE ignore_file (dir_path TEXT, content TEXT)")
+        c = crawler.Crawler(conn, settings)
+        assert c.is_online("R1/proj")
+        (share / "R1" / ".status.txt").unlink()
+        assert not c.is_online("R1/proj")
+        (share / "R1" / ".status.txt").write_text("ok")
+        assert not c.is_online("R1/proj")  # offline for the rest of the run
+    finally:
+        conn.close()
+
+
 def test_crawler_builds_an_index_without_a_dump(tasks, settings):
     stats = _crawl(tasks, settings, NOW)
     assert stats["added"] > 0

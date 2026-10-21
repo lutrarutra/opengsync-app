@@ -1,12 +1,13 @@
 """Overview graphs of a request, project or experiment, drawn by static/js/overview-graph.js (React Flow).
 
 The records behind a page as columns, left to right (e.g. samples → libraries → pools → experiments).
-Each node has its status, a short subtitle, facts for its tooltip and a link to its page; edges say how
+Each node has its status, a short subtitle, an aside (muted, next to its name), its sequenced reads,
+facts for its tooltip and a link to its page; edges say how
 they are connected (a pool's edge to its experiment carries the pool's lanes). Samples and libraries carry a group (their pool, lab prep or request), so the graph
 can bundle large sets into one node with a status breakdown and expand them on demand.
 
-A fixed number of queries per graph: the records with their relations, library and lane read counts,
-and pool sizes.
+A fixed number of queries per graph: the records with their relations, library, pool and lane read
+counts, and pool sizes.
 """
 from __future__ import annotations
 
@@ -95,7 +96,7 @@ class Graph:
 
     def add(
         self, kind: str, obj_id: int, label: str, *,
-        status: ExtendedEnum | None = None, sub: str | None = None, group: tuple[str, str] | None = None,
+        status: ExtendedEnum | None = None, sub: str | None = None, aside: str | None = None, group: tuple[str, str] | None = None,
         facts: Iterable[tuple[str, str | None]] = (), metrics: dict[str, float] | None = None,
         link_id: int | None = None,
     ) -> str:
@@ -107,6 +108,8 @@ class Graph:
             node["status"] = status.id
         if sub:
             node["sub"] = sub
+        if aside:
+            node["aside"] = aside
         if group is not None:
             node["group"] = group[0]
             self.groups.setdefault(group[0], group[1])
@@ -160,6 +163,21 @@ def _library_reads(session: SyncSession, library_ids: list[int], experiment_id: 
     return {library_id: int(n) for library_id, n in session.execute(query)}
 
 
+def _pool_reads(session: SyncSession, pool_ids: Iterable[int]) -> dict[int, int]:
+    """Reads of each pool's libraries in the pool's experiment."""
+    if not (pool_ids := list(pool_ids)):
+        return {}
+    return {pool_id: int(n) for pool_id, n in session.execute(
+        sa.select(models.Pool.id, sa.func.sum(models.SeqQuality.num_reads))
+        .join(models.Library, models.Library.pool_id == models.Pool.id)
+        .join(models.SeqQuality, sa.and_(
+            models.SeqQuality.library_id == models.Library.id, models.SeqQuality.experiment_id == models.Pool.experiment_id,
+        ))
+        .where(models.Pool.id.in_(pool_ids))
+        .group_by(models.Pool.id)
+    )}
+
+
 def _pool_sizes(session: SyncSession, pool_ids: Iterable[int]) -> dict[int, int]:
     if not (pool_ids := list(pool_ids)):
         return {}
@@ -197,22 +215,25 @@ def _add_library(g: Graph, library: models.Library, read_count: int | None, grou
     )
 
 
-def _add_pool(g: Graph, pool: models.Pool, size: int | None) -> str:
+def _add_pool(g: Graph, pool: models.Pool, size: int | None, read_count: int | None) -> str:
     lanes = sorted(link.lane_num for link in pool.lane_links)
-    sub = f"{size} {'library' if size == 1 else 'libraries'}" if size is not None else pool.type.label
+    sub = f"{size} {'library' if size == 1 else 'libraries'}" if size is not None else None
+    requested = pool.num_m_reads_requested
     return g.add(
-        "pool", pool.id, pool.name, status=pool.status, sub=sub,
+        "pool", pool.id, pool.name, status=pool.status, sub=sub, aside=pool.type.label,
         facts=[
             ("Type", pool.type.label),
             ("Libraries", str(size) if size is not None else None),
             ("Qubit", _num(pool.qubit_concentration, "ng/µl", 2)),
             ("Fragment size", _num(pool.avg_fragment_size, "bp", 0)),
             ("Molarity", _num(pool.molarity, "nM", 2)),
-            ("Requested", f"{reads(pool.num_m_reads_requested * 1e6)} reads" if pool.num_m_reads_requested else None),
+            ("Requested", f"{reads(requested * 1e6)} reads" if requested else None),
             ("Experiment", pool.experiment.name if pool.experiment is not None else None),
             ("Lanes", _ranges(lanes) if lanes else None),
             ("Per lane", ", ".join(f"lane {link.lane_num}: {link.num_m_reads:g} M" for link in sorted(pool.lane_links, key=lambda link: link.lane_num) if link.num_m_reads)),
+            ("Reads", reads(read_count)),
         ],
+        metrics={"reads": read_count},  # without "requested", so pools get no reads bar
     )
 
 
@@ -228,7 +249,10 @@ def _add_experiment(g: Graph, experiment: models.Experiment) -> str:
     )
 
 
-def _add_downstream(g: Graph, libraries: list[models.Library], read_counts: dict[int, int], pool_sizes: dict[int, int], with_request: bool) -> dict[int, str]:
+def _add_downstream(
+    g: Graph, libraries: list[models.Library], read_counts: dict[int, int], pool_sizes: dict[int, int], pool_reads: dict[int, int],
+    with_request: bool,
+) -> dict[int, str]:
     """Libraries, their pools and the pools' experiments; returns the library nodes."""
     nodes = {}
     for library in libraries:
@@ -236,7 +260,7 @@ def _add_downstream(g: Graph, libraries: list[models.Library], read_counts: dict
         nodes[library.id] = _add_library(g, library, read_counts.get(library.id), group)
         if (pool := library.pool) is None:
             continue
-        pool_node = _add_pool(g, pool, pool_sizes.get(pool.id))
+        pool_node = _add_pool(g, pool, pool_sizes.get(pool.id), pool_reads.get(pool.id))
         g.link(nodes[library.id], pool_node)
         if pool.experiment is not None:
             lanes = sorted(link.lane_num for link in pool.lane_links if link.experiment_id == pool.experiment_id)
@@ -260,6 +284,13 @@ def _add_sample(g: Graph, sample: models.Sample, group: tuple[str, str], shown: 
             ("Qubit", _num(sample.qubit_concentration, "ng/µl", 2)),
             ("Fragment size", _num(sample.avg_fragment_size, "bp", 0)),
         ],
+    )
+
+
+def _add_project(g: Graph, project: models.Project) -> str:
+    return g.add(
+        "project", project.id, project.title, status=project.status, sub=project.identifier_display,
+        facts=[("Identifier", project.identifier_display)],
     )
 
 
@@ -289,9 +320,10 @@ def seq_request_graph(session: SyncSession, seq_request_id: int, insider: bool) 
         .order_by(models.Library.name, models.Library.id)
     ).all()
     g = Graph([("project", "Projects"), ("sample", "Samples"), ("library", "Libraries"), ("pool", "Pools"), ("experiment", "Experiments")], insider)
+    pool_ids = {lib.pool_id for lib in libraries if lib.pool_id is not None}
     library_nodes = _add_downstream(
         g, list(libraries), _library_reads(session, [lib.id for lib in libraries]),
-        _pool_sizes(session, {lib.pool_id for lib in libraries if lib.pool_id is not None}), with_request=False,
+        _pool_sizes(session, pool_ids), _pool_reads(session, pool_ids), with_request=False,
     )
     shown = Counter(link.sample_id for library in libraries for link in library.sample_links)
     for library in libraries:
@@ -299,12 +331,7 @@ def seq_request_graph(session: SyncSession, seq_request_id: int, insider: bool) 
             sample = link.sample
             sample_node = _add_sample(g, sample, _library_group(library, False, insider), shown=shown[sample.id])
             g.link(sample_node, library_nodes[library.id])
-            project = sample.project
-            project_node = g.add(
-                "project", project.id, project.title, status=project.status, sub=project.identifier_display,
-                facts=[("Identifier", project.identifier_display)],
-            )
-            g.link(project_node, sample_node)
+            g.link(_add_project(g, sample.project), sample_node)
     return g.to_json()
 
 
@@ -321,9 +348,10 @@ def project_graph(session: SyncSession, project_id: int, insider: bool) -> dict[
     libraries = {link.library.id: link.library for sample in samples for link in sample.library_links}
     ordered = sorted(libraries.values(), key=lambda lib: (lib.seq_request_id, lib.pool_id or 0, lib.name))
     g = Graph([("sample", "Samples"), ("library", "Libraries"), ("pool", "Pools"), ("experiment", "Experiments")], insider)
+    pool_ids = {lib.pool_id for lib in ordered if lib.pool_id is not None}
     library_nodes = _add_downstream(
         g, ordered, _library_reads(session, list(libraries)),
-        _pool_sizes(session, {lib.pool_id for lib in ordered if lib.pool_id is not None}), with_request=True,
+        _pool_sizes(session, pool_ids), _pool_reads(session, pool_ids), with_request=True,
     )
     for sample in samples:
         links = sorted(sample.library_links, key=lambda link: (link.library.seq_request_id, link.library.name))
@@ -349,7 +377,8 @@ def experiment_graph(session: SyncSession, experiment_id: int) -> dict[str, Any]
     )}
     g = Graph([("seq_request", "Requests"), ("library", "Libraries"), ("pool", "Pools"), ("lane", "Lanes")], insider=True)
     read_counts = _library_reads(session, [lib.id for lib in libraries], experiment_id)
-    pool_sizes = _pool_sizes(session, {lib.pool_id for lib in libraries if lib.pool_id is not None})
+    pool_ids = {lib.pool_id for lib in libraries if lib.pool_id is not None}
+    pool_sizes, pool_reads = _pool_sizes(session, pool_ids), _pool_reads(session, pool_ids)
     lane_pools: dict[int, dict[int, float | None]] = defaultdict(dict)
     for library in libraries:
         assert library.pool is not None
@@ -386,7 +415,7 @@ def experiment_graph(session: SyncSession, experiment_id: int) -> dict[str, Any]
         g.link(request_node, library_node)
         pool = library.pool
         assert pool is not None
-        pool_node = _add_pool(g, pool, pool_sizes.get(pool.id))
+        pool_node = _add_pool(g, pool, pool_sizes.get(pool.id), pool_reads.get(pool.id))
         g.link(library_node, pool_node)
         for link in pool.lane_links:
             if link.experiment_id == experiment_id and link.lane_num in lanes:

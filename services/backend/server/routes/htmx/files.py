@@ -18,7 +18,7 @@ from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
 from ...utils.file_browser import FileBrowser, is_within_root
 from ...utils import fs_index
-from ...utils.io import is_browser_friendly, render_markdown
+from ...utils.io import render_markdown
 from ...forms.actions import SharePathAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
@@ -202,38 +202,6 @@ def download_seq_auth_form():
     return responses.file_response(path=path, filename=name)
 
 
-@router.get("/serve-data-file/{data_path_id}")
-def serve_data_file(
-    data_path_id: int,
-    session: SyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_user),
-):
-    data_path = session.get_one(Q.data_path.select(id=data_path_id))
-
-    if not current_user.is_insider:
-        if data_path.project_id is not None:
-            if session.get_access_level(Q.project.permissions(data_path.project_id, current_user.id)) < C.AccessLevel.READ:
-                raise exc.NoPermissionsException()
-        elif data_path.seq_request_id is not None:
-            if session.get_access_level(Q.seq_request.permissions(data_path.seq_request_id, current_user.id)) < C.AccessLevel.READ:
-                raise exc.NoPermissionsException()
-        else:
-            raise exc.NoPermissionsException()
-
-    share_root = Path(config.settings.app_config.share_root)
-    if not is_within_root(share_root, data_path.path):
-        raise exc.NoPermissionsException("Data path is outside of share root.")
-    path = share_root / data_path.path
-    if not path.exists():
-        raise exc.NotFoundException("Data file not found")
-    if not path.is_file():
-        raise exc.BadRequestException("Data path is not a file")
-
-    mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
-    disposition = "inline" if is_browser_friendly(mimetype) else "attachment"
-    return responses.file_response(path=path, filename=path.name, content_type=mimetype, disposition=disposition)
-
-
 @router.get("/{media_file_id}/render")
 def serve_media_file(
     media_file_id: int,
@@ -340,6 +308,7 @@ def file_browser_search(
     kind: Literal["all", "dirs", "files"] = Query("all"),
     root: str | None = Query(None, max_length=255),
     page: int = Query(0, ge=0),
+    pick: bool = Query(False, description="Picking paths to add to a Data tab: only Select on the results"),
     session: SyncSession = Depends(dependencies.db_session),
     fs_index_session: SyncSession | None = Depends(dependencies.fs_index_session),
     _: models.User = Depends(dependencies.require_insider),
@@ -369,8 +338,9 @@ def file_browser_search(
         indexed_at=fs_index.indexed_at(fs_index_session),
         search_route="file_browser_search",
         entries_route="render_file_browser_page",
-        route_params={},
+        route_params={"pick": 1} if pick else {},
         insider_actions=True,
+        picker=pick,
     )
 
 
@@ -403,9 +373,10 @@ def render_file_browser_page(
     sort_by: Literal["name", "size", "mtime"] = Query("name"),
     sort_order: Literal["asc", "desc"] | None = Query(None),
     located: bool = Query(False, description="Opened as the current location: render a path bar above the entries"),
+    pick: bool = Query(False, description="Picking paths to add to a Data tab: only Select on the entries"),
     session: SyncSession = Depends(dependencies.db_session),
     redis: RedisClient = Depends(dependencies.redis),
-    _: int = Depends(dependencies.require_user_id),
+    _: models.User = Depends(dependencies.require_insider),
 ):
     PAGE_LIMIT = 50
     if sort_order is None:
@@ -439,6 +410,8 @@ def render_file_browser_page(
         sort_by=sort_by,
         sort_order=sort_order,
         share_token=None,
+        route_params={"pick": 1} if pick else {},
+        picker=pick,
         location_header=located and page == 0,
         missing=missing,
     )

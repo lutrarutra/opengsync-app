@@ -1,3 +1,4 @@
+{% from 'components/status_change.jinja2' import status_change %}
 <div class="modal-content" id="seq_run-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >{% if form.seq_run %}Edit{% else %}Create{% endif %} Seq Run</h1>
@@ -8,13 +9,8 @@
             {{ form.csrf_token.render() }}
             <div class="row">
                 {{ form.experiment_name.render("col-6") }}
-                {{ form.status.render("col-6") }}
+                {{ status_change(form.status, form.status_comment, form.seq_run.status.id if form.seq_run else none, "col-6") }}
             </div>
-            {% if form.status_comment is defined and not form.status_comment.hidden %}
-            <div class="row">
-                {{ form.status_comment.render("col-12") }}
-            </div>
-            {% endif %}
             <div class="row">
                 {{ form.instrument_name.render("col-4") }}
                 {{ form.run_folder.render("col-4") }}

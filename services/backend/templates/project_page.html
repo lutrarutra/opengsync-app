@@ -3,7 +3,7 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
 {% from 'components/button.jinja2' import confirm_action_button, modal_button %}
-{% from "components/file-browser/browser.jinja2" import file_browser with context %}
+{% from "components/file-browser/browser.jinja2" import file_browser, add_data_button with context %}
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
 {% block content %}
@@ -263,43 +263,45 @@
             </div>
         </div>
         <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="9">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2>Paths {% if current_user.is_insider %}<img {{ tooltip('Right click on a highlighted data path to remove it from the project.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
+            <div class="data-tab-toolbar">
+                <div class="data-tab-toolbar-status">
+                    {% if project.share_token_uuid %}
+                    {% set expired = project.share_token.is_expired %}
+                    <span class="data-tab-share-status {{ 'is-expired' if expired else 'is-active' }}">
+                        <span class="data-tab-share-dot" aria-hidden="true"></span>
+                        Share link {{ "expired" if expired else "expires" }} {{ project.share_token.expiration | format_datetime }}
+                    </span>
+                    {% else %}
+                    <span class="data-tab-share-status is-none">
+                        <span class="data-tab-share-dot" aria-hidden="true"></span>
+                        No share link yet
+                    </span>
+                    {% endif %}
+                    {% if current_user.can_assign_data %}
+                    <i class="bi bi-info-circle data-tab-hint" {{ tooltip('Right click on a highlighted data path to remove it from the project.', 'right') }}></i>
+                    {% endif %}
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end;">
-                    <div class="input-group" style="width: 100%; cursor: default;">
-                        <span class="input-group-text">Token Expiration</span>
-                        <input class="form-control noselect" type="text" readonly
-                        {% if project.share_token_uuid %}
-                        style="text-align: end; cursor: default;"
-                        value="{{ project.share_token.expiration | format_datetime }} {% if project.share_token.is_expired %}🔴{% else %}🟢{% endif %}"
-                        {% else %}
-                        style="text-align: end; cursor: default; color: #5e5e5e;"
-                        value="No Token Generated" style="text-align: end;"
-                        {% endif %}>
-                    </div>
+                <div class="data-tab-toolbar-actions">
+                    {{ add_data_button('project_data_picker', {'project_id': project.id}) }}
                     {% if current_user.is_insider %}
-                    <div>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" style="width: 120px;"
-                            hx-get="{{ url_for('ShareProjectDataAction.Begin', project_id=project.id) }}"
-                            hx-swap="innerHTML" hx-target="#xl-modal-content"
-                            {% if project.share_token_uuid and not project.share_token.is_expired %}
-                            _="on htmx:confirm(issueRequest)
-                            halt the event
-                            call Swal.fire({
-                                title: 'This project already has a valid share token.',
-                                icon: 'warning',
-                                showDenyButton: true,
-                                text: 'Existing token will be invalidated and a new one will be created. Do you want to proceed?',
-                                confirmButtonText: 'Yes',
-                                denyButtonText: 'No'
-                            })
-                            if result.isConfirmed issueRequest()"
-                            {% endif %}>
-                            Share Data
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                        hx-get="{{ url_for('ShareProjectDataAction.Begin', project_id=project.id) }}"
+                        hx-swap="innerHTML" hx-target="#xl-modal-content"
+                        {% if project.share_token_uuid and not project.share_token.is_expired %}
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'This project already has a valid share token.',
+                            icon: 'warning',
+                            showDenyButton: true,
+                            text: 'Existing token will be invalidated and a new one will be created. Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()"
+                        {% endif %}>
+                        <i class="bi bi-share" aria-hidden="true"></i> Share data
+                    </button>
                     {% endif %}
                 </div>
             </div>

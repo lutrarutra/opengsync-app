@@ -8,6 +8,7 @@
 {% from "components/button.jinja2" import modal_button %}
 {% from "components/button.jinja2" import confirm_action_button %}
 
+{% from "components/file-browser/browser.jinja2" import file_browser, add_data_button with context %}
 {% extends "base.html" %}
 {% set active_page = "seq_requests-page" %}
 {% block content %}
@@ -543,9 +544,12 @@
             </div>
         </div>
         <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="13">
-            <div hx-get="{{ url_for('render_data_path_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
+            {% if current_user.can_assign_data %}
+            <div class="data-tab-toolbar">
+                <div class="data-tab-toolbar-actions">{{ add_data_button('seq_request_data_picker', {'seq_request_id': seq_request.id}) }}</div>
             </div>
+            {% endif %}
+            {{ file_browser('seq_request_browser_entries', {'seq_request_id': seq_request.id}, trigger='intersect once', search_route='seq_request_browser_search' if fs_index_enabled is defined and fs_index_enabled else none) }}
         </div>
         {% if reviewed %}{{ review_tab_pane(active=false, tabindex=14) }}{% endif %}
     </div>

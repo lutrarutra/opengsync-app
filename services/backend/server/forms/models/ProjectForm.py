@@ -13,8 +13,8 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 class ProjectForm(HTMXForm):
     template_path = "forms/project.html"
     status_comment = inputs.string.StringInputField(
-        "Why? (optional)", required=False, max_length=512, hidden=True,
-        placeholder="Reason for the status change, stored in the status history",
+        "Reason for status change (optional)", required=False, max_length=512, hidden=True,
+        placeholder="Stored in the status history",
     )
 
     identifier = inputs.string.StringInputField(
@@ -189,7 +189,7 @@ class ProjectForm(HTMXForm):
                 form.title.errors.append("You already have a project with this title.")
                 raise exc.FormValidationException(form)
 
-            if session.exists(Q.project.select(identifier=form.identifier.data)):
+            if form.identifier.data and session.exists(Q.project.select(identifier=form.identifier.data)):
                 form.identifier.errors.append("This identifier is already taken.")
                 raise exc.FormValidationException(form)
 

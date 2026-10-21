@@ -3,30 +3,13 @@ from pathlib import Path
 from fastapi import Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db import models, queries as Q, SyncSession
 
 from ...core import dependencies, responses, config, exceptions as exc
-from ...utils.file_browser import is_within_root
+from ...utils.file_browser import is_within_root, is_share_root, infer_data_path_type
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..common import SelectedPathsMixin, SelectedPathSubForm
-
-
-def _infer_data_path_type(full_path: Path) -> C.DataPathType:
-    if full_path.is_dir():
-        return C.DataPathType.DIRECTORY
-    ext = full_path.suffix.lower()
-    if ext == ".html":
-        return C.DataPathType.HTML
-    if ext == ".pdf":
-        return C.DataPathType.PDF
-    if ext in [".tsv", ".csv"]:
-        return C.DataPathType.TABLE
-    if ext in [".xlsx", ".xls"]:
-        return C.DataPathType.EXCEL
-    if ext in [".png", ".jpg", ".jpeg", ".gif", ".tiff", ".bmp"]:
-        return C.DataPathType.IMAGE
-    return C.DataPathType.CUSTOM
 
 
 def _associations(data_paths: list[models.DataPath]) -> list[dict[str, str | None]]:
@@ -107,6 +90,8 @@ class AssociatePathAction(HTMXForm, SelectedPathsMixin):
             for entry in form.paths:
                 if not is_within_root(share_root, entry.path.data):
                     entry.path.errors.append("Path is outside of share root.")
+                elif is_share_root(entry.path.data):
+                    entry.path.errors.append("A whole share folder can't be associated, only files and folders inside it.")
             if form.paths.has_errors:
                 raise exc.FormValidationException(form)
 
@@ -128,7 +113,7 @@ class AssociatePathAction(HTMXForm, SelectedPathsMixin):
             updated: list[dict] = []
             for path in paths:
                 posix_path = path.as_posix()
-                file_type = _infer_data_path_type(share_root / path)
+                file_type = infer_data_path_type(share_root / path)
                 for target, key in targets:
                     if session.first(Q.data_path.select(path=posix_path, **{f"{key}_id": target.id})) is not None:
                         continue
