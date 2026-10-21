@@ -5,7 +5,7 @@ from opengsync_db import SyncSession, categories as C
 from ....db.create_units import create_seq_request
 from ._workflow import (
     AnnotationWorkflow, HUMAN, BARCODE_COLUMNS, pool_mapping,
-    libraries_by_name, linked_samples, spreadsheet,
+    libraries_by_name, linked_samples, spreadsheet, spreadsheet_rows,
 )
 
 L = C.LibraryType
@@ -35,12 +35,14 @@ def test_pooled_custom_ocm_annotation(
         ["OCM_Chip", LABEL[L.TENX_SC_GEX_3PRIME.id]],
         ["OCM_Chip", LABEL[L.TENX_ANTIBODY_CAPTURE.id]],
     ]), next_step="o-c-m-annotation")
-    wf.post("o-c-m-annotation", spreadsheet(["Sample Name", "Multiplexing Pool", "Barcode ID"], [
+    pooled_step = wf.post("o-c-m-annotation", spreadsheet(["Sample Name", "Multiplexing Pool", "Barcode ID"], [
         ["Chip_S1", "OCM_Chip", "OB1"], ["Chip_S2", "OCM_Chip", "OB2"],
     ]), next_step="pooled-library-annotation")
 
     gex = f"OCM_Chip_{L.TENX_SC_GEX_3PRIME.identifier}"
     abc = f"OCM_Chip_{L.TENX_ANTIBODY_CAPTURE.identifier}"
+    # One library per pool and type, not one per sample in the pool
+    assert [row[0] for row in spreadsheet_rows(pooled_step)] == [gex, abc]
     wf.post("pooled-library-annotation", spreadsheet(
         ["Library Name", "Pool"], [[gex, "Custom_Pool"], [abc, "Custom_Pool"]],
     ), next_step="pool-mapping")

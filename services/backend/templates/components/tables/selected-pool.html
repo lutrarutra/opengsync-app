@@ -21,7 +21,7 @@
             <th scope="row">{{ pool.id }}</th>
             <td>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}</td>
             <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
-            <td>{% if pool.status %}{{ pool.status.label }} {{ pool.status.icon }}{% endif %}</td>
+            <td>{% if pool.status is not none %}{{ pool.status.label }} {{ pool.status.icon }}{% endif %}</td>
             {% if browse_context == "qubit-measure" %}
             <td>
                 <div class="quantity-container">

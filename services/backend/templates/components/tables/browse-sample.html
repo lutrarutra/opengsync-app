@@ -19,7 +19,7 @@
             <tr id="sample-row-{{ sample.id }}" data-id="{{ sample.id }}" class="sample-row">
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
-                <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
+                <td>{% if sample.status is not none %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
                 {% if browse_context == "qubit-measure" %}
                 <td>
                     <div class="quantity-container">

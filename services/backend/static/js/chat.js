@@ -142,6 +142,10 @@
     toggle.addEventListener("click", () => (panel.hidden ? open() : close()));
     document.getElementById("chat-close").addEventListener("click", close);
 
+    // An open Bootstrap modal traps focus by pulling it back on any focusin outside the modal (listener on document);
+    // keeping the widget's focus events from reaching document lets the chat be used while a modal is open
+    widget.addEventListener("focusin", (e) => e.stopPropagation());
+
     panel.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             close();

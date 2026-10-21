@@ -23,7 +23,7 @@
                     {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}
                 </span>
             </td>
-            <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
+            <td>{% if library.status is not none %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
             {% if browse_context == "qubit-measure" %}
             <td>
                 <div class="quantity-container">

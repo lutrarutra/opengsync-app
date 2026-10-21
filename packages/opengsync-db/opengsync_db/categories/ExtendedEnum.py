@@ -26,6 +26,10 @@ class ExtendedEnum(enum.IntEnum):
     def __arrow_value__(self):
         return self.id
 
+    def __bool__(self) -> bool:
+        # members are always truthy, even when their id is 0 (e.g. DRAFT, CUSTOM)
+        return True
+
     @classmethod
     def _missing_(cls, value):
         return cls.as_dict().get(value)  # type: ignore

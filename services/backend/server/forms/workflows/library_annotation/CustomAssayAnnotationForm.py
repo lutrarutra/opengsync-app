@@ -27,6 +27,42 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
         self.spreadsheet.set_data(self.sample_pooling_table.drop_duplicates(subset=["sample_pool"]))
         self.mux_type = C.MUXType.get(workflow.metadata["mux_type_id"]) if workflow.metadata.get("mux_type_id") is not None else None
 
+    @staticmethod
+    def build_libraries(sample_pooling_table: pd.DataFrame, library_types: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """One library per pool and annotated type (``library_types``: sample_pool, library_type_id), linked to
+        every sample of the pool. Returns the library table and the new sample pooling table."""
+        library_table_data = {
+            "library_name": [],
+            "sample_name": [],
+            "library_type": [],
+            "library_type_id": [],
+        }
+
+        sample_pooling_table_data = {
+            "sample_name": [],
+            "library_name": [],
+            "sample_pool": [],
+        }
+
+        for (sample_pool,), pool_df in sample_pooling_table.groupby(["sample_pool"], sort=False):
+            # sample_pooling_table may already have a row per library (re-submit after 'Back')
+            sample_names = pool_df["sample_name"].unique()
+            for _, row in library_types.loc[library_types["sample_pool"] == sample_pool].iterrows():
+                library_type = C.LibraryType.get(row["library_type_id"])
+                library_name = f"{sample_pool}_{library_type.identifier}"
+
+                library_table_data["library_name"].append(library_name)
+                library_table_data["sample_name"].append(sample_pool)
+                library_table_data["library_type"].append(library_type.name)
+                library_table_data["library_type_id"].append(library_type.id)
+
+                for sample_name in sample_names:
+                    sample_pooling_table_data["sample_name"].append(sample_name)
+                    sample_pooling_table_data["library_name"].append(library_name)
+                    sample_pooling_table_data["sample_pool"].append(sample_pool)
+
+        return pd.DataFrame(library_table_data), pd.DataFrame(sample_pooling_table_data)
+
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
@@ -65,39 +101,8 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
                     form.spreadsheet.add_error(idx, "library_type_id", InvalidCellValue(f"Library type '{library_type.name}' is incompatible with the selected multiplexing method '{form.mux_type.name if form.mux_type else 'N/A'}'"))
 
             form.assert_valid()
-            
-            library_table_data = {
-                "library_name": [],
-                "sample_name": [],
-                "library_type": [],
-                "library_type_id": [],
-            }
 
-            sample_pooling_table = {
-                "sample_name": [],
-                "library_name": [],
-                "sample_pool": [],
-            }
-
-            def add_library(sample_pool: str, library_type: C.LibraryType):
-                library_name = f"{sample_pool}_{library_type.identifier}"
-                
-                library_table_data["library_name"].append(library_name)
-                library_table_data["sample_name"].append(sample_pool)
-                library_table_data["library_type"].append(library_type.name)
-                library_table_data["library_type_id"].append(library_type.id)
-                return library_name
-
-            for (sample_pool, sample_name), _df in form.sample_pooling_table.groupby(["sample_pool", "sample_name"], sort=False):
-                for _, row in df.loc[df["sample_pool"] == sample_pool].iterrows():
-                    library_name = add_library(sample_pool, C.LibraryType.get(row["library_type_id"]))  # type: ignore
-
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["library_name"].append(library_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-
-            library_table = pd.DataFrame(library_table_data)
-            form.sample_pooling_table = pd.DataFrame(sample_pooling_table)
+            library_table, form.sample_pooling_table = CustomAssayAnnotationForm.build_libraries(form.sample_pooling_table, df)
             form.sample_pooling_table["mux_type_id"] = form.mux_type.id if form.mux_type else None
             form.sample_pooling_table["mux_barcode"] = None
 
