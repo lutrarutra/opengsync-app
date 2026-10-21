@@ -8,7 +8,6 @@ Admins and bioinformaticians add and remove data with "Manage data": a full-scre
 share (data-picker.html). Linked paths start ticked; the ticked and unticked ones are posted to
 `save_<entity>_data_paths`.
 """
-import mimetypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -23,6 +22,7 @@ from ...core.context import ctx
 from ...forms.common import SelectedPathsMixin
 from ...utils.file_browser import (
     MAX_SELECTED_PATHS, PROJECT_SERVABLE_EXTENSIONS, infer_data_path_type, is_servable, is_share_root, is_within_root,
+    servable_mimetype,
 )
 from ...utils.io import is_browser_friendly
 from ...utils.shared_file_browser import SharedFileBrowser
@@ -349,7 +349,7 @@ def data_browser_router(scope: DataScope) -> APIRouter:
         if not is_servable(path):
             raise exc.NoPermissionsException("This file can only be downloaded through a data share link.")
 
-        mimetype = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        mimetype = servable_mimetype(path)
         return responses.file_response(
             path=path,
             filename=path.name,

@@ -103,12 +103,12 @@ class ShareProjectDataAction(HTMXForm):
 
         self.recipient_emails = recipient_emails
 
-    # Insiders only: sharing releases the data (libraries SEQUENCED → SHARED, project DELIVERED), as the release API
+    # Admins and bioinformaticians only: sharing releases the data (libraries SEQUENCED → SHARED, project DELIVERED), as the release API
     @htmx_route("GET", "/{project_id}/share-data")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "ShareProjectDataAction" = Depends(ShareProjectDataAction.Init()),
-            _: models.User = Depends(dependencies.require_insider),
+            _: models.User = Depends(dependencies.require_data_assigner),
             access_level: C.AccessLevel = Depends(dependencies.project_permissions),
         ):
             if access_level < C.AccessLevel.WRITE:
@@ -120,7 +120,7 @@ class ShareProjectDataAction(HTMXForm):
     def Submit(cls) -> RouteFunc:
         def route(
             form: "ShareProjectDataAction" = Depends(ShareProjectDataAction.Validate()),
-            current_user: models.User = Depends(dependencies.require_insider),
+            current_user: models.User = Depends(dependencies.require_data_assigner),
             access_level: C.AccessLevel = Depends(dependencies.project_permissions),
             session: SyncSession = Depends(dependencies.db_session),
             mailer: Mailer = Depends(dependencies.mail_client),

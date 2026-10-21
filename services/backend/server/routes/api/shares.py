@@ -187,7 +187,7 @@ class ReleaseProjectDataRequest(BaseModel):
     comment: str | None = None
 
 
-@router.post("/add-data_path", dependencies=[Depends(dependencies.require_insider)])
+@router.post("/add-data_path", dependencies=[Depends(dependencies.require_data_assigner)])
 def add_data_path(
     body: AddDataPathRequest,
     session: SyncSession = Depends(dependencies.db_session),
@@ -225,7 +225,7 @@ def add_data_path(
     return {"result": "success", "share_path": share_path, "path": body.path, "type": path_type.name}
 
 
-@router.delete("/remove-data_paths", dependencies=[Depends(dependencies.require_insider)])
+@router.delete("/remove-data_paths", dependencies=[Depends(dependencies.require_data_assigner)])
 def remove_data_paths(
     body: RemoveDataPathsRequest,
     session: SyncSession = Depends(dependencies.db_session),
@@ -272,7 +272,7 @@ def release_project_data(
     session: SyncSession = Depends(dependencies.db_session),
     mailer: Mailer = Depends(dependencies.mail_client),
     redis: rds.RedisClient = Depends(dependencies.redis),
-    current_user: models.User = Depends(dependencies.require_insider),
+    current_user: models.User = Depends(dependencies.require_data_assigner),
 ) -> dict[str, Any]:
 
     project = session.first(

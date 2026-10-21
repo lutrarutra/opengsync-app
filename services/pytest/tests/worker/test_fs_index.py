@@ -75,7 +75,8 @@ def dump(settings, *roots: str) -> None:
     args = [sys.executable, str(DUMP_SCRIPT), "--out", settings.dump_dir, "--threads", "2"]
     for root in roots:
         args += ["--root", f"{root}={Path(settings.share_root) / root}"]
-    subprocess.run(args, check=True, capture_output=True)
+    # a dump that follows a symlink cycle never finishes: fail instead of hanging the suite
+    subprocess.run(args, check=True, capture_output=True, timeout=120)
 
 
 def rows(settings) -> dict[str, dict]:
@@ -417,3 +418,164 @@ def test_rate_limiter_is_shared_by_threads(tasks):
         list(pool.map(lambda _: limiter.wait(), range(20)))
     assert time.monotonic() - started >= 0.18
     assert crawler.RateLimiter(0).interval == 0
+
+
+# ── symlinks: leaving the share, and cycles ─────────────────────────────────
+
+
+def _age(root: Path, seconds_ago: int = 1000) -> None:
+    old = time.time() - seconds_ago
+    for path in [root, *root.rglob("*")]:
+        os.utime(path, (old, old), follow_symlinks=False)
+
+
+# link -> share path it resolves to; none of them may be descended into
+CYCLES = {
+    "R1/proj/up": "R1",                 # its own grandparent
+    "R1/proj/outs/self": "R1/proj/outs",  # its own folder
+    "R1/proj/to_r2": "R2/x",            # R1/proj -> R2/x -> R1/proj, across roots
+    "R2/x/to_r1": "R1/proj",
+}
+LOOPS = ("R1/loop_a", "R1/loop_b")  # point at each other: ELOOP
+
+
+@pytest.fixture
+def cyclic_share(share: Path) -> Path:
+    (share / "R1" / "proj" / "up").symlink_to("..", target_is_directory=True)
+    (share / "R1" / "proj" / "outs" / "self").symlink_to(".", target_is_directory=True)
+    (share / "R1" / "proj" / "to_r2").symlink_to("../../R2/x", target_is_directory=True)
+    (share / "R2" / "x" / "to_r1").symlink_to("../../R1/proj", target_is_directory=True)
+    (share / "R1" / "loop_a").symlink_to("loop_b")
+    (share / "R1" / "loop_b").symlink_to("loop_a")
+    _age(share)
+    return share
+
+
+def assert_cycles_stored_once(entries: dict[str, dict]) -> None:
+    for link, target in CYCLES.items():
+        assert (entries[link]["kind"], entries[link]["target_kind"]) == ("l", "d"), link
+        assert entries[link]["link_target"] == target, link
+        assert entries[link]["unsafe"] == 0, link
+    for link in LOOPS:
+        assert (entries[link]["kind"], entries[link]["target_kind"]) == ("l", "loop"), link
+    for link in (*CYCLES, *LOOPS):
+        assert not any(path.startswith(f"{link}/") for path in entries), f"descended into {link}"
+
+
+def test_dump_records_cyclic_symlinks_without_descending(settings, cyclic_share: Path):
+    dump(settings, "R1")
+    lines = [json.loads(line) for line in gzip.decompress((Path(settings.dump_dir) / "R1.jsonl.gz").read_bytes()).splitlines()]
+    entries = {line[0]: line for line in lines if isinstance(line, list)}
+    assert entries["proj/up"][1] == "l" and entries["proj/up"][6] == "d"
+    assert entries["proj/outs/self"][6] == "d"
+    assert entries["loop_a"][6] == "loop" and entries["loop_b"][6] == "loop"
+    assert not any(rel.startswith(("proj/up/", "proj/outs/self/", "proj/to_r2/")) for rel in entries)
+    assert lines[-1]["kind"] == "footer" and lines[-1]["errors"] == 0
+
+
+def test_import_stores_cyclic_symlinks_once(tasks, settings, cyclic_share: Path):
+    _, importer, _ = tasks
+    dump(settings, "R1", "R2")
+    importer.import_dumps(settings, now=NOW)
+
+    entries = rows(settings)
+    assert_cycles_stored_once(entries)
+    # links to folders and loops add nothing: the same totals as without them
+    assert totals(entries, "R1") == (1150, 3)
+    assert totals(entries, "R2") == (1000, 1)
+    assert search(settings, "a.bam") == ["R1/proj/outs/a.bam"]
+    assert search(settings, "big") == ["R2/x/big.bin"]
+
+
+def test_crawler_does_not_follow_cyclic_symlinks(tasks, settings, cyclic_share: Path):
+    stats = _crawl(tasks, settings, NOW)
+    assert stats["errors"] == 0
+
+    entries = rows(settings)
+    assert_cycles_stored_once(entries)
+    assert totals(entries, "R1") == (1100, 2)  # as in test_crawler_builds_an_index_without_a_dump
+    assert search(settings, "a.bam") == ["R1/proj/outs/a.bam"]
+
+    # every folder changed: listing them all again finds nothing below the links either
+    _age(cyclic_share, seconds_ago=500)
+    _crawl(tasks, settings, NOW + 30 * DAY)
+    assert rows(settings).keys() == entries.keys()
+
+
+def test_recrawl_after_import_keeps_cyclic_symlinks_stable(tasks, settings, cyclic_share: Path):
+    _, importer, _ = tasks
+    dump(settings, "R1", "R2")
+    importer.import_dumps(settings, now=NOW)
+    before = rows(settings)
+
+    _age(cyclic_share, seconds_ago=500)  # every folder changed: all are listed again
+    stats = _crawl(tasks, settings, NOW + 30 * DAY)
+    assert stats["changed"] >= 4
+
+    entries = rows(settings)
+    assert_cycles_stored_once(entries)
+    assert entries.keys() == before.keys()
+    for path in ("R1", "R1/proj", "R2"):
+        assert totals(entries, path) == totals(before, path), path
+
+
+def test_touched_path_through_a_cyclic_symlink_adds_nothing_below_it(tasks, settings, cyclic_share: Path):
+    """The app touches what it listed live, and the live browser follows symlinks: these paths go through cycles."""
+    _, importer, _ = tasks
+    dump(settings, "R1", "R2")
+    importer.import_dumps(settings, now=NOW)
+
+    touched = ["R1/proj/up/proj/up/proj/outs", "R1/proj/outs/self/self/self", "R2/x/to_r1/to_r2/to_r1"]
+    stats = _crawl(tasks, settings, NOW + 1, touched=touched)
+    assert stats["errors"] == 0
+    assert_cycles_stored_once(rows(settings))
+
+
+def test_crawler_does_not_follow_symlinks_leaving_the_share(tasks, settings):
+    _crawl(tasks, settings, NOW)
+    entries = rows(settings)
+    escape = entries["R1/proj/escape"]
+    assert (escape["kind"], escape["unsafe"], escape["link_target"], escape["target_kind"]) == ("l", 1, None, "d")
+    assert not any(path.startswith("R1/proj/escape/") for path in entries)
+    assert search(settings, "leak") == []
+
+
+def test_symlinked_root_leaving_the_share_is_not_indexed(tasks, settings, share: Path):
+    """A top-level folder of the share that is a symlink out of it, instead of a mount."""
+    (share / "R3").symlink_to(share.parent / "outside", target_is_directory=True)
+    _crawl(tasks, settings, NOW)
+    _crawl(tasks, settings, NOW + 30 * DAY)
+    entries = rows(settings)
+    assert not any(path.startswith("R3/") for path in entries)
+    assert search(settings, "leak") == []
+
+
+def test_absolute_cluster_symlinks_become_unsafe_when_relisted(tasks, settings, share: Path, tmp_path: Path):
+    """The dump resolves symlinks on the cluster, the crawler inside the container (docs/file-share.md).
+
+    An absolute link to a cluster path is mapped onto the share by the import, but the container cannot
+    resolve it: once its folder is listed again, it counts as leaving the share. Relative links keep working.
+    """
+    _, importer, _ = tasks
+    proj = share / "R1" / "proj"
+    (proj / "abs.bin").symlink_to(share / "R2" / "x" / "big.bin")  # absolute, cluster-side path
+    _age(share)
+    dump(settings, "R1", "R2")
+    importer.import_dumps(settings, now=NOW)
+    entries = rows(settings)
+    assert (entries["R1/proj/abs.bin"]["link_target"], entries["R1/proj/abs.bin"]["unsafe"]) == ("R2/x/big.bin", 0)
+    assert totals(entries, "R1/proj") == (2150, 4)
+
+    # the container mounts the same tree elsewhere; the cluster path no longer exists
+    mounted = tmp_path / "container-share"
+    os.rename(share, mounted)
+    settings.share_root = str(mounted)
+    _age(mounted, seconds_ago=500)
+    _crawl(tasks, settings, NOW + 30 * DAY)
+
+    entries = rows(settings)
+    abs_link = entries["R1/proj/abs.bin"]
+    assert (abs_link["unsafe"], abs_link["link_target"], abs_link["target_kind"]) == (1, None, "missing")
+    assert entries["R1/proj/link.bin"]["link_target"] == "R2/x/big.bin"
+    assert entries["R1/proj/link.bin"]["unsafe"] == 0
+    assert totals(entries, "R1/proj") == (1150, 3)

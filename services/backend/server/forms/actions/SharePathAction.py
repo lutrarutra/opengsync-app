@@ -89,7 +89,7 @@ class SharePathAction(HTMXForm, SelectedPathsMixin):
     def Begin(cls) -> RouteFunc:
         def route(
             form: "SharePathAction" = Depends(SharePathAction.Init()),
-            _=Depends(dependencies.require_insider),
+            _=Depends(dependencies.require_data_assigner),
         ):
             return form.make_response()
         return route
@@ -99,12 +99,9 @@ class SharePathAction(HTMXForm, SelectedPathsMixin):
         def route(
             form: "SharePathAction" = Depends(SharePathAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
+            current_user: models.User = Depends(dependencies.require_data_assigner),
             mailer: Mailer = Depends(dependencies.mail_client),
         ):
-            if not current_user.is_insider:
-                raise exc.NoPermissionsException()
-
             # As legacy's SelectField: only the offered validity periods
             if form.time_valid_min.data not in dict(TIME_VALID_CHOICES):
                 form.time_valid_min.errors.append("Not a valid choice.")

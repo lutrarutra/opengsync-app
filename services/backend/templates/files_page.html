@@ -17,7 +17,7 @@
     </div>
 {% endcall %}
 
-{% if not share_token %}
+{% if not share_token and current_user and current_user.can_assign_data %}
 {# Paths picked with right-click → Select or Ctrl/Cmd+click; static/js/path-selection.js #}
 {% call selection_panel(max_selected_paths, associate_url=url_for('AssociatePathAction.Begin'), share_url=url_for('SharePathAction.Begin')) %}
 <div class="path-selection-footer">

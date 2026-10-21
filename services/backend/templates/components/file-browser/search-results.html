@@ -4,8 +4,8 @@
   Page 0 renders the header and the first rows; later pages ("Show more") only rows.
 
   search_route / route_params: this search; entries_route: the live listing folders expand into
-  file_route / servable_extensions: project Data tab, files open in the browser
-  insider_actions: Select / Share / Assign (insider file browser)
+  file_route / servable_extensions: Data tabs and the insider browser, files open in the browser
+  insider_actions: insider file browser: association badges, and Select / Share / Assign for admins and bioinformaticians
   picker: with insider_actions, only Select (picking paths to add to a Data tab)
   data_owner_label: Data tabs, what the data paths belong to ("project", "request", ...)
 #}
@@ -13,6 +13,8 @@
 {% set servable_extensions = servable_extensions if servable_extensions is defined else none %}
 {% set data_owner_label = data_owner_label if data_owner_label is defined else "project" %}
 {% set picker = picker if picker is defined else false %}
+{# Select / Assign / Share: admins and bioinformaticians; technicians only browse #}
+{% set can_assign = insider_actions and current_user and current_user.can_assign_data %}
 
 {% macro search_url(page=0, kind_=kind, root_=root) -%}
 {{ url_for(search_route, q=query, kind=kind_ if kind_ != "all" else none, root=root_, page=page if page else none, **route_params) }}
@@ -30,14 +32,14 @@
 {% set entry_id = uuid4() %}
 {% set is_linked_file = file_route and not result.is_dir and (servable_extensions is none or result.suffix in servable_extensions) %}
 {% set is_share_root = "/" not in result.path %}
-{% if insider_actions and picker %}
+{% if can_assign and picker %}
     {% set entry_actions = [] if is_share_root else [{"type": "select", "label": "Select", "config": {"path": result.path}}] %}
-{% elif insider_actions and is_share_root %}
+{% elif can_assign and is_share_root %}
     {% set entry_actions = [
         {"type": "select", "label": "Select", "config": {"path": result.path}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {"url": url_for('SharePathAction.Begin', path=result.path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}}
     ] %}
-{% elif insider_actions %}
+{% elif can_assign %}
     {% set entry_actions = [
         {"type": "select", "label": "Select", "config": {"path": result.path}},
         {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {"url": url_for('AssociatePathAction.Begin', path=result.path), "target": "#xl-modal-content", "swap": "innerHTML", "confirm": false}},
@@ -48,7 +50,7 @@
 {% endif %}
 <div class="search-result{% if result.is_dir %} browser-directory{% endif %}{% if result.data_paths and not insider_actions %} browser-data-path{% endif %}">
     <div class="browser-entry-row search-result-row{% if entry_actions %} cm-callback{% endif %}"
-         {% if insider_actions %}data-path="{{ result.path }}"{% endif %}
+         {% if can_assign %}data-path="{{ result.path }}"{% endif %}
          {% if entry_actions %}{{ context_menu(entry_actions) }}{% endif %}>
         <div class="search-result-main">
             {% set name %}
@@ -110,7 +112,7 @@
         <span class="browser-entry-size" {% if result.is_dir %}title="Total size of the folder"{% endif %}>{{ result.size | bytes_to_human }}</span>
         <time class="browser-entry-mtime" datetime="{{ result.mtime }}" title="{{ result.mtime | from_timestamp }}">{{ result.mtime | time_ago }}</time>
         <span class="search-result-actions">
-            {% if insider_actions and not (picker and is_share_root) %}
+            {% if can_assign and not (picker and is_share_root) %}
             <button type="button" class="btn btn-sm search-result-action search-result-select"
                     title="Add to selection (Ctrl/Cmd+click)" aria-label="Select {{ result.path }}"
                     data-select-path="{{ result.path }}"

@@ -3,7 +3,7 @@
 
 {#
   entries_route / route_params: listing route and its extra path params (defaults: share-link or admin browser)
-  file_route: when set, file names link to this route (same route_params)
+  file_route: when set, file names link to this route (same route_params); the admin browser uses serve_share_file
   servable_extensions: when set, only files with these extensions get a link
   highlight_data_paths: mark entries that are data paths themselves (browser_path.data_paths)
   remove_route: when set (admins and bioinformaticians), those data path entries get a "Remove from <data_owner_label>" menu
@@ -22,6 +22,8 @@
 {% set is_root_listing = is_root_listing if is_root_listing is defined else false %}
 {% set picker = picker if picker is defined else false %}
 {% set admin_browser = not share_token and entries_route == 'render_file_browser_page' %}
+{# Select / Assign / Share: admins and bioinformaticians; technicians only browse #}
+{% set can_assign = admin_browser and current_user and current_user.can_assign_data %}
 
 {# Collapses in the middle when space runs out: a path keeps its last component, a name its tail (the extension). #}
 {% macro entry_name_label(name, suffix="", hint=none) %}
@@ -63,7 +65,9 @@
 {% set is_data_path = highlight_data_paths and browser_path.data_paths %}
 {% set is_share_root = browser_path.rel_path.parts | length < 2 %}
 {% set is_linked_file = file_route and (servable_extensions is none or browser_path.path.suffix | lower in servable_extensions) %}
-{% if admin_browser and picker %}
+{% if admin_browser and not can_assign %}
+    {% set entry_actions = [] %}
+{% elif admin_browser and picker %}
     {% set entry_actions = [] if is_share_root else [{"type": "select", "label": "Select", "config": {"path": relative_path}}] %}
 {% elif admin_browser and is_share_root %}
     {% set entry_actions = [
@@ -118,9 +122,11 @@
             {{ entry_name_label(entry_name) }}
         </a>
         {% else %}
-        <span class="browser-entry-file-name{% if file_route %} browser-entry-unavailable{% endif %}">
+        {# Data tabs grey out what they can't open; the insider browser lists everything alike #}
+        {% set dim_unservable = file_route and not admin_browser %}
+        <span class="browser-entry-file-name{% if dim_unservable %} browser-entry-unavailable{% endif %}">
             <i class="bi {{ browser_path.path.name | file_icon }} browser-entry-icon" aria-hidden="true"></i>
-            {{ entry_name_label(entry_name, hint="not viewable in the browser, available via the data share link" if file_route else none) }}
+            {{ entry_name_label(entry_name, hint="not viewable in the browser, available via the data share link" if dim_unservable else none) }}
         </span>
         {% endif %}
         {% if admin_browser %}
@@ -143,7 +149,7 @@
             </a>
             {% endif %}
             {% endfor %}
-            {% if picker and browser_path.exists and not is_share_root %}
+            {% if can_assign and picker and browser_path.exists and not is_share_root %}
             <input type="checkbox" class="form-check-input browser-entry-pick" title="Select (Ctrl/Cmd+click)"
                    aria-label="Select {{ relative_path }}" data-select-path="{{ relative_path }}"
                    onclick="window.pathSelection && window.pathSelection.toggle(this.dataset.selectPath)">
