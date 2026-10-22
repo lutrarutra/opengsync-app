@@ -102,11 +102,9 @@ def test_sizes_from_the_index(client: TestClient, session: SyncSession, admin_to
 
     html = _table(client, admin_token).text
     row = _row(html, nested)
-    assert "1500 B" not in row and "1.46 KB" in row  # 1000 + 500
-    assert "400 B" in row
-    row = _row(html, partial)
-    assert "≥ 500 B" in row
-    assert "?" in row
+    assert "1.46 KB" in row  # 1000 + 500
+    assert "3 paths" in row
+    assert "≥ 500 B" in _row(html, partial)
 
 
 def test_sizes_without_index(client: TestClient, session: SyncSession, admin_token: str, user: models.User, share_root: Path):
@@ -131,7 +129,7 @@ def test_expire(client: TestClient, session: SyncSession, admin_token: str, user
 
     response = post_form(client, f"/htmx/admin/share-tokens/{share.uuid}/expire", {}, admin_token, htmx=True)
     assert response.status_code == 200
-    assert "revoked" in response.text
+    assert "Revoked" in response.text
     assert f'id="share_token-{share.uuid}"' in response.text
 
     session.expire_all()

@@ -1,23 +1,14 @@
 {#
   One row of share-tokens.html, also the response of admin_expire_share_token, which swaps it in place.
+  One line per cell, like every table: the paths are listed in the Manage modal, the count's title peeks at them.
   sizes: ShareSize by token uuid from the fs-index, none when the index is disabled or not built.
 #}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% set size = sizes[share_token.uuid] if sizes is not none else none %}
-{% set shown_paths = 5 %}
-{% macro path_item(share_path, size) %}
-<li>
-    <code>{{ share_path.path }}</code>
-    {% if size is not none %}
-    {% if size.paths[share_path.path] is none %}
-    <span class="desc" {{ tooltip('Not in the file index (yet).') }}>?</span>
-    {% else %}
-    <span class="desc">{{ size.paths[share_path.path] | bytes_to_human }}</span>
-    {% endif %}
-    {% endif %}
-</li>
-{% endmacro %}
+{% set num_paths = share_token.paths | length %}
+{% set peek = 10 %}
+{% set token_projects = projects.get(share_token.uuid, []) %}
 <tr id="share_token-{{ share_token.uuid }}" class="cm-callback" {{
     context_menu([
         {"type": "hxpost", "label": "Expire", "disabled": share_token.is_expired, "config": {
@@ -31,53 +22,45 @@
     ])
 }}>
     <th scope="row">
-        {% if share_token.is_expired %}🔴{% else %}🟢{% endif %}
-        <code title="{{ share_token.uuid }}">{{ share_token.uuid[:8] }}…</code>
-        <a href="{{ url_for('admin_audits_page', share=share_token.uuid, start=share_token.created_utc | format_datetime('%Y-%m-%d')) }}" title="Access log"><i class="bi bi-journal-text"></i></a>
+        <span class="share-token-cell">
+            <code title="{{ share_token.uuid }}">{{ share_token.uuid[:8] }}</code>
+            <a class="share-token-log" href="{{ url_for('admin_audits_page', share=share_token.uuid, start=share_token.created_utc | format_datetime('%Y-%m-%d')) }}" title="Access log"><i class="bi bi-journal-text"></i></a>
+        </span>
     </th>
-    <td><a href="{{ url_for('user_page', user_id=share_token.owner_id) }}">{{ share_token.owner.name }}</a></td>
-    <td>{{ share_token.created_utc | format_datetime }}</td>
     <td>
-        {{ share_token.expiration | format_datetime }}
-        {% if share_token._expired %}<span class="badge text-bg-danger">revoked</span>
-        {% elif share_token.is_expired %}<span class="badge text-bg-secondary">expired</span>{% endif %}
+        {% if share_token._expired %}<span class="badge badge-danger">Revoked</span>
+        {% elif share_token.is_expired %}<span class="badge bg-secondary">Expired</span>
+        {% else %}<span class="badge badge-success">Active</span>{% endif %}
     </td>
+    <td><a href="{{ url_for('user_page', user_id=share_token.owner_id) }}" title="{{ share_token.owner.name }}">{{ share_token.owner.name }}</a></td>
+    <td title="{{ share_token.created_utc | format_datetime }}">{{ share_token.created_utc | format_datetime('%Y-%m-%d') }}</td>
+    <td title="{{ share_token.expiration | format_datetime }}">{{ share_token.expiration | format_datetime('%Y-%m-%d') }}</td>
+    {% if token_projects %}
+    <td><a href="{{ url_for('project_page', project_id=token_projects[0].id) }}" title="{{ token_projects[0].title }}">{{ token_projects[0].identifier or token_projects[0].title }}</a></td>
+    {% else %}
+    <td><span class="desc">—</span></td>
+    {% endif %}
     <td>
-        {% for project in projects.get(share_token.uuid, []) %}
-        <a href="{{ url_for('project_page', project_id=project.id) }}">{{ project.identifier or project.title }}</a>{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    </td>
-    <td>
-        <div class="d-flex justify-content-between align-items-start gap-2">
-            <ul class="list-unstyled mb-0 text-break">
-                {% for share_path in share_token.paths[:shown_paths] %}{{ path_item(share_path, size) }}{% endfor %}
-                {% if share_token.paths | length > shown_paths %}
-                <li>
-                    <details>
-                        <summary class="desc">+{{ share_token.paths | length - shown_paths }} more</summary>
-                        <ul class="list-unstyled mb-0">
-                            {% for share_path in share_token.paths[shown_paths:] %}{{ path_item(share_path, size) }}{% endfor %}
-                        </ul>
-                    </details>
-                </li>
-                {% endif %}
-            </ul>
-            <button type="button" class="btn btn-sm btn-outline-primary text-nowrap"
+        <span class="share-paths-cell">
+            <span title="{% for share_path in share_token.paths[:peek] %}{{ share_path.path }}&#10;{% endfor %}{% if num_paths > peek %}… and {{ num_paths - peek }} more{% endif %}">
+                {{ num_paths }} path{{ '' if num_paths == 1 else 's' }}
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-primary table-btn share-paths-btn"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('admin_share_token_picker', uuid=share_token.uuid) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     hx-on::before-request="$('#fullscreen-modal').one('hidden.bs.modal', () => document.getElementById('fullscreen-modal-content').replaceChildren())">
-                <i class="bi bi-folder2-open" aria-hidden="true"></i> Edit paths
+                <i class="bi bi-folder2-open" aria-hidden="true"></i> Manage
             </button>
-        </div>
+        </span>
     </td>
-    <td class="text-nowrap">
+    <td class="share-size">
         {% if size is none %}
         <span class="desc" {{ tooltip('The file index is disabled or not built yet.') }}>—</span>
+        {% elif size.partial %}
+        <span {{ tooltip('Some paths are not in the file index (yet), so this is a lower bound.') }}>≥ {{ size.total | bytes_to_human }}</span>
         {% else %}
-        <span {% if size.partial %}{{ tooltip('Some paths are not in the file index (yet), so this is a lower bound.') }}{% endif %}>
-            {% if size.partial %}≥ {% endif %}{{ size.total | bytes_to_human }}
-        </span>
+        {{ size.total | bytes_to_human }}
         {% endif %}
     </td>
 </tr>

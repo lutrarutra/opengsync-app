@@ -431,3 +431,71 @@ def test_user_insider_can_view_other(client: TestClient, user, insider_token):
 
 def test_user_missing_is_404(client: TestClient, user_token: str):
     assert get(client, "/users/999999", user_token).status_code == 404
+
+
+# --- admin area: every route, current and future, is admin only ---
+
+ADMIN_PREFIXES = ("/admin", "/htmx/admin")
+
+
+def _dependency_calls(dependant):
+    yield dependant.call
+    for dependency in dependant.dependencies:
+        yield from _dependency_calls(dependency)
+
+
+def _admin_routes(app) -> list[tuple[str, str, bool]]:
+    """(method, url, under an admin prefix) of the routes under /admin and /htmx/admin and of those elsewhere
+    that require an admin; path parameters filled with 1."""
+    import re
+    from server.core import dependencies
+    from .test_route_sweep import _routes
+
+    routes = []
+    for path, route in _routes(app.routes):
+        under_prefix = path.startswith(ADMIN_PREFIXES)
+        if not under_prefix and dependencies.require_admin not in _dependency_calls(route.dependant):
+            continue
+        url = re.sub(r"{(\w+)(?::\w+)?}", "1", path)
+        routes += [(method, url, under_prefix) for method in sorted(route.methods - {"HEAD", "OPTIONS"})]
+    return routes
+
+
+def test_admin_prefix_routes_require_admin(client: TestClient):
+    """A route added under /admin or /htmx/admin without the routers' require_admin would be open."""
+    from server.core import dependencies
+    from .test_route_sweep import _routes
+
+    unguarded = [
+        path for path, route in _routes(client.app.routes)
+        if path.startswith(ADMIN_PREFIXES) and dependencies.require_admin not in _dependency_calls(route.dependant)
+    ]
+    assert unguarded == []
+    found = {(method, url) for method, url, _ in _admin_routes(client.app)}
+    assert {
+        ("GET", "/admin/shares"), ("POST", "/htmx/admin/share-tokens/1/expire"),
+        ("POST", "/htmx/admin/share-tokens/1/paths"), ("POST", "/htmx/users/merge-users"),
+    } <= found
+
+
+@pytest.mark.parametrize("token", [None, "user_token", "insider_token"])
+def test_admin_routes_reject_non_admins(client: TestClient, token: str | None, request):
+    from ._http import CSRF, cookie_header
+
+    login = request.getfixturevalue(token) if token else None
+    # a matching CSRF token, so state-changing routes reach the role check instead of failing CSRF
+    headers = cookie_header(client, login, csrf_token=CSRF) | {"X-CSRF-Token": CSRF, "HX-Request": "true"}
+
+    def rejected(response) -> bool:
+        if token is not None:
+            return response.status_code == 403
+        # logged out: sent to the login page, by HX-Redirect for an htmx request
+        location = response.headers.get("location") or response.headers.get("HX-Redirect") or ""
+        return response.status_code in (204, 303, 401) and (response.status_code == 401 or "/auth/login" in location)
+
+    failures = []
+    for method, url, _ in _admin_routes(client.app):
+        response = client.request(method, url, headers=headers, data={"csrf_token": CSRF}, follow_redirects=False)
+        if not rejected(response):
+            failures.append(f"{method} {url}: {response.status_code}")
+    assert failures == []

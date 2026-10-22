@@ -75,12 +75,13 @@ def get_audit_log(
 
 class ShareTokenAdminTable(HTMXTable):
     columns = [
-        TableCol(title="Token", label="uuid", col_size=2, searchable=True),
+        TableCol(title="Token", label="uuid", col_size=1, searchable=True),
+        TableCol(title="Status", label="status", col_size=1),
         TableCol(title="Created by", label="owner", col_size=2, searchable=True, sortable=True, sort_by="owner_id"),
         TableCol(title="Created", label="created_utc", col_size=1, sortable=True),
         TableCol(title="Expires", label="expiration", col_size=1),
-        TableCol(title="Project", label="project", col_size=1),
-        TableCol(title="Paths", label="paths", col_size=4),
+        TableCol(title="Project", label="project", col_size=2),
+        TableCol(title="Paths", label="paths", col_size=2),
         TableCol(title="Size", label="size", col_size=1),
     ]
 

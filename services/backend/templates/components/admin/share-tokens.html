@@ -2,10 +2,18 @@
 {% from "components/table_col.jinja2" import table_col %}
 
 <div id="admin-share_token-table" class="table-container">
+    <style>
+        #admin-share_token-table .share-token-cell,
+        #admin-share_token-table .share-paths-cell { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+        #admin-share_token-table .share-token-log { display: inline; width: auto; color: var(--color-gray-600); }
+        #admin-share_token-table .share-paths-btn { display: inline-flex; align-items: center; gap: 0.25rem; padding-top: 0; padding-bottom: 0; }
+        #admin-share_token-table .share-size { text-align: right; font-variant-numeric: tabular-nums; }
+    </style>
     <table class="table">
         <thead>
             <tr>
                 {{ table_col("admin-share_token-table", table, "uuid") }}
+                {{ table_col("admin-share_token-table", table, "status") }}
                 {{ table_col("admin-share_token-table", table, "owner") }}
                 {{ table_col("admin-share_token-table", table, "created_utc") }}
                 {{ table_col("admin-share_token-table", table, "expiration") }}

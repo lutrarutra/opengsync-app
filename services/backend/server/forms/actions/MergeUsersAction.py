@@ -59,8 +59,8 @@ class MergeUsersAction(HTMXForm):
     @htmx_route("GET", "/merge-users")
     def Begin(cls) -> RouteFunc:
         def route(
-            form: "MergeUsersAction" = Depends(MergeUsersAction.Init()),
             _=Depends(dependencies.require_admin),
+            form: "MergeUsersAction" = Depends(MergeUsersAction.Init()),
         ):
             return form.make_response()
         return route
@@ -68,9 +68,10 @@ class MergeUsersAction(HTMXForm):
     @htmx_route("POST", "/merge-users/preview")
     def Preview(cls) -> RouteFunc:
         def route(
+            # first: dependencies resolve in order, and a non-admin must not see the form validated
+            current_user: models.User = Depends(dependencies.require_admin),
             form: "MergeUsersAction" = Depends(MergeUsersAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_admin),
         ) -> responses.Response:
             user_dst, user_src = form._get_users(session, current_user)
             preview = actions.merge_users_preview(session, user_dst=user_dst, user_src=user_src)
@@ -80,10 +81,10 @@ class MergeUsersAction(HTMXForm):
     @htmx_route("POST", "/merge-users")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_admin),
             form: "MergeUsersAction" = Depends(MergeUsersAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             r: rds.RedisClient = Depends(dependencies.redis),
-            current_user: models.User = Depends(dependencies.require_admin),
         ) -> responses.Response:
             user_dst, user_src = form._get_users(session, current_user)
             src_id, dst_id = user_src.id, user_dst.id
