@@ -5,7 +5,7 @@ help:
 	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-restart|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop deploy test pentest gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop prod-pgbackrest-init prod-pgbackrest-backup prod-pgbackrest-info deploy test pentest gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
 
@@ -100,6 +100,23 @@ prod-pull:
 # would keep the old container config and not pick up env changes.)
 prod-restart:
 	$(COMPOSE_PROD) up -d --remove-orphans --wait --force-recreate
+
+# pgBackRest (see docs/deployment.md#backup--restore). Run inside the postgres
+# container as postgres, the same way archive_command and the backup timer do.
+PGBACKREST_PROD := $(COMPOSE_PROD) exec -u postgres postgres pgbackrest --stanza=opengsync
+
+# One-time: create the stanza in the repository and verify WAL archiving.
+prod-pgbackrest-init:
+	$(PGBACKREST_PROD) stanza-create
+	$(PGBACKREST_PROD) check
+
+# Manual run of what the weekly timer runs: full backup, monthly snapshot if this
+# month has none yet, retention.
+prod-pgbackrest-backup:
+	./services/db/pgbackrest-backup.sh
+
+prod-pgbackrest-info:
+	$(PGBACKREST_PROD) info
 
 # Starts postgres and redis, attaches to the pytest container and exits with its status.
 # The EXIT trap tears the stack down however this ends; the signal trap is there because

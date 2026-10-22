@@ -57,7 +57,7 @@
         <div class="nav-dropdown">
             <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-gear nav-icon"></i><span class="nav-label">Admin</span><i class="bi bi-chevron-down nav-caret"></i></button>
             <div class="nav-menu">
-                <a class="nav-menu-link {{ 'active' if active_page == 'share_tokens-page' else '' }}" href="{{ url_for('share_tokens') }}"><i class="bi bi-share"></i>Share</a>
+                <a class="nav-menu-link {{ 'active' if active_page in ('admin-shares-page', 'share_tokens-page') else '' }}" href="{{ url_for('admin_shares_page') }}"><i class="bi bi-share"></i>Shares</a>
                 <a class="nav-menu-link {{ 'active' if active_page == 'sequencers-page' else '' }}" href="{{ url_for('sequencers_page') }}"><i class="bi bi-hdd-network"></i>Sequencers</a>
                 <a class="nav-menu-link {{ 'active' if active_page == 'admin-page' else '' }}" href="{{ url_for('admin_page') }}"><i class="bi bi-gear"></i>Admin</a>
                 <a class="nav-menu-link {{ 'active' if active_page == 'audits-page' else '' }}" href="{{ url_for('admin_audits_page') }}"><i class="bi bi-journal-text"></i>Audit Log</a>

@@ -194,6 +194,23 @@ def highlight(name: str, query: str) -> list[tuple[str, bool]]:
     return parts
 
 
+def entry_size(entry: Entry) -> int | None:
+    """A folder's total, a symlink's target's size, or a file's size."""
+    if entry.kind == "d":
+        return entry.total_size
+    if entry.kind == "l":
+        return entry.target_size
+    return entry.size
+
+
+def path_sizes(session: SyncSession, paths: Sequence[str]) -> dict[str, int]:
+    """Sizes of share-root relative paths (as in SharePath.path); paths not in the index are left out."""
+    if not paths:
+        return {}
+    entries = session.execute(sa.select(Entry).where(Entry.path.in_(set(paths)))).scalars()
+    return {entry.path: size for entry in entries if (size := entry_size(entry)) is not None}
+
+
 def to_results(entries: Sequence[Entry], query: str, session: SyncSession | None = None) -> list[SearchResult]:
     """Result rows from index entries. With a session, each row also carries the data paths registered on
     it (insider browser badges)."""
@@ -215,12 +232,6 @@ def to_results(entries: Sequence[Entry], query: str, session: SyncSession | None
     results = []
     for entry in entries:
         is_dir = entry.kind == "d" or (entry.kind == "l" and entry.target_kind == "d")
-        if entry.kind == "d":
-            size = entry.total_size
-        elif entry.kind == "l":
-            size = entry.target_size
-        else:
-            size = entry.size
         components = entry.path.split("/")
         results.append(SearchResult(
             path=entry.path,
@@ -228,7 +239,7 @@ def to_results(entries: Sequence[Entry], query: str, session: SyncSession | None
             parents=[(label, "/".join(components[: i + 1])) for i, label in enumerate(components[:-1])],
             is_dir=is_dir,
             is_link=entry.kind == "l",
-            size=size or 0,
+            size=entry_size(entry) or 0,
             mtime=entry.mtime or entry.max_mtime or 0,
             hidden=entry.hidden,
             unsafe=entry.unsafe,

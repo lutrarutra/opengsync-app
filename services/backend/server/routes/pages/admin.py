@@ -25,3 +25,8 @@ def admin_audits_page(request: Request):
         template="audits_page.html", title="Audit Log", filters=filters, today=today,
         methods=audit_reader.METHODS, ops=audit_reader.OPS, tables=audit_reader.known_tables(),
     )
+
+
+@router.get("/shares", name="admin_shares_page")
+def admin_shares_page():
+    return responses.html_response(template="admin_shares_page.html", title="Shares")

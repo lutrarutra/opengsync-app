@@ -1,4 +1,5 @@
 import mimetypes
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -105,6 +106,27 @@ def is_within_root(root_dir: Path, subpath: str | Path) -> bool:
         return (Path(root_dir) / subpath).resolve().is_relative_to(Path(root_dir).resolve())
     except (ValueError, RuntimeError, OSError):
         return False
+
+
+# SharePath.path is a String(512)
+MAX_SHARE_PATH_LENGTH = 512
+
+
+def resolve_share_path(share_root: str, path: str) -> str:
+    """The real path of `path`, relative to the share root, as stored in SharePath.path.
+    Raises ValueError with the field's error message."""
+    p = os.path.join(share_root, path)
+    if not os.path.exists(p):
+        raise ValueError("No longer exists on the share: it was probably moved or deleted recently. Remove it and try again.")
+
+    relative = os.path.relpath(os.path.realpath(p), os.path.realpath(share_root))
+    if relative == os.pardir or relative.startswith(os.pardir + os.sep) or os.path.isabs(relative):
+        raise ValueError("Path is outside of share root.")
+    if relative == os.curdir:
+        raise ValueError("The share root itself cannot be shared.")
+    if len(relative) > MAX_SHARE_PATH_LENGTH:
+        raise ValueError(f"Path is longer than {MAX_SHARE_PATH_LENGTH} characters.")
+    return relative
 
 
 @dataclass

@@ -98,6 +98,24 @@ def _by_path(data_paths: list[models.DataPath]) -> dict[str, list[models.DataPat
     return by_path
 
 
+def picker_changes(request: Request) -> tuple[list[str], list[str]]:
+    """The paths data-picker.html posts: ticked (`add-0`, `add-1`, ...) and unticked (`remove-0`, ...).
+
+    Indexed fields, as parse_form_data keeps one value per field name.
+    """
+    form = getattr(request.state, "form_data", None) or {}
+
+    def field(prefix: str) -> list[str]:
+        return [value for key, value in form.items() if key.startswith(prefix) and isinstance(value, str)]
+
+    add, remove = field("add-"), field("remove-")
+    if not add and not remove:
+        raise exc.BadRequestException("Nothing to save: tick or untick files and folders first.")
+    if len(add) > MAX_SELECTED_PATHS:
+        raise exc.BadRequestException(f"At most {MAX_SELECTED_PATHS} paths can be added at once.")
+    return add, remove
+
+
 def data_browser_router(scope: DataScope) -> APIRouter:
     router = APIRouter()
     id_path = "/{" + scope.id_param + "}"
@@ -149,20 +167,10 @@ def data_browser_router(scope: DataScope) -> APIRouter:
         """The picker's changes: share-root relative paths to link (`add-0`, `add-1`, ...) and to unlink (`remove-0`, ...).
 
         Only what was ticked or unticked is sent, so paths linked meanwhile by someone else stay.
-        Indexed fields, as parse_form_data keeps one value per field name.
         """
         entity_id = scope.entity_id(request)
         owner = scope.owner(session, entity_id)
-        form = getattr(request.state, "form_data", None) or {}
-
-        def field(prefix: str) -> list[str]:
-            return [value for key, value in form.items() if key.startswith(prefix) and isinstance(value, str)]
-
-        add, remove = field("add-"), field("remove-")
-        if not add and not remove:
-            raise exc.BadRequestException("Nothing to save: tick or untick files and folders first.")
-        if len(add) > MAX_SELECTED_PATHS:
-            raise exc.BadRequestException(f"At most {MAX_SELECTED_PATHS} paths can be added at once.")
+        add, remove = picker_changes(request)
 
         # every path is checked before anything is saved, so one bad path rejects them all
         share_root = Path(config.settings.app_config.share_root)

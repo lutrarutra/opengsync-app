@@ -190,12 +190,22 @@ services:
             POSTGRES_DB: ${POSTGRES_DB}
             PGPORT: ${POSTGRES_PORT}
             TZ: ${TIMEZONE}
+            # pgBackRest connects as the cluster superuser on the cluster's port
+            # (see pgbackrest.conf).
+            PGBACKREST_PG1_USER: ${POSTGRES_USER}
+            PGBACKREST_PG1_PORT: ${POSTGRES_PORT}
         expose:
             - ${POSTGRES_PORT}
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         volumes:
             - postgres_data:/var/lib/postgresql/data
+            # pgBackRest repositories (pitr/ and monthly/: base backups + WAL). Host
+            # directory must exist and be owned by uid/gid 70 (postgres in the
+            # Alpine image).
+            - ${PGBACKREST_REPO_DIR:?set PGBACKREST_REPO_DIR to the host directory for pgBackRest backups}:/var/lib/pgbackrest
+            # Legacy `cp` WAL archive, no longer written to. Remove (and the volume)
+            # once the first pgBackRest full backup is older than 31 days.
             - postgres_archive:/var/lib/postgresql/archive
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]

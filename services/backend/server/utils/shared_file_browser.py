@@ -70,7 +70,8 @@ class SharedFileBrowser:
         share_token: models.ShareToken,
         redis: RedisClient | None = None,
     ) -> "SharedFileBrowser":
-        # a token's paths never change, so its uuid is a stable cache key
+        # a token's paths only change through the admin shares page, which clears its cache
+        # (share_fs_cache.invalidate), so its uuid is a stable cache key
         return cls(
             root_dir,
             shared_paths=[share_path.path for share_path in share_token.paths],

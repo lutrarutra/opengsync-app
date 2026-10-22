@@ -1,36 +1,51 @@
 #!/bin/sh
-# Runs a pgBackRest backup against the running Postgres container, then applies
-# retention. Driven by the systemd timer in services/db/systemd/.
+# Weekly pgBackRest run against the running Postgres container, driven by the
+# systemd timer in services/db/systemd/ (or `make prod-pgbackrest-backup`):
+#
+#   1. full backup to repo1 (PITR, 31-day retention);
+#   2. full backup to repo2 (monthly snapshot, kept forever) if repo2 has none
+#      from the current month yet - so the first run of each month takes it,
+#      and a missed run is caught up by the next one;
+#   3. expire, which applies each repository's retention (see pgbackrest.conf).
 #
 # Backups are executed inside the Postgres container on purpose:
-#   * the pgBackRest binary, version, config, and PGBACKREST_* credentials are
-#     exactly the ones archiving uses, which sidesteps the cross-host version
-#     match pgBackRest otherwise requires;
-#   * no repository credentials need to exist on the host or in this script.
-#
-# Retention (expire) runs after the backup so expired sets and the WAL they no
-# longer need are removed in the same run. WAL required by any retained backup
-# is preserved.
+#   * the pgBackRest binary, version and config are exactly the ones archiving
+#     uses, which sidesteps the cross-host version match pgBackRest otherwise
+#     requires;
+#   * the repositories are only mounted into that container.
 set -eu
 
 CONTAINER="${PGBACKREST_CONTAINER:-postgres}"
 STANZA="${PGBACKREST_STANZA:-opengsync}"
 
-# Weekly full on Sunday (ISO day 7), differential every other day.
-if [ "$(date +%u)" = "7" ]; then
-    backup_type=full
-else
-    backup_type=diff
-fi
-
-echo "pgbackrest: starting ${backup_type} backup for stanza ${STANZA}"
 # -u postgres: pgBackRest 2.59+ refuses to run as root for anything except
 # restore (see the allow-root option), and running as root would also create
-# repository/info files the postgres user cannot later read. The postmaster runs
-# archive_command as postgres, so backups run the same way for consistency.
-docker exec -u postgres "$CONTAINER" pgbackrest --stanza="$STANZA" backup --type="$backup_type"
+# repository files the postgres user (which runs archive_command) cannot later
+# read or remove.
+pgbackrest() {
+    docker exec -u postgres "$CONTAINER" pgbackrest --stanza="$STANZA" "$@"
+}
+
+echo "pgbackrest: full backup to repo1 (pitr)"
+pgbackrest --repo=1 backup --type=full
+
+# Backup labels start with the backup's start date (YYYYMMDD-HHMMSSF), and
+# `info` lists them oldest first, so the last one is the newest. Captured before
+# parsing so a failing `info` stops the script instead of reading as "no backup".
+repo2_info=$(pgbackrest --repo=2 info --output=json)
+last_month=$(printf '%s' "$repo2_info" \
+    | grep -o '"label":"[0-9]\{8\}-[0-9]\{6\}F"' \
+    | tail -n 1 \
+    | cut -c 10-15)
+
+if [ "$last_month" = "$(date +%Y%m)" ]; then
+    echo "pgbackrest: repo2 (monthly) already has a backup from this month"
+else
+    echo "pgbackrest: full backup to repo2 (monthly)"
+    pgbackrest --repo=2 backup --type=full
+fi
 
 echo "pgbackrest: applying retention"
-docker exec -u postgres "$CONTAINER" pgbackrest --stanza="$STANZA" expire
+pgbackrest expire
 
-echo "pgbackrest: ${backup_type} backup complete"
+echo "pgbackrest: done"

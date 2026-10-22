@@ -1,5 +1,3 @@
-import os
-
 from fastapi import Depends, Query
 
 from opengsync_db import queries as Q, SyncSession, models
@@ -10,6 +8,7 @@ from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..SubHTMXForm import SubHTMXForm
 from ..common import SelectedPathsMixin, SelectedPathSubForm
+from ...utils.file_browser import resolve_share_path
 
 
 TIME_VALID_CHOICES = [
@@ -20,28 +19,9 @@ TIME_VALID_CHOICES = [
     (60 * 24 * 30, "1 Month"),
 ]
 
-# SharePath.path is a String(512)
-MAX_SHARE_PATH_LENGTH = 512
-
 
 class RecipientSubForm(SubHTMXForm):
     email = inputs.string.EmailInputField("Recipient", placeholder="name@example.com")
-
-
-def _resolve_share_path(share_root: str, path: str) -> str:
-    """The real path of `path`, relative to the share root. Raises ValueError with the field's error message."""
-    p = os.path.join(share_root, path)
-    if not os.path.exists(p):
-        raise ValueError("No longer exists on the share: it was probably moved or deleted recently. Remove it and try again.")
-
-    relative = os.path.relpath(os.path.realpath(p), os.path.realpath(share_root))
-    if relative == os.pardir or relative.startswith(os.pardir + os.sep) or os.path.isabs(relative):
-        raise ValueError("Path is outside of share root.")
-    if relative == os.curdir:
-        raise ValueError("The share root itself cannot be shared.")
-    if len(relative) > MAX_SHARE_PATH_LENGTH:
-        raise ValueError(f"Path is longer than {MAX_SHARE_PATH_LENGTH} characters.")
-    return relative
 
 
 class SharePathAction(HTMXForm, SelectedPathsMixin):
@@ -117,7 +97,7 @@ class SharePathAction(HTMXForm, SelectedPathsMixin):
             share_paths: list[str] = []
             for entry in form.paths:
                 try:
-                    share_paths.append(_resolve_share_path(share_root, entry.path.data))
+                    share_paths.append(resolve_share_path(share_root, entry.path.data))
                 except ValueError as e:
                     entry.path.errors.append(str(e))
             if form.paths.has_errors:

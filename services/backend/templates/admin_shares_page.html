@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% set active_page = "admin-shares-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Shares</h1>
+        </div>
+        <div class="page-controls">
+            <span class="desc"><i class="bi bi-info-circle"></i> Right click on a share link to expire it.</span>
+        </div>
+    </div>
+</div>
+
+<div class="page-content">
+    <div hx-get="{{ url_for('admin_share_token_table') }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+{% endblock content %}

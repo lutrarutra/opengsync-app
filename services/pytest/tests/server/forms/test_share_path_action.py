@@ -16,7 +16,8 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, models, queries as Q
 
 from server.core import config
-from server.forms.actions.SharePathAction import TIME_VALID_CHOICES, MAX_SHARE_PATH_LENGTH
+from server.forms.actions.SharePathAction import TIME_VALID_CHOICES
+from server.utils.file_browser import MAX_SHARE_PATH_LENGTH
 from server.utils.file_browser import MAX_SELECTED_PATHS
 
 from .._http import assert_flash, assert_form_invalid, get, post_form

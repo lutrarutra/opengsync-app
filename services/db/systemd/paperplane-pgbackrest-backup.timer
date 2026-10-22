@@ -1,13 +1,13 @@
 [Unit]
-Description=Daily pgBackRest backup for opengsync Postgres
+Description=Weekly pgBackRest backup (and monthly snapshot) for opengsync Postgres
 
 [Timer]
-# Off-peak. The exact time matters little; what matters is that it runs daily so
-# the differential chain never grows long.
-OnCalendar=*-*-* 03:30:00
+# Sunday night, off-peak. The weekly full bounds restore time (replay of at most
+# a week of WAL) and is what lets old WAL be expired; the first run of each month
+# also takes the monthly snapshot. See pgbackrest-backup.sh and pgbackrest.conf.
+OnCalendar=Sun *-*-* 03:30:00
 # Run on boot if the machine was off at the scheduled time.
 Persistent=true
-# Spread load instead of a thundering herd at exactly 03:30.
 RandomizedDelaySec=15m
 
 [Install]

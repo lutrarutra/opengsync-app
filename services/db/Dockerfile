@@ -24,14 +24,18 @@ ARG PGBACKREST_VERSION
 
 RUN apk add --no-cache \
       "pgbackrest~${PGBACKREST_VERSION}" \
-      openssh-client \
     && mkdir -p /etc/pgbackrest /var/log/pgbackrest /var/lib/pgbackrest /var/spool/pgbackrest \
     && chown -R postgres:postgres /var/log/pgbackrest /var/lib/pgbackrest /var/spool/pgbackrest \
     && pgbackrest version
 
-# WAL archive target of archive_command (see postgresql.prod.conf). Created here
-# owned by postgres so an empty volume mounted over it inherits that ownership;
-# otherwise Docker creates the mount point as root and every archive cp fails.
+# /var/lib/pgbackrest is the repository (pgbackrest.conf). Prod bind-mounts a host
+# directory over it, and a bind mount keeps the host directory's ownership, so
+# that directory must be owned by the image's postgres user (uid/gid 70 on
+# Alpine) or archive-push and backups fail.
+
+# Legacy WAL archive target of the former `cp` archive_command. No longer written
+# to; kept only so the old opengsync-prod_postgres_archive volume stays mounted
+# until its contents fall out of the PITR window.
 RUN mkdir -p /var/lib/postgresql/archive \
     && chown postgres:postgres /var/lib/postgresql/archive
 

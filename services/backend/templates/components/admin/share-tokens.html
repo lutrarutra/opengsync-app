@@ -1,0 +1,29 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+
+<div id="admin-share_token-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("admin-share_token-table", table, "uuid") }}
+                {{ table_col("admin-share_token-table", table, "owner") }}
+                {{ table_col("admin-share_token-table", table, "created_utc") }}
+                {{ table_col("admin-share_token-table", table, "expiration") }}
+                {{ table_col("admin-share_token-table", table, "project") }}
+                {{ table_col("admin-share_token-table", table, "paths") }}
+                {{ table_col("admin-share_token-table", table, "size") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for share_token in share_tokens %}
+            {% include "components/admin/share-token-row.html" %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("admin-share_token-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#admin-share_token-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>
