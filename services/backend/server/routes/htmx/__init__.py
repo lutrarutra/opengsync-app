@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 
 from . import (
+    admin,
     auth,
     actions,
     seq_requests,
@@ -77,5 +78,6 @@ router.include_router(features.router, dependencies=[Depends(auth.dependencies.r
 router.include_router(plots.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(status.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(api_tokens.router, dependencies=[Depends(auth.dependencies.require_user_id)])
+router.include_router(admin.router)
 router.include_router(chat.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(search.router, dependencies=[Depends(auth.dependencies.require_insider)])

@@ -1,0 +1,137 @@
+{# links to the audit log with the current filters changed, `none` removes a filter #}
+{% macro filter_url(changes) -%}{{ url_for('admin_audits_page', **dict(filters, **changes)) }}{%- endmacro %}
+{% macro page_url(page) -%}{{ url_for('admin_audit_log', **dict(filters, page=page)) }}{%- endmacro %}
+
+{% macro actor(user_id) -%}
+<div class="audit-actor-name">
+{%- if user_id is none -%}
+    <span class="audit-avatar is-anonymous"><i class="bi bi-globe2"></i></span><span class="text-muted">Anonymous</span>
+{%- elif user_id in users -%}
+    <span class="audit-avatar">{{ users[user_id].initials }}</span><a href="{{ filter_url({'user_id': user_id}) }}" title="Only {{ users[user_id].name }}">{{ users[user_id].name }}</a>
+{%- else -%}
+    <span class="audit-avatar is-anonymous">?</span><a href="{{ filter_url({'user_id': user_id}) }}" title="Only this user">User #{{ user_id }}</a>
+{%- endif -%}
+</div>
+{%- endmacro %}
+
+{% macro chip(key, label, value) -%}
+<a class="audit-chip" href="{{ filter_url({key: none}) }}" title="Remove filter"><span class="audit-chip-key">{{ label }}</span> {{ value }}<i class="bi bi-x-lg"></i></a>
+{%- endmacro %}
+
+{% macro page_link(page, label, disabled=false) -%}
+<li class="page-item {{ 'disabled' if disabled }} {{ 'active' if page == result.page and not label }}">
+    <a class="page-link" {% if not disabled %}hx-get="{{ page_url(page) }}" hx-target="#audit-log" hx-indicator="#audit-log"{% endif %}>{{ label or page + 1 }}</a>
+</li>
+{%- endmacro %}
+
+<div class="audit-card">
+    <div class="audit-card-header">
+        <h4>Entries {{ tab_count(result.total) }}</h4>
+        <span class="audit-range">
+            {{ result.total }} entr{{ 'y' if result.total == 1 else 'ies' }},
+            {% if flt.start == flt.end %}{{ flt.start.strftime('%d %b %Y') }}{% else %}{{ flt.start.strftime('%d %b %Y') }} – {{ flt.end.strftime('%d %b %Y') }}{% endif %}
+            {%- if result.num_pages > 1 %} · page {{ result.page + 1 }} of {{ result.num_pages }}{% endif %}
+        </span>
+    </div>
+
+    {% set chips = [] %}
+    {% if flt.user_id is not none %}{% set _ = chips.append(chip('user_id', 'User', users[flt.user_id].name if flt.user_id in users else '#' ~ flt.user_id)) %}{% endif %}
+    {% if flt.status %}{% set _ = chips.append(chip('status', 'Outcome', 'Success' if flt.status == 'ok' else 'Errors')) %}{% endif %}
+    {% if flt.table %}{% set _ = chips.append(chip('table', 'Changed', flt.table ~ (' #' ~ flt.row_id if flt.row_id else '') ~ (' (' ~ flt.op ~ ')' if flt.op else ''))) %}{% endif %}
+    {% if flt.method %}{% set _ = chips.append(chip('method', 'Method', flt.method)) %}{% endif %}
+    {% if flt.route %}{% set _ = chips.append(chip('route', 'Path', flt.route)) %}{% endif %}
+    {% if flt.share %}{% set _ = chips.append(chip('share', 'Share link', flt.share[:8] ~ '…')) %}{% endif %}
+    {% if flt.ip %}{% set _ = chips.append(chip('ip', 'IP', flt.ip)) %}{% endif %}
+    {% if chips %}
+    <div class="audit-chips">{% for c in chips %}{{ c }}{% endfor %}</div>
+    {% endif %}
+
+    <div class="audit-feed">
+        {% for e in result.entries %}
+        {% set day = e.ts | format_datetime('%Y-%m-%d') %}
+        {% if loop.changed(day) %}
+        <div class="audit-day">{{ e.ts | format_datetime('%A, %d %B %Y') }}</div>
+        {% endif %}
+        <div class="audit-entry {{ 'is-server-error' if e.status_code and e.status_code >= 500 else 'is-error' if e.status_code and e.status_code >= 400 }}">
+            <div class="audit-time" title="{{ e.ts | format_datetime('%Y-%m-%d %H:%M:%S') }}">{{ e.ts | format_datetime('%H:%M:%S') }}</div>
+            <div class="audit-actor">
+                {{ actor(e.user_id) }}
+                {% if e.ip %}<a class="audit-ip" href="{{ filter_url({'ip': e.ip}) }}" title="Only this IP address">{{ e.ip }}</a>{% endif %}
+            </div>
+            <div class="audit-main">
+                <div class="audit-request">
+                    <span class="audit-method method-{{ (e.method or '') | lower }}">{{ e.method or '?' }}</span>
+                    <span class="audit-path" title="{{ e.route }}">{{ e.path or e.route }}</span>
+                    {% if e.status_code is not none %}
+                    <span class="audit-status status-{{ (e.status_code // 100) }}xx">{{ e.status_code }}</span>
+                    {% endif %}
+                </div>
+
+                {% if e.resource_id and e.metadata.path is defined %}
+                <div class="audit-share">
+                    <i class="bi bi-link-45deg"></i> Share link
+                    <a href="{{ filter_url({'share': e.resource_id}) }}" title="All access to this share link"><code>{{ e.resource_id[:8] }}…</code></a>
+                    {% if e.owner_id is not none %}
+                    shared by {% if e.owner_id in users %}<a href="{{ url_for('user_page', user_id=e.owner_id) }}">{{ users[e.owner_id].name }}</a>{% else %}user #{{ e.owner_id }}{% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if e.changes %}
+                <div class="audit-changes">
+                    {% for c in e.changes %}
+                    <span class="audit-change op-{{ c.op }}" title="{{ c.count }} row{{ 's' if c.count != 1 }} {{ c.op }}d">
+                        <i class="bi {{ 'bi-plus-circle-fill' if c.op == 'insert' else 'bi-trash-fill' if c.op == 'delete' else 'bi-pencil-fill' }}"></i>
+                        <a class="audit-table" href="{{ filter_url({'table': c.table, 'row_id': none, 'op': none}) }}" title="All changes to {{ c.table }}">{{ c.table }}</a>
+                        {% if c.ids %}
+                        <span class="audit-ids">
+                            {%- for id in c.ids[:5] %}
+                            {%- if id is string or id is number -%}
+                            <a href="{{ filter_url({'table': c.table, 'row_id': id, 'op': none}) }}" title="History of {{ c.table }} {{ id }}">#{{ id }}</a>
+                            {%- else -%}{# composite key #}
+                            <span title="Composite key">#{{ id | join('/') }}</span>
+                            {%- endif %}{{ ', ' if not loop.last }}
+                            {%- endfor -%}
+                        </span>
+                        {% endif %}
+                        {% set hidden = c.count - [c.ids | length, 5] | min %}
+                        {% if hidden > 0 %}<span class="text-muted">+{{ hidden }}</span>{% endif %}
+                        {% if c.bulk %}<span class="text-muted">bulk</span>{% endif %}
+                        {% if c.fields %}<span class="audit-fields">· {{ c.fields | join(', ') }}</span>{% endif %}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% set details = e.details %}
+                {% if details %}
+                <details class="audit-details">
+                    <summary>Details</summary>
+                    <dl>
+                        {% for label, value in details %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+                    </dl>
+                </details>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="audit-empty">
+            <i class="bi bi-journal-x"></i>
+            No audit entries match the filters.
+            {% if (flt.end - flt.start).days < 30 %}<div class="small">Try a longer period.</div>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if result.num_pages > 1 %}
+{% set first = [0, [result.page - 3, result.num_pages - 7] | min] | max %}
+{% set last = [result.num_pages, first + 7] | min %}
+<nav class="audit-pagination" aria-label="Audit log pages">
+    <ul class="pagination">
+        {{ page_link(result.page - 1, "‹", disabled=result.page == 0) }}
+        {% for p in range(first, last) %}{{ page_link(p, none) }}{% endfor %}
+        {{ page_link(result.page + 1, "›", disabled=result.page + 1 >= result.num_pages) }}
+    </ul>
+</nav>
+{% endif %}

@@ -83,12 +83,16 @@ def unlink_pool_experiment(session: Session, experiment_id: int, pool_id: int, f
     if pool.experiment_id != experiment_id:
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
     
+    # Bulk delete, then expire the collections that may still hold the deleted links, otherwise
+    # session.add(pool/experiment) below cascades them back in ("has been deleted").
+    session.execute(sa.delete(models.links.LanePoolLink).where(
+        models.links.LanePoolLink.experiment_id == experiment_id,
+        models.links.LanePoolLink.pool_id == pool_id,
+    ))
+    session.expire(pool, ["lane_links"])
+    session.expire(experiment, ["laned_pool_links"])
     for lane in experiment.lanes:
-        if (link := session.query(models.links.LanePoolLink).where(
-            models.links.LanePoolLink.pool_id == pool_id,
-            models.links.LanePoolLink.lane_id == lane.id,
-        ).first()) is not None:
-            session.delete(link)
+        session.expire(lane, ["pool_links"])
 
     for library in pool.libraries:
         library.experiment_id = None

@@ -88,3 +88,19 @@ def test_client_parses_json_error_detail():
         pytest.raises(requests.HTTPError, match="400: Data path cannot be resolved\\."),  # type: ignore[attr-defined]
     ):
         api.get_project_data_paths(12)
+
+
+
+def test_set_qc_client_method():
+    response = Mock()
+    response.json.return_value = {"result": "success", "qc": {"reads": 100}}
+    api = OpeNGSyncAPI("https://example.test/", SecretStr("token"))
+
+    with patch("requests.post", return_value=response) as post:
+        assert api.set_qc(1, {"reads": 100}, sample_id=5) == {"result": "success", "qc": {"reads": 100}}
+
+    post.assert_called_once_with(
+        "https://example.test/api/stats/set-qc",
+        json={"library_id": 1, "sample_id": 5, "qc": {"reads": 100}},
+        headers={"X-API-Token": "token"},
+    )

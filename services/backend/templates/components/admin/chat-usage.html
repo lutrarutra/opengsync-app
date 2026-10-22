@@ -1,0 +1,149 @@
+{% macro user_link(user_id) -%}
+{%- if user_id is none -%}<span class="text-muted">anonymous</span>
+{%- elif user_id in users -%}<a href="{{ url_for('user_page', user_id=user_id) }}">{{ users[user_id].name }}</a>
+{%- else -%}<span class="text-muted">#{{ user_id }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+<div id="chat-usage" class="chat-usage mb-4">
+    <style>
+        .chat-usage .cu-kpi { border: 1px solid var(--color-gray-300); border-radius: 0.5rem; padding: 0.75rem 1rem; height: 100%; }
+        .chat-usage .cu-kpi-value { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .chat-usage .cu-kpi-label { color: var(--color-gray-600); font-size: 0.85rem; }
+        .chat-usage .cu-chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--color-gray-400); }
+        .chat-usage .cu-day { flex: 1; display: flex; flex-direction: column-reverse; height: 100%; }
+        .chat-usage .cu-day:hover { background: var(--color-gray-100); }
+        .chat-usage .cu-ok { background: var(--color-cemm-blue); }
+        .chat-usage .cu-rejected { background: var(--color-red); opacity: 0.7; }
+        .chat-usage .cu-axis { display: flex; justify-content: space-between; color: var(--color-gray-600); font-size: 0.8rem; }
+        .chat-usage .cu-legend span::before { content: ""; display: inline-block; width: 0.7rem; height: 0.7rem; margin-right: 0.3rem; border-radius: 2px; vertical-align: -1px; }
+        .chat-usage .cu-legend .is-ok::before { background: var(--color-cemm-blue); }
+        .chat-usage .cu-legend .is-rejected::before { background: var(--color-red); opacity: 0.7; }
+        .chat-usage .cu-message { max-width: 40rem; white-space: pre-wrap; word-break: break-word; }
+        .chat-usage td.num, .chat-usage th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Chat Usage</h5>
+        <select class="form-select form-select-sm w-auto" name="days"
+            hx-get="{{ url_for('admin_chat_usage') }}" hx-target="#chat-usage" hx-swap="outerHTML" hx-trigger="change">
+            {% for d in day_options %}
+            <option value="{{ d }}" {{ 'selected' if d == usage.days }}>Last {{ d }} days</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if not chat_enabled %}
+    <p class="text-muted small mb-2"><i class="bi bi-info-circle"></i> The chat is currently disabled; showing logged usage only.</p>
+    {% endif %}
+
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3"><div class="cu-kpi">
+            <div class="cu-kpi-value">{{ usage.messages_24h }}</div>
+            <div class="cu-kpi-label">Messages, last 24 h</div>
+        </div></div>
+        <div class="col-6 col-md-3"><div class="cu-kpi">
+            <div class="cu-kpi-value">{{ usage.messages_7d }}</div>
+            <div class="cu-kpi-label">Messages, last 7 days ({{ usage.users_7d }} user{{ 's' if usage.users_7d != 1 }})</div>
+        </div></div>
+        <div class="col-6 col-md-3"><div class="cu-kpi">
+            <div class="cu-kpi-value">{{ usage.messages }}</div>
+            <div class="cu-kpi-label">Messages, last {{ usage.days }} days ({{ usage.users }} user{{ 's' if usage.users != 1 }})</div>
+        </div></div>
+        <div class="col-6 col-md-3"><div class="cu-kpi">
+            <div class="cu-kpi-value {{ 'text-danger' if usage.rejected }}">{{ usage.rejected }}</div>
+            <div class="cu-kpi-label">Rejected attempts, last {{ usage.days }} days</div>
+        </div></div>
+    </div>
+
+    <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-baseline">
+            <h6 class="mb-1">Messages per day</h6>
+            <div class="cu-legend small text-muted d-flex gap-3">
+                <span class="is-ok">Accepted</span><span class="is-rejected">Rejected</span>
+                {% if usage.avg_length is not none %}<span class="ms-2">Avg. length {{ usage.avg_length|round|int }} chars</span>{% endif %}
+            </div>
+        </div>
+        <div class="cu-chart">
+            {% for d in usage.daily %}
+            <div class="cu-day" title="{{ d.day.strftime('%a %d.%m.%Y') }}: {{ d.messages }} message{{ 's' if d.messages != 1 }} from {{ d.users }} user{{ 's' if d.users != 1 }}{% if d.rejected %}, {{ d.rejected }} rejected{% endif %}">
+                {% if usage.max_daily %}
+                <div class="cu-ok" style="height: {{ '%.2f'|format(100 * d.messages / usage.max_daily) }}%;"></div>
+                <div class="cu-rejected" style="height: {{ '%.2f'|format(100 * d.rejected / usage.max_daily) }}%;"></div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="cu-axis">
+            <span>{{ usage.daily[0].day.strftime('%d.%m.') }}</span>
+            <span>max {{ usage.max_daily }} / day</span>
+            <span>{{ usage.daily[-1].day.strftime('%d.%m.') }}</span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-5">
+            <h6>Top users</h6>
+            <table class="table table-sm">
+                <thead><tr><th>User</th><th class="num">Messages</th><th class="num">Rejected</th><th>Last</th></tr></thead>
+                <tbody>
+                    {% for u in usage.top_users %}
+                    <tr>
+                        <td>{{ user_link(u.user_id) }}</td>
+                        <td class="num">{{ u.messages }}</td>
+                        <td class="num {{ 'text-danger' if u.rejected }}">{{ u.rejected }}</td>
+                        <td>{{ u.last_message|format_datetime }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-muted">No messages.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4">
+            <h6>Asked from page</h6>
+            <table class="table table-sm">
+                <thead><tr><th>Page</th><th class="num">Messages</th></tr></thead>
+                <tbody>
+                    {% for p in usage.top_pages %}
+                    <tr><td>{% if p.page %}<code>{{ p.page }}</code>{% else %}<span class="text-muted">unknown</span>{% endif %}</td><td class="num">{{ p.messages }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-muted">No messages.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <h6>Rejections</h6>
+            <table class="table table-sm">
+                <thead><tr><th>Reason</th><th class="num">Attempts</th></tr></thead>
+                <tbody>
+                    {% for r in usage.rejections %}
+                    <tr><td>{{ r.label }} <span class="text-muted small">({{ r.status_code }})</span></td><td class="num">{{ r.attempts }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-muted">None.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <details>
+        <summary><h6 class="d-inline">Recent messages</h6></summary>
+        <table class="table table-sm mt-2">
+            <thead><tr><th>Time</th><th>User</th><th>Status</th><th>Page</th><th>Message</th></tr></thead>
+            <tbody>
+                {% for m in usage.recent %}
+                <tr>
+                    <td class="text-nowrap">{{ m.ts|format_datetime }}</td>
+                    <td class="text-nowrap">{{ user_link(m.user_id) }}</td>
+                    <td class="{{ 'text-danger' if m.status_code >= 400 }}">{{ m.status_code }}</td>
+                    <td>{% if m.page %}<code>{{ m.page }}</code>{% endif %}</td>
+                    <td><div class="cu-message">{{ m.message }}{% if m.length and m.length > m.message|length %}<span class="text-muted">… ({{ m.length }} chars)</span>{% endif %}</div></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted">No messages.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+</div>

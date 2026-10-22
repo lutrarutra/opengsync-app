@@ -41,6 +41,7 @@ dependencies = [
     "regex>=2024.11.6",
     "nh3>=0.2.18",
     "pymdown-extensions>=10.21",
+    "duckdb>=2.0.0",
 ]
 
 [tool.setuptools_scm]

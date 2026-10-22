@@ -17,7 +17,12 @@
         <tbody>
             {% for share_token in share_tokens %}
             <tr>
-                <th scope="row"><i class="bi bi-shield-lock"></i></th>
+                <th scope="row">
+                    <i class="bi bi-shield-lock"></i>
+                    {% if current_user.role == C.UserRole.ADMIN %}
+                    <a href="{{ url_for('admin_audits_page', share=share_token.uuid, start=share_token.created_utc | format_datetime('%Y-%m-%d')) }}" title="Access log"><i class="bi bi-journal-text"></i></a>
+                    {% endif %}
+                </th>
                 <td>
                     {% if share_token.is_expired %}🔴{% else %}🟢{% endif %}
                     {{ share_token.expiration | format_datetime }}

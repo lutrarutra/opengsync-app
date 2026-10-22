@@ -146,6 +146,29 @@ class OpeNGSyncAPI:
         self._raise_for_status(response)
         return response.json()
 
+    def set_qc(self, library_id: int, qc: dict, sample_id: int | None = None):
+        """Replaces the qc of a library, or of a sample-library link if sample_id is given.
+
+        Args:
+            library_id (int): id of the library
+            qc (dict): quality control information (replaces existing qc)
+            sample_id (int | None, optional): id of the sample. Defaults to None (library qc).
+
+        Raises:
+            requests.HTTPError: if the request fails
+
+        Returns:
+            dict: json response from the server
+        """
+        payload = {
+            "library_id": library_id,
+            "sample_id": sample_id,
+            "qc": qc,
+        }
+        response = requests.post(f"{self.base_url}/api/stats/set-qc", json=payload, headers=self._headers())
+        self._raise_for_status(response)
+        return response.json()
+
     def add_library_qc(self, library_id: int, qc: dict):
         payload = {
             "library_id": library_id,

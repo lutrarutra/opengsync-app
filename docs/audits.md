@@ -228,6 +228,17 @@ The seq request form's intermediate `.../step` posts don't write.
 
 `POST /api/libraries/add-qc`, `DELETE /api/libraries/delete-qc`, `POST /api/projects/add-software`, `DELETE /api/projects/delete-software`, `POST /api/stats/set-library-lane-reads`, `POST /api/shares/add-data_path`, `DELETE /api/shares/remove-data_paths`, `POST /api/shares/release-project_data`. API calls authenticate with `X-API-Token`; `user_id` is the token's owner.
 
+## Viewing in the app
+
+Admins can search the audit log at **Admin → Audit Log** (`/admin/audits`). Filters:
+- date range (the last 7 days by default, at most 366 days)
+- user, method, status (successful or error) and IP
+- a substring of the route or path
+- a changed table, with an optional row id and operation (insert, update or delete)
+- a share token, which also accepts a pasted share link
+
+Each row shows the changed tables, rows and fields; clicking a table, row id, user, IP or share link narrows the view to it. The filters are kept in the address bar, so `/admin/audits?table=seq_request&row_id=385` is a link to the history of that request. The share-token table links each token to its access log.
+
 ## Querying with DuckDB
 
 Run DuckDB (the `duckdb` CLI or the `duckdb` Python package) from the repository root, or adjust the paths. DuckDB reads `.jsonl` and `.jsonl.gz` directly; unzip any old `.jsonl.zip` files first.
@@ -482,6 +493,7 @@ What a line says is reliable: every entry in `changes` was flushed by the ORM an
 | `user_id` attribution | `get_user_id` stores the authenticated id on `request.state.user_id` (cookie or API token), in `services/backend/server/core/dependencies.py` |
 | File sink, JSON format, rotation | `_audit_format` and the `audits/` sink in `services/backend/server/core/lifespan.py` |
 | Share-access debounce | `claim_share_audit` in `services/backend/server/utils/share_fs_cache.py` |
-| Tests | `services/pytest/tests/server/test_audit_log.py` |
+| Reading the logs back (audit log viewer) | `services/backend/server/core/audit_reader.py`, `get_audit_log` in `services/backend/server/routes/htmx/admin.py` |
+| Tests | `services/pytest/tests/server/test_audit_log.py`, `test_audit_viewer.py` |
 
 To audit a route that doesn't write to the DB, add `Depends(dependencies.audit_log)`. To attach context, take the returned `AuditLogger` and set `resource_id` and `metadata`. To stop a noisy table from producing audit lines on its own, add it to `IGNORED_TABLES` in `audit.py`.

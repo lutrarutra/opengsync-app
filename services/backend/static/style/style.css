@@ -25,6 +25,7 @@
 @import "./spreadsheet.css";
 @import "./page-loader.css";
 @import "./experiment-stats.css";
+@import "./audit-log.css";
 
 .assignee-badge {
     height: 24px;

@@ -1,0 +1,166 @@
+{% from "components/spinner.jinja2" import spinner %}
+
+{% extends "base.html" %}
+{% set active_page = "audits-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Audit Log</h1>
+        </div>
+        <div class="page-controls">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#audit-help" aria-expanded="false" aria-controls="audit-help">
+                <i class="bi bi-info-circle"></i> What is logged?
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="page-content">
+    <div class="audit-card">
+        <div class="collapse" id="audit-help">
+            <div class="audit-help">
+                Each request is one entry. Logged are:
+                <ul>
+                    <li>requests that changed data: which tables, rows and fields, but not the values;</li>
+                    <li>failed requests (status 400 and above);</li>
+                    <li>logins, passkeys and chat messages;</li>
+                    <li>share link access, once per link and IP address.</li>
+                </ul>
+                Plain page views are not logged.
+            </div>
+        </div>
+
+        <form id="audit-filters" class="audit-filters" autocomplete="off"
+            hx-get="{{ url_for('admin_audit_log') }}" hx-target="#audit-log" hx-indicator="#audit-log"
+            hx-trigger="load, submit, change from:#audit-filters select, change from:#audit-filters input:not(.audit-text):not(.search-select-input), keyup changed delay:600ms from:.audit-text">
+            <div class="audit-filter-grid">
+                <div class="audit-filter-wide">
+                    <span class="audit-filter-label">Period</span>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="audit-start" name="start" value="{{ filters.start }}" max="{{ today }}" aria-label="From">
+                        <span class="input-group-text">to</span>
+                        <input type="date" class="form-control" id="audit-end" name="end" value="{{ filters.end }}" max="{{ today }}" aria-label="To">
+                    </div>
+                    <div class="audit-presets">
+                        <button type="button" data-days="1">Today</button>
+                        <button type="button" data-days="7">7 days</button>
+                        <button type="button" data-days="30">30 days</button>
+                        <button type="button" data-days="90">90 days</button>
+                        <button type="button" data-days="365">1 year</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="search-select{% if filters.user_id %} has-value{% endif %}" id="audit-user-container" data-search-select data-url="{{ url_for('search_users') }}">
+                        <label for="audit-user-input">User</label>
+                        <div class="search-select-field">
+                            <div class="search-select-control form-control">
+                                <span class="search-select-badge" title="ID">{{ filters.user_id or "—" }}</span>
+                                <input type="text" class="search-select-input" id="audit-user-input" role="combobox" aria-label="User"
+                                    aria-autocomplete="list" aria-expanded="false" aria-controls="audit-user-listbox" autocomplete="off"
+                                    spellcheck="false" value="" placeholder="Anyone">
+                                <button type="button" class="search-select-clear" aria-label="Clear" tabindex="-1"><i class="bi bi-x-lg"></i></button>
+                                <span class="search-select-caret" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+                            </div>
+                            <ul class="search-select-list minimal-scrollbar" id="audit-user-listbox" role="listbox" hidden></ul>
+                        </div>
+                        <input type="hidden" class="search-select-value" name="user_id" value="{{ filters.user_id }}">
+                        <input type="hidden" class="search-select-text" value="">
+                    </div>
+                </div>
+                <div>
+                    <span class="audit-filter-label">Outcome</span>
+                    <div class="btn-group w-100" role="group" aria-label="Outcome">
+                        <input type="radio" class="btn-check" name="status" id="audit-status-any" value="" {{ 'checked' if not filters.status }}>
+                        <label class="btn btn-outline-primary" for="audit-status-any">All</label>
+                        <input type="radio" class="btn-check" name="status" id="audit-status-ok" value="ok" {{ 'checked' if filters.status == 'ok' }}>
+                        <label class="btn btn-outline-primary" for="audit-status-ok">Success</label>
+                        <input type="radio" class="btn-check" name="status" id="audit-status-error" value="error" {{ 'checked' if filters.status == 'error' }}>
+                        <label class="btn btn-outline-primary" for="audit-status-error">Errors</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="audit-filter-grid">
+                <div class="audit-filter-wide">
+                    <span class="audit-filter-label">Changed data</span>
+                    <div class="input-group">
+                        <input type="text" class="form-control audit-text" name="table" list="audit-tables" value="{{ filters.table }}" placeholder="Any table" aria-label="Table">
+                        <span class="input-group-text">#</span>
+                        <input type="text" class="form-control audit-text" name="row_id" value="{{ filters.row_id }}" placeholder="Row id" aria-label="Row id" style="max-width: 8rem;">
+                        <select class="form-select" name="op" aria-label="Change" style="max-width: 10.5rem;">
+                            <option value="">Any change</option>
+                            {% for o in ops %}<option value="{{ o }}" {{ 'selected' if filters.op == o }}>{{ o | capitalize }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <datalist id="audit-tables">{% for t in tables %}<option value="{{ t }}">{% endfor %}</datalist>
+                </div>
+                <div class="audit-filter-wide">
+                    <span class="audit-filter-label">Request</span>
+                    <div class="input-group">
+                        <select class="form-select" name="method" aria-label="Method" style="max-width: 10rem;">
+                            <option value="">Any method</option>
+                            {% for m in methods %}<option value="{{ m }}" {{ 'selected' if filters.method == m }}>{{ m }}</option>{% endfor %}
+                        </select>
+                        <input type="text" class="form-control audit-text" name="route" value="{{ filters.route }}" placeholder="Route or path contains, e.g. /projects/12" aria-label="Route or path">
+                    </div>
+                </div>
+            </div>
+
+            <div class="audit-filter-grid">
+                <div class="audit-filter-wide">
+                    <label for="audit-share">Share link</label>
+                    <input type="text" class="form-control audit-text" id="audit-share" name="share" value="{{ filters.share }}" placeholder="Paste a share link or token">
+                </div>
+                <div>
+                    <label for="audit-ip">IP address</label>
+                    <input type="text" class="form-control audit-text" id="audit-ip" name="ip" value="{{ filters.ip }}" placeholder="Any">
+                </div>
+                <div class="audit-filter-actions">
+                    <a class="btn btn-outline-primary" href="{{ url_for('admin_audits_page') }}">Reset</a>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="audit-log">{{ spinner() }}</div>
+</div>
+<script>
+    (() => {
+        const form = document.getElementById("audit-filters");
+        const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+        form.querySelectorAll(".audit-presets [data-days]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const end = new Date("{{ today }}T00:00:00");
+                const start = new Date(end);
+                start.setDate(end.getDate() - Number(button.dataset.days) + 1);
+                form.elements.start.value = isoDate(start);
+                form.elements.end.value = isoDate(end);
+                htmx.trigger(form, "submit");
+            });
+        });
+
+        // a share link pasted whole is reduced to its token
+        form.addEventListener("htmx:configRequest", (event) => {
+            const match = (event.detail.parameters.share || "").match(/\/(?:share\/browse|shares\/[a-z_]+|webdav)\/([^/?#]+)/);
+            if (match) {
+                event.detail.parameters.share = match[1];
+                form.elements.share.value = match[1];
+            }
+        });
+
+        // keep the filters in the address bar, so a filtered view can be bookmarked and shared
+        form.addEventListener("htmx:afterRequest", (event) => {
+            if (!event.detail.successful) return;
+            const params = new URLSearchParams();
+            for (const [key, value] of new FormData(form)) {
+                if (value.trim()) params.set(key, value.trim());
+            }
+            const query = params.toString();
+            history.replaceState(null, "", query ? `${location.pathname}?${query}` : location.pathname);
+        });
+    })();
+</script>
+{% endblock content %}

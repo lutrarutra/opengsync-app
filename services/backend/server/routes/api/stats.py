@@ -61,3 +61,33 @@ def set_library_lane_reads(
             session.save(experiment, flush=True)
 
     return {"status": "success"}
+
+
+
+class SetQCRequest(BaseModel):
+    library_id: int
+    sample_id: int | None = None
+    qc: dict[str, Any]
+
+
+@router.post("/set-qc", dependencies=[Depends(dependencies.require_insider)])
+def set_qc(
+    body: SetQCRequest,
+    session: SyncSession = Depends(dependencies.db_session),
+) -> dict[str, Any]:
+    """Replaces the qc of a library (sample_id=None) or of a sample-library link."""
+    target: models.Library | models.links.SampleLibraryLink | None
+    if body.sample_id is None:
+        if (target := session.first(Q.library.select(id=body.library_id))) is None:
+            raise exc.NotFoundException(f"Library with ID '{body.library_id}' not found.")
+    else:
+        target = session.first(Q.links.get_sample_library_link(sample_id=body.sample_id, library_id=body.library_id))
+        if target is None:
+            raise exc.NotFoundException(
+                f"Sample-library link for sample_id='{body.sample_id}' and library_id='{body.library_id}' not found."
+            )
+
+    target.qc = body.qc or None
+    session.save(target)
+
+    return {"result": "success", "qc": target.qc or {}}

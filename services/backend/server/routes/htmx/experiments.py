@@ -360,8 +360,8 @@ def remove_pool_from_experiment(
     if pool not in experiment.pools:
         raise exc.BadRequestException(f"Pool {pool.name} is not associated with Experiment {experiment.name}.")
 
-    experiment.pools.remove(pool)
-    session.save(experiment)
+    # also drops the pool's lane links and its libraries' experiment_id
+    actions.unlink_pool_experiment(session, experiment_id=experiment.id, pool_id=pool.id)
 
     return responses.htmx_response(
         # redirect=responses.url_for("experiment_page", experiment_id=experiment.id),
