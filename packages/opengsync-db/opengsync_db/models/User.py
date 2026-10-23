@@ -315,6 +315,11 @@ class User(Base, UserMixin):
         return bool(self.institute and self.department and self.pi_name and self.pi_email)
 
     @property
+    def is_pi(self) -> bool:
+        """The user is their own PI (PI email is the user's email)."""
+        return bool(self.pi_email) and self.pi_email.lower() == self.email.lower()  # type: ignore[union-attr]
+
+    @property
     def can_assign_data(self) -> bool:
         return self.role in UserRole.data_assigners()
 

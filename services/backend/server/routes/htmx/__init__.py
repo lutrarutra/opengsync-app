@@ -32,7 +32,6 @@ from . import (
     adapters,
     feature_kits,
     features,
-    plots,
     api_tokens,
     passkeys,
     chat,
@@ -75,7 +74,6 @@ router.include_router(index_kits.router, dependencies=[Depends(auth.dependencies
 router.include_router(adapters.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(feature_kits.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(features.router, dependencies=[Depends(auth.dependencies.require_user_id)])
-router.include_router(plots.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(status.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(api_tokens.router, dependencies=[Depends(auth.dependencies.require_user_id)])
 router.include_router(admin.router)

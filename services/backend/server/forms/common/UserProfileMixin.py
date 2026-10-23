@@ -16,7 +16,8 @@ class ProfileValues:
 
 class UserProfileMixin:
     """Organization (institute, department) and PI of a user, picked from the values other users have or typed new
-    (core/column_values.py). Rendered with templates/forms/user-profile-fields.html.
+    (core/column_values.py). A user who is their own PI ticks ``is_pi`` instead and has their own name and email
+    stored as PI (``User.is_pi``). Rendered with templates/forms/user-profile-fields.html.
 
     Requirements depend on the form and are checked by ``validate_profile``; the fields themselves are optional.
     """
@@ -52,10 +53,17 @@ class UserProfileMixin:
     pi_email = inputs.string.EmailInputField(
         "PI Email", required=False, max_length=models.User.pi_email.type.length, autocomplete="off",
     )
+    # The user is their own PI: the PI fields are hidden and the user's name and email stored as PI
+    is_pi = inputs.boolean.CheckboxInputField("I am the Principal Investigator")
 
-    def init_profile_fields(self, user: models.User | None = None, token: str | None = None) -> None:
+    def init_profile_fields(
+        self, user: models.User | None = None, token: str | None = None, *, other_user: bool = False,
+    ) -> None:
         """Wire the fields (call after the form's ``__init__``); prefill from ``user``. ``token`` authorizes the
-        searches on pages whose user is not logged in."""
+        searches on pages whose user is not logged in; ``other_user`` labels the PI checkbox for someone editing
+        another user."""
+        if other_user:
+            self.is_pi.label = "This user is the Principal Investigator"
         self.department.query_fields = {"institute": self.institute.id}
         if token:
             for field in (self.institute, self.department, self.pi):
@@ -63,20 +71,27 @@ class UserProfileMixin:
         if user is not None:
             self.institute.set_values((user.institute,))
             self.department.set_values((user.department,))
-            self.pi.set_values((user.pi_name, user.pi_email))
+            self.is_pi.data = user.is_pi
+            if user.is_pi:
+                self.pi.clear()
+            else:
+                self.pi.set_values((user.pi_name, user.pi_email))
 
     def validate_profile(
-        self, session: SyncSession, *, required: bool, keep: models.User | None = None,
+        self, session: SyncSession, *, name: str, email: str, required: bool, keep: models.User | None = None,
     ) -> ProfileValues:
-        """The values to store, new ones snapped to existing spellings. With ``required`` all must be given; with
-        ``keep`` those already set on that user must not be cleared. Raises FormValidationException on errors."""
+        """The values to store, new ones snapped to existing spellings. ``name`` and ``email`` are the user's, stored
+        as PI if they are their own PI. With ``required`` all must be given; with ``keep`` those already set on that
+        user must not be cleared. Raises FormValidationException on errors."""
         institute = self.institute.resolve(session)
         department = self.department.resolve(
             session, filters={"institute": institute[0] if institute else None},
         )
 
         pi = None
-        if self.pi.is_new:
+        if self.is_pi.data:
+            pi = (name[:models.User.pi_name.type.length], email.strip().lower())
+        elif self.pi.is_new:
             if not self.pi_email.data:
                 self.pi_email.errors.append("Enter the email of the new PI.")
             else:

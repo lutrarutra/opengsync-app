@@ -25,10 +25,10 @@ class LaneRowSchema(BaseModel):
 class LoadFlowCellCombinedAction(HTMXForm):
     template_path = "actions/load-flow-cell-combined.html"
 
-    phi_x = inputs.numeric.FloatInputField("Phi X %", required=True, ge=0.0, unit="%")
+    phi_x = inputs.numeric.FloatInputField("PhiX", required=True, ge=0.0, unit="%")
     measured_qubit = inputs.numeric.FloatInputField("Qubit Concentration After Dilution", required=False, ge=0.0, unit="ng/μL")
-    target_molarity = inputs.numeric.FloatInputField("Target Molarity (nM)", required=False, ge=0.0, unit="nM")
-    total_volume_ul = inputs.numeric.FloatInputField("Total Volume (µL)", required=False, ge=0.0, unit="μL")
+    target_molarity = inputs.numeric.FloatInputField("Target Molarity", required=False, ge=0.0, unit="nM")
+    total_volume_ul = inputs.numeric.FloatInputField("Total Volume", required=False, ge=0.0, unit="μL")
 
     # Display only (as legacy: no validators); the template posts them back with the form
     avg_fragment_size = inputs.numeric.IntInputField("Avg. Fragment Size", required=False, read_only=True, unit="bp")

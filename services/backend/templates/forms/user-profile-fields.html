@@ -3,9 +3,17 @@
   {{ form.institute.render("col-md-6") }}
   {{ form.department.render("col-md-6") }}
 </div>
-<div class="row">
+{{ form.is_pi.render("mb-2") }}
+<div class="row{% if form.is_pi.data %} d-none{% endif %}" id="{{ form.is_pi.id }}-pi-fields">
   {{ form.pi.render("col-md-6") }}
   <div class="col-md-6{% if not form.pi.is_new %} d-none{% endif %}" data-search-select-new-only="{{ form.pi.id }}">
     {{ form.pi_email.render() }}
   </div>
 </div>
+<script>
+  (() => {
+    const checkbox = document.getElementById("{{ form.is_pi.id }}");
+    const piFields = document.getElementById("{{ form.is_pi.id }}-pi-fields");
+    checkbox.addEventListener("change", () => piFields.classList.toggle("d-none", checkbox.checked));
+  })();
+</script>

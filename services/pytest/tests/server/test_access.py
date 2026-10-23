@@ -46,7 +46,7 @@ def _affiliate(session: SyncSession, user, group, type: C.AffiliationType):
     "/protocols/",
     "/seq_runs/",
     "/share_tokens/",
-    "/admin/",
+    "/admin/chat",
     "/sequencers/",
     "/browser/",
     "/design/",
@@ -68,7 +68,7 @@ def test_anon_listing_pages_redirect_to_login(client: TestClient, path: str):
     "/lab_preps/1",
     "/protocols/1",
     "/seq_runs/1",
-    "/admin/",
+    "/admin/chat",
 ])
 def test_anon_resource_pages_redirect_to_login(client: TestClient, path: str):
     _anon_login_redirect(get(client, path))
@@ -117,7 +117,7 @@ def test_user_cannot_access_experiments(client: TestClient, user_token: str):
 def test_user_cannot_access_admin(client: TestClient, user_token: str):
     # Intended: admin only. require_admin uses `role < ADMIN` (CLIENT id=4), so a
     # 200 here is a product bug, not a bad test.
-    response = client.get("/admin/", headers=auth(user_token), follow_redirects=False)
+    response = client.get("/admin/chat", headers=auth(user_token), follow_redirects=False)
     assert response.status_code == 403
 
 
@@ -136,7 +136,7 @@ def test_insider_can_access_experiments(client: TestClient, insider_token: str):
 
 
 def test_insider_cannot_access_admin(client: TestClient, insider_token: str):
-    response = client.get("/admin/", headers=auth(insider_token), follow_redirects=False)
+    response = client.get("/admin/chat", headers=auth(insider_token), follow_redirects=False)
     assert response.status_code == 403
 
 
@@ -155,7 +155,7 @@ def test_admin_can_access_experiments(client: TestClient, admin_token: str):
 
 
 def test_admin_can_access_admin_page(client: TestClient, admin_token: str):
-    _allowed(client.get("/admin/", headers=auth(admin_token), follow_redirects=False))
+    _allowed(client.get("/admin/chat", headers=auth(admin_token), follow_redirects=False))
 
 
 # --- resource pages: project ---

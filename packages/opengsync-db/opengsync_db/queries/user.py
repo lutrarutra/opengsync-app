@@ -20,7 +20,7 @@ def create(
     pi_email: str | None = None,
 ) -> User:
     user = User(
-        email=email.strip().lower(),
+        email=utils.norm_email(email),
         first_name=first_name.strip(),
         last_name=last_name.strip(),
         password=hashed_password,
@@ -29,7 +29,7 @@ def create(
         institute=institute,
         department=department,
         pi_name=pi_name,
-        pi_email=pi_email.strip().lower() if pi_email else None,
+        pi_email=utils.norm_email(pi_email) if pi_email else None,
     )
     return user
 
@@ -107,7 +107,7 @@ def where_clauses(
     if id is not None:
         clauses.append(User.id == id)
     if email is not None:
-        clauses.append(sa.func.lower(User.email) == email.lower())
+        clauses.append(sa.func.lower(User.email) == email.strip().lower())
     if role is not None:
         clauses.append(User.role == role)
     if role_in is not None:

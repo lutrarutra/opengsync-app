@@ -24,7 +24,7 @@ class UserForm(UserProfileMixin, HTMXForm):
         self.user = user
         self.editor = editor
         self.post_url = responses.url_for("UserForm.Edit", user_id=user.id)
-        self.init_profile_fields()
+        self.init_profile_fields(other_user=editor.id != user.id)
         # Only admins may change the email
         self.email.read_only = not editor.is_admin
 
@@ -51,7 +51,7 @@ class UserForm(UserProfileMixin, HTMXForm):
             form.last_name.data = form.user.last_name
             form.email.data = form.user.email
             form.role.data = form.user.role.id
-            form.init_profile_fields(form.user)
+            form.init_profile_fields(form.user, other_user=form.editor.id != form.user.id)
             return form.make_response()
         return route
 
@@ -73,9 +73,16 @@ class UserForm(UserProfileMixin, HTMXForm):
                 form.email.errors.append("You do not have permission to change this user's email.")
                 raise exc.FormValidationException(form)
 
+            # The DB unique constraint is case-sensitive, emails are compared case-insensitively
+            if form.email.data.lower() != form.user.email.lower() and session.exists(Q.user.select(email=form.email.data)):
+                form.email.errors.append("User with this email already exists.")
+                raise exc.FormValidationException(form)
+
             customer_editor = not form.editor.is_insider
             profile = form.validate_profile(
                 session,
+                name=f"{form.first_name.data} {form.last_name.data}",
+                email=form.email.data,
                 required=customer_editor and form.editor.id == form.user.id,
                 keep=form.user if customer_editor else None,
             )

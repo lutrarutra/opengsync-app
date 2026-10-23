@@ -438,6 +438,36 @@ def test_edit_owner_insider_profile_is_optional(
     assert_htmx_redirect(response)
 
 
+def test_edit_owner_can_be_own_pi(client: TestClient, session: SyncSession, user, user_token: str):
+    response = post_form(
+        client, _edit_path(user.id), _payload(email=user.email, first_name="Ada", is_pi="true"), token=user_token,
+    )
+
+    assert_htmx_redirect(response)
+    reloaded = _reload(session, user)
+    assert (reloaded.pi_name, reloaded.pi_email) == (f"Ada {reloaded.last_name}", user.email)
+    assert reloaded.is_pi
+
+
+def test_edit_form_get_own_pi_renders_checked_checkbox(
+    client: TestClient, session: SyncSession, user, user_token: str, insider_token: str,
+):
+    set_profile(session, user, pi_name=user.name, pi_email=user.email)
+    session.commit()
+
+    response = get(client, _edit_path(user.id), user_token)
+
+    assert response.status_code == 200
+    assert "I am the Principal Investigator" in response.text
+    import re
+    checkbox = re.search(r'<input[^>]*name="is_pi"[^>]*>', response.text, re.S)
+    assert checkbox is not None and "checked" in checkbox.group(0)
+    # The PI picker is left empty instead of showing the user's own name
+    assert f'value="{user.name}"' not in response.text
+
+    assert "This user is the Principal Investigator" in get(client, _edit_path(user.id), insider_token).text
+
+
 def test_edit_form_email_read_only_except_for_admin(
     client: TestClient, user, user_token: str, admin_token: str,
 ):

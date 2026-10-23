@@ -1,4 +1,4 @@
-"""Chat usage summary for the admin page, read from the audit logs with DuckDB.
+"""Chat usage summary for the admin chat page, read from the audit logs with DuckDB.
 
 Every message attempt is audited by `POST /htmx/chat/messages` (see `routes/htmx/chat.py`), including rejected
 ones (rate limited, no consent, too long, ...), as one JSON line in `{log_folder}/audits/YYYY-MM-DD.jsonl[.gz]`.

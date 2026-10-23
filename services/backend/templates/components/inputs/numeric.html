@@ -1,11 +1,14 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
-<div class="form-group {{ container_class }} {% if field.hidden %}d-none{% endif %} {% if field.unit %}input-with-unit{% endif %}">
+<div class="form-group {{ container_class }} {% if field.hidden %}d-none{% endif %}">
     {% if not hide_label %}
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
     {% endif %}>
         {{ field.label }}
     </a>
+    {% endif %}
+    {% if field.unit %}
+    <div class="input-with-unit">
     {% endif %}
     <input
     type="{% if field.hidden %}hidden{% else %}number{% endif %}"
@@ -19,6 +22,7 @@
     {%if field.read_only %}readonly{% endif %}>
     {% if field.unit %}
     <span class="input-group-text unit-container">{{ field.unit }}</span>
+    </div>
     {% endif %}
     {% if not hide_errors %}
     <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">

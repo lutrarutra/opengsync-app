@@ -8,7 +8,7 @@ from sqlalchemy.sql.base import ExecutableOption
 from opengsync_db import models
 
 
-from .. import exceptions
+from .. import exceptions, utils
 from ..DBBlueprint import DBBlueprint
 from ... import PAGE_LIMIT
 from ...categories import UserRole, UserRole, AffiliationType
@@ -87,12 +87,12 @@ class UserBP(DBBlueprint):
             models.User: user object
         """
         if self.db.session.query(models.User).where(
-            sa.func.lower(models.User.email) == email.lower()
+            sa.func.lower(models.User.email) == email.strip().lower()
         ).first() is not None:
             raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
         user = models.User(
-            email=email.strip(),
+            email=utils.norm_email(email),
             first_name=first_name.strip(),
             last_name=last_name.strip(),
             password=hashed_password,
@@ -132,7 +132,7 @@ class UserBP(DBBlueprint):
             models.User | None: user object or None if not found
         """
         user = self.db.session.query(models.User).where(
-            sa.func.lower(models.User.email) == email.lower()
+            sa.func.lower(models.User.email) == email.strip().lower()
         ).first()
         return user
 

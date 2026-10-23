@@ -72,7 +72,10 @@ class CompleteRegistrationForm(UserProfileMixin, HTMXForm):
                 raise exc.FormValidationException(form)
 
             email, role = data
-            profile = form.validate_profile(session, required=not role.insider)
+            profile = form.validate_profile(
+                session, name=f"{form.first_name.data} {form.last_name.data}", email=email,
+                required=not role.insider,
+            )
             if session.exists(Q.user.select(email=email)):
                 form.email.errors.append("User already exists.")
                 raise exc.FormValidationException(form)

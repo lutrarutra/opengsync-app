@@ -81,7 +81,7 @@ class ActivationForm(UserProfileMixin, HTMXForm):
                 raise exc.FormValidationException(form)
 
             if form.asks_profile:
-                form.apply_profile(user, form.validate_profile(session, required=True))
+                form.apply_profile(user, form.validate_profile(session, name=user.name, email=user.email, required=True))
 
             user.password = bcrypt.generate_password_hash(form.password.data)
             user.pw_set_datetime = dt.datetime.now(dt.timezone.utc)

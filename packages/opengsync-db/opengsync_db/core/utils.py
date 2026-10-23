@@ -99,6 +99,14 @@ def norm_text_py(value: str) -> str:
     return " ".join(value.split()).lower()
 
 
+def norm_email(email: str) -> str:
+    """Strips whitespace and lowercases the domain; the local part keeps the case as entered."""
+    local, sep, domain = email.strip().rpartition("@")
+    if not sep:
+        return domain
+    return f"{local}@{domain.lower()}"
+
+
 def safe_trgm_search(
     column: sql.ColumnElement | InstrumentedAttribute, value: str, threshold: float = 0.05,
 ) -> sql.ColumnElement[bool]:

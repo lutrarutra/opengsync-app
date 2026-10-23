@@ -5,9 +5,9 @@ from ...core import dependencies, responses, config, audit_reader
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(dependencies.require_admin)])
 
 
-@router.get("/")
-def admin_page():
-    return responses.html_response(template="admin_page.html", title="Admin")
+@router.get("/chat", name="admin_chat_page")
+def admin_chat_page():
+    return responses.html_response(template="admin_chat_page.html", title="Chat")
 
 
 @router.get("/audits", name="admin_audits_page")

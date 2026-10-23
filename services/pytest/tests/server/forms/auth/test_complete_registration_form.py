@@ -306,6 +306,21 @@ def test_complete_registration_insider_profile_is_optional(client: TestClient, s
     assert user.institute is None and user.pi_email is None
 
 
+def test_complete_registration_own_pi_stores_own_name_and_email(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL), is_pi="true", **{"pi": "", "pi-text": "", "pi_email": ""})
+    assert_htmx_redirect(response, contains="/auth/login")
+    user = session.get_one(Q.user.select(email=NEW_EMAIL))
+    assert (user.pi_name, user.pi_email) == ("Ada Lovelace", NEW_EMAIL)
+    assert user.is_pi and user.profile_complete
+
+
+def test_complete_registration_own_pi_still_requires_organization(client: TestClient, session: SyncSession):
+    response = _complete(client, _token(NEW_EMAIL), is_pi="true", **_NO_PROFILE)
+    assert_form_invalid(response, contains="Institute is required.")
+    assert "Principal Investigator is required." not in response.text
+    assert session.first(Q.user.select(email=NEW_EMAIL)) is None
+
+
 def test_complete_registration_new_pi_needs_email(client: TestClient, session: SyncSession):
     response = _complete(client, _token(NEW_EMAIL), pi_email="")
     assert_form_invalid(response, contains="Enter the email of the new PI.")
