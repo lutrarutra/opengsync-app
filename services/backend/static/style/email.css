@@ -47,3 +47,6 @@ div.code {
     font-size: 14px;
     color: #333;
 }
+p.comment {
+    white-space: pre-wrap;
+}

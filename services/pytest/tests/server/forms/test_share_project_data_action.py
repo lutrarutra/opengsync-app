@@ -545,6 +545,31 @@ def test_submit_passes_internal_share_and_anonymous_to_the_mailer(
     assert sent["kwargs"]["anonymous"] is anonymous_send
 
 
+@pytest.mark.parametrize("comment, expected", [
+    ("Please check the QC report first.", "Please check the QC report first."),
+    ("", None),
+    (None, None),
+])
+def test_submit_passes_optional_comment_to_the_mailer(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    bioinformatician_token: str,
+    fake_mailer,
+    monkeypatch: pytest.MonkeyPatch,
+    comment: str | None,
+    expected: str | None,
+):
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", "prod")
+    project = _shareable_project(session, user)
+
+    response = post_form(client, _path(project.id), _payload(comment=comment), token=bioinformatician_token)
+
+    assert_htmx_redirect(response, f"/projects/{project.id}")
+    [sent] = [mail for mail in fake_mailer.sent if mail["method"] == "send_share_project_data"]
+    assert sent["kwargs"]["comment"] == expected
+
+
 class _RenderedMail:
     """Records the mailer's template renders and the sent email instead of rendering/sending."""
 

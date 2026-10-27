@@ -39,6 +39,9 @@ class ShareProjectDataAction(HTMXForm):
     custom_email = inputs.string.EmailInputField("Recipient", required=False)
     recipients = inputs.string.StringInputField("Recipients", required=False, hidden=True)
     mark_project_delivered = inputs.boolean.SwitchInputField("Mark Project as Delivered", default=True)
+    comment = inputs.string.TextAreaInputField(
+        "Comment", description="Optional, included in the share email.", max_length=4096, required=False,
+    )
 
     def __init__(self, project: models.Project) -> None:
         super().__init__()
@@ -159,6 +162,7 @@ class ShareProjectDataAction(HTMXForm):
                         project=project,
                         internal_share=form.internal_share.data,
                         anonymous=form.anonymous_send.data,
+                        comment=form.comment.data or None,
                     )
                 except smtplib.SMTPException as e:
                     logger.error(f"Failed to send email to {form.recipient_emails}: {e}")

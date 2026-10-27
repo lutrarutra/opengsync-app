@@ -40,6 +40,9 @@
                     {{ form.time_valid_min.render("col-6") }}
                     {{ form.custom_email.render("col-6") }}
                 </div>
+                <div class="row">
+                    {{ form.comment.render("col-12") }}
+                </div>
 
                 <div class="pt-1">
                     <div class="invalid-feedback-container">
@@ -132,6 +135,7 @@
                     internal_share: $("#internal_share").is(":checked"),
                     custom_email: $("#custom_email").val(),
                     mark_project_delivered: $("#mark_project_delivered").is(":checked"),
+                    comment: $("#comment").val(),
                 },
             });
             disable_button($("#submit-select_users-form-btn"));

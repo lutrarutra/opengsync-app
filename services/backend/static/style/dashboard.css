@@ -264,6 +264,25 @@
         }
     }
 
+    .feed-side {
+        flex-shrink: 0;
+        white-space: nowrap;
+        color: var(--color-gray-700);
+    }
+
+    /* chips on the left, a single right-aligned chip/label on the right */
+    .feed-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+
+        > .feed-chip {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+    }
+
     .feed-actions {
         flex-shrink: 0;
         display: flex;

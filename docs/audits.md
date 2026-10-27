@@ -28,8 +28,9 @@ Workflows store intermediate steps in Redis, not in the database, so a multi-ste
 | Inside the container | `/logs/audits/YYYY-MM-DD.jsonl` (`log_folder` in `opengsync.yaml`) |
 | On the host | `${LOG_DIR}/opengsync/audits/YYYY-MM-DD.jsonl` |
 
-- One file per day, one JSON object per line.
-- At midnight the previous day's file is compressed to `YYYY-MM-DD.jsonl.gz`.
+- One file per day, one JSON object per line. A line goes into the file for the date of its own timestamp (server time zone), so each file holds exactly that day, midnight to midnight.
+- Every gunicorn worker appends to the same file (`O_APPEND`, one write per line), see `DailyFileSink` in `services/backend/server/core/log_files.py`.
+- Files from two or more days ago are compressed to `YYYY-MM-DD.jsonl.gz` the first time something is logged on a new day, and at startup. Yesterday's file stays plain until then. If a `.jsonl.gz` of that name already exists, the archive is named `YYYY-MM-DD.N.jsonl.gz`. Older archives may have names like `YYYY-MM-DD.<timestamp>.jsonl.gz`, from when loguru's rotation raced between workers; they may hold lines from the morning of the following day. The viewer and the DuckDB queries below read all of them.
 - Audit files are **never deleted** (the sink has no retention). Older files may still be `.jsonl.zip` from before the switch to gzip; DuckDB can't read those directly, so unzip them first.
 - Audit lines are kept out of the normal `.log` and `.err` files.
 
@@ -491,7 +492,8 @@ What a line says is reliable: every entry in `changes` was flushed by the ORM an
 | Commit, rollback, writing the audit line | `DBSessionCleanupMiddleware` and `_write_audit_log` in `services/backend/server/core/middleware.py` |
 | Explicit audit dependencies | `audit_log`, `audit_share_access` in `services/backend/server/core/dependencies.py` |
 | `user_id` attribution | `get_user_id` stores the authenticated id on `request.state.user_id` (cookie or API token), in `services/backend/server/core/dependencies.py` |
-| File sink, JSON format, rotation | `_audit_format` and the `audits/` sink in `services/backend/server/core/lifespan.py` |
+| File sink, JSON format | `_audit_format` and the `audits/` sink in `services/backend/server/core/lifespan.py` |
+| Daily files, compression | `DailyFileSink` in `services/backend/server/core/log_files.py` |
 | Share-access debounce | `claim_share_audit` in `services/backend/server/utils/share_fs_cache.py` |
 | Reading the logs back (audit log viewer) | `services/backend/server/core/audit_reader.py`, `get_audit_log` in `services/backend/server/routes/htmx/admin.py` |
 | Tests | `services/pytest/tests/server/test_audit_log.py`, `test_audit_viewer.py` |

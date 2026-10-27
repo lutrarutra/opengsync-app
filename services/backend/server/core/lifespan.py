@@ -9,7 +9,7 @@ from loguru import logger
 from opengsync_db import SyncDBHandler
 from opengsync_db.fs_index import FsIndexDBHandler
 
-from . import config, mailer, redis, secrets, templates
+from . import config, log_files, mailer, redis, secrets, templates
 
 
 def _audit_format(record) -> str:
@@ -62,31 +62,23 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("opengsync.yaml not found, app_config unavailable")
 
-    os.makedirs(config.settings.app_config.log_folder, exist_ok=True)
+    log_folder = config.settings.app_config.log_folder
     logger.add(
-        f"{config.settings.app_config.log_folder}/{{time:YYYY-MM-DD}}.log",
-        rotation="1 day",
-        retention="7 days",
-        compression="zip",
+        log_files.DailyFileSink(log_folder, ".log", retention_days=7),
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
         filter=lambda record: not record["extra"].get("audit"),
         level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO",
         backtrace=False, diagnose=False
     )
     logger.add(
-        f"{config.settings.app_config.log_folder}/{{time:YYYY-MM-DD}}.err",
-        rotation="1 day",
-        retention="7 days",
-        compression="zip",
+        log_files.DailyFileSink(log_folder, ".err", retention_days=7),
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
         filter=lambda record: not record["extra"].get("audit"),
         level="ERROR"
     )
-    os.makedirs(f"{config.settings.app_config.log_folder}/audits", exist_ok=True)
+    # audit files are never deleted
     logger.add(
-        f"{config.settings.app_config.log_folder}/audits/{{time:YYYY-MM-DD}}.jsonl",
-        rotation="1 day",
-        compression="gz",
+        log_files.DailyFileSink(f"{log_folder}/audits", ".jsonl"),
         format=_audit_format,
         filter=lambda record: record["extra"].get("audit") is True,
         level="INFO",

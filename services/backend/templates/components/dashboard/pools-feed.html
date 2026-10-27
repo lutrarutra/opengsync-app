@@ -12,24 +12,33 @@ hx-get="{{ url_for('render_pool_feed', page=current_page + 1) }}" hx-trigger="in
     <div class="feed-head">
         <div class="feed-title">
             <a href="{{ url_for('pool_page', pool_id=pool.id) }}">{{ pool.name }}</a>
-            <span class="feed-subtitle"><b>{{ pool.owner.name }}</b></span>
         </div>
+        <span class="feed-side"><b>{{ pool.owner.name }}</b></span>
     </div>
-    <div class="feed-chips">
-        {% if pool.avg_fragment_size %}
-        <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>BA</span>
+    <div class="feed-row">
+        <div class="feed-chips">
+            {% if pool.avg_fragment_size %}
+            <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>BA</span>
+            {% else %}
+            <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>BA</span>
+            {% endif %}
+            {% if pool.qubit_concentration %}
+            <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>Qubit</span>
+            {% else %}
+            <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>Qubit</span>
+            {% endif %}
+            {% if pool.experiment_id %}
+            <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>{{ pool.experiment.name }}</span>
+            {% else %}
+            <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>No experiment</span>
+            {% endif %}
+        </div>
+        {% if pool.type == C.PoolType.EXTERNAL %}
+        <span class="feed-chip feed-chip-muted"><i class="bi bi-box-arrow-in-right"></i>External</span>
+        {% elif pool.type == C.PoolType.INTERNAL %}
+        <span class="feed-chip feed-chip-muted"><i class="bi bi-house"></i>Internal</span>
         {% else %}
-        <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>BA</span>
-        {% endif %}
-        {% if pool.qubit_concentration %}
-        <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>Qubit</span>
-        {% else %}
-        <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>Qubit</span>
-        {% endif %}
-        {% if pool.experiment_id %}
-        <span class="feed-chip feed-chip-ok"><i class="bi bi-check-circle-fill"></i>{{ pool.experiment.name }}</span>
-        {% else %}
-        <span class="feed-chip feed-chip-warn"><i class="bi bi-exclamation-triangle-fill"></i>No experiment</span>
+        <span class="feed-chip feed-chip-muted"><i class="bi bi-sliders"></i>{{ pool.type.label }}</span>
         {% endif %}
     </div>
     <div class="status-row">

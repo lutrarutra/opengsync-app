@@ -1,7 +1,7 @@
 """Read the audit logs back with DuckDB, e.g. for the audit log viewer on the admin page.
 
 Audit lines are written by `core/middleware.py` (`_write_audit_log`) to `{log_folder}/audits/YYYY-MM-DD.jsonl`, one
-flat JSON object per request, and rotated daily into `.jsonl.gz` files. See `docs/audits.md` for the format.
+flat JSON object per request, and compressed to `.jsonl.gz` after two days. See `docs/audits.md` for the format.
 """
 import json
 import math
