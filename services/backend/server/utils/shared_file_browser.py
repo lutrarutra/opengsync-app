@@ -482,9 +482,12 @@ class SharedFileBrowser:
 
     def walk_contents(self, subpath: Path = Path()) -> Iterator[tuple[Path, bool]]:
         """
-        Recursively yield (relative_path, is_dir) for all safe items.
+        Recursively yield (relative_path, is_dir) for all safe items, sorted within each folder.
+
+        Symlinked folders are followed, as browse and WebDAV do, so a folder reachable twice is
+        listed twice. A link back to a folder on its own path (a cycle) is not followed.
         """
-        if self._is_junk(subpath):
+        if self._is_junk(subpath) or subpath.is_absolute() or ".." in subpath.parts:
             return iter(())
 
         # only safe subpaths are cached, so a hit needs no safety check
@@ -507,19 +510,30 @@ class SharedFileBrowser:
         if not self.is_safe(subpath):
             return iter(())
 
-        full_start_path = (self.root_dir / subpath).resolve()
+        # not resolved: items through a symlinked start folder keep the link's path, as browse shows them
+        full_start_path = self.root_dir / subpath
         items: list[tuple[Path, bool]] = []
 
         if full_start_path.is_file():
             items.append((subpath, False))
         elif full_start_path.is_dir():
-            for root, dirs, files in os.walk(full_start_path):
+            # real paths of the folders above each walked folder: following a link to any of them loops
+            ancestors: dict[str, frozenset[str]] = {str(full_start_path): frozenset({os.path.realpath(full_start_path)})}
+            for root, dirs, files in os.walk(full_start_path, followlinks=True):
                 root_path = Path(root)
-                # an unsafe directory has no safe descendants, so don't descend into it
-                dirs[:] = [
-                    d for d in dirs
-                    if not self._is_junk(root_path / d) and self._is_safe(root_path / d, is_dir=True)
-                ]
+                above = ancestors.pop(root, frozenset())
+                kept = []
+                for d in sorted(dirs):
+                    # an unsafe directory has no safe descendants, so don't descend into it
+                    if self._is_junk(root_path / d) or not self._is_safe(root_path / d, is_dir=True):
+                        continue
+                    real = os.path.realpath(root_path / d)
+                    if real in above:
+                        continue
+                    ancestors[str(root_path / d)] = above | {real}
+                    kept.append(d)
+                dirs[:] = kept
+                files.sort()
 
                 for d in dirs:
                     dir_abs = root_path / d

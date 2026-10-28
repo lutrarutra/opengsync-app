@@ -36,6 +36,51 @@ class DisclaimerSubForm(SubHTMXForm):
         return True
 
 
+class SubmissionSubForm(SubHTMXForm):
+    """What is submitted, which decides the workflow of the request."""
+    title = "Submission Type"
+    icon = "bi-diagram-3"
+
+    # Un-pooled libraries are not offered (yet); add them here to enable that submission type.
+    TYPES = C.SubmissionType.as_list(include_unpooled_libraries=False)
+
+    # Stages of each submission type's workflow, shown when it is selected: (icon, label, done by the customer).
+    WORKFLOWS: dict[C.SubmissionType, list[tuple[str, str, bool]]] = {
+        C.SubmissionType.RAW_SAMPLES: [
+            ("bi-droplet", "Your Samples", True),
+            ("bi-eyedropper", "Library Prep", False),
+            ("bi-collection", "Pooling", False),
+            ("bi-cpu", "Sequencing", False),
+            ("bi-cloud-download", "Data Delivery", False),
+        ],
+        C.SubmissionType.POOLED_LIBRARIES: [
+            ("bi-collection", "Your Pooled Libraries", True),
+            ("bi-cpu", "Sequencing", False),
+            ("bi-cloud-download", "Data Delivery", False),
+        ],
+        C.SubmissionType.UNPOOLED_LIBRARIES: [
+            ("bi-eyedropper", "Your Libraries", True),
+            ("bi-collection", "Pooling", False),
+            ("bi-cpu", "Sequencing", False),
+            ("bi-cloud-download", "Data Delivery", False),
+        ],
+        C.SubmissionType.QC_ONLY: [
+            ("bi-droplet", "Your Samples or Libraries", True),
+            ("bi-clipboard-check", "Quality Control", False),
+            ("bi-file-earmark-text", "QC Report", False),
+        ],
+    }
+
+    ICONS: dict[C.SubmissionType, str] = {
+        C.SubmissionType.RAW_SAMPLES: "bi-droplet",
+        C.SubmissionType.POOLED_LIBRARIES: "bi-collection",
+        C.SubmissionType.UNPOOLED_LIBRARIES: "bi-eyedropper",
+        C.SubmissionType.QC_ONLY: "bi-clipboard-check",
+    }
+
+    submission_type = inputs.selectable.SelectableInputField("Submission Type", options=[(t.id, t.label) for t in TYPES])
+
+
 class BasicInfoSubForm(SubHTMXForm):
     """Basic information about the sequencing request."""
     title = "Request Info"
@@ -62,7 +107,6 @@ class TechnicalInfoSubForm(SubHTMXForm):
     title = "Technical Requirements"
     icon = "bi-cpu"
 
-    submission_type = inputs.selectable.SelectableInputField("Submission Type", options=C.SubmissionType.as_selectable(include_unpooled_libraries=False))
     read_type = inputs.selectable.SelectableInputField(
         "Read Type",
         options=C.ReadType.as_selectable(),
@@ -124,6 +168,7 @@ class SeqRequestForm(HTMXForm):
     template_path = "forms/seq_request/seq_request.html"
 
     disclaimer = DisclaimerSubForm()
+    submission = SubmissionSubForm()
     basic_info = BasicInfoSubForm()
     user_selection = UserSelectionSubForm()
     technical_info = TechnicalInfoSubForm()
@@ -133,7 +178,7 @@ class SeqRequestForm(HTMXForm):
     billing = BillingSubForm()
 
     # Order of the steps in the multi-step form.
-    STEPS = ("disclaimer", "user_selection", "basic_info", "contact", "technical_info", "bioinformatician", "organization", "billing")
+    STEPS = ("disclaimer", "submission", "user_selection", "basic_info", "contact", "technical_info", "bioinformatician", "organization", "billing")
 
     def __init__(
         self,
@@ -207,6 +252,10 @@ class SeqRequestForm(HTMXForm):
         if self.form_type == "edit":
             return self.step_names[1]
         return self.step_names[-1]
+
+    def lock_submission_type(self, access_level: C.AccessLevel) -> None:
+        """The submission type of an existing request decides its workflow; only admins may change it."""
+        self.submission.submission_type.read_only = access_level < C.AccessLevel.ADMIN
 
     def validate_rules(self, session: SyncSession, step_names: list[str]) -> None:
         """Cross-field and database checks for the given steps, run once their fields are valid."""
@@ -328,6 +377,7 @@ class SeqRequestForm(HTMXForm):
         ) -> Response:
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this request.")
+            form.lock_submission_type(access_level)
             return form.validate_step(request.state.form_data, csrf_token, session)
         return route
 
@@ -360,11 +410,14 @@ class SeqRequestForm(HTMXForm):
                 raise exc.NoPermissionsException("You do not have permission to edit this request.")
             if form.seq_request is None:
                 raise exc.BadRequestException("SeqRequest ID must be provided for edit form.")
+            form.lock_submission_type(access_level)
 
             # Every step is pre-filled from the request, so the timeline starts out all valid.
             for _, sub_form in form.steps:
                 sub_form.validated = True
             form.disclaimer.accepted.data = True
+
+            form.submission.submission_type.data = form.seq_request.submission_type.id
 
             form.basic_info.name.data = form.seq_request.name or ""
             form.basic_info.description.data = form.seq_request.description or ""
@@ -378,7 +431,6 @@ class SeqRequestForm(HTMXForm):
             form.technical_info.special_requirements.data = (
                 form.seq_request.special_requirements or ""
             )
-            form.technical_info.submission_type.data = form.seq_request.submission_type.id
 
             # Contact
             if form.seq_request.contact_person:
@@ -500,7 +552,7 @@ class SeqRequestForm(HTMXForm):
                         num_lanes=int(form.technical_info.num_lanes.data) if form.technical_info.num_lanes.data else None,
                         data_delivery_mode=C.DataDeliveryMode.get(form.technical_info.data_delivery_mode.data),
                         special_requirements=form.technical_info.special_requirements.data,
-                        submission_type=C.SubmissionType.get(form.technical_info.submission_type.data),
+                        submission_type=C.SubmissionType.get(form.submission.submission_type.data),
                         billing_code=form.billing.code.data or None,
                         contact_person=contact_person,
                         pi_contact=pi_contact,
@@ -545,6 +597,11 @@ class SeqRequestForm(HTMXForm):
                     "Submitted requests can only be edited by insiders."
                 )
 
+            form.lock_submission_type(access_level)
+            if form.submission.submission_type.read_only and form.submission.submission_type.data != seq_request.submission_type.id:
+                form.submission.submission_type.errors.append("Only admins can change the submission type.")
+                raise exc.FormValidationException(form)
+
             form.validate_rules(session, form.step_names)
             form.assert_valid()
 
@@ -569,7 +626,7 @@ class SeqRequestForm(HTMXForm):
                 form.technical_info.data_delivery_mode.data
             )
             seq_request.special_requirements = form.technical_info.special_requirements.data
-            seq_request.submission_type = C.SubmissionType.get(form.technical_info.submission_type.data)
+            seq_request.submission_type = C.SubmissionType.get(form.submission.submission_type.data)
             seq_request.billing_code = form.billing.code.data or None
 
             # Sync contacts

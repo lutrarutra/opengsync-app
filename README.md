@@ -34,7 +34,7 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 * Generate reports and plotting/visualizing statistics
 
 ## Tech Stack
-1. `opengsync-app` - Flask web server
+1. `opengsync-app` - FastAPI web server (Jinja2 templates + HTMX)
 1. `opengsync-db` - PostgreSQL database
 1. `celery-beat` - Periodic task scheduler
 1. `celery-worker` - Asynchronous task worker to scan illumina run folder, update statuses, clean old files etc.
@@ -44,7 +44,7 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 1. `redis` - Redis server for celery broker and caching
 
 ## Performance Considerations
-- Gunicorn with multiple workers
+- Gunicorn with multiple Uvicorn workers
 - Nginx reverse proxy for serving static files
 - Route response caching in memory
 - Page modularization and lazy loading with `HTMX`

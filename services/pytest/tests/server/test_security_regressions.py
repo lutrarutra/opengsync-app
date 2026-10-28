@@ -269,7 +269,7 @@ EDIT_PROPERTIES_PATH = "/htmx/actions/edit-library-properties-action"
 
 
 def _properties_payload(library: models.Library) -> dict[str, str]:
-    return spreadsheet_payload(["ID", "Library Name"], [[library.id, library.name]])
+    return spreadsheet_payload(["Library"], [[f"{library.name} [{library.id}]"]])
 
 
 def test_edit_library_properties_rejects_library_outside_scope(
@@ -284,6 +284,8 @@ def test_edit_library_properties_rejects_library_outside_scope(
         token=user_token, params={"seq_request_id": own_request.id},
     )
 
+    # The scope has no libraries, so the Library column has no options to check against;
+    # the scope check of the submitted ids rejects it
     assert response.status_code == 404
     session.expire_all()
     assert session.get_one(Q.library.select(id=victim_library.id)).properties == {"secret": "keep me"}
@@ -301,7 +303,7 @@ def test_edit_library_properties_rejects_other_library_in_single_library_scope(
         token=user_token, params={"library_id": library.id},
     )
 
-    assert response.status_code == 404
+    assert_form_invalid(response, "Invalid value")
     session.expire_all()
     assert session.get_one(Q.library.select(id=other.id)).properties == {"note": "untouched"}
 

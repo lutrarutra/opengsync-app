@@ -13,21 +13,104 @@
             a:hover { text-decoration: underline; }
             .breadcrumb { margin-bottom: 20px; }
             a:visited { color: #551a8b; }
-            .download-header { color: #0066cc; font-weight: bold; display: flex; gap: 20px; list-style-type: none; padding: 0 0 10px 0; margin: 0; }
+            .download-methods { margin-bottom: 20px; }
+            .download-methods h2 { font-size: 1.1em; margin: 0 0 4px 0; }
+            .download-methods p { margin: 0 0 10px 0; color: #555; }
+            .download-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+            .download-methods .note { font-size: 0.9em; }
+            .download-buttons a.button { display: inline-block; text-decoration: none; }
+            .zip-link { margin-left: 12px; font-size: 0.85em; }
+            .download-buttons button, .download-buttons a.button, .download-dialog button {
+                font: inherit; cursor: pointer; padding: 6px 12px; border-radius: 4px;
+                border: 1px solid #0066cc; background: #fff; color: #0066cc;
+            }
+            .download-buttons button:hover, .download-buttons a.button:hover, .download-dialog button:hover { background: #e8f0fa; text-decoration: none; }
+            .download-buttons button.primary { background: #0066cc; color: #fff; }
+            .download-buttons button.primary:hover { background: #0052a3; }
+            .download-dialog { max-width: 720px; width: calc(100% - 40px); border: 1px solid #ccc; border-radius: 6px; padding: 20px; }
+            .download-dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+            .download-dialog h3 { margin-top: 0; }
+            .download-dialog ol { padding-left: 20px; }
+            .download-dialog li { margin-bottom: 6px; }
+            .download-dialog .note { color: #555; font-size: 0.9em; }
+            .download-dialog .dialog-footer { text-align: right; margin-top: 16px; }
+            .command { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
+            .command pre { flex: 1; margin: 0; padding: 10px; background: #f6f8fa; border: 1px solid #ddd; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+            kbd { border: 1px solid #ccc; border-radius: 3px; padding: 0 4px; background: #f6f8fa; }
         </style>
 
         <!-- Bootstrap -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"/>
     </head>
     <body>
-        <ul class="download-header">
-            Download:
-            <li>
-                <a href="{{ url_for('file_share.rclone_script', token=token) }}" type="button" target="_blank">
-                    <i class="bi bi-filetype-sh"></i> Rclone WebDav Script (Recommended)
-                </a>
-            </li>
-        </ul>
+        {% macro command_block(id, command) %}
+        <div class="command">
+            <pre id="{{ id }}">{{ command }}</pre>
+            <button type="button" data-copy="{{ id }}"><i class="bi bi-clipboard"></i> Copy</button>
+        </div>
+        {% endmacro %}
+
+        <section class="download-methods">
+            <h2>Download all data</h2>
+            <p>Choose a method to copy the whole share to your computer, or click single files in the list below.</p>
+            {% if zip_available %}
+            <p class="note">The .zip opens with a double-click, but an interrupted download starts again from the beginning. For very large data, use Rclone.</p>
+            {% endif %}
+            <div class="download-buttons">
+                <button type="button" class="primary" data-dialog="dialog-rclone"><i class="bi bi-terminal"></i> Rclone (recommended)</button>
+                {% if zip_available %}
+                <a class="button" href="{{ url_for('file_share.zip', token=token) }}" download><i class="bi bi-file-zip"></i> Download all (.zip)</a>
+                {% endif %}
+                <button type="button" data-dialog="dialog-mount"><i class="bi bi-hdd-network"></i> Open in Finder (macOS / Linux)</button>
+                <button type="button" data-dialog="dialog-rclone-http"><i class="bi bi-terminal"></i> Rclone HTTP</button>
+                <button type="button" data-dialog="dialog-wget"><i class="bi bi-terminal"></i> wget</button>
+            </div>
+        </section>
+
+        <dialog id="dialog-rclone" class="download-dialog">
+            <h3>Copy with Rclone (recommended)</h3>
+            <p>The fastest and most reliable method, also for very large data. If the copy is interrupted, run the same command again: only missing or changed files are copied.</p>
+            <ol>
+                <li>Install Rclone (version 1.60 or newer): <a href="https://rclone.org/install/" target="_blank" rel="noopener">rclone.org/install</a></li>
+                <li>Open a terminal (macOS: <i>Terminal</i>, Windows: <i>PowerShell</i>, Linux: your terminal) in the folder where you want to save the data.</li>
+                <li>Paste and run this command. The data is copied into the folder <code>{{ download_dir }}</code>.</li>
+            </ol>
+            {{ command_block("command-rclone", commands.rclone_copy) }}
+            <div class="dialog-footer"><button type="button" data-close>Close</button></div>
+        </dialog>
+
+        <dialog id="dialog-mount" class="download-dialog">
+            <h3>Open in Finder (macOS) / Files (Linux)</h3>
+            <p>Connect to the share as a read-only network drive, then copy folders by dragging them to your computer.</p>
+            <p class="note">Not available on Windows: File Explorer cannot copy files larger than 50 MB from a network drive like this. On Windows, use Rclone.</p>
+            <p><b>macOS</b></p>
+            <ol>
+                <li>In Finder, press <kbd>⌘</kbd> + <kbd>K</kbd> (or <i>Go → Connect to Server…</i>).</li>
+                <li>Paste the address below and click <i>Connect</i>. If asked, connect as <i>Guest</i>.</li>
+            </ol>
+            {{ command_block("command-webdav-url", webdav_url) }}
+            <p><b>Linux</b></p>
+            <ol>
+                <li>In Files, open <i>Other Locations</i> and enter the address below under <i>Connect to Server</i>.</li>
+            </ol>
+            {{ command_block("command-webdav-davs", webdav_url.replace("https://", "davs://", 1).replace("http://", "dav://", 1)) }}
+            <p class="note">Copying many large files this way is slower than Rclone and cannot resume after an interruption.</p>
+            <div class="dialog-footer"><button type="button" data-close>Close</button></div>
+        </dialog>
+
+        <dialog id="dialog-rclone-http" class="download-dialog">
+            <h3>Copy with Rclone over HTTP</h3>
+            <p>An alternative if the recommended Rclone command does not work, for example with an older Rclone version. The data is copied into the folder <code>{{ download_dir }}</code>.</p>
+            {{ command_block("command-rclone-http", commands.rclone_http) }}
+            <div class="dialog-footer"><button type="button" data-close>Close</button></div>
+        </dialog>
+
+        <dialog id="dialog-wget" class="download-dialog">
+            <h3>Copy with wget</h3>
+            <p>Use only if Rclone is not available. The data is copied into the folder <code>{{ download_dir }}</code>.</p>
+            {{ command_block("command-wget", commands.wget) }}
+            <div class="dialog-footer"><button type="button" data-close>Close</button></div>
+        </dialog>
         <table>
             <thead>
                 <tr>
@@ -67,6 +150,9 @@
                             <i class="bi bi-archive"></i> {{ path.name }}/
                             {% endif %}
                         </a>
+                        {% if is_directory and zip_available %}
+                        <a class="zip-link" href="{{ url_for('file_share.zip', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}" download title="Download {{ path.name }} as .zip"><i class="bi bi-file-zip"></i> .zip</a>
+                        {% endif %}
                     </td>
                     <td>{{ entry_size | bytes_to_human }}</td>
                     <td>{{ entry_mtime | from_timestamp }}</td>
@@ -76,6 +162,37 @@
         </table>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
+                document.querySelectorAll("[data-dialog]").forEach(button => {
+                    button.addEventListener("click", () => document.getElementById(button.dataset.dialog).showModal());
+                });
+                document.querySelectorAll(".download-dialog").forEach(dialog => {
+                    dialog.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => dialog.close()));
+                    // a click on the backdrop lands on the dialog element itself
+                    dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+                });
+
+                function copied(button) {
+                    const label = button.innerHTML;
+                    button.innerHTML = '<i class="bi bi-check-lg"></i> Copied';
+                    setTimeout(() => { button.innerHTML = label; }, 1500);
+                }
+                document.querySelectorAll("[data-copy]").forEach(button => {
+                    button.addEventListener("click", () => {
+                        const pre = document.getElementById(button.dataset.copy);
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(pre.textContent).then(() => copied(button));
+                            return;
+                        }
+                        // the Clipboard API needs https: select the text and fall back to execCommand
+                        const range = document.createRange();
+                        range.selectNodeContents(pre);
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        if (document.execCommand("copy")) copied(button);
+                    });
+                });
+
                 const badge = document.getElementById("mount-status-badge");
                 const details = document.getElementById("mount-status-details");
 

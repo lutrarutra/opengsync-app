@@ -77,6 +77,57 @@
         {{ form.disclaimer.accepted.render() }}
       {% endcall %}
 
+      {% call step_pane("submission") %}
+        {% set field = form.submission.submission_type %}
+        {% set selected = field.data if field.data is not none else field._data %}
+        <p>What are you submitting? This decides which steps our team will carry out for your request.</p>
+        {% if field.read_only %}
+        <p class="text-body-secondary"><i class="bi bi-lock"></i> The submission type of an existing request can only be changed by an admin.</p>
+        <input type="hidden" name="{{ field.name }}" value="{{ selected if selected is not none else '' }}">
+        {% endif %}
+        <div class="submission-type-options" role="radiogroup" aria-label="{{ field.label }}">
+          {% for st in form.submission.TYPES %}
+          <input type="radio" class="btn-check" name="{{ field.name }}" id="{{ field.id }}-{{ st.id }}" value="{{ st.id }}" autocomplete="off"
+            {% if selected is not none and selected|string == st.id|string %}checked{% endif %} {% if field.read_only %}disabled{% endif %}>
+          <label class="submission-type-option{% if field.errors %} is-invalid{% endif %}" for="{{ field.id }}-{{ st.id }}">
+            <i class="bi {{ form.submission.ICONS[st] }}"></i>
+            <span class="submission-type-label">{{ st.label }}</span>
+            <span class="submission-type-description">{{ st.description }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+          {% for error in field.errors %}
+          <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% for st in form.submission.TYPES %}
+        <div class="submission-workflow{% if selected is none or selected|string != st.id|string %} d-none{% endif %}" data-submission-type="{{ st.id }}">
+          <h6>Workflow</h6>
+          <ol class="submission-workflow-stages">
+            {% for icon, label, by_customer in form.submission.WORKFLOWS[st] %}
+            {% if not loop.first %}<li class="submission-workflow-arrow" aria-hidden="true"><i class="bi bi-arrow-right"></i></li>{% endif %}
+            <li class="submission-workflow-stage{% if by_customer %} by-customer{% endif %}">
+              <i class="bi {{ icon }}"></i>
+              <span>{{ label }}</span>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+        {% endfor %}
+        <script>
+          $(document).ready(function() {
+              // Show the workflow of the selected submission type.
+              $("input[name='{{ field.name }}']").on("change", function() {
+                  const selected = this.value;
+                  $(".submission-workflow").each(function() {
+                      $(this).toggleClass("d-none", this.dataset.submissionType !== selected);
+                  });
+              });
+          });
+        </script>
+      {% endcall %}
+
       {% if "user_selection" in form.step_names %}
       {% call step_pane("user_selection") %}
         {{ form.user_selection.user_id.render() }}
@@ -116,14 +167,7 @@
       {% endcall %}
 
       {% call step_pane("technical_info") %}
-        <ol class="mt-2">
-          {% for st in
-          C.SubmissionType.as_list(include_unpooled_libraries=False) %}
-          <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
-          {% endfor %}
-        </ol>
         <div class="row">
-          {{ form.technical_info.submission_type.render("col-md-6") }}
           {{ form.technical_info.read_type.render("col-md-6") }}
           {{ form.technical_info.num_lanes.render("col-md-6") }}
           {{ form.technical_info.read_length.render("col-md-6") }}

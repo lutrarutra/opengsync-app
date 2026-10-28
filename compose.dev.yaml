@@ -186,6 +186,26 @@ services:
             retries: 5
         command: "postgres -c config_file=/etc/postgresql.conf"
 
+    # Opt-in: `make dev-nginx` (profile `nginx`). Zip downloads of share links need nginx with mod_zip (docs/file-share.md);
+    # browse through http://localhost:${NGINX_DEV_PORT:-8080} to see them.
+    nginx:
+        profiles: ["nginx"]
+        container_name: opengsync-nginx-dev
+        build:
+            context: .
+            dockerfile: ./services/nginx/Dockerfile
+        environment:
+            OPENGSYNC_PORT: ${OPENGSYNC_PORT:-5000}
+        volumes:
+            - ./services/nginx/nginx.dev.conf.template:/etc/nginx/templates/default.conf.template:ro
+            - ./share:/share:ro
+        ports:
+            - ${NGINX_DEV_PORT:-8080}:80
+        depends_on:
+            opengsync-app:
+                condition: service_started
+        restart: on-failure
+
     pgadmin:
         container_name: pgadmin-dev
         image: dpage/pgadmin4:latest

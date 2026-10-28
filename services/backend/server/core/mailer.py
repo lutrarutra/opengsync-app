@@ -75,12 +75,7 @@ class Mailer:
         author,
         browse_link: str,
     ):
-        outdir = "BSF_DATA"
         style = self._get_email_style()
-
-        http_command = templates.render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-        sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
-        wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
 
         body = templates.render_template(
             "email/share-paths.html",
@@ -88,10 +83,6 @@ class Mailer:
             browse_link=browse_link,
             author=author,
             share_token=share_token,
-            sync_command=sync_command,
-            http_command=http_command,
-            wget_command=wget_command,
-            outdir=outdir,
         )
 
         self.__send_email(
@@ -109,13 +100,9 @@ class Mailer:
         project: models.Project,
         internal_share: bool,
         anonymous: bool = False,
-        outdir: str = "BSF_DATA",
         comment: str | None = None,
     ):
         style = self._get_email_style()
-        http_command = templates.render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-        sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=outdir)
-        wget_command = templates.render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
         browse_link = str(responses.external_url_for("file_share.browse", token=share_token.uuid))
 
         internal_share_content = ""
@@ -160,10 +147,6 @@ class Mailer:
             experiments=project.experiments,
             seq_requests=project.seq_requests,
             share_token=share_token,
-            sync_command=sync_command,
-            http_command=http_command,
-            wget_command=wget_command,
-            outdir=outdir,
             email_header=email_header,
             email_footer=email_footer,
             comment=comment,

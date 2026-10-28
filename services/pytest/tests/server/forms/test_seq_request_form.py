@@ -18,7 +18,7 @@ def _request_payload(name: str, **overrides: str | None) -> dict[str, str]:
         "disclaimer-accepted": "true",
         "basic_info-name": name,
         "basic_info-description": "A complete test sequencing request",
-        "technical_info-submission_type": str(C.SubmissionType.POOLED_LIBRARIES.id),
+        "submission-submission_type": str(C.SubmissionType.POOLED_LIBRARIES.id),
         "technical_info-read_type": str(C.ReadType.PAIRED_END.id),
         "technical_info-read_length": "150",
         "technical_info-num_lanes": "2",
@@ -265,7 +265,6 @@ def test_edit_persists_every_field(
             new_name,
             **{
                 "basic_info-description": "Edited description",
-                "technical_info-submission_type": str(C.SubmissionType.RAW_SAMPLES.id),
                 "technical_info-read_type": str(C.ReadType.SINGLE_END.id),
                 "technical_info-read_length": "75",
                 "technical_info-num_lanes": "3",
@@ -290,7 +289,7 @@ def test_edit_persists_every_field(
     session.refresh(request)
     assert request.name == new_name
     assert request.description == "Edited description"
-    assert request.submission_type == C.SubmissionType.RAW_SAMPLES
+    assert request.submission_type == C.SubmissionType.POOLED_LIBRARIES
     assert request.read_type == C.ReadType.SINGLE_END
     assert request.read_length == 75
     assert request.num_lanes == 3
@@ -307,6 +306,77 @@ def test_edit_persists_every_field(
     assert request.organization_contact.name == "Edited Organization"
     assert request.organization_contact.address == "3 Edited Street"
     assert request.billing_contact.name == "Accounts Payable"
+
+
+def test_edit_rejects_submission_type_change_by_non_admin(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+):
+    request = create_seq_request(session, user, submission_type=C.SubmissionType.POOLED_LIBRARIES)
+    session.commit()
+
+    for token in (user_token, insider_token):
+        response = post_form(
+            client,
+            f"/htmx/seq_requests/{request.id}/edit",
+            _request_payload(request.name, **{"submission-submission_type": str(C.SubmissionType.RAW_SAMPLES.id)}),
+            token=token,
+        )
+        assert_form_invalid(response, "Only admins can change the submission type.")
+
+    session.expire_all()
+    session.refresh(request)
+    assert request.submission_type == C.SubmissionType.POOLED_LIBRARIES
+
+
+def test_admin_can_change_submission_type_on_edit(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    admin_token: str,
+):
+    request = create_seq_request(session, user, submission_type=C.SubmissionType.POOLED_LIBRARIES)
+    session.commit()
+
+    response = post_form(
+        client,
+        f"/htmx/seq_requests/{request.id}/edit",
+        _request_payload(request.name, **{"submission-submission_type": str(C.SubmissionType.RAW_SAMPLES.id)}),
+        token=admin_token,
+    )
+
+    assert response.status_code == 204
+    session.expire_all()
+    session.refresh(request)
+    assert request.submission_type == C.SubmissionType.RAW_SAMPLES
+
+
+def _submission_type_locked(response) -> bool:
+    return bool(re.search(r'name="submission-submission_type" id="[^"]+" value="\d+"[^>]*\bdisabled\b', response.text))
+
+
+def test_submission_type_is_read_only_on_edit_for_non_admins(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    insider_token: str,
+    admin_token: str,
+):
+    request = create_seq_request(session, user)
+    session.commit()
+
+    for token, locked in ((user_token, True), (insider_token, True), (admin_token, False)):
+        response = get(client, f"/htmx/seq_requests/{request.id}/edit", token=token, htmx=True)
+        assert response.status_code == 200
+        assert _submission_type_locked(response) is locked
+
+    response = get(client, "/htmx/seq_requests/create", token=user_token, htmx=True)
+    assert response.status_code == 200
+    assert not _submission_type_locked(response)
 
 
 def test_edit_persists_and_clears_group(
@@ -381,9 +451,8 @@ def test_edit_form_prefills_submission_type_and_group(
 
     assert response.status_code == 200
     assert re.search(
-        rf'<option value="{C.SubmissionType.RAW_SAMPLES.id}"\s*selected', response.text
-    ) or re.search(
-        rf'name="technical_info-submission_type" value="{C.SubmissionType.RAW_SAMPLES.id}"', response.text
+        rf'name="submission-submission_type" id="[^"]+" value="{C.SubmissionType.RAW_SAMPLES.id}" autocomplete="off"\s*checked',
+        response.text,
     )
     assert re.search(rf'name="basic_info-group_id" value="{group.id}"', response.text)
 
@@ -541,6 +610,44 @@ def test_step_revalidates_earlier_steps(
     assert _active_step(response) == "disclaimer"
 
 
+def test_submission_type_is_the_step_after_the_disclaimer(
+    client: TestClient,
+    user_token: str,
+):
+    response = post_form(
+        client,
+        "/htmx/seq_requests/create/step",
+        _request_payload(f"step-{uuid4().hex}", step="disclaimer"),
+        token=user_token,
+    )
+
+    assert response.status_code == 200
+    assert _active_step(response) == "submission"
+
+
+def test_step_requires_submission_type(
+    client: TestClient,
+    user_token: str,
+):
+    payload = _request_payload(f"step-{uuid4().hex}", step="submission")
+    del payload["submission-submission_type"]
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
+
+    assert_form_invalid(response, "Submission Type is required")
+    assert _active_step(response) == "submission"
+
+
+def test_create_offers_only_enabled_submission_types(
+    client: TestClient,
+    user_token: str,
+):
+    response = get(client, "/htmx/seq_requests/create", token=user_token, htmx=True)
+
+    assert response.status_code == 200
+    offered = set(re.findall(r'name="submission-submission_type" id="[^"]+" value="(\d+)"', response.text))
+    assert offered == {str(t.id) for t in C.SubmissionType.as_list(include_unpooled_libraries=False)}
+
+
 def test_step_runs_cross_field_rules(
     client: TestClient,
     user,
@@ -690,9 +797,9 @@ def test_edit_form_opens_with_all_steps_valid(
 
     assert response.status_code == 200
     states = _timeline_states(response)
-    assert len(states) == 7
+    assert len(states) == 8
     assert set(states) == {"ok"}
-    assert _active_step(response) == "basic_info"
+    assert _active_step(response) == "submission"
 
 
 def test_edit_step_flags_later_step_errors_without_blocking(

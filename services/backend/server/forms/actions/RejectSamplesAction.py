@@ -8,7 +8,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...core import dependencies, exceptions as exc, responses, redis as rds
 from ...components import inputs
-from ...components.tables.spreadsheet import TextColumn, IntegerColumn, DropdownColumn
+from ...components.tables.spreadsheet import TextColumn, DropdownColumn, DBObjectColumn
 from ..HTMXForm import RouteFunc, htmx_route, HTMXForm, FormFunc
 
 
@@ -18,8 +18,10 @@ class RejectSamplesAction(HTMXForm):
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(
         label="Reject Samples",
         columns=[
-            IntegerColumn("sample_id", "Sample ID", 100, required=True, read_only=True),
-            TextColumn("sample_name", "Sample Name", 300, required=True, read_only=True),
+            DBObjectColumn(
+                ("sample_id", "sample_name"), "Sample", 300, categories={},
+                required=True, unique=True, all_options_required=True, read_only=True,
+            ),
             TextColumn("sample_pool", "Pool", 300, required=False, read_only=True),
             TextColumn("status", "Status", 150, required=False, read_only=True),
             DropdownColumn("reject", "Reject", 100, choices=["x"], required=False),
@@ -56,6 +58,10 @@ class RejectSamplesAction(HTMXForm):
             form = cls(lab_prep_id=lab_prep_id)
 
             sample_table = RejectSamplesAction.get_sample_table(session, lab_prep_id)
+            # Every sample of the prep once: an omitted sample would be restored on submit
+            form.spreadsheet.columns["Sample"].set_categories({  # type: ignore[attr-defined]
+                int(row.sample_id): f"{row.sample_name} [{row.sample_id}]" for row in sample_table.itertuples()
+            })
             df = pd.DataFrame({
                 "sample_id": sample_table["sample_id"],
                 "sample_name": sample_table["sample_name"],

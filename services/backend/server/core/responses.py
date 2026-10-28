@@ -161,7 +161,7 @@ def htmx_response(
     
     return resp
 
-def _x_accel_redirect(path: Path) -> str | None:
+def x_accel_redirect(path: Path) -> str | None:
     share_root = Path(config.settings.app_config.share_root).as_posix()
     media_folder = Path(config.settings.app_config.media_folder).as_posix()
     posix = path.as_posix()
@@ -190,7 +190,7 @@ def accel_redirect_response(
     if not path.is_file():
         return HTMLResponse(content="File not found", status_code=404)
 
-    accel = _x_accel_redirect(path)
+    accel = x_accel_redirect(path)
     if accel is None:
         return file_response(
             path=path,
@@ -247,7 +247,7 @@ def file_response(
         return HTMLResponse(content="File not found", status_code=404)
 
     if send_body and config.settings.ENVIRONMENT == "prod":
-        if _x_accel_redirect(path) is not None:
+        if x_accel_redirect(path) is not None:
             return accel_redirect_response(
                 path=path,
                 filename=filename,

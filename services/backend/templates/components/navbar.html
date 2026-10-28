@@ -5,7 +5,7 @@
             <span class="line2"></span>
             <span class="line3"></span>
         </button>
-        <a href="{{ url_for('dashboard') }}" id="icon-banner">{{ organization_name }}</a>
+        <a href="{{ url_for('dashboard') }}" id="icon-banner"><img src="{{ url_for('static', filename='images/logo/opengsync-mark.svg') }}" alt="" width="26" height="26"><span>{{ organization_name }}</span></a>
         {% if debug %}
         <i class="bi bi-bug nav-debug"></i>
         {% endif %}

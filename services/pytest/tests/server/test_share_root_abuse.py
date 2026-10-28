@@ -10,8 +10,9 @@ Every entry point that turns user input into a filesystem path under
 
 Staff side: ``AssociatePathAction``, the project Data tab, ``SharePathAction``,
 the insider file browser, and the ``add-data_path`` API.
-Public side (share-link token, no login): browse, rclone, WebDAV, and the shared
-browser page/entries — these must also hide files inside the root that are not shared.
+Public side (share-link token, no login): browse, rclone, WebDAV, the shared
+browser page/entries, and the zip download's file list — these must also hide files
+inside the root that are not shared.
 
 Leaks are detected by content and canary markers rather than file names, because
 pages echo the requested path back. Each attack test has a positive control on the
@@ -426,7 +427,11 @@ PUBLIC_ROUTES = [
     ("webdav-get", "GET", "/api/webdav/{token}/{path}", {"file"}),
     ("webdav-head", "HEAD", "/api/webdav/{token}/{path}", {"file"}),
     ("webdav-propfind", "PROPFIND", "/api/webdav/{token}/{path}", {"file", "dir"}),
+    # the file list nginx's mod_zip streams; a file path is not a folder and must be refused too
+    ("zip", "GET", "/api/shares/zip/{token}/{path}", {"file", "dir"}),
 ]
+# what nginx sets when it can stream zips; the zip route refuses requests without it
+ZIP_HEADERS = {"X-Archive-Support": "zip"}
 
 
 def _public_cases(vectors):
@@ -439,12 +444,13 @@ def _public_cases(vectors):
 
 
 def _public(client: TestClient, method: str, route: str, token: str, path: str):
-    return client.request(method, route.format(token=token, path=path), headers={"Depth": "1"})
+    return client.request(method, route.format(token=token, path=path), headers={"Depth": "1", **ZIP_HEADERS})
 
 
 def _assert_public_rejected(response, method: str) -> None:
     assert_no_leak(response, unshared=True)
     assert "content-disposition" not in response.headers, "a file was served"
+    assert "x-archive-files" not in response.headers, "a zip file list was handed to nginx"
     if method in ("HEAD", "PROPFIND"):  # HEAD has no body; PROPFIND leaks metadata, not content
         assert response.status_code >= 400
         assert "<D:response>" not in response.text
@@ -453,7 +459,7 @@ def _assert_public_rejected(response, method: str) -> None:
 @pytest.mark.parametrize("method,route", [pytest.param(m, r, id=rid) for rid, m, r, _ in PUBLIC_ROUTES])
 def test_public_share_control(client: TestClient, share_link: str, method: str, route: str):
     """Each public route does expose the shared file (or list it), so the attack tests below are meaningful."""
-    path = "shared" if route.endswith("entries/{path}") or method == "PROPFIND" else "shared/report.txt"
+    path = "shared" if route.endswith("entries/{path}") or method == "PROPFIND" or "/zip/" in route else "shared/report.txt"
     response = _public(client, method, route, share_link, path)
     assert response.status_code in (200, 207), response.text
     if method != "HEAD":
@@ -483,3 +489,29 @@ def test_public_share_root_listing_hides_unshared(client: TestClient, share_link
     assert response.status_code in (200, 207), response.text
     assert "shared" in response.text
     assert "unshared.txt" not in response.text
+
+
+def _zip_list(response) -> list[tuple[str, str]]:
+    """(nginx location, name in the zip) of each entry in a zip file list."""
+    assert response.headers["x-archive-files"] == "zip"
+    return [tuple(line.split(" ", 3)[2:]) for line in response.text.splitlines()]
+
+
+def test_zip_of_whole_share_leaves_out_links_out_of_the_root(client: TestClient, share_link: str):
+    """`link-out` and `dir-out` sit inside the shared folder but point outside the share root: nginx would
+    follow them, so they must never reach the zip file list."""
+    response = _public(client, "GET", "/api/shares/zip/{token}/{path}", share_link, "")
+    assert response.status_code == 200, response.text
+    [(location, name)] = _zip_list(response)
+    assert name == "shared/report.txt"
+    assert location.startswith("/nginx-share/") and location.endswith("/shared/report.txt")
+    for marker in ("link-out", "dir-out", "outside", "inner-secret", "evil", "unshared", CANARY):
+        assert marker not in response.text, f"{marker} reached the zip file list"
+
+
+def test_zip_requires_the_nginx_header(client: TestClient, share_link: str):
+    """Without mod_zip in front the file list would reach the client as a download, so it is refused."""
+    response = client.get(f"/api/shares/zip/{share_link}/shared")
+    assert response.status_code == 404
+    assert "x-archive-files" not in response.headers
+    assert "report.txt" not in response.text

@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, models, queries as Q
 
 from server.core import config
+from server.utils import share_zip
 from server.utils.shared_file_browser import SharedFileBrowser
 
 # far deeper than the layout: reaching it means the walk went round a cycle
@@ -57,6 +58,7 @@ LIST_ROUTES = [
     pytest.param("GET", "/api/shares/rclone/{token}/{path}", id="rclone"),
     pytest.param("GET", "/files/share/browse/{token}/entries/{path}", id="entries"),
     pytest.param("PROPFIND", "/api/webdav/{token}/{path}", id="webdav-propfind"),
+    pytest.param("GET", "/api/shares/zip/{token}/{path}", id="zip"),
 ]
 FILE_ROUTES = [
     pytest.param("GET", "/api/shares/browse/{token}/{path}", id="browse"),
@@ -66,7 +68,8 @@ FILE_ROUTES = [
 
 
 def _request(client: TestClient, method: str, route: str, token: str, path: str):
-    return client.request(method, route.format(token=token, path=path), headers={"Depth": "1"})
+    # X-Archive-Support: set by nginx when it can stream zips; the zip route refuses requests without it
+    return client.request(method, route.format(token=token, path=path), headers={"Depth": "1", "X-Archive-Support": "zip"})
 
 
 # ── loops and dangling links: skipped, never an error ───────────────────────
@@ -150,3 +153,34 @@ def test_file_through_a_cycle_is_not_served(
 ):
     response = _request(client, method, route, share_link, path)
     assert response.status_code >= 400, response.status_code
+
+
+# ── zip downloads: the walk behind the file list must end too ───────────────
+
+
+def _zip_names(browser: SharedFileBrowser, subpath: Path | None = None) -> list[str]:
+    manifest = share_zip.build_manifest(browser, subpath)
+    assert manifest is not None
+    return [line.split(" ", 3)[3] for line in manifest.body.splitlines()]
+
+
+def test_zip_list_ends_and_lists_each_file_once(share_root: Path):
+    names = _zip_names(SharedFileBrowser(share_root, ["shared"], cache_key="zip-cycles"))
+    assert names == ["shared/report.txt", "shared/sub/", "shared/sub/data.txt"]
+
+
+def test_zip_list_ends_on_folders_linking_to_each_other(share_root: Path):
+    """a/to_b -> b and b/to_a -> a: no link points at its own ancestor, so only the walk's own guard
+    (the real paths of the folders above) stops it."""
+    shared = share_root / "shared"
+    for name in ("a", "b"):
+        (shared / name).mkdir()
+        (shared / name / f"{name}.txt").write_text(name)
+    (shared / "a" / "to_b").symlink_to("../b", target_is_directory=True)
+    (shared / "b" / "to_a").symlink_to("../a", target_is_directory=True)
+
+    names = _zip_names(SharedFileBrowser(share_root, ["shared"], cache_key="zip-mutual"))
+    assert max(name.count("/") for name in names) < MAX_DEPTH
+    # each folder is entered once through the other's link, never a second time
+    assert "shared/a/to_b/b.txt" in names and "shared/b/to_a/a.txt" in names
+    assert not any("to_b/to_a" in name or "to_a/to_b" in name for name in names)

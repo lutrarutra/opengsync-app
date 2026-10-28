@@ -3,7 +3,7 @@ from typing import Any
 
 import mimetypes
 import smtplib
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import PlainTextResponse, Response
 from loguru import logger
 from pydantic import BaseModel
@@ -18,10 +18,14 @@ from ...core import dependencies, exceptions as exc, config, responses, template
 from ...core.mailer import Mailer
 from ...utils import parsing
 from ...utils.io import is_browser_friendly
-from ...utils import share_fs_cache
+from ...utils import share_fs_cache, share_zip
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(prefix="/shares", tags=["api", "shares"])
+# folder the download commands copy the share into
+DOWNLOAD_DIR = "BSF_DATA"
+# set by nginx (proxy_set_header) when it can stream zips with mod_zip; a client-sent value is overwritten
+ZIP_SUPPORT_HEADER = "X-Archive-Support"
 access_router = APIRouter(
     dependencies=[
         Depends(dependencies.rate_limit("20/minute")),
@@ -414,6 +418,7 @@ def rclone(
 @access_router.get("/browse/{token}", name="file_share.browse", operation_id="file_share_browse")
 @access_router.get("/browse/{token}/{subpath:path}", name="file_share.browse", operation_id="file_share_browse_path")
 def browse(
+    request: Request,
     token: str,
     subpath: str = "",
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
@@ -442,14 +447,65 @@ def browse(
         parent_dir=current_path.parent if current_path != Path() else None,
         paths=paths,
         token=token,
+        webdav_url=str(responses.external_url_for("webdav.share", token=share_token.uuid)),
+        commands=_download_commands(share_token.uuid),
+        download_dir=DOWNLOAD_DIR,
+        zip_available=_zip_available(request),
     )
+
+
+def _zip_available(request: Request) -> bool:
+    return request.headers.get(ZIP_SUPPORT_HEADER) == "zip"
+
+
+@access_router.api_route("/zip/{token}", methods=["GET", "HEAD"], name="file_share.zip", operation_id="file_share_zip")
+@access_router.api_route("/zip/{token}/{subpath:path}", methods=["GET", "HEAD"], name="file_share.zip", operation_id="file_share_zip_path")
+def zip_download(
+    request: Request,
+    token: str,
+    subpath: str = "",
+    share_token: models.ShareToken = Depends(dependencies.load_share_token),
+    redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    """The share, or one of its folders, as one zip: answers with a file list that nginx's mod_zip turns into a
+    stored zip (utils/share_zip.py). Without mod_zip in front, the list would reach the client, so it is refused."""
+    if not _zip_available(request):
+        raise exc.NotFoundException("Zip downloads need the nginx proxy.")
+
+    current_path = _subpath(subpath)
+    browser = SharedFileBrowser.for_share_token(Path(config.settings.app_config.share_root), share_token, redis=redis)
+    manifest = share_zip.build_manifest(browser, current_path if current_path != Path() else None)
+    if manifest is None:
+        raise exc.NotFoundException(f"Nothing to download: {current_path}")
+
+    filename = f"{DOWNLOAD_DIR}.zip" if current_path == Path() else f"{current_path.name}.zip"
+    headers = {
+        "X-Archive-Files": "zip",
+        "Content-Disposition": responses.content_disposition("attachment", filename),
+        "ETag": manifest.etag,
+    }
+    if manifest.last_modified is not None:
+        headers["Last-Modified"] = manifest.last_modified
+    return Response(content=manifest.body, media_type="text/plain", headers=headers)
+
+
+def _download_commands(token: str, outdir: str = DOWNLOAD_DIR) -> dict[str, str]:
+    """Shell commands that copy the whole share, shown in the download dialogs of the share browser."""
+    return {
+        name: templates.render_template(f"snippets/{snippet}", token=token, outdir=outdir).strip()
+        for name, snippet in {
+            "rclone_copy": "rclone-copy.sh.j2",
+            "rclone_http": "rclone-http.sh.j2",
+            "wget": "wget.sh.j2",
+        }.items()
+    }
 
 
 @access_router.get("/rclone_script/{token}", name="file_share.rclone_script")
 def rclone_script(
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
 ):
-    sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir="BSF_DATA")
+    sync_command = templates.render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid, outdir=DOWNLOAD_DIR)
     return Response(content=sync_command, media_type="text/plain")
 
 

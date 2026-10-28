@@ -17,7 +17,9 @@ def delete_pool_design(
     """Permanently delete a pool design."""
     pd = session.get_one(Q.pool_design.select(id=pool_design_id))
     session.delete(pd)
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Pool design deleted!", "success"),
+    )
 
 
 @router.delete("/remove-pool-design")
@@ -28,7 +30,9 @@ def remove_pool_design(
     """Remove a pool design from its flow cell design (unlink, don't delete)."""
     pd = session.get_one(Q.pool_design.select(id=pool_design_id))
     pd.flow_cell_design = None
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Pool design removed from flow cell design!", "success"),
+    )
 
 
 @router.post("/move-pool-design")

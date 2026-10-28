@@ -11,7 +11,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C
 from ...core import exceptions as exc, responses, dependencies
 from ...utils import parsing
 from ...components import inputs
-from ...components.tables import IntegerColumn, TextColumn
+from ...components.tables.spreadsheet import TextColumn, DBObjectColumn
 from ..HTMXForm import HTMXForm, htmx_route, FormFunc, RouteFunc
 
 
@@ -20,8 +20,7 @@ class EditLibraryPropertiesAction(HTMXForm):
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(
         columns=[
-            IntegerColumn("library_id", "ID", 50, read_only=True),
-            TextColumn("library_name", "Library Name", 200, read_only=True),
+            DBObjectColumn(("library_id", "library_name"), "Library", 300, categories={}, required=True, unique=True, read_only=True),
         ],
         allow_new_rows=False,
         allow_new_cols=True,
@@ -54,6 +53,11 @@ class EditLibraryPropertiesAction(HTMXForm):
         self.library_id = library_id
         self.post_url = responses.url_for(f"{self.__class__.__name__}.Submit").include_query_params(**query_params)
 
+        # Only the libraries of the context can be submitted
+        self.spreadsheet.columns["Library"].set_categories({  # type: ignore[attr-defined]
+            library.id: f"{library.name} [{library.id}]" for library in self.libraries or []
+        })
+
         if self.libraries is not None:
             all_property_keys: set[str] = set()
             for library in self.libraries:
@@ -76,7 +80,7 @@ class EditLibraryPropertiesAction(HTMXForm):
             df = pd.DataFrame(columns=["library_id", "library_name"])
 
         for col in df.columns:
-            if col not in self.spreadsheet.columns.keys():
+            if col not in self.spreadsheet.columns.keys() and col not in ("library_id", "library_name"):
                 self.spreadsheet.add_column(
                     TextColumn(
                         col,

@@ -61,6 +61,12 @@ def test_public_share_routes(
     assert browse.status_code == 200
     assert "shared/" in browse.text
     assert ".DS_Store" not in browse.text
+    # download instructions live on the page (not in the share email), each method in its own dialog
+    for dialog in ("dialog-rclone", "dialog-mount", "dialog-rclone-http", "dialog-wget"):
+        assert f'id="{dialog}"' in browse.text
+    assert "rclone copy" in browse.text
+    assert f"/api/webdav/{token}" in browse.text
+    assert "rclone mount" not in browse.text
 
     shared = client.get(f"/api/shares/browse/{token}/shared")
     assert shared.status_code == 200

@@ -19,7 +19,7 @@ class CompleteRegistrationForm(UserProfileMixin, HTMXForm):
 
     template_path = "forms/auth/complete_register.html"
 
-    email = inputs.string.EmailInputField("Email", read_only=True)
+    email = inputs.string.EmailInputField("Email", read_only=True, autocomplete="username")
     first_name = inputs.string.StringInputField("First Name", max_length=models.User.first_name.type.length)
     last_name = inputs.string.StringInputField("Last Name", max_length=models.User.last_name.type.length)
     password = inputs.string.PasswordInputField("Password", min_length=8, autocomplete="new-password")

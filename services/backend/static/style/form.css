@@ -177,6 +177,113 @@ textarea.disabled:focus {
     }
 }
 
+/* Seq request submission type: one large card per type, the selected type's workflow below. */
+.submission-type-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+
+    .submission-type-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        height: 100%;
+        padding: 16px 12px;
+        text-align: center;
+        border: 2px solid var(--bs-border-color);
+        border-radius: var(--bs-border-radius-lg);
+        background-color: var(--bs-body-bg);
+        cursor: pointer;
+        transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+
+        > i {
+            font-size: 2rem;
+            color: var(--bs-secondary-color);
+        }
+        .submission-type-label {
+            font-weight: 600;
+        }
+        .submission-type-description {
+            font-size: 0.85rem;
+            color: var(--bs-secondary-color);
+        }
+        &:hover {
+            border-color: var(--color-cemm-blue);
+        }
+        &.is-invalid {
+            border-color: var(--bs-danger-border-subtle);
+        }
+    }
+
+    .btn-check:checked + .submission-type-option {
+        border-color: var(--color-cemm-blue);
+        background-color: color-mix(in srgb, var(--color-cemm-blue) 12%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cemm-blue) 25%, transparent);
+
+        > i {
+            color: var(--color-cemm-blue);
+        }
+    }
+    /* Locked on edit for non-admins: only the selected type stands out. */
+    .btn-check:disabled + .submission-type-option {
+        cursor: default;
+        &:hover {
+            border-color: var(--bs-border-color);
+        }
+    }
+    .btn-check:disabled:not(:checked) + .submission-type-option {
+        opacity: 0.5;
+    }
+    .btn-check:disabled:checked + .submission-type-option:hover {
+        border-color: var(--color-cemm-blue);
+    }
+
+    .btn-check:focus-visible + .submission-type-option {
+        outline: 2px solid var(--color-cemm-blue);
+        outline-offset: 2px;
+    }
+}
+
+.submission-workflow {
+    padding: 12px 16px;
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-tertiary-bg);
+
+    .submission-workflow-stages {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .submission-workflow-stage {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1px solid var(--color-cemm-blue);
+        border-radius: 999px;
+        background-color: var(--bs-body-bg);
+        color: var(--color-cemm-blue-darker);
+        font-weight: 500;
+
+        /* Stages done by the customer before handing over */
+        &.by-customer {
+            border-style: dashed;
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+    }
+
+    .submission-workflow-arrow {
+        color: var(--bs-secondary-color);
+    }
+}
+
 .form-check:has(input.disabled) {
     label {
         color: var(--color-gray-500) !important;

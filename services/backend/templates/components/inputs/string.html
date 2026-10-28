@@ -14,6 +14,8 @@
     aria-label="{{ field.label }}" aria-describedby="{{ field.id }}"
     id="{{ field.id }}" value="{{ field.data or '' }}" name="{{ field.name }}"
     autocomplete="{{ field.autocomplete }}"
+    {# Browsers' password managers ignore autocomplete="off"; these opt the field out of 1Password, LastPass, Bitwarden and Dashlane #}
+    {% if field.autocomplete == "off" %}data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other"{% endif %}
     {% if field.required %}required{% endif %}
     {%if field.read_only %}readonly{% endif %}>
     {% if not hide_errors %}

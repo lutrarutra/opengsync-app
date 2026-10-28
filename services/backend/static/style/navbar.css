@@ -43,13 +43,25 @@ nav#navbar .nav-left {
 }
 
 nav#navbar #icon-banner {
-    overflow: hidden;
+    min-width: 0;
     max-width: 260px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: var(--color-white);
     font-size: 21px;
     font-weight: 400;
     letter-spacing: -0.01em;
     text-decoration: none;
+}
+
+nav#navbar #icon-banner img {
+    flex: none;
+    display: block;
+}
+
+nav#navbar #icon-banner span {
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

@@ -26,8 +26,8 @@ if TYPE_CHECKING:
 
 class UserMixin:
     """
-    This provides default implementations for the methods that Flask-Login
-    expects user objects to have.
+    Default implementations of the common user-object interface
+    (``is_active``, ``is_authenticated``, ``get_id``, equality by id).
     """
 
     # Python 3 implicitly set __hash__ to None if we override __eq__

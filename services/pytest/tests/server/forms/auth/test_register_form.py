@@ -14,6 +14,7 @@ from ..._http import (
 )
 
 REGISTER_PATH = "/htmx/auth/register"
+SENT_FLASH = "Registration email sent!"
 CSRF_FLASH = "Your form could not be submitted because the security token was invalid or missing"
 DOMAIN_MSG = "Specified email domain is not found in white-list. Please contact us."
 ROLE_PERM_MSG = "You don't have permissions to create user with this role"
@@ -57,6 +58,7 @@ def test_register_new_email_sends_registration_link(
     response = _register(client, email)
 
     assert_htmx_redirect(response, contains="/auth/login")
+    assert_flash(response, SENT_FLASH, category="success")
     assert fake_mailer.welcome_back == []
     assert len(fake_mailer.registration) == 1
     sent_email, link = fake_mailer.registration[0]
@@ -73,6 +75,7 @@ def test_register_existing_email_sends_welcome_back(
     response = _register(client, user.email)
 
     assert_htmx_redirect(response, contains="/auth/login")
+    assert_flash(response, SENT_FLASH, category="success")
     assert fake_mailer.welcome_back == [user.email]
     assert fake_mailer.registration == []
     assert session.count(Q.user.select()) == before
@@ -172,6 +175,7 @@ def test_register_technician_can_request_deactivated(
         client, "user@example.com", role=UserRole.DEACTIVATED.id, token=insider_token,
     )
     assert_htmx_redirect(response, contains="/auth/login")
+    assert_flash(response, SENT_FLASH, category="success")
     assert fake_mailer.welcome_back == []
     assert len(fake_mailer.registration) == 1
 

@@ -10,6 +10,9 @@ Editing needs WRITE on every library of the context (``Q.library.access_level``:
 always, other users only while the library's request is a draft); otherwise the table is
 read-only and saving is 403. Legacy: non-insiders only for DRAFT libraries in library
 context, and only insiders in project/request context.
+
+The library is one read-only ``DBObjectColumn`` ("name [id]") whose options are the libraries
+of the context, so a row naming any other library fails validation.
 """
 
 from typing import Any
@@ -27,11 +30,15 @@ def _path(client: TestClient, route: str = "Begin") -> str:
     return client.app.url_path_for(f"EditLibraryPropertiesAction.{route}")  # type: ignore[attr-defined]
 
 
-def _payload(properties: list[str], rows: list[tuple[models.Library, list[Any]]]) -> dict[str, str]:
-    """Columns: ID, Library Name, then one per property (display name = key)."""
+def _cell(library: models.Library) -> str:
+    return f"{library.name} [{library.id}]"
+
+
+def _payload(properties: list[str], rows: list[tuple[models.Library | str, list[Any]]]) -> dict[str, str]:
+    """Columns: Library ("name [id]", or the raw cell when a string), then one per property (display name = key)."""
     return spreadsheet_payload(
-        ["ID", "Library Name", *properties],
-        [[library.id, library.name, *values] for library, values in rows],
+        ["Library", *properties],
+        [[library if isinstance(library, str) else _cell(library), *values] for library, values in rows],
     )
 
 
@@ -70,8 +77,9 @@ def test_render_request_context(client: TestClient, req: Request, user_token: st
     response = get(client, _path(client), user_token, params=req.params)
 
     assert response.status_code == 200, response.text
-    for text in (req.a.name, req.b.name, "liver", "lung", "D1", "Tissue", "Donor"):
+    for text in (_cell(req.a), _cell(req.b), "liver", "lung", "D1", "Tissue", "Donor"):
         assert text in response.text
+    assert "Library Name" not in response.text
 
 
 def test_render_project_context(client: TestClient, session: SyncSession, user, user_token: str):
@@ -146,7 +154,7 @@ def test_csrf_mismatch_changes_nothing(client: TestClient, session: SyncSession,
 def test_library_outside_context_cannot_be_edited(
     client: TestClient, session: SyncSession, req: Request, user, user_token: str,
 ):
-    """Row IDs come from the client: a library of another request (even the user's own) is rejected."""
+    """Rows come from the client: a library of another request (even the user's own) is no option of the column."""
     other = create_library(session, user, create_seq_request(session, user))
     other.properties = {"tissue": "heart"}
     session.save(other, flush=True)
@@ -154,7 +162,7 @@ def test_library_outside_context_cannot_be_edited(
 
     response = post_form(client, _path(client, "Submit"), _payload(["tissue"], [(other, ["brain"])]), token=user_token, params=req.params)
 
-    assert response.status_code == 404
+    assert_form_invalid(response, f"Invalid value '{_cell(other)}'")
     assert _properties(session, other) == {"tissue": "heart"}
 
 
@@ -164,7 +172,7 @@ def test_library_context_cannot_edit_other_library(client: TestClient, session: 
         token=user_token, params={"library_id": req.a.id},
     )
 
-    assert response.status_code == 404
+    assert_form_invalid(response, f"Invalid value '{_cell(req.b)}'")
     assert _properties(session, req.b) == {"tissue": "lung", "donor": "D1"}
 
 
@@ -330,3 +338,41 @@ def test_too_long_value_is_rejected(client: TestClient, session: SyncSession, re
 
     assert_form_invalid(response)
     assert _properties(session, req.a) == {"tissue": "liver"}
+
+
+def test_library_id_and_name_mismatch_is_rejected(client: TestClient, session: SyncSession, req: Request, user_token: str):
+    """The cell must be an option verbatim: another library's id under this name is not accepted."""
+    response = post_form(client, _path(client, "Submit"), _payload(["tissue"], [
+        (f"{req.a.name} [{req.b.id}]", ["brain"]),
+    ]), token=user_token, params=req.params)
+
+    assert_form_invalid(response)
+    assert _properties(session, req.b) == {"tissue": "lung", "donor": "D1"}
+
+
+def test_duplicate_library_is_rejected(client: TestClient, session: SyncSession, req: Request, user_token: str):
+    response = post_form(client, _path(client, "Submit"), _payload(["tissue"], [
+        (req.a, ["brain"]), (req.a, ["heart"]),
+    ]), token=user_token, params=req.params)
+
+    assert_form_invalid(response, "is not unique")
+    assert _properties(session, req.a) == {"tissue": "liver"}
+
+
+def test_missing_library_is_rejected(client: TestClient, session: SyncSession, req: Request, user_token: str):
+    response = post_form(client, _path(client, "Submit"), _payload(["tissue"], [
+        ("", ["brain"]), (req.b, ["lung"]),
+    ]), token=user_token, params=req.params)
+
+    assert_form_invalid(response, "Missing value for 'Library'")
+    assert _properties(session, req.a) == {"tissue": "liver"}
+
+
+def test_plain_library_name_resolves_to_library(client: TestClient, session: SyncSession, req: Request, user_token: str):
+    """A pasted name without "[id]" stands for the one library of the context with that name."""
+    response = post_form(client, _path(client, "Submit"), _payload(["tissue"], [
+        (req.a.name, ["brain"]),
+    ]), token=user_token, params=req.params)
+
+    assert_htmx_redirect(response, f"/seq_requests/{req.seq_request.id}")
+    assert _properties(session, req.a) == {"tissue": "brain"}

@@ -1,7 +1,6 @@
 """Pure pandas utilities for checking barcode clashes.
 
-Ported from packages/opengsync-server/opengsync_server/tools/utils.py
-with no Flask/SQLAlchemy dependencies.
+No web framework or SQLAlchemy dependencies.
 """
 
 

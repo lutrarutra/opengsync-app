@@ -5,7 +5,7 @@ help:
 	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-restart|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop prod-pgbackrest-init prod-pgbackrest-backup prod-pgbackrest-info deploy test pentest gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-nginx dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop prod-pgbackrest-init prod-pgbackrest-backup prod-pgbackrest-info deploy test pentest gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
 
@@ -57,6 +57,10 @@ dev-logs-all:
 dev:
 	$(COMPOSE_DEV) run --rm --build db-migrator
 	$(COMPOSE_DEV) up --remove-orphans --attach opengsync-app
+
+# nginx with mod_zip in front of the running dev app, for zip downloads of share links (http://localhost:8080)
+dev-nginx:
+	$(COMPOSE_DEV) --profile nginx up -d --build --no-deps nginx
 
 dev-stop:
 	$(COMPOSE_DEV) stop

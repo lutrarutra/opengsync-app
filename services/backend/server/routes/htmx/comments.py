@@ -87,6 +87,8 @@ def delete_todo_comment(
         raise exc.NotFoundException("TODO Comment not found")
 
     session.delete(todo_comment)
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Comment deleted!", "success"),
+    )
 
 router.include_router(forms.models.CommentForm.Router())

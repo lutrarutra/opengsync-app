@@ -63,7 +63,9 @@ def create_flow_cell_design(
     flow_cell_design.pool_designs = [pool_design]
     session.add(flow_cell_design)
 
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Flow cell design created!", "success"),
+    )
 
 
 
@@ -92,7 +94,9 @@ def archive_flow_cell_design(
     """Archive a flow cell design."""
     design = session.get_one(Q.flow_cell_design.select(id=flow_cell_design_id))
     design.task_status = C.TaskStatus.ARCHIVED
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Flow cell design archived!", "success"),
+    )
 
 
 @router.post("/unarchive-flow-cell-design")
@@ -103,7 +107,9 @@ def unarchive_flow_cell_design(
     """Unarchive a flow cell design."""
     design = session.get_one(Q.flow_cell_design.select(id=flow_cell_design_id))
     design.task_status = C.TaskStatus.DRAFT
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Flow cell design restored!", "success"),
+    )
 
 
 @router.delete("/delete-flow-cell-design")
@@ -120,6 +126,8 @@ def delete_flow_cell_design(
     for pd in design.pool_designs:
         pd.flow_cell_design = None
     session.delete(design)
-    return responses.htmx_response(redirect=responses.url_for("design"))
+    return responses.htmx_response(
+        redirect=responses.url_for("design"), flash=responses.flash("Flow cell design deleted!", "success"),
+    )
 
 router.include_router(forms.models.FlowCellDesignForm.Router())

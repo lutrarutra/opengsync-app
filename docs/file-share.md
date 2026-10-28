@@ -226,7 +226,8 @@ The insider dashboard's **System** tab has a **Share Search Index** card:
 | Route | Typical client | What it does |
 |---|---|---|
 | `/api/webdav/{token}/{path}` | `rclone` (WebDAV), `rclone mount`, Finder, Windows Explorer | Read-only WebDAV: `GET`, `HEAD`, `PROPFIND`, `OPTIONS`. `LOCK`/`UNLOCK` return 204 and do nothing. |
-| `/api/shares/browse/{token}/{path}` | The link in share emails | Simple HTML listing; a file path downloads the file. |
+| `/api/shares/browse/{token}/{path}` | The link in share emails | Simple HTML listing; a file path downloads the file. The download bar at the top opens popups with the copy commands, and offers zip downloads behind nginx. |
+| `/api/shares/zip/{token}/{path}` | Browser (**Download all (.zip)**, the **.zip** link on each folder) | The share, or one shared folder, as one zip streamed by nginx. Only behind nginx with mod_zip; see [Zip downloads](#zip-downloads). |
 | `/files/share/browse/{token}/{path}` | Browser | The shared file browser (paginated, sortable); a file path downloads the file. |
 | `/api/shares/rclone/{token}/{path}` | `rclone --http-url`, `wget --recursive` | Plain HTML index for recursive download tools; a file path downloads the file. |
 | `/api/shares/rclone_script/{token}` | | The `rclone copy` command, as text. |
@@ -234,7 +235,7 @@ The insider dashboard's **System** tab has a **Share Search Index** card:
 
 Every route answers **404** for an unknown token and **403** for an expired one.
 
-The download commands in share emails are rendered from `services/backend/templates/snippets/*.j2`, for example:
+Share emails hold only the browse link. The download commands are shown on that page, rendered from `services/backend/templates/snippets/*.j2`, for example:
 
 ```sh
 rclone copy ":webdav,url='https://<host>/api/webdav/<token>':/" BSF_DATA \
@@ -281,6 +282,17 @@ share_path_mapping:
 ```
 
 With this setup, the host path `/nobackup/lab_bsf/projects/P123_Smith` becomes the share path `BSF_PROJECTS/P123_Smith`, which is `/share/BSF_PROJECTS/P123_Smith` in both containers.
+
+### Zip downloads (nginx)
+
+[Zip downloads](#zip-downloads) need two things from the deployment. Without either, the share browser shows no zip buttons and the zip route answers 404, while everything else keeps working.
+
+1. **The nginx image** from this repository (`services/nginx/Dockerfile`). It builds mod_zip as a dynamic module, pinned to a commit, and loads it in `/etc/nginx/nginx.conf`.
+2. **Two additions to the server block** in `NGINX_CONFIG_DIR`, as in `services/nginx/nginx.template.conf`:
+   - `proxy_set_header X-Archive-Support zip;` in `location /`. This is how the app learns that mod_zip is available. nginx overwrites any client-sent value.
+   - A `location /api/shares/zip/` block with the same proxy headers (including `X-Archive-Support`), plus `proxy_method GET;` and `proxy_read_timeout 300s;`. The app walks and `stat`s every file before nginx starts streaming, which can take longer than the default 60 s on a large share over the network mount. `proxy_method GET` lets a `HEAD` request report the zip's size.
+
+To try it in dev, run `make dev-nginx`, which starts nginx with mod_zip on http://localhost:8080 (config: `services/nginx/nginx.dev.conf.template`). Open share links through that port. The dev app on its own port has no zip buttons.
 
 ## What a share link exposes
 
@@ -466,6 +478,34 @@ So `.ngsignore` and the other checks always run before nginx sees the request. D
 - **`HEAD`** requests are answered by FastAPI with headers only.
 - **Fallback:** if a file's path does not start with the configured `share_root`, for example because `share_root` is set to a path through a symlink, `file_response` falls back to serving the file from FastAPI, reading it entirely into memory. The project **Data** tab refuses this fallback and answers 500 instead (`require_accel=True`). Keep `share_root` a real folder, with the bind mounts below it.
 
+### Zip downloads
+
+**Download all (.zip)** on the share browser downloads the whole share as one file. The **.zip** link on a folder row downloads that folder. Files are stored, not compressed: sequencing data is already compressed, and storing makes the size known up front, so browsers show a progress bar with time remaining.
+
+1. FastAPI runs the usual checks (token, rate limit, audit, `.ngsignore`, junk, symlinks) and walks the files. It answers with a **file list**, not a zip, and the header `X-Archive-Files: zip` (`utils/share_zip.py`):
+   ```
+   0 0 @directory shared/nested/
+   - 5 /nginx-share//shared/nested/child.txt shared/nested/child.txt
+   ```
+   Each line holds the CRC-32 (`-`: unknown), the size, the `/nginx-share/` location and the name inside the zip.
+2. nginx's mod_zip replaces that body with the zip. For each file it makes a subrequest to `/nginx-share/`, as a single download does, and it computes `Content-Length` from the list.
+
+**What goes in the zip:**
+- A file is listed only if a single download of it would be served (`get_file`). So the zip holds exactly what clicking each file would download.
+- Each file's real path is checked again without any cache, because nginx follows symlinks and this is the last check before nginx reads the file.
+- Names that an extractor could misread are skipped and logged. These are names with line breaks or other control characters, `\`, `:`, or `..` components.
+- Every line is validated once more before the list is returned.
+- The whole share: each shared path becomes a top-level folder in the zip, named after its basename. Repeated names get ` (2)`, ` (3)`, … added. The zip is named `BSF_DATA.zip`.
+- A folder: it must be at or below a shared path. The zip is named `<folder>.zip`, and the names inside start with the folder's name.
+- Folder symlinks are followed, as WebDAV does, so a folder reachable twice is in the zip twice. A link back to a folder on its own path is not followed.
+
+**Identity:** the list is sorted. The `ETag` is a hash of the list and each file's mtime, and `Last-Modified` is the newest mtime. Unchanged files therefore always give the same zip bytes and the same `ETag`.
+
+**Limits:**
+- **No resume.** mod_zip supports `Range` only when every file's CRC-32 is in the list. Without CRCs, an interrupted download starts again from zero. For very large shares, point people to Rclone.
+- **Changes during a download.** A file that changes size or disappears while it is being streamed leaves a broken entry, or aborts the download.
+- **mod_zip version.** The module is pinned to a commit after release 1.3.0. In 1.3.0, a dynamically loaded mod_zip runs before nginx reads file contents into memory, so every CRC in the zip is 0 and extractors report the files as corrupt. That release also answers `HEAD` with an empty reply.
+
 ## Caching
 
 In prod, results are cached in Redis, and `.ngsignore` rules in each worker's memory. Dev and test cache nothing.
@@ -566,7 +606,7 @@ Notes on `release_project_data`:
 ## Known quirks
 
 - **`..` in paths:** paths containing `..` return 404 from nginx, even when they point at a visible file (see [How downloads are served](#how-downloads-are-served)).
-- **Folder symlinks** that point outside the token's share paths list their contents, but downloads from them return 404.
+- **Folder symlinks** that point outside the token's share paths list their contents, but downloads from them return 404, and zip downloads leave their files out.
 - **Junk filter** matches prefixes, so `.hidden*` and `.ignored*` names are hidden too (see [OS junk files](#os-junk-files)).
 
 ## Code
@@ -581,12 +621,13 @@ Notes on `release_project_data`:
 | File browser and search templates | `services/backend/templates/components/file-browser/` (`browser.jinja2`, `entries.html`, `search-results.html`), dashboard card `components/fs-index-status.html` |
 | Share caches | `services/backend/server/utils/share_fs_cache.py` |
 | Token loading and caching, rate limits, audit | `services/backend/server/core/dependencies.py` |
-| `X-Accel-Redirect` | `services/backend/server/core/responses.py` |
+| `X-Accel-Redirect` | `services/backend/server/core/responses.py` (`x_accel_redirect`) |
+| Zip file list for mod_zip | `services/backend/server/utils/share_zip.py`, route `file_share.zip` in `routes/api/shares.py` |
 | Share routes | `services/backend/server/routes/api/shares.py`, `routes/api/webdav.py`, `routes/pages/shared_browser.py` |
 | File browser Share and Associate forms | `services/backend/server/forms/actions/SharePathAction.py`, `forms/actions/AssociatePathAction.py`, shared path list in `forms/common/SelectedPathsMixin.py` and `templates/components/selected-paths.jinja2` |
 | File browser selection panel | `services/backend/static/js/path-selection.js`, `templates/files_page.html` |
 | Data tabs (listing, search, file and remove routes, allowed file types) | `services/backend/server/routes/htmx/data_browser.py`, `utils/file_browser.py` |
-| nginx | `services/nginx/nginx.template.conf` |
+| nginx | `services/nginx/nginx.template.conf`, image with mod_zip `services/nginx/Dockerfile`, dev `services/nginx/nginx.dev.conf.template` |
 
 ## Security
 

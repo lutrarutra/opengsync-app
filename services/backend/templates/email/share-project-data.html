@@ -9,29 +9,10 @@
 <hr>
 {%- endif %}
 <p>
-    <b>You can copy the data with one of the following commands:</b>
-    <ul>
-        <li>
-            WebDAV <span class="desc">(Rclone, recommended, fastest, downloads only modified/missing files, might not work for older rclone < 1.6)</span>:
-            <div class="code">{{ sync_command | highlight_sh | safe }}</div>
-            <br>
-        </li>
-        <li>
-            HTTP <span class="desc">(Rclone)</span>:
-            <div class="code">{{ http_command | highlight_sh | safe }}</div>
-            <br>
-        </li>
-        <li>
-            wget <span class="desc">(Use only if rclone is not available)</span>
-            <div class="code">{{ wget_command | highlight_sh | safe }}</div>
-            <br>
-        </li>
-    </ul>
-    <b>You can also browse the files at:</b>
-    <ul>
-        <li>🔗 <a href="{{ browse_link }}">{{ browse_link }}</a></li>
-    </ul>
+    <b>Browse and download the data at:</b><br>
+    🔗 <a href="{{ browse_link }}">{{ browse_link }}</a>
 </p>
+<p>The page shows how to copy all of the data to your computer at once.</p>
 <hr>
 
 <p>
@@ -58,5 +39,5 @@
 </p>
 <hr>
 
-<p>Please note that the links are only available for a limited time (until {{ share_token.expiration | format_datetime }}). After the token expires, you will need to request new one.</p>
+<p>Please note that the link is only available for a limited time (until {{ share_token.expiration | format_datetime }}). After the token expires, you will need to request new one.</p>
 {% endblock %}

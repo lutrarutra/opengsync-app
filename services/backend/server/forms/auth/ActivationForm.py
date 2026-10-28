@@ -17,7 +17,7 @@ class ActivationForm(UserProfileMixin, HTMXForm):
 
     template_path = "forms/auth/activate.html"
 
-    email = inputs.string.EmailInputField("Email", read_only=True)
+    email = inputs.string.EmailInputField("Email", read_only=True, autocomplete="username")
     password = inputs.string.PasswordInputField("Password", min_length=8, autocomplete="new-password")
     confirm = inputs.string.PasswordInputField("Confirm Password", autocomplete="new-password")
 

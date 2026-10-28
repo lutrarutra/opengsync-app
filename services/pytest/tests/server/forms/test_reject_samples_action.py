@@ -5,6 +5,10 @@ the Reject column for samples that are already REJECTED. On submit, marked sampl
 status REJECTED and unmarked REJECTED samples go back to STORED. Samples stay linked to
 their library and library statuses are not changed.
 
+The sample is one read-only ``DBObjectColumn`` ("name [id]") whose options are the prep's
+samples; every sample must be listed exactly once, so samples outside the prep or omitted
+rows fail validation.
+
 Access is insider-only.
 """
 
@@ -16,6 +20,7 @@ from opengsync_db import SyncSession, categories as C, models
 from ...db.create_units import create_project, create_sample
 from .._http import (
     assert_flash,
+    assert_form_invalid,
     assert_htmx_redirect,
     get,
     post_form,
@@ -25,18 +30,23 @@ from .._http import (
 from .test_sample_pooling_action import Prep
 
 PREFIX = "/htmx/actions/reject-samples"
-COLUMNS = ["Sample ID", "Sample Name", "Pool", "Status", "Reject"]
+COLUMNS = ["Sample", "Pool", "Status", "Reject"]
 
 
 def _path(lab_prep_id: int) -> str:
     return f"{PREFIX}/{lab_prep_id}"
 
 
+def _cell(sample: models.Sample) -> str:
+    return f"{sample.name} [{sample.id}]"
+
+
+def _rows(prep: Prep, rejected: set[models.Sample]) -> list[list[str]]:
+    return [[_cell(sample), pool, "", "x" if sample in rejected else ""] for sample, pool in prep.pools().items()]
+
+
 def _payload(prep: Prep, rejected: set[models.Sample]) -> dict[str, str]:
-    pools = prep.pools()
-    return spreadsheet_payload(COLUMNS, [
-        [sample.id, sample.name, pool, "", "x" if sample in rejected else ""] for sample, pool in pools.items()
-    ])
+    return spreadsheet_payload(COLUMNS, _rows(prep, rejected))
 
 
 def _statuses(session: SyncSession, prep: Prep) -> dict[str, C.SampleStatus | None]:
@@ -66,8 +76,9 @@ def test_render_lists_samples_and_prefills_rejected(
 
     assert response.status_code == 200
     assert 'name="csrf_token"' in response.text
-    for text in ("S1", "S2", "S3", "S4", "PoolA", "PoolB", C.SampleStatus.REJECTED.display_name):
+    for text in (*(_cell(sample) for sample in prep.samples), "PoolA", "PoolB", C.SampleStatus.REJECTED.display_name):
         assert text in response.text
+    assert "Sample ID" not in response.text
 
 
 def test_render_omits_non_multiplexed_libraries(
@@ -156,12 +167,35 @@ def test_samples_outside_the_prep_are_untouched(
     outsider = create_sample(session, user, create_project(session, user))
     outsider.status = C.SampleStatus.STORED
     session.commit()
-    payload = spreadsheet_payload(COLUMNS, [[outsider.id, outsider.name, "PoolA", "", "x"]])
+    payload = spreadsheet_payload(COLUMNS, [*_rows(prep, set()), [_cell(outsider), "PoolA", "", "x"]])
 
-    post_form(client, _path(prep.lab_prep.id), payload, token=insider_token)
+    response = post_form(client, _path(prep.lab_prep.id), payload, token=insider_token)
 
+    assert_form_invalid(response, f"Invalid value '{_cell(outsider)}'")
     session.expire_all()
     assert outsider.status == C.SampleStatus.STORED
+
+
+def test_omitted_sample_is_rejected(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
+    """Leaving out a REJECTED sample's row must not restore it: every sample of the prep is required."""
+    prep.s2.status = C.SampleStatus.REJECTED
+    session.commit()
+    rows = [row for row in _rows(prep, set()) if row[0] != _cell(prep.s2)]
+
+    response = post_form(client, _path(prep.lab_prep.id), spreadsheet_payload(COLUMNS, rows), token=insider_token)
+
+    assert_form_invalid(response, f"missing option '{_cell(prep.s2)}'")
+    assert _statuses(session, prep)["S2"] == C.SampleStatus.REJECTED
+
+
+def test_duplicate_sample_is_rejected(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
+    rows = _rows(prep, set())
+    rows.append([_cell(prep.s2), "PoolA", "", "x"])
+
+    response = post_form(client, _path(prep.lab_prep.id), spreadsheet_payload(COLUMNS, rows), token=insider_token)
+
+    assert_form_invalid(response, "is not unique")
+    assert _statuses(session, prep)["S2"] == C.SampleStatus.STORED
 
 
 def test_prep_table_template_skips_rejected_samples(

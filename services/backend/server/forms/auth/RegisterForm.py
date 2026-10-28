@@ -69,7 +69,10 @@ class RegisterForm(HTMXForm):
                     logger.error(f"Failed to send welcome back email to '{form.email.data}':", exception=e)
                     form.email.errors.append("Failed to send registration email. Please contact administrator.")
                     raise
-                return responses.htmx_response(redirect=responses.url_for("login_page"))
+                # Same message as for a new user: an anonymous visitor must not learn which emails have accounts
+                return responses.htmx_response(
+                    redirect=responses.url_for("login_page"), flash=responses.flash("Registration email sent!", "success"),
+                )
 
             token = secrets.generate_registration_token(email=form.email.data, role=UserRole.get(form.role.data))
             link = responses.external_url_for("complete_registration_page", token=token)
@@ -80,5 +83,7 @@ class RegisterForm(HTMXForm):
                 form.email.errors.append("Failed to send registration email. Please contact administrator.")
                 raise
 
-            return responses.htmx_response(redirect=responses.url_for("login_page"))
+            return responses.htmx_response(
+                redirect=responses.url_for("login_page"), flash=responses.flash("Registration email sent!", "success"),
+            )
         return route

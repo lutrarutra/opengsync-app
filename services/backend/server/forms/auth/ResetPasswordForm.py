@@ -13,7 +13,7 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 class ResetPasswordForm(HTMXForm):
     template_path = "forms/auth/reset_password.html"
 
-    email = inputs.string.EmailInputField("Email", read_only=True)
+    email = inputs.string.EmailInputField("Email", read_only=True, autocomplete="username")
     password = inputs.string.PasswordInputField("Password", min_length=8)
     confirm = inputs.string.PasswordInputField("Confirm Password")
 
