@@ -427,8 +427,8 @@ PUBLIC_ROUTES = [
     ("webdav-get", "GET", "/api/webdav/{token}/{path}", {"file"}),
     ("webdav-head", "HEAD", "/api/webdav/{token}/{path}", {"file"}),
     ("webdav-propfind", "PROPFIND", "/api/webdav/{token}/{path}", {"file", "dir"}),
-    # the file list nginx's mod_zip streams; a file path is not a folder and must be refused too
-    ("zip", "GET", "/api/shares/zip/{token}/{path}", {"file", "dir"}),
+    # the file list nginx's mod_zip streams; it only takes folders (file paths: test_zip_refuses_file_paths)
+    ("zip", "GET", "/api/shares/zip/{token}/{path}", {"dir"}),
 ]
 # what nginx sets when it can stream zips; the zip route refuses requests without it
 ZIP_HEADERS = {"X-Archive-Support": "zip"}
@@ -507,6 +507,16 @@ def test_zip_of_whole_share_leaves_out_links_out_of_the_root(client: TestClient,
     assert location.startswith("/nginx-share/") and location.endswith("/shared/report.txt")
     for marker in ("link-out", "dir-out", "outside", "inner-secret", "evil", "unshared", CANARY):
         assert marker not in response.text, f"{marker} reached the zip file list"
+
+
+@pytest.mark.parametrize("segment", [
+    pytest.param(segment, id=vid) for vid, segment, kind in URL_ESCAPES + URL_UNSHARED if kind == "file"
+] + [pytest.param("shared/report.txt", id="shared-file")])
+def test_zip_refuses_file_paths(client: TestClient, share_link: str, layout: Layout, segment: str):
+    """A zip is made of a folder only; file paths, escaping or not, get no file list."""
+    response = _public(client, "GET", "/api/shares/zip/{token}/{path}", share_link, _fill_url(segment, layout))
+    assert response.status_code == 404, response.text
+    _assert_public_rejected(response, "GET")
 
 
 def test_zip_requires_the_nginx_header(client: TestClient, share_link: str):
