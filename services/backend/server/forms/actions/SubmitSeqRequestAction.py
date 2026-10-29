@@ -10,7 +10,9 @@ from ..HTMXForm import HTMXForm, FormFunc, RouteFunc, htmx_route
 class SubmitSeqRequestAction(HTMXForm):
     template_path = "forms/seq_request/submit_request.html"
 
-    sample_submission_time = inputs.datetime.DateTimepickerInputField("Sample Submission Time", required=False)
+    sample_submission_time = inputs.datetime.DateTimepickerInputField(
+        "Sample Submission Time", required=False, placeholder="Required unless delivered by mail",
+    )
     samples_delivered_by_mail = inputs.boolean.CheckboxInputField("Samples are Delivered by Mail")
     custom_sample_submission_time = inputs.boolean.CheckboxInputField("We have agreed to a time that is outside the available submission windows.")
     comment = inputs.string.TextAreaInputField("Additional Comment for Submission", required=False, max_length=4096)

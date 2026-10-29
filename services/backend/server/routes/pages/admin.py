@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 
-from ...core import dependencies, responses, config, audit_reader
+from ...core import dependencies, responses, config, audit_reader, affiliation_values
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(dependencies.require_admin)])
 
@@ -30,3 +30,8 @@ def admin_audits_page(request: Request):
 @router.get("/shares", name="admin_shares_page")
 def admin_shares_page():
     return responses.html_response(template="admin_shares_page.html", title="Shares")
+
+
+@router.get("/affiliations", name="admin_affiliations_page")
+def admin_affiliations_page():
+    return responses.html_response(template="admin_affiliations_page.html", title="Affiliations", kinds=list(affiliation_values.Kind))

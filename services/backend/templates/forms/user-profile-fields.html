@@ -15,5 +15,17 @@
     const checkbox = document.getElementById("{{ form.is_pi.id }}");
     const piFields = document.getElementById("{{ form.is_pi.id }}-pi-fields");
     checkbox.addEventListener("change", () => piFields.classList.toggle("d-none", checkbox.checked));
+
+    // Departments are offered per institute: one selected for another institute no longer applies (a new name stays)
+    const institute = document.getElementById("{{ form.institute.id }}-container");
+    const department = document.getElementById("{{ form.department.id }}-container");
+    let instituteText = institute.querySelector(".search-select-text").value;
+    institute.addEventListener("search-select:change", (event) => {
+      const changed = event.detail.text.trim().toLowerCase() !== instituteText.trim().toLowerCase();
+      instituteText = event.detail.text;
+      if (changed && department.searchSelect?.value && !department.searchSelect.isNew) {
+        department.searchSelect.clear();
+      }
+    });
   })();
 </script>

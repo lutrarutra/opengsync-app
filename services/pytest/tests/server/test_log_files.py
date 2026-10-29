@@ -84,7 +84,9 @@ def test_delete_old_files_keeps_other_suffixes(tmp_path):
     assert sorted(os.listdir(tmp_path)) == ["2026-10-19.err", "2026-10-21.log"]
 
 
-def test_housekeep_compresses_and_applies_retention(tmp_path):
+def test_housekeep_compresses_and_applies_retention(tmp_path, monkeypatch):
+    # the constructor housekeeps for the real date in a thread, which would race the call below
+    monkeypatch.setattr(log_files.DailyFileSink, "_housekeep_in_background", lambda self, today: None)
     sink = log_files.DailyFileSink(str(tmp_path), ".log", retention_days=7)
     today = date(2026, 10, 27)
     for days in (0, 1, 2, 8):

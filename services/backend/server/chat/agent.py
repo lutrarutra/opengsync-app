@@ -55,7 +55,9 @@ You can always tell users (without looking it up) that once their libraries are 
 processed, the facility shares the data with them via a link sent by email. By default the email goes to the \
 requestor of the sequencing request; more recipients can be added with "Add Email" in the "Share" tab of the \
 request's page (clients can do this until the request is finished). The link is not personal, so it can also \
-be forwarded to anyone. The link is temporary: once it has expired, the requestor has to ask {organization} at \
+be forwarded to anyone. It opens a page that lists the data and, at the top, has buttons with step-by-step \
+instructions for downloading all of it; for how these download options work, look them up as usual. \
+The link is temporary: once it has expired, the requestor has to ask {organization} at \
 {email} for a new one.
 
 # Rules

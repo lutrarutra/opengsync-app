@@ -97,9 +97,10 @@ class UserSelectionSubForm(SubHTMXForm):
     icon = "bi-person-plus"
 
     user_id = inputs.searchable.SearchableInputField("User", route="search_users", required=False)
-    email = inputs.string.EmailInputField("New User Email", required=False)
-    first_name = inputs.string.StringInputField("New User First Name", required=False)
-    last_name = inputs.string.StringInputField("New User Last Name", required=False)
+    # Required together unless a user is selected
+    email = inputs.string.EmailInputField("New User Email", required=False, placeholder="Required for a new user")
+    first_name = inputs.string.StringInputField("New User First Name", required=False, placeholder="Required for a new user")
+    last_name = inputs.string.StringInputField("New User Last Name", required=False, placeholder="Required for a new user")
 
 
 class TechnicalInfoSubForm(SubHTMXForm):
@@ -137,7 +138,7 @@ class BioinformaticianSubForm(SubHTMXForm):
     icon = "bi-robot"
 
     name = inputs.string.StringInputField("Bioinformatician Name", required=False)
-    email = inputs.string.EmailInputField("Bioinformatician Email", required=False)
+    email = inputs.string.EmailInputField("Bioinformatician Email", required=False, placeholder="Required with a name")
     phone = inputs.string.StringInputField("Bioinformatician Phone", required=False)
 
 

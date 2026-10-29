@@ -80,9 +80,23 @@ async def timing_middleware(request: runtime.Request, call_next: Callable[[runti
     request.state.process_time = str(process_time)
     return response
 
+# Files macOS Finder probes for (PROPFIND, then PUT) in every folder of a mounted WebDAV share
+_MACOS_METADATA_NAMES = {".DS_Store", ".localized", ".hidden", ".metadata_never_index", ".metadata_never_index_unless_rootfs", ".ql_disablethumbnails", ".ql_disablecache"}
+
+
+def _is_webdav_client_metadata(path: str) -> bool:
+    if "/api/webdav/" not in path:
+        return False
+    name = path.rstrip("/").rsplit("/", 1)[-1]
+    return name in _MACOS_METADATA_NAMES or name.startswith("._")
+
+
 def _write_audit_log(request: runtime.Request, status_code: int, changes: list[dict]) -> None:
     """Write one audit line for committed DB changes, explicitly audited routes and error responses."""
     if not changes and getattr(request.state, "audit", None) is None and status_code < 400:
+        return
+
+    if not changes and _is_webdav_client_metadata(request.url.path):
         return
 
     share_key = getattr(request.state, "share_audit_key", None)

@@ -1,0 +1,31 @@
+<div class="modal-content" id="affiliation-value-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Edit {{ form.kind.label }}{% if form.value.institute %} <span class="desc">at {{ form.value.institute }}</span>{% endif %}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="help">
+            <ul>
+                <li>The new {{ 'name and email are' if form.kind.value == 'pi' else 'name is' }} stored for every user with this {{ form.kind.label | lower }}, in all of its spellings.</li>
+                <li>To combine it with another existing {{ form.kind.label | lower }}, use Merge instead.</li>
+                {% if pi_account is defined and pi_account %}
+                <li>This PI is the user <a href="{{ url_for('user_page', user_id=pi_account.id) }}">{{ pi_account.name }}</a>; their email is changed on their account.</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% set value = form.value %}
+        {% include "components/admin/affiliation-value-users.html" %}
+        {{ form.csrf_token.render() }}
+        {{ form.name.render() }}
+        {% if form.kind.value == "pi" %}{{ form.email.render() }}{% endif %}
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id"></div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button id="submit-affiliation-value-btn" class="btn btn-success"
+            hx-include="#affiliation-value-form-container" hx-target="#affiliation-value-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">Save</button>
+        </div>
+    </div>
+</div>

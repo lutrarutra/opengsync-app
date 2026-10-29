@@ -231,21 +231,20 @@
                     const original_flow_cell_design_id = parseInt(dragged.getAttribute('data-original-flow-cell-design-id'));
 
                     if (flow_cell_design_id == -1) {
-                        htmx.ajax("POST", "{{ url_for('create_flow_cell_design') }}", {
+                        // The routes read their ids from the query string, not the form body
+                        const params = new URLSearchParams({ pool_design_id: pool_design_id });
+                        htmx.ajax("POST", "{{ url_for('create_flow_cell_design') }}?" + params, {
                             target: "#flow-cell-design-list",
                             swap: "outerHTML",
-                            values: {
-                                pool_design_id: pool_design_id,
-                            }
                         });
                     } else if (original_flow_cell_design_id !== flow_cell_design_id) {
-                        htmx.ajax("POST", "{{ url_for('move_pool_design') }}", {
+                        const params = new URLSearchParams({
+                            pool_design_id: pool_design_id,
+                            new_flow_cell_design_id: flow_cell_design_id,
+                        });
+                        htmx.ajax("POST", "{{ url_for('move_pool_design') }}?" + params, {
                             target: "#flow-cell-design-list",
                             swap: "outerHTML",
-                            values: {
-                                pool_design_id: pool_design_id,
-                                new_flow_cell_design_id: flow_cell_design_id
-                            }
                         });
                     }
                 },

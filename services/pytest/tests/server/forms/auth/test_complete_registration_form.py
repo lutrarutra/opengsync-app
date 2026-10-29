@@ -378,3 +378,30 @@ def test_complete_registration_unknown_key_rerenders(client: TestClient, session
     response = _complete(client, _token(NEW_EMAIL), institute="no such institute", **{"institute-text": "X"})
     assert_form_invalid(response, contains="Invalid institute selected.")
     assert session.first(Q.user.select(email=NEW_EMAIL)) is None
+
+
+def test_complete_registration_department_must_be_of_the_institute(
+    client: TestClient, session: SyncSession, user, user_2,
+):
+    from server.core import column_values
+
+    set_profile(session, user)
+    set_profile(session, user_2, institute="CeMM", department="Bioinformatics")
+    session.commit()
+    sources = column_values.SOURCES
+    institute = {"institute": column_values.key_of(sources["user_institute"], (INSTITUTE,)), "institute-text": INSTITUTE}
+    bioinformatics = column_values.key_of(sources["user_department"], ("Bioinformatics",))
+
+    response = _complete(client, _token(NEW_EMAIL), **institute, department=bioinformatics, **{"department-text": "Bioinformatics"})
+    assert_form_invalid(response, contains="Bioinformatics is not a department of Medical University of Vienna")
+    assert session.first(Q.user.select(email=NEW_EMAIL)) is None
+
+    # typed as new, it is created at the institute
+    response = _complete(client, _token(NEW_EMAIL), **institute, department="new", **{"department-text": "bioinformatics"})
+    assert_htmx_redirect(response, contains="/auth/login")
+    assert session.get_one(Q.user.select(email=NEW_EMAIL)).department == "bioinformatics"
+
+
+def test_profile_fields_mark_new_pi_email_required(client: TestClient):
+    html = get(client, _path(_token(NEW_EMAIL))).text
+    assert 'placeholder="Required"' in html.split('name="pi_email"')[0].rsplit("<input", 1)[1]

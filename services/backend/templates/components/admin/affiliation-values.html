@@ -1,0 +1,66 @@
+{#
+  Values of one kind (institutes, departments or PIs) on the admin Affiliations page, with buttons opening the edit
+  and merge modals. pi_accounts: the user accounts of PIs (their own email is the PI email), by value key.
+#}
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% set table_id = "admin-affiliations-" ~ kind.value ~ "-table" %}
+<div id="{{ table_id }}" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col(table_id, table, "name") }}
+                {% if kind.value == "pi" %}{{ table_col(table_id, table, "email") }}{% endif %}
+                {% if kind.value == "department" %}{{ table_col(table_id, table, "institute") }}{% endif %}
+                {{ table_col(table_id, table, "num_users") }}
+                {{ table_col(table_id, table, "actions") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for value in values %}
+            {% set account = pi_accounts.get(value.key) %}
+            <tr>
+                <th scope="row">
+                    {{ value.name }}
+                    {% if value.num_spellings > 1 %}
+                    <span class="badge bg-secondary" {{ tooltip("Stored in " ~ value.num_spellings ~ " spellings (case or spaces). Saving it with Edit unifies them.") }}>{{ value.num_spellings }} spellings</span>
+                    {% endif %}
+                </th>
+                {% if kind.value == "pi" %}
+                <td>
+                    {{ value.email }}
+                    {% if account %}<a href="{{ url_for('user_page', user_id=account.id) }}" title="The PI's own account"><i class="bi bi-person-check"></i></a>{% endif %}
+                </td>
+                {% endif %}
+                {% if kind.value == "department" %}
+                <td>{% if value.institute %}{{ value.institute }}{% else %}<span class="desc">—</span>{% endif %}</td>
+                {% endif %}
+                <td>{{ value.num_users }}</td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary table-btn" title="Edit"
+                            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                            hx-get="{{ url_for('AffiliationValueForm.Edit', kind=kind.value, **value.params) }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary table-btn" title="Merge into another {{ kind.label | lower }}"
+                            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                            hx-get="{{ url_for('MergeAffiliationValuesAction.Submit', kind=kind.value, **value.params) }}">
+                            <i class="bi bi-intersect"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="desc">No {{ kind.plural | lower }} found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination(table_id, table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#{{ table_id }}", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

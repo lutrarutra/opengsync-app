@@ -19,6 +19,7 @@ hx-get="{{ url_for('render_experiment_feed', page=current_page + 1) }}" hx-trigg
     </div>
     <div class="feed-meta">
         <span><i class="bi bi-calendar3"></i>{{ experiment.timestamp_created | format_short_date }}</span>
+        <span><i class="bi bi-diagram-3"></i>{{ experiment.workflow.display_name }}</span>
     </div>
     <div class="status-row">
         {{ experiment_status_bar(experiment) }}

@@ -31,6 +31,9 @@ class LabPrepForm(HTMXForm):
         super().__init__()
         self.form_type = form_type
         self.lab_prep = lab_prep
+        if form_type == "edit":
+            # Generated from the checklist when left empty on create only
+            self.name.placeholder = "Required"
 
         if form_type == "create" and lab_prep is not None:
             raise ValueError("lab_prep must be None when form_type is 'create'.")

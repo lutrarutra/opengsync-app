@@ -54,7 +54,7 @@
             <h2>Download all data</h2>
             <p>Choose a method to copy the whole share to your computer, or click single files in the list below.</p>
             {% if zip_available %}
-            <p class="note">The .zip opens with a double-click, but an interrupted download starts again from the beginning. For very large data, use Rclone.</p>
+            <p class="note">Rclone is faster and recommended. An interrupted .zip download cannot be resumed.</p>
             {% endif %}
             <div class="download-buttons">
                 <button type="button" class="primary" data-dialog="dialog-rclone"><i class="bi bi-terminal"></i> Rclone (recommended)</button>

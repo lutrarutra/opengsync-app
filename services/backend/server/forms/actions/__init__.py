@@ -28,6 +28,7 @@ from .QueryBarcodeSequencesAction import QueryBarcodeSequencesAction
 from .SampleAttributeTableAction import SampleAttributeTableAction
 from .MergeProjectsAction import MergeProjectsAction
 from .MergeUsersAction import MergeUsersAction
+from .MergeAffiliationValuesAction import MergeAffiliationValuesAction
 from .BarcodeConstraintsAction import BarcodeConstraintsAction
 from . import dist_reads, lane_pools, load_flowcell, edit_kit_actions
 
@@ -62,6 +63,7 @@ __all__ = [
     "SampleAttributeTableAction",
     "MergeProjectsAction",
     "MergeUsersAction",
+    "MergeAffiliationValuesAction",
     "BarcodeConstraintsAction",
     "dist_reads",
     "edit_kit_actions",

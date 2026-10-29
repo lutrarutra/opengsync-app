@@ -4,9 +4,9 @@ import pytest
 import sqlalchemy as sa
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncSession, models, categories as C
+from opengsync_db import SyncSession, actions, models, categories as C
 
-from ..db.create_units import create_seq_request, create_library
+from ..db.create_units import create_seq_request, create_library, create_project, create_sample, create_contact
 from ._http import get, post_form, flush_redis, assert_htmx_redirect
 
 REVIEW_TAB = 'data-bs-target="#request-review-tab"'
@@ -107,6 +107,37 @@ def test_mux_libraries_keep_multiplexing_step(client: TestClient, session: SyncS
     html = get(client, f"/seq_requests/{seq_request.id}", insider_token).text
 
     assert _review_count(html).endswith("/12</span>")
+
+
+def test_review_shows_pi_contact_and_library_organisms(client: TestClient, session: SyncSession, user, insider_token: str):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    pi = create_contact(session)
+    pi.email = "pi@example.org"
+    seq_request.pi_contact_id = pi.id
+    sample = create_sample(session, user, create_project(session, user))
+    for _ in range(2):
+        library = create_library(session, user, seq_request)
+        library.genome_ref = C.GenomeRef.HUMAN
+        actions.link_sample_library(session, sample.id, library.id)
+    session.commit()
+    flush_redis(client)
+
+    html = get(client, f"/htmx/seq_requests/{seq_request.id}/review-checklist", insider_token, htmx=True).text
+
+    assert "<h4>PI Contact</h4>" in html
+    assert pi.name in html and "pi@example.org" in html
+    assert "Organism (Reference)" in html
+    assert html.count('<span class="badge">Human (Homo sapiens)</span>') == 1
+
+
+def test_review_shows_empty_pi_contact_when_missing(client: TestClient, session: SyncSession, user, insider_token: str):
+    seq_request = create_seq_request(session, user)
+    session.commit()
+    html = get(client, f"/htmx/seq_requests/{seq_request.id}/review-checklist", insider_token, htmx=True).text
+    assert "Check Submission Contacts" in html
+    assert "<h4>PI Contact</h4>" in html
+    assert "<label>PI Name</label>" in html and "<label>PI Email</label>" in html
 
 
 # ── Manual check history ─────────────────────────────────────────────────────

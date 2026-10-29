@@ -7,10 +7,11 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, utils
 
-from ...core import dependencies, responses, config, audit_reader, exceptions as exc, redis as rds
+from ...core import dependencies, responses, config, audit_reader, affiliation_values as av, exceptions as exc, redis as rds
 from ...core.context import ctx
 from ...chat import usage as chat_usage
 from ...components.tables import HTMXTable, TableCol
+from ... import forms
 from ...forms.common import SelectedPathsMixin
 from ...utils import fs_index, share_fs_cache
 from ...utils.file_browser import MAX_SELECTED_PATHS, resolve_share_path
@@ -242,3 +243,54 @@ def save_share_token_paths(
     else:
         flash = responses.flash("Nothing changed: the share link already has these paths.", "info")
     return responses.htmx_response(redirect=ctx.request.url_for("admin_shares_page"), flash=flash)
+
+
+class AffiliationValueTable(HTMXTable):
+    columns = [
+        TableCol(title="Name", label="name", col_size=4, searchable=True, sortable=True),
+        TableCol(title="Email", label="email", col_size=3, searchable=True),
+        TableCol(title="Institute", label="institute", col_size=3),
+        TableCol(title="Users", label="num_users", col_size=1, sortable=True),
+        TableCol(title="", label="actions", col_size=1),
+    ]
+
+
+@router.get("/affiliations", name="admin_affiliation_value_table")
+def get_affiliation_value_table(
+    kind: av.Kind = Query(..., description="institute, department or pi"),
+    page: int = Query(0, ge=0),
+    name: str | None = Query(None, description="Search by name"),
+    email: str | None = Query(None, description="Search PIs by email"),
+    order_by: str | None = Query(None, description="'name' or 'num_users' and direction, e.g. 'name:asc'"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    sort, _, direction = (order_by or "num_users:desc").partition(":")
+    if sort not in av.SORT_COLUMNS or direction not in ("asc", "desc"):
+        raise exc.BadRequestException("order_by must be 'name' or 'num_users' with ':asc' or ':desc'.")
+    order = sa.column(sort)
+    table = AffiliationValueTable(
+        route="admin_affiliation_value_table", page=page, order_by=order.desc() if direction == "desc" else order.asc(),
+    )
+    table.url_params["kind"] = kind.value
+
+    if name:
+        table.active_search_var, table.active_query_value = "name", name
+    elif email and kind == av.Kind.PI:
+        table.active_search_var, table.active_query_value = "email", email
+
+    values, count = av.listing(
+        session, kind, name=name, email=None if name else email,
+        sort=sort, descending=direction == "desc", page=page, limit=table.limit,
+    )
+    table.set_num_pages(count)
+
+    return responses.htmx_response(
+        template="components/admin/affiliation-values.html",
+        table=table, kind=kind, values=values,
+        pi_accounts=av.pi_accounts(session, values) if kind == av.Kind.PI else {},
+    )
+
+
+# The guard is also declared on the form routers, so that it is on their routes' own dependencies
+router.include_router(forms.models.AffiliationValueForm.Router(dependencies=[Depends(dependencies.require_admin)]))
+router.include_router(forms.actions.MergeAffiliationValuesAction.Router(dependencies=[Depends(dependencies.require_admin)]))

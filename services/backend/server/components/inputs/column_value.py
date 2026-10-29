@@ -140,18 +140,23 @@ class ColumnValueInputField(BaseInputField):
         new_extra: tuple[str, ...] = (),
     ) -> tuple[str, ...] | None:
         """The values to store: those of the selected key, or the new name (plus ``new_extra``, e.g. a new PI's
-        email) snapped to an existing spelling. None if empty; records an error for an unknown key."""
+        email) snapped to an existing spelling. None if empty; records an error for an unknown key or one not matching
+        ``filters`` (e.g. a department of another institute)."""
         if not self.data:
             return None
         if self.is_new:
             values = column_values.resolve_new(session, self.column_source, (str(self.data), *new_extra), filters)
         else:
-            # A value selected before its filter changed (e.g. the institute) is still a known value
             found = column_values.lookup(session, self.column_source, str(self.data), filters)
-            if found is None and filters:
-                found = column_values.lookup(session, self.column_source, str(self.data))
             if found is None:
-                self.errors.append(f"Invalid {self.label.lower()} selected.")
+                active = {name: value for name, value in (filters or {}).items() if value}
+                if active and (other := column_values.lookup(session, self.column_source, str(self.data))):
+                    self.errors.append(
+                        f"{other[0]} is not a {self.label.lower()} of {', '.join(active.values())}: "
+                        "select another one or create it as new."
+                    )
+                else:
+                    self.errors.append(f"Invalid {self.label.lower()} selected.")
                 return None
             values = found
         self.text = values[0]

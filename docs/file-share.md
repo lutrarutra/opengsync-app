@@ -225,8 +225,8 @@ The insider dashboard's **System** tab has a **Share Search Index** card:
 
 | Route | Typical client | What it does |
 |---|---|---|
-| `/api/webdav/{token}/{path}` | `rclone` (WebDAV), `rclone mount`, Finder, Windows Explorer | Read-only WebDAV: `GET`, `HEAD`, `PROPFIND`, `OPTIONS`. `LOCK`/`UNLOCK` return 204 and do nothing. |
-| `/api/shares/browse/{token}/{path}` | The link in share emails | Simple HTML listing; a file path downloads the file. The download bar at the top opens popups with the copy commands, and offers zip downloads behind nginx. |
+| `/api/webdav/{token}/{path}` | `rclone` (WebDAV), `rclone mount`, Finder, Linux file managers | Read-only WebDAV: `GET`, `HEAD`, `PROPFIND`, `OPTIONS`. `LOCK`/`UNLOCK` return 204 and do nothing. |
+| `/api/shares/browse/{token}/{path}` | The link in share emails | Simple HTML listing; a file path downloads the file. The download bar at the top opens popups with the copy commands, and offers zip downloads behind nginx (see [below](#share-emails-and-the-download-bar)). |
 | `/api/shares/zip/{token}/{path}` | Browser (**Download all (.zip)**, the **.zip** link on each folder) | The share, or one shared folder, as one zip streamed by nginx. Only behind nginx with mod_zip; see [Zip downloads](#zip-downloads). |
 | `/files/share/browse/{token}/{path}` | Browser | The shared file browser (paginated, sortable); a file path downloads the file. |
 | `/api/shares/rclone/{token}/{path}` | `rclone --http-url`, `wget --recursive` | Plain HTML index for recursive download tools; a file path downloads the file. |
@@ -235,16 +235,34 @@ The insider dashboard's **System** tab has a **Share Search Index** card:
 
 Every route answers **404** for an unknown token and **403** for an expired one.
 
-Share emails hold only the browse link. The download commands are shown on that page, rendered from `services/backend/templates/snippets/*.j2`, for example:
+**Rate limits** are counted per client IP and route: 20 requests per minute on the public `/api/shares/…` routes and on `/files/share/browse/…`, and 200 per minute plus 5000 per hour on WebDAV. A request with a valid token resets its counter, so in practice only requests with unknown or expired tokens count. The limits exist to stop token guessing.
+
+**Audit:** every share-link access is written to the audit log, with a cooldown per token and client IP (see [Audit log](#audit-log)).
+
+### Share emails and the download bar
+
+Share emails hold only the browse link (`/api/shares/browse/{token}`), with one line saying that the page has instructions for downloading the complete dataset. They contain no commands. Older share emails that still contain commands keep working, because the routes behind those commands are unchanged.
+
+The **Download all data** bar at the top of the browse page has one button per method. Each one opens a popup with step-by-step instructions and the command, with a **Copy** button:
+
+| Button | Popup |
+|---|---|
+| **Rclone (recommended)** | `rclone copy` over WebDAV. Where to open a terminal on macOS, Windows and Linux. |
+| **Download all (.zip)** | No popup: downloads the whole share as one zip. Only behind nginx with mod_zip; see [Zip downloads](#zip-downloads). A note below the bar says that Rclone is faster and recommended, and that an interrupted zip download cannot be resumed. |
+| **Open in Finder (macOS / Linux)** | A read-only network drive to drag folders from. macOS: Finder → ⌘K (**Go → Connect to Server…**), paste the WebDAV URL shown below that step, connect as Guest. Linux: the `davs://` address for **Other Locations → Connect to Server** in Files. |
+| **Rclone HTTP** | `rclone copy --http-url` against `/api/shares/rclone/…`. |
+| **wget** | `wget --recursive` against `/api/shares/rclone/…`. |
+
+The commands are rendered from `services/backend/templates/snippets/*.j2` into the folder `BSF_DATA` (`DOWNLOAD_DIR` in `routes/api/shares.py`), for example:
 
 ```sh
 rclone copy ":webdav,url='https://<host>/api/webdav/<token>':/" BSF_DATA \
     --progress --transfers=8 --checkers=16 --use-server-modtime --verbose
 ```
 
-**Rate limits** are counted per client IP and route: 20 requests per minute on the public `/api/shares/…` routes and on `/files/share/browse/…`, and 200 per minute plus 5000 per hour on WebDAV. A request with a valid token resets its counter, so in practice only requests with unknown or expired tokens count. The limits exist to stop token guessing.
-
-**Audit:** every share-link access is written to the audit log, with a cooldown per token and client IP (see [Audit log](#audit-log)).
+Two methods are left out on purpose:
+- **Windows Explorer.** Explorer's WebDAV client refuses to copy files larger than 50 MB, so the Finder popup says it is not available on Windows and points to Rclone.
+- **`rclone mount`.** It still works against the WebDAV route, but needs extra software (macFUSE/WinFsp) and is no simpler than `rclone copy` for a one-time download, so it has no button.
 
 ## Setting up the share mount
 

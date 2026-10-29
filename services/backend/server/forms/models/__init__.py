@@ -18,6 +18,7 @@ from .IndexKitForm import IndexKitForm
 from .KitForm import KitForm
 from .SeqRunForm import SeqRunForm
 from .SequencerForm import SequencerForm
+from .AffiliationValueForm import AffiliationValueForm
 
 __all__ = [
     "SeqRequestForm",
@@ -40,4 +41,5 @@ __all__ = [
     "KitForm",
     "SeqRunForm",
     "SequencerForm",
+    "AffiliationValueForm",
 ]

@@ -27,8 +27,13 @@ class MergePoolsForm(MergePoolsWorkflowStep):
     num_m_reads_requested = inputs.numeric.FloatInputField("Number of M Reads Requested", required=False)
     status = inputs.selectable.SelectableInputField("Status", options=C.PoolStatus.as_selectable())
     contact = inputs.searchable.SearchableInputField("Contact", route="search_users", required=False)
-    contact_name = inputs.string.StringInputField("Contact Name", required=False, max_length=models.Contact.name.type.length)
-    contact_email = inputs.string.StringInputField("Contact Email", required=False, max_length=models.Contact.email.type.length)
+    # Required unless a contact user is selected (insiders only)
+    contact_name = inputs.string.StringInputField(
+        "Contact Name", required=False, max_length=models.Contact.name.type.length, placeholder="Required",
+    )
+    contact_email = inputs.string.StringInputField(
+        "Contact Email", required=False, max_length=models.Contact.email.type.length, placeholder="Required",
+    )
     contact_phone = inputs.string.StringInputField("Contact Phone", required=False, max_length=models.Contact.phone.type.length)
     total_volume_ul = inputs.numeric.FloatInputField("Total Volume", unit="μL")
     pool_forms = inputs.dynamic.SubFormList[PoolSubForm](min_elements=2)
@@ -46,6 +51,9 @@ class MergePoolsForm(MergePoolsWorkflowStep):
 
     def prepare_context(self) -> None:
         session = ctx.session
+        current_user: models.User | None = getattr(ctx.request.state, "current_user", None)
+        if current_user is not None and current_user.is_insider:
+            self.contact_name.placeholder = self.contact_email.placeholder = "Required without contact"
         pool_table = self.workflow.tables["pool_table"]
         self.pools = [
             session.get_one(Q.pool.select(id=int(pool_id)).options(

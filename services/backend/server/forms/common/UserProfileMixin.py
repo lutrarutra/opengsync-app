@@ -49,9 +49,10 @@ class UserProfileMixin:
         new_max_length=models.User.pi_name.type.length,
         placeholder="Search PIs or type the name of a new one…",
     )
-    # Only shown (and submitted) for a new PI
+    # Only shown (and submitted) for a new PI, which requires it (checked by ``validate_profile``)
     pi_email = inputs.string.EmailInputField(
         "PI Email", required=False, max_length=models.User.pi_email.type.length, autocomplete="off",
+        placeholder="Required",
     )
     # The user is their own PI: the PI fields are hidden and the user's name and email stored as PI
     is_pi = inputs.boolean.CheckboxInputField("I am the Principal Investigator")

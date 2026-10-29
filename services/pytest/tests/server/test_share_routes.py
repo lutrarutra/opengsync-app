@@ -4,6 +4,7 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from loguru import logger
 from opengsync_db import SyncSession, models, queries as Q
 from redis import Redis
 
@@ -200,6 +201,30 @@ def test_webdav_rejects_invalid_junk_and_unshared_paths(
     assert client.get("/api/webdav/not-a-token").status_code == 404
     assert client.get(f"/api/webdav/{token}/shared/.DS_Store").status_code == 404
     assert client.get(f"/api/webdav/{token}/unshared.txt").status_code == 404
+
+
+def test_webdav_finder_metadata_probes_are_not_audited(
+    client: TestClient,
+    share_fixture: ShareFixture,
+):
+    """macOS Finder probes every folder of a mounted share for .DS_Store and ._* files and tries to write them."""
+    records: list[dict] = []
+    sink_id = logger.add(
+        lambda message: records.append(dict(message.record["extra"])),
+        filter=lambda record: record["extra"].get("audit") is True,
+        level="INFO",
+    )
+    try:
+        base = f"/api/webdav/{share_fixture.token.uuid}/shared"
+        assert client.request("PROPFIND", f"{base}/.DS_Store", headers={"Depth": "0"}).status_code == 404
+        assert client.put(f"{base}/.DS_Store", content=b"junk").status_code == 405
+        assert client.request("PROPFIND", f"{base}/._root.txt", headers={"Depth": "0"}).status_code == 404
+        assert records == []
+
+        assert client.get(f"{base}/missing.txt").status_code == 404
+        assert [r["path"] for r in records] == [f"{base}/missing.txt"]
+    finally:
+        logger.remove(sink_id)
 
 
 def test_token_sharing_a_file_and_a_folder(

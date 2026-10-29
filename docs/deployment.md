@@ -12,7 +12,7 @@
 ```bash
 git clone git@github.com:lutrarutra/opengsync-app.git /opt/opengsync
 cd /opt/opengsync
-git checkout fastapi
+git checkout main
 ```
 
 ### 2. Create `.env` from template

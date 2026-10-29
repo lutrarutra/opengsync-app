@@ -1,0 +1,32 @@
+<div class="modal-content" id="merge-affiliation-values-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Merge {{ form.kind.label }} '{{ form.value.name }}'{% if form.value.institute %} <span class="desc">at {{ form.value.institute }}</span>{% endif %}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="help">
+            <ul>
+                <li>Every user with '{{ form.value.name }}' gets the {{ form.kind.label | lower }} selected below{{ ' (name and email)' if form.kind.value == 'pi' else '' }}, and '{{ form.value.name }}' disappears from the list.</li>
+                {% if form.kind.value == "department" %}
+                <li>Departments are merged within their institute{% if form.value.institute %} ({{ form.value.institute }}){% endif %}.</li>
+                {% endif %}
+                {% if form.kind.value == "institute" %}
+                <li>The users keep their departments.</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% set value = form.value %}
+        {% include "components/admin/affiliation-value-users.html" %}
+        {{ form.csrf_token.render() }}
+        {{ form.target.render() }}
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id"></div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button id="submit-merge-affiliation-values-btn" class="btn btn-warning"
+            hx-include="#merge-affiliation-values-form-container" hx-target="#merge-affiliation-values-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">Merge</button>
+        </div>
+    </div>
+</div>

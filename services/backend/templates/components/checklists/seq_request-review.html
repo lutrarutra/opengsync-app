@@ -103,6 +103,23 @@
                 </div>
                 {{ metadata_group("Organization", seq_request.organization_contact.name) }}
                 {{ metadata_group_textarea("Organization Address", seq_request.organization_contact.address) }}
+
+                <br>
+                <h4>PI Contact</h4>
+                <div class="row">
+                    {% if seq_request.pi_contact %}
+                    {{ metadata_group("PI Name", seq_request.pi_contact.name, class="col-6") }}
+                    {{
+                        metadata_group_email_link(
+                            "PI Email", seq_request.pi_contact.email, class="col-6",
+                            subject="[" + seq_request.identifier + "] " + seq_request.name
+                        )
+                    }}
+                    {% else %}
+                    {{ metadata_group("PI Name", none, class="col-6") }}
+                    {{ metadata_group("PI Email", none, class="col-6") }}
+                    {% endif %}
+                </div>
                 
                 {% if seq_request.bioinformatician_contact_id %}
                 <br>
@@ -331,7 +348,8 @@
                             <thead>
                                 <th scope="col" class="col-3">Sample</th>
                                 <th scope="col" class="col-3">Project</th>
-                                <th scope="col" class="col-6">Libraries</th>
+                                <th scope="col" class="col-2">Organism (Reference)</th>
+                                <th scope="col" class="col-4">Libraries</th>
                             </thead>
                             <tbody>
                                 {% for sample in seq_request.samples %}
@@ -340,6 +358,14 @@
                                     <td><a href="{{ url_for('project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
                                         {{ sample.project.identifier or sample.project.title }}
                                     </a></td>
+                                    <td class="x-scroll-cell">
+                                        <div class="scroll-container">
+                                            {% set request_libraries = sample.library_links | map(attribute="library") | selectattr("seq_request_id", "equalto", seq_request.id) | list %}
+                                            {% for genome_ref in request_libraries | map(attribute="genome_ref") | unique %}
+                                            <span class="badge">{{ genome_ref.display_name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
                                     <td class="x-scroll-cell">
                                         <div class="scroll-container">
                                             {% for library_link in sample.library_links %}

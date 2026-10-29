@@ -1,0 +1,6 @@
+{# The first users having a value (``users``) of ``value.num_users``, shown in its edit and merge modals. #}
+<div class="mb-3" id="affiliation-value-users">
+    <b>Used by {{ value.num_users }} user{{ '' if value.num_users == 1 else 's' }}:</b>
+    {% for user in users %}<a href="{{ url_for('user_page', user_id=user.id) }}">{{ user.name }}</a>{{ ", " if not loop.last else "" }}{% endfor %}
+    {% if value.num_users > users | length %}<span class="desc">and {{ value.num_users - users | length }} more</span>{% endif %}
+</div>
