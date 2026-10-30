@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, Literal
 
 from fastapi import Query, Depends, APIRouter
 
@@ -46,27 +46,32 @@ class BAReportWorkflow(HTMXWorkflow):
         step: str,
         experiment_id: int | None,
         lab_prep_id: int | None,
+        entity: str | None,
         r: redis.RedisClient,
         uuid: str | None = None
     ) -> None:
         super().__init__(uuid=uuid, r=r, step=step)
         self.experiment_id = experiment_id
         self.lab_prep_id = lab_prep_id
+        self.entity = entity
         self._query_params = {}
         if experiment_id is not None:
             self._query_params["experiment_id"] = experiment_id
         if lab_prep_id is not None:
             self._query_params["lab_prep_id"] = lab_prep_id
+        if entity is not None:
+            self._query_params["entity"] = entity
 
     @classmethod
     def Init(cls, step: str) -> WorkflowFunc:
         def dependency(
             experiment_id: int | None = Query(None, description="Experiment ID to filter samples by"),
             lab_prep_id: int | None = Query(None, description="Lab Prep ID to filter samples by"),
+            entity: Literal["sample", "library", "pool", "lane"] | None = Query(None, description="Restrict selection to one entity type. If not provided, all entity types are selectable."),
             r: redis.RedisClient = Depends(dependencies.redis),
             uuid: str | None = Query(None, description="The UUID of the workflow instance"),
         ) -> "BAReportWorkflow":
-            workflow = cls(step=step, experiment_id=experiment_id, lab_prep_id=lab_prep_id, r=r, uuid=uuid)
+            workflow = cls(step=step, experiment_id=experiment_id, lab_prep_id=lab_prep_id, entity=entity, r=r, uuid=uuid)
             # Later steps need a run that reached them (state expires / is cleared on completion)
             if step != wf.SelectSamplesForm.__name__ and step not in workflow.step_tracker.steps:
                 raise exc.BadRequestException("This report has expired. Please start again.")

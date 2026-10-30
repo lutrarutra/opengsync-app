@@ -1,4 +1,4 @@
-from fastapi import Depends, Response, Query
+from fastapi import Depends, Response
 import pandas as pd
 from opengsync_db import categories as C, SyncSession, queries as Q
 
@@ -60,10 +60,9 @@ class SelectSamplesForm(BAReportWorkflowStep):
     def Init(cls) -> FormFunc:
         def dependency(
             workflow: BAReportWorkflow = Depends(BAReportWorkflow.Init(cls.__name__)),
-            entity: str | None = Query(None, description="The entity type to select samples for. Can be 'sample', 'library', 'pool', or 'lane'. If not provided, all entity types will be selectable.")
         ) -> "SelectSamplesForm":
             form = cls(workflow=workflow)
-            match entity:
+            match workflow.entity:
                 case "sample":
                     form.show_libraries = False
                     form.show_pools = False

@@ -1,4 +1,4 @@
-from fastapi import Depends, Response, Query
+from fastapi import Depends, Response
 
 from opengsync_db import categories as C
 
@@ -49,10 +49,9 @@ class SelectSamplesForm(QubitMeasureWorkflowStep):
     def Init(cls) -> FormFunc:
         def dependency(
             workflow: QubitMeasureWorkflow = Depends(QubitMeasureWorkflow.Init(cls.__name__)),
-            entity: str | None = Query(None, description="The entity type to select samples for. Can be 'sample', 'library', 'pool', or 'lane'. If not provided, all entity types will be selectable.")
         ) -> "SelectSamplesForm":
             form = cls(workflow=workflow)
-            match entity:
+            match workflow.entity:
                 case "sample":
                     form.show_libraries = False
                     form.show_pools = False

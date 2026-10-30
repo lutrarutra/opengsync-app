@@ -244,7 +244,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('BAReportWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('BAReportWorkflow.Begin', lab_prep_id=lab_prep.id, entity='library') }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
                     </li>
