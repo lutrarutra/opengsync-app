@@ -24,7 +24,7 @@
                     {%- elif col["type"] == "dropdown" -%}
                     { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true{% if col.read_only %},  readOnly: true {% endif %}{% if col.backend_columns is defined %}, sortings: jssObjectSortings, disambiguate: true{% endif %} },
                     {%- elif col.type == "query" -%}
-                    { type: jssQueryColumn, title: "{{col.name}}", width: {{ col.width }}, url: {{ col.url | string | tojson if col.url else "null" }}, labels: {{ col.labels | tojson }}{% if col.allow_new %}, allowNew: true{% endif %}{% if col.read_only %}, readOnly: true{% endif %} },
+                    { type: jssQueryColumn, title: "{{col.name}}", width: {{ col.width }}, url: {{ col.url | string | tojson if col.url else "null" }}, sortings: jssQuerySortings, labels: {{ col.labels | tojson }}{% if col.allow_new %}, allowNew: true{% endif %}{% if col.read_only %}, readOnly: true{% endif %} },
                     {%- endif -%}
                     {% endfor %}
                     {#- Columns the user added #}
