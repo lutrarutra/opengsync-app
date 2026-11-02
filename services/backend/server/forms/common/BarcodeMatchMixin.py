@@ -11,6 +11,9 @@ from ...core import context
 from ...utils import barcodes
 
 RC_SUFFIX = " (Reverse Complement)"
+# Kit options are "<kit_id>" or "<kit_id>:rc" so a kit matching in both orientations gets distinct values
+CUSTOM = "0"
+UNSELECTED = "-1"
 DUAL_INDEX_TYPES = [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]
 
 
@@ -18,8 +21,8 @@ class _BarcodeMatchForm(Protocol):
     barcode_table: pd.DataFrame
     matched_rows: pd.Series
     index_type: C.IndexType | None
-    i7_kit: inputs.selectable.SelectableInputField[int | None]
-    i5_kit: inputs.selectable.SelectableInputField[int | None]
+    i7_kit: inputs.selectable.SelectableInputField[str | None]
+    i5_kit: inputs.selectable.SelectableInputField[str | None]
     i7_option: inputs.selectable.SelectableInputField[str | None]
     i5_option: inputs.selectable.SelectableInputField[str | None]
     i7_primer: inputs.string.TextAreaInputField[str | None]
@@ -31,13 +34,16 @@ class BarcodeMatchMixin:
     """Shared kit matching and orientation logic for the barcode match step of the
     library annotation and reindex workflows.
 
+    Kits are matched per index: a kit is offered for i7 (i5) only if it contains every i7 (i5)
+    sequence of the table, otherwise the only option is Custom. i7 and i5 may use different kits.
+
     Orientation rules: a kit selection sets FORWARD, the "forward" and "rc" options set
     FORWARD_NOT_VALIDATED ("rc" reverse-complements the sequences first), "idk" leaves it unset.
     """
 
     @staticmethod
-    def make_kit_field(index: Literal["i7", "i5"]) -> inputs.selectable.SelectableInputField[int | None]:
-        return inputs.selectable.SelectableInputField(f"{index} Kit", [(0, "Custom")], required=False, default=-1)
+    def make_kit_field(index: Literal["i7", "i5"]) -> inputs.selectable.SelectableInputField[str | None]:
+        return inputs.selectable.SelectableInputField(f"{index} Kit", [(CUSTOM, "Custom")], required=False, default=UNSELECTED)
 
     @staticmethod
     def make_option_field(index: Literal["i7", "i5"]) -> inputs.selectable.SelectableInputField[str | None]:
@@ -78,40 +84,52 @@ class BarcodeMatchMixin:
                 limit=None,
             )
 
-        def kit_options(index: Literal["i7", "i5"], barcode_type: C.BarcodeType) -> list[tuple[int, str]]:
+        kits: dict[int, str] = {}
+
+        def kit_options(index: Literal["i7", "i5"], barcode_type: C.BarcodeType) -> list[tuple[str, str]]:
             sequences = df[f"sequence_{index}"]
             rc_sequences = sequences.apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
-            options: list[tuple[int, str]] = []
-            for _, row in match_kits(sequences, barcode_type).iterrows():
-                options.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}'))
-            for _, row in match_kits(rc_sequences, barcode_type).iterrows():
-                options.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + RC_SUFFIX))
+            options: list[tuple[str, str]] = []
+            for seqs, value, suffix in ((sequences, "{}", ""), (rc_sequences, "{}:rc", RC_SUFFIX)):
+                for _, row in match_kits(seqs, barcode_type).iterrows():
+                    kits[row["kit_id"]] = f'[{row["kit_identifier"]}] {row["kit_name"]}'
+                    options.append((value.format(row["kit_id"]), kits[row["kit_id"]] + suffix))
             return options
 
-        kit_i7s = kit_options("i7", C.BarcodeType.INDEX_I7)
-        kit_i5s = kit_options("i5", C.BarcodeType.INDEX_I5)
+        self.i7_kit.set_options([(CUSTOM, "Custom")] + kit_options("i7", C.BarcodeType.INDEX_I7))
+        self.i5_kit.set_options([(CUSTOM, "Custom")] + kit_options("i5", C.BarcodeType.INDEX_I5))
 
-        self.i7_kit.set_options([(0, "Custom")] + kit_i7s)
-        self.i5_kit.set_options([(0, "Custom")] + kit_i5s)
+        self._context["kits"] = list(kits.items())
 
-        self._context["kits"] = list(set(kit_i7s + kit_i5s))
+    @staticmethod
+    def _parse_kit(data: str | None) -> tuple[int, bool] | None:
+        """(kit_id, reverse_complement) of a kit selection, None for Custom/unselected."""
+        if data is None or data in (CUSTOM, UNSELECTED):
+            return None
+        kit_id, _, rc = data.partition(":")
+        return int(kit_id), rc == "rc"
 
     def validate_barcode_match(self: _BarcodeMatchForm) -> None:
         dual_index = self.index_type in DUAL_INDEX_TYPES
 
-        if self.i7_kit.data == -1:
-            self.i7_kit.errors.append("Please select an i7 kit or choose Custom.")
-        if self.i5_kit.data == -1 and dual_index:
-            self.i5_kit.errors.append("Please select an i5 kit or choose Custom.")
+        for index, kit_field, required in (("i7", self.i7_kit, True), ("i5", self.i5_kit, dual_index)):
+            if kit_field.data in (None, UNSELECTED):
+                if required:
+                    kit_field.errors.append(f"Please select an {index} kit or choose Custom.")
+                else:
+                    kit_field.data = UNSELECTED
+            elif kit_field.data not in kit_field._mapping:
+                # Only kits containing all of the index's sequences are offered
+                kit_field.errors.append(f"The selected kit does not contain all {index} sequences. Please choose one of the offered kits or Custom.")
 
-        if self.i7_kit.data == 0 and not self.i7_option.data:
+        if self.i7_kit.data == CUSTOM and not self.i7_option.data:
             self.i7_option.errors.append("Please select how to proceed with the i7 index.")
-        if self.i7_kit.data == 0 and not self.i7_primer.data:
+        if self.i7_kit.data == CUSTOM and not self.i7_primer.data:
             self.i7_primer.errors.append("Please provide the i7 primer sequence.")
 
-        if self.i5_kit.data == 0 and not self.i5_primer.data and dual_index:
+        if self.i5_kit.data == CUSTOM and not self.i5_primer.data and dual_index:
             self.i5_primer.errors.append("Please provide the i5 primer sequence.")
-        if self.i5_kit.data == 0 and not self.i5_option.data and dual_index:
+        if self.i5_kit.data == CUSTOM and not self.i5_option.data and dual_index:
             self.i5_option.errors.append("Please select how to proceed with the i5 index.")
 
     def apply_barcode_match(self: _BarcodeMatchForm) -> pd.DataFrame:
@@ -131,7 +149,8 @@ class BarcodeMatchMixin:
             ("i5", self.i5_kit, self.i5_option),
         ):
             sequence_col = f"sequence_{index}"
-            if (kit_id := kit_field.data) is not None and kit_id > 0:
+            if (selection := BarcodeMatchMixin._parse_kit(kit_field.data)) is not None:
+                kit_id, rc = selection
                 if kit_id not in kits:
                     kit = session.get_one(Q.index_kit.select(id=kit_id))
                     kit_df = T.index_kit_barcodes(
@@ -142,12 +161,13 @@ class BarcodeMatchMixin:
                     kits[kit_id] = (kit, T.index_kit_barcodes_per_index(kit_df, kit.type))
                 kit, kit_df = kits[kit_id]
 
-                if (kit_field.value or "").endswith(RC_SUFFIX):
+                if rc:
                     reverse_complement(sequence_col)
 
-                barcode_table.loc[rows, f"name_{index}"] = barcode_table.loc[rows, sequence_col].map(
-                    kit_df.set_index(sequence_col)[f"name_{index}"]
-                )
+                # A sequence can occur in several adapters (e.g. shared i5) and combinatorial kits
+                # have no sequence for the other index, so the lookup needs a unique, non-null index
+                names = kit_df.dropna(subset=[sequence_col]).drop_duplicates(sequence_col).set_index(sequence_col)[f"name_{index}"]
+                barcode_table.loc[rows, f"name_{index}"] = barcode_table.loc[rows, sequence_col].map(names)
                 barcode_table.loc[rows, f"kit_{index}_id"] = kit.id
                 barcode_table.loc[rows, f"kit_{index}"] = kit.identifier
                 barcode_table.loc[rows, f"orientation_{index}_id"] = C.BarcodeOrientation.FORWARD.id
@@ -170,8 +190,9 @@ class BarcodeMatchMixin:
         }
 
     def fill_barcode_match(self: _BarcodeMatchForm, metadata: dict[str, Any]) -> None:
-        self.i7_kit.data = metadata.get("i7_kit", -1)
-        self.i5_kit.data = metadata.get("i5_kit", -1)
+        # str(): workflows started before kit options became strings stored the kit id as int
+        for kit_field, key in ((self.i7_kit, "i7_kit"), (self.i5_kit, "i5_kit")):
+            kit_field.data = UNSELECTED if (data := metadata.get(key)) is None else str(data)
         self.i7_option.data = metadata.get("i7_option")
         self.i5_option.data = metadata.get("i5_option")
         self.i7_primer.data = metadata.get("i7_primer")

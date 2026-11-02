@@ -65,6 +65,55 @@ def check_sequence(sequence: str | None) -> str | None:
     return None
 
 
+def combine_orientations(
+    orientation_i7_id: int | None, orientation_i5_id: int | None, sequence_i5: str | None,
+) -> C.BarcodeOrientation | None:
+    """Orientation of a library index from the orientations of its i7 and i5.
+
+    i7 and i5 are matched independently (e.g. i7 from a kit, i5 custom), so the index is only
+    validated if both are: if they differ in validation, or one of them is unknown, the index
+    gets the unvalidated direction until its orientation is checked manually. Both unknown is
+    unknown. Without an i5 sequence the i7 orientation is used as is.
+    Raises ``ValueError`` if they differ in direction.
+    """
+    def parse(orientation_id: int | None) -> C.BarcodeOrientation | None:
+        return None if orientation_id is None or pd.isna(orientation_id) else C.BarcodeOrientation.get(int(orientation_id))
+
+    i7, i5 = parse(orientation_i7_id), parse(orientation_i5_id)
+    if sequence_i5 is None or pd.isna(sequence_i5):
+        return i7
+    if i7 == i5:
+        return i7
+    unvalidated = {
+        C.BarcodeOrientation.FORWARD: C.BarcodeOrientation.FORWARD_NOT_VALIDATED,
+        C.BarcodeOrientation.REVERSE_COMPLEMENT: C.BarcodeOrientation.REVERSE_COMPLEMENT_NOT_VALIDATED,
+    }
+    if i7 is None or i5 is None:
+        known = i7 or i5
+        return unvalidated.get(known, known)
+    if unvalidated.get(i7, i7) != unvalidated.get(i5, i5):
+        raise ValueError(f"Conflicting orientations for i7 ({i7.label}) and i5 ({i5.label}).")
+    return unvalidated.get(i7, i7)
+
+
+def combined_orientation_ids(barcode_table: pd.DataFrame) -> pd.Series:
+    """``combine_orientations`` per row of a barcode table, for display: conflicts are None."""
+    def combine(i7: int | None, i5: int | None, sequence_i5: str | None) -> int | None:
+        try:
+            orientation = combine_orientations(i7, i5, sequence_i5)
+        except ValueError:
+            return None
+        return orientation.id if orientation is not None else None
+
+    return pd.Series(
+        [
+            combine(i7, i5, seq_i5) for i7, i5, seq_i5
+            in zip(barcode_table["orientation_i7_id"], barcode_table["orientation_i5_id"], barcode_table["sequence_i5"])
+        ],
+        index=barcode_table.index, dtype="object",
+    )
+
+
 def reverse_complement(seq: str | None) -> str:
     if pd.isna(seq):
         return ""

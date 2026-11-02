@@ -83,14 +83,8 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         ]["library_name"]
 
         if self.barcode_table is not None:
-            # Same rule as saving: the i7 orientation, unless i7 and i5 are both set and differ
-            self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
-            self.barcode_table.loc[
-                pd.notna(self.barcode_table["orientation_i7_id"]) &
-                pd.notna(self.barcode_table["orientation_i5_id"]) &
-                (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
-                "orientation_id"
-            ] = None
+            # Same rule as saving
+            self.barcode_table["orientation_id"] = barcodes.combined_orientation_ids(self.barcode_table)
 
         spatial_library_type_ids = [t.id for t in C.LibraryType.get_visium_library_types()] + [C.LibraryType.OPENST.id]
         contains_spatial_samples = bool(self.library_table["library_type_id"].isin(spatial_library_type_ids).any())
@@ -389,14 +383,11 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                                 logger.warning(form.barcode_table)
                                 logger.warning(form.library_table)
 
-                            orientation = None
-                            if barcode_row.orientation_i7_id is not None:
-                                orientation = C.BarcodeOrientation.get(barcode_row.orientation_i7_id)
-
-                            if orientation is not None and barcode_row.orientation_i5_id is not None:
-                                if orientation.id != barcode_row.orientation_i5_id:
-                                    logger.error(f"{form.workflow.uuid}: Conflicting orientations for i7 and i5 in library {row.library_name}.")
-                                    raise exc.OpeNGSyncServerException("Conflicting orientations for i7 and i5.")
+                            try:
+                                orientation = barcodes.combine_orientations(barcode_row.orientation_i7_id, barcode_row.orientation_i5_id, barcode_row.sequence_i5)
+                            except ValueError as e:
+                                logger.error(f"{form.workflow.uuid}: {e} Library {row.library_name}.")
+                                raise exc.OpeNGSyncServerException("Conflicting orientations for i7 and i5.")
 
                             library = actions.add_index_to_library(
                                 session,

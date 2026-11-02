@@ -31,14 +31,8 @@ class CompleteReindexForm(ReindexWorkflowStep):
             self.barcode_table = pd.concat([self.barcode_table, display_atac], ignore_index=True)
 
         if "orientation_i7_id" in self.barcode_table.columns and "orientation_i5_id" in self.barcode_table.columns:
-            # Same rule as saving: the i7 orientation, unless i7 and i5 are both set and differ (also for 10x ATAC rows)
-            self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
-            self.barcode_table.loc[
-                pd.notna(self.barcode_table["orientation_i7_id"])
-                & pd.notna(self.barcode_table["orientation_i5_id"])
-                & (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
-                "orientation_id",
-            ] = None
+            # Same rule as saving (also for 10x ATAC rows)
+            self.barcode_table["orientation_id"] = barcodes.combined_orientation_ids(self.barcode_table)
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
@@ -172,17 +166,10 @@ class CompleteReindexForm(ReindexWorkflowStep):
                     for _, row in parsing.safe_iter(df, BarcodeRowSchema):
                         if row.index_well == "del":
                             continue
-                        orientation = None
-                        if row.orientation_i7_id is not None:
-                            orientation = C.BarcodeOrientation.get(int(row.orientation_i7_id))
-                        if (
-                            orientation is not None
-                            and row.orientation_i5_id is not None
-                            and orientation.id != row.orientation_i5_id
-                        ):
-                            logger.error(
-                                f"{form.workflow.uuid}: Conflicting orientations for i7 and i5 in library {library.name}."
-                            )
+                        try:
+                            orientation = barcodes.combine_orientations(row.orientation_i7_id, row.orientation_i5_id, row.sequence_i5)
+                        except ValueError as e:
+                            logger.error(f"{form.workflow.uuid}: {e} Library {library.name}.")
                             raise exc.OpeNGSyncServerException("Conflicting orientations for i7 and i5.")
                         library.indices.append(
                             Q.library_index.create(

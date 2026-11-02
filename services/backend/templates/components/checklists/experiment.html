@@ -314,7 +314,7 @@
                                 "Begin", 
                                 url_for('BAReportWorkflow.Begin', experiment_id=experiment.id, entity='pool'), 
                                 size="fullscreen",
-                                disabled=lane_fragment_size_measured is none or not can_be_edited
+                                disabled=pool_fragment_sizes_measured is none or not can_be_edited
                             )
                         }}
                     </li>
