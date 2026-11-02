@@ -7,6 +7,7 @@ from opengsync_db import models, categories as C, queries as Q, SyncSession, act
 from opengsync_db.transitions import run_operation, create as create_ops
 
 from ....core import responses, exceptions as exc, dependencies, msf_helpers
+from ....core.context import ctx
 from ....utils import barcodes, parsing
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
@@ -20,6 +21,7 @@ class LibraryTableRow(BaseModel):
     pool: str | None = None
     mux_type_id: int | None = None
     seq_depth: float | None = None
+    protocol_id: int | None = None
 
 class PoolTableRow(BaseModel):
     pool_name: str
@@ -133,6 +135,17 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         for group, _ in parsing.safe_groupby(self.sample_pooling_table, SamplePoolingLibraryMuxGroup, dropna=True):
             self.library_table.loc[self.library_table["library_name"] == group.library_name, "mux_type_id"] = group.mux_type_id
     
+    def protocol_ids(self) -> set[int]:
+        if "protocol_id" not in self.library_table.columns:
+            return set()
+        return {int(protocol_id) for protocol_id in self.library_table["protocol_id"].dropna()}
+
+    def protocol_names(self) -> dict[int, str]:
+        if not (protocol_ids := self.protocol_ids()):
+            return {}
+        stmt = Q.protocol.select().where(models.Protocol.id.in_(protocol_ids))
+        return {protocol.id: protocol.name for protocol in ctx.session.get_all(stmt, limit=None)}
+
     def prepare_context(self) -> None:
         self._context["library_table"] = self.library_table
         self._context["sample_table"] = self.sample_table
@@ -141,6 +154,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         self._context["feature_table"] = self.feature_table
         self._context["library_properties_table"] = self.library_properties_table
         self._context["pool_table"] = self.pool_table
+        self._context["protocol_names"] = self.protocol_names()
 
         LINK_WIDTH_UNIT = 1
         nodes = []
@@ -223,6 +237,13 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         ) -> Response:
             
             seq_request = session.get_one(Q.seq_request.select(id=form.workflow.seq_request_id))
+
+            # A protocol chosen in the workflow may have been deleted since
+            if missing_protocol_ids := form.protocol_ids() - set(form.protocol_names()):
+                logger.warning(f"{form.workflow.uuid}: Protocols {sorted(missing_protocol_ids)} no longer exist.")
+                raise exc.BadRequestException(
+                    "A selected protocol no longer exists. Please go back to 'Specify Library Protocols' and choose again."
+                )
 
             with run_operation(session, create_ops.SAS_COMPLETE, subject=seq_request):
                 if (project_id := form.workflow.metadata.get("project_id")) is not None:
@@ -349,6 +370,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                         mux_type=C.MUXType.get(row.mux_type_id) if row.mux_type_id is not None else None,
                         nuclei_isolation=form.workflow.metadata.get("nuclei_isolation", False),
                         seq_depth_requested=row.seq_depth if row.seq_depth is not None else None,
+                        protocol_id=row.protocol_id,
                         clone_number=0,
                         status=C.LibraryStatus.DRAFT
                     ), flush=True)

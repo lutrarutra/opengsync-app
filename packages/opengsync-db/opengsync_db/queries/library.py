@@ -26,6 +26,7 @@ def create(
     pool_id: int | None = None,
     lab_prep_id: int | None = None,
     seq_depth_requested: float | None = None,
+    protocol_id: int | None = None,
 ) -> Library:
     return Library(
         name=name.strip(),
@@ -45,6 +46,7 @@ def create(
         nuclei_isolation=nuclei_isolation,
         mux_type=mux_type,
         original_library_id=original_library_id,
+        protocol_id=protocol_id,
     )
 
 

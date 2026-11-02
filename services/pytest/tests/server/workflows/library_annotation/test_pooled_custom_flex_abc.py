@@ -67,7 +67,8 @@ def test_pooled_custom_flex_abc_annotation(
     wf.post("feature-annotation", spreadsheet(
         ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
         [["sample_1 [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
-    ), next_step="complete-s-a-s")
+    ), next_step="library-protocol-annotation")
+    wf.protocols()
 
     wf.complete()
     wf.assert_cleaned_up()

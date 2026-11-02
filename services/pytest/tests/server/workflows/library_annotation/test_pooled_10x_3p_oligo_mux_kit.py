@@ -93,7 +93,8 @@ def test_pooled_10x_3p_oligo_mux_kit_annotation(
     wf.post("barcode-match", {
         "i7_kit": "0", "i7_option": "forward", "i7_primer": "AATGATACGGCGACCACCGA",
         "i5_kit": "0", "i5_option": "forward", "i5_primer": "CAAGCAGAAGACGGCATACGA",
-    }, next_step="complete-s-a-s")
+    }, next_step="library-protocol-annotation")
+    wf.protocols()
 
     wf.complete()
     wf.assert_cleaned_up()

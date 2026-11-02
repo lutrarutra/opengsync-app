@@ -173,13 +173,14 @@ def test_barcode_input_kit_columns(client, session: SyncSession, user, user_toke
     _assert_rerendered(wf, "t-e-n-x-a-t-a-c-barcode-input", ATAC_BARCODE_COLUMNS, [valid_atac[0], [f"Nuclei_2_{atac_type}", "A2", dual.id, "", "", "", "", ""]], error="Unknown kit")
     _assert_rerendered(wf, "t-e-n-x-a-t-a-c-barcode-input", ATAC_BARCODE_COLUMNS, [valid_atac[0], [f"Nuclei_2_{atac_type}", "", atac.id, "", "", "", "", ""]], error="must be defined when kit is defined")
 
-    wf.post("t-e-n-x-a-t-a-c-barcode-input", spreadsheet(ATAC_BARCODE_COLUMNS, valid_atac), next_step="complete-s-a-s")
+    wf.post("t-e-n-x-a-t-a-c-barcode-input", spreadsheet(ATAC_BARCODE_COLUMNS, valid_atac), next_step="library-protocol-annotation")
     back = wf.back("t-e-n-x-a-t-a-c-barcode-input")
     assert [[record["Library Name"], record["Kit"], record["Barcode Name"]] for record in spreadsheet_records(back)] == [
         [f"Nuclei_1_{atac_type}", atac.id, "SI-NA-A1"], [f"Nuclei_2_{atac_type}", atac.id, "SI-NA-A2"],
     ]
     assert query_labels(back, "Kit") == {atac.id: f"[{atac.identifier}] {atac.name}"}
-    wf.post("t-e-n-x-a-t-a-c-barcode-input", spreadsheet(ATAC_BARCODE_COLUMNS, valid_atac), next_step="complete-s-a-s")
+    wf.post("t-e-n-x-a-t-a-c-barcode-input", spreadsheet(ATAC_BARCODE_COLUMNS, valid_atac), next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     libraries = libraries_by_name(session, seq_request.id)

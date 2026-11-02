@@ -102,6 +102,7 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         "ParseCRISPRGuideAnnotationForm": "Parse CRISPR Guides",
         "OpenSTAnnotationForm": "OpenST Annotation",
         "VisiumAnnotationForm": "10X Visium Annotation",
+        "LibraryProtocolAnnotationForm": "Specify Library Protocols",
         "CompleteSASForm": "Complete Submission",
     }
 
@@ -300,6 +301,7 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         router.include_router(wf.BarcodeInputForm.Router(cls.__name__))
         router.include_router(wf.TENXATACBarcodeInputForm.Router(cls.__name__))
         router.include_router(wf.BarcodeMatchForm.Router(cls.__name__))
+        router.include_router(wf.LibraryProtocolAnnotationForm.Router(cls.__name__))
         router.include_router(wf.CompleteSASForm.Router(cls.__name__))
         return router
     
@@ -323,6 +325,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.CustomAssayAnnotationForm:
@@ -344,6 +348,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.DefineMultiplexedSamplesForm:
@@ -363,6 +369,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.PooledLibraryAnnotationForm:
@@ -388,6 +396,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.TENXATACBarcodeInputForm:
@@ -401,6 +411,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.FeatureAnnotationForm:
@@ -410,20 +422,31 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.VisiumAnnotationForm:
                 if wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.ParseCRISPRGuideAnnotationForm:
+                if wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.LibraryProtocolAnnotationForm:
                 next_form = wf.CompleteSASForm(self)
             case wf.OpenSTAnnotationForm:
                 if wf.VisiumAnnotationForm.is_applicable(self):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.BarcodeMatchForm:
@@ -435,6 +458,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.FlexAnnotationForm:
@@ -450,6 +475,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.OCMAnnotationForm:
@@ -467,6 +494,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.OligoMuxAnnotationForm:
@@ -486,6 +515,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case wf.ParseMuxAnnotationForm:
@@ -499,6 +530,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     next_form = wf.VisiumAnnotationForm(self)
                 elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
                     next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                elif wf.LibraryProtocolAnnotationForm.is_applicable(self):
+                    next_form = wf.LibraryProtocolAnnotationForm(self)
                 else:
                     next_form = wf.CompleteSASForm(self)
             case _:

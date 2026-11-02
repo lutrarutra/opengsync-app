@@ -66,7 +66,8 @@ def test_pooled_parse_mux_tcr_annotation(
     wf.post("barcode-input", spreadsheet(BARCODE_COLUMNS, [
         [name, "", "", "", seq, "", "", ""] for name, seq in i7.items()
     ]), next_step="barcode-match")
-    wf.post("barcode-match", {"i7_kit": "0", "i7_option": "rc", "i7_primer": "AATGATACGGCGACCACCGA"}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": "0", "i7_option": "rc", "i7_primer": "AATGATACGGCGACCACCGA"}, next_step="library-protocol-annotation")
+    wf.protocols()
 
     wf.complete()
     wf.assert_cleaned_up()

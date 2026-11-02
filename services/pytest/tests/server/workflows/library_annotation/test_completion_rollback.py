@@ -38,7 +38,8 @@ def _pooled_at_review(client, session: SyncSession, user, token: str):
         [libs[0], "", "", "", "ACGTACGTAC", "", "", ""],
         [libs[1], "", "", "", "TGCATGCATG", "", "", ""],
     ]), next_step="barcode-match")
-    wf.post("barcode-match", {"i7_kit": "0", "i7_option": "forward", "i7_primer": "AATGATACGGCGACCACCGA"}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": "0", "i7_option": "forward", "i7_primer": "AATGATACGGCGACCACCGA"}, next_step="library-protocol-annotation")
+    wf.protocols()
     return seq_request, wf, libs
 
 

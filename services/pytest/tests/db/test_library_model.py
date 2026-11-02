@@ -1,10 +1,12 @@
+import uuid
+
 import pytest
 
 from opengsync_db import SyncSession, actions, categories as C, queries as Q
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
-    create_feature, create_pool, create_experiment
+    create_feature, create_pool, create_experiment, create_protocol
 )  # noqa
 
 
@@ -229,3 +231,59 @@ def test_library_select_barcode_orientation_in(session: SyncSession):
     assert selected_ids([None]) == {unset.id}
     assert selected_ids([None, C.BarcodeOrientation.FORWARD_NOT_VALIDATED]) == {unset.id, mixed.id}
     assert unindexed.id not in selected_ids([None, C.BarcodeOrientation.FORWARD, C.BarcodeOrientation.FORWARD_NOT_VALIDATED])
+
+
+def _create_library(session: SyncSession, seq_request, user, **kwargs):
+    return session.save(Q.library.create(
+        name=f"protocol_library_{uuid.uuid4().hex[:8]}",
+        sample_name="protocol_sample",
+        owner_id=user.id,
+        seq_request_id=seq_request.id,
+        library_type=C.LibraryType.BULK_RNA_SEQ,
+        genome_ref=C.GenomeRef.CUSTOM,
+        service_type=C.ServiceType.CUSTOM,
+        clone_number=0,
+        status=C.LibraryStatus.DRAFT,
+        **kwargs,
+    ), flush=True)
+
+
+def test_library_create_with_protocol(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    protocol = create_protocol(session)
+
+    library = _create_library(session, seq_request, user, protocol_id=protocol.id)
+    session.commit()
+    session.expire_all()
+
+    library = session.get_one(Q.library.select(id=library.id))
+    assert library.protocol_id == protocol.id
+    assert library.protocol is not None and library.protocol.name == protocol.name
+
+
+def test_library_create_protocol_defaults_to_none(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+
+    library = _create_library(session, seq_request, user)
+    session.commit()
+    session.expire_all()
+
+    library = session.get_one(Q.library.select(id=library.id))
+    assert library.protocol_id is None
+    assert library.protocol is None
+
+
+def test_library_protocol_set_null_on_protocol_delete(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    protocol = create_protocol(session)
+    library = _create_library(session, seq_request, user, protocol_id=protocol.id)
+    session.commit()
+
+    session.delete(protocol)
+    session.commit()
+    session.expire_all()
+
+    assert session.get_one(Q.library.select(id=library.id)).protocol_id is None

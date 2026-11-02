@@ -59,7 +59,8 @@ def test_input_index_barcodes(
         assert wf.rendered_step(response) == "barcode-input", reason
 
     # Kit indices are complete, the custom one has no kit: no matching step is needed.
-    wf.post("barcode-input", spreadsheet(BARCODE_COLUMNS, rows()), next_step="complete-s-a-s")
+    wf.post("barcode-input", spreadsheet(BARCODE_COLUMNS, rows()), next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     libraries = libraries_by_name(session, seq_request.id)

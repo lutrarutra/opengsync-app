@@ -218,6 +218,8 @@ def test_simple_raw_bulk_rna_seq_annotation(
     assert len(libraries) == 2
     assert libraries[0].name == f"Sample_A_{C.LibraryType.BULK_RNA_SEQ.identifier}"
     assert libraries[1].name == f"Sample_B_{C.LibraryType.BULK_RNA_SEQ.identifier}"
+    # Raw samples skip 'Specify Library Protocols'; the facility chooses the protocol
+    assert all(library.protocol_id is None for library in libraries)
 
     leftover = Redis(connection_pool=client.app.state.redis_pool).keys(
         f"LibraryAnnotationWorkflow:{wf_uuid}:*"

@@ -63,7 +63,8 @@ def test_pooled_10x_multiome_kit_indices_annotation(
     wf.post("t-e-n-x-a-t-a-c-barcode-input", spreadsheet(ATAC_BARCODE_COLUMNS, [
         [f"Nuclei_1_{atac}", "A1", atac_kit, "", "", "", "", ""],
         [f"Nuclei_2_{atac}", "", atac_kit, "SI-NA-A2", "", "", "", ""],
-    ]), next_step="complete-s-a-s")
+    ]), next_step="library-protocol-annotation")
+    wf.protocols()
 
     wf.complete()
     wf.assert_cleaned_up()

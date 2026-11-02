@@ -110,6 +110,14 @@ class AnnotationWorkflow:
         data.update({k.replace("__", "-"): v for k, v in flags.items()})
         return self.post("select-service", data, status=status, next_step=next_step)
 
+    def protocols(self, protocols: dict[str, str] | None = None, next_step: str | None = "complete-s-a-s", status: int = 200):
+        """Submit library-protocol-annotation for the libraries it shows; ``protocols`` maps library name -> protocol
+        name, the others are left empty."""
+        assert self.last_response is not None and self.rendered_step(self.last_response) == "library-protocol-annotation"
+        protocols = protocols or {}
+        rows = [[row[0], protocols.get(row[0], "")] for row in spreadsheet_rows(self.last_response)]
+        return self.post("library-protocol-annotation", spreadsheet_payload(["Library", "Protocol"], rows), status=status, next_step=next_step)
+
     def complete(self):
         response = self.post("complete-s-a-s", status=204)
         assert "HX-Redirect" in response.headers

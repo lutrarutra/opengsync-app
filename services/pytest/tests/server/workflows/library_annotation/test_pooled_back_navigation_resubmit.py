@@ -48,7 +48,8 @@ def test_pooled_back_navigation_resubmit(
     wf.post("feature-annotation", spreadsheet(
         ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
         [["Back_S1 [new]", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
-    ), next_step="complete-s-a-s")
+    ), next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     libraries = libraries_by_name(session, seq_request.id)

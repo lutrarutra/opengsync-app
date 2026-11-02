@@ -115,7 +115,11 @@ def _pool_and_index(wf: AnnotationWorkflow, libraries: list[str], pool: str, nex
     wf.post("barcode-input", spreadsheet(BARCODE_COLUMNS, [
         [name, "", "", "", i7[i], "", "", ""] for i, name in enumerate(libraries)
     ]), next_step="barcode-match")
-    wf.post("barcode-match", CUSTOM_MATCH, next_step=next_step)
+    if next_step == "complete-s-a-s":  # without further annotation steps, protocols are the last step before review
+        wf.post("barcode-match", CUSTOM_MATCH, next_step="library-protocol-annotation")
+        wf.protocols()
+    else:
+        wf.post("barcode-match", CUSTOM_MATCH, next_step=next_step)
 
 
 @pytest.mark.parametrize("service", SINGLE_LIBRARY_SERVICES, ids=lambda s: s.name)
@@ -165,7 +169,8 @@ def test_pooled_10x_atac(client, session: SyncSession, user, user_token):
     wf.post("pool-mapping", pool_mapping(["Atac_Pool"]), next_step="t-e-n-x-a-t-a-c-barcode-input")
     wf.post("t-e-n-x-a-t-a-c-barcode-input", spreadsheet(ATAC_BARCODE_COLUMNS, [
         [atac, "", "", "", *ATAC_SEQUENCES],
-    ]), next_step="complete-s-a-s")
+    ]), next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     libraries = _assert_libraries(session, seq_request, S.TENX_SC_ATAC, {atac: (L.TENX_SC_ATAC, {"Atac_1"})})
@@ -182,7 +187,8 @@ def test_pooled_openst(client, session: SyncSession, user, user_token):
     wf.post("open-s-t-annotation", {
         **spreadsheet(["Sample Name", "Image"], [["Section_1", "s1.tif"]]),
         "instructions": "Images on the share",
-    }, next_step="complete-s-a-s")
+    }, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     libraries = _assert_libraries(session, seq_request, S.OPENST, {openst: (L.OPENST, {"Section_1"})})

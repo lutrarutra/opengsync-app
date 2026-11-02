@@ -19,6 +19,7 @@ from .PoolMappingForm import PoolMappingForm
 from .BarcodeInputForm import BarcodeInputForm
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
 from .BarcodeMatchForm import BarcodeMatchForm
+from .LibraryProtocolAnnotationForm import LibraryProtocolAnnotationForm
 
 __all__ = [
     "LibraryAnnotationWorkflow",
@@ -42,5 +43,6 @@ __all__ = [
     "BarcodeInputForm",
     "TENXATACBarcodeInputForm",
     "BarcodeMatchForm",
+    "LibraryProtocolAnnotationForm",
     "CompleteSASForm",
 ]

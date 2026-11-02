@@ -72,7 +72,8 @@ def test_pooled_10x_3p_ocm_abc_annotation(
     wf.post("feature-annotation", spreadsheet(
         ["Sample", "Kit", "Identifier", "Feature", "Sequence", "Pattern", "Read"],
         [["", "", "", "CD3", "CTCATTGTAACTCCT", "5PNNNNNNNNNN(BC)", "R2"]],
-    ), next_step="complete-s-a-s")
+    ), next_step="library-protocol-annotation")
+    wf.protocols()
 
     wf.complete()
     wf.assert_cleaned_up()

@@ -42,7 +42,8 @@ def _review(client, session: SyncSession, user, token: str, pools: dict[str, str
     wf.post("barcode-input", spreadsheet(BARCODE_COLUMNS, [
         [lib[s], "", "", "", indices[s][0], "", "", indices[s][1]] for s in samples
     ]), next_step="barcode-match")
-    review = wf.post("barcode-match", {**CUSTOM_MATCH, "i5_kit": "0", "i5_option": "forward", "i5_primer": "CAAGCAGAAGACGGCATACGA"}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {**CUSTOM_MATCH, "i5_kit": "0", "i5_option": "forward", "i5_primer": "CAAGCAGAAGACGGCATACGA"}, next_step="library-protocol-annotation")
+    review = wf.protocols()
     return seq_request, wf, lib, review
 
 

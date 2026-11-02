@@ -132,7 +132,8 @@ def test_forward_kit_sets_names_kit_and_validated_orientation(client, session: S
     kit = _kit(session, _dual((I7[0], I5[0]), (I7[1], I5[1])))
     wf, seq_request, libs, _ = _to_barcode_match(client, session, user, user_token, I7, I5)
 
-    wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     F = C.BarcodeOrientation.FORWARD
@@ -147,7 +148,8 @@ def test_reverse_complement_kit_stores_kit_orientation(client, session: SyncSess
     wf, seq_request, libs, response = _to_barcode_match(client, session, user, user_token, I7, I5)
     assert set(_options(response, "i7_kit")) == {"0", f"{kit.id}:rc"}
 
-    wf.post("barcode-match", {"i7_kit": f"{kit.id}:rc", "i5_kit": f"{kit.id}:rc"}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": f"{kit.id}:rc", "i5_kit": f"{kit.id}:rc"}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     F = C.BarcodeOrientation.FORWARD
@@ -162,7 +164,8 @@ def test_forward_selection_of_kit_matching_both_orientations_keeps_sequences(cli
     kit = _kit(session, _dual((I7[0], I5[0]), (I7[1], I5[1]), (RC(I7[0]), OTHER), (RC(I7[1]), RC(OTHER))))
     wf, seq_request, libs, _ = _to_barcode_match(client, session, user, user_token, I7, I5)
 
-    wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     assert [(i[0], i[1]) for i in _indices(session, seq_request, libs)] == [("INDEX_I7_0", I7[0]), ("INDEX_I7_1", I7[1])]
@@ -173,7 +176,8 @@ def test_i7_and_i5_from_different_kits(client, session: SyncSession, user, user_
     kit_i5 = _kit(session, _dual((OTHER, I5[0]), (RC(OTHER), I5[1])))
     wf, seq_request, libs, _ = _to_barcode_match(client, session, user, user_token, I7, I5)
 
-    wf.post("barcode-match", {"i7_kit": str(kit_i7.id), "i5_kit": str(kit_i5.id)}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": str(kit_i7.id), "i5_kit": str(kit_i5.id)}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     F = C.BarcodeOrientation.FORWARD
@@ -189,7 +193,8 @@ def test_i7_kit_with_custom_i5(client, session: SyncSession, user, user_token):
 
     wf.post("barcode-match", {
         "i7_kit": str(kit.id), "i5_kit": "0", "i5_option": "rc", "i5_primer": PRIMER,
-    }, next_step="complete-s-a-s")
+    }, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     indices = _indices(session, seq_request, libs)
@@ -210,7 +215,8 @@ def test_kit_with_unknown_orientation_of_other_index_is_not_validated(client, se
     kit = _kit(session, _dual((I7[0], I5[0]), (I7[1], I5[1])))
     wf, seq_request, libs, _ = _to_barcode_match(client, session, user, user_token, I7, I5)
 
-    wf.post("barcode-match", {k: v.format(kit=kit.id) for k, v in match.items()}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {k: v.format(kit=kit.id) for k, v in match.items()}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     assert [i[6] for i in _indices(session, seq_request, libs)] == [C.BarcodeOrientation.FORWARD_NOT_VALIDATED] * 2
@@ -226,7 +232,8 @@ def test_kit_with_repeated_or_missing_sequences(client, session: SyncSession, us
     kit = _kit(session, adapters, type=kit_type)
     wf, seq_request, libs, _ = _to_barcode_match(client, session, user, user_token, I7, [I5[0], I5[0]])
 
-    wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": str(kit.id), "i5_kit": str(kit.id)}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     assert [(i[1], i[2], i[4], i[5]) for i in _indices(session, seq_request, libs)] == [
@@ -275,7 +282,8 @@ def test_single_index_does_not_require_i5(client, session: SyncSession, user, us
     wf, seq_request, libs, response = _to_barcode_match(client, session, user, user_token, I7)
     assert set(_options(response, "i7_kit")) == {"0", str(kit.id)}
 
-    wf.post("barcode-match", {"i7_kit": str(kit.id)}, next_step="complete-s-a-s")
+    wf.post("barcode-match", {"i7_kit": str(kit.id)}, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     assert [(i[0], i[1], i[2], i[4]) for i in _indices(session, seq_request, libs)] == [
@@ -290,13 +298,15 @@ def test_back_restores_kit_selection_and_resubmit_does_not_reapply(client, sessi
     kit = _kit(session, _dual((RC(I7[0]), I5[0]), (RC(I7[1]), I5[1])))
     wf, seq_request, libs, _ = _to_barcode_match(client, session, user, user_token, I7, I5)
     data = {"i7_kit": f"{kit.id}:rc", "i5_kit": str(kit.id)}
-    wf.post("barcode-match", data, next_step="complete-s-a-s")
+    wf.post("barcode-match", data, next_step="library-protocol-annotation")
+    wf.protocols()
 
     response = wf.back("barcode-match")
     assert _selected(response, "i7_kit") == f"{kit.id}:rc"
     assert _selected(response, "i5_kit") == str(kit.id)
 
-    wf.post("barcode-match", data, next_step="complete-s-a-s")
+    wf.post("barcode-match", data, next_step="library-protocol-annotation")
+    wf.protocols()
     wf.complete()
 
     # Reverse-complemented once, not twice

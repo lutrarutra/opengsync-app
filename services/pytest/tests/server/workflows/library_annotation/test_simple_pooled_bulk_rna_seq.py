@@ -217,6 +217,16 @@ def test_simple_pooled_bulk_rna_seq_annotation(
         "i7_primer": "AATGATACGGCGACCACCGA",
     })
 
+    protocol_columns = ["Library", "Protocol"]
+    post("library-protocol-annotation", spreadsheet_payload(protocol_columns, [
+        [lib_a, "Not A Protocol"],
+        [lib_b, ""],
+    ]), status=202)  # protocol is not a known protocol
+    post("library-protocol-annotation", spreadsheet_payload(protocol_columns, [
+        [lib_a, ""],
+        [lib_b, ""],
+    ]))  # protocols are optional
+
     complete = post("complete-s-a-s", status=204)
     assert "HX-Redirect" in complete.headers
 
@@ -244,6 +254,8 @@ def test_simple_pooled_bulk_rna_seq_annotation(
     assert libraries[1].indices[0].sequence_i7 == "TGCATGCA"
     assert libraries[0].index_type == C.IndexType.SINGLE_INDEX_I7
     assert libraries[1].index_type == C.IndexType.SINGLE_INDEX_I7
+    assert libraries[0].protocol_id is None
+    assert libraries[1].protocol_id is None
 
     pools = session.get_all(Q.pool.select(seq_request_id=seq_request.id), limit=None)
     assert len(pools) == 2
