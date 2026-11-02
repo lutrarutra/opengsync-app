@@ -41,7 +41,7 @@
                 {{ form.csrf_token.render() }}
                 <div class="row">
                     {{ form.i7_kit.render("col-6") }}
-                    {% if index_type == C.IndexType.DUAL_INDEX %}
+                    {% if index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX] %}
                     {{ form.i5_kit.render("col-6") }}
                     {% else %}
                     {{ form.i5_kit.render("col-6", disabled=true) }}
@@ -49,7 +49,7 @@
                 </div>
                 <div class="row">
                     {{ form.i7_option.render("col-6") }}
-                    {% if index_type == C.IndexType.DUAL_INDEX %}
+                    {% if index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX] %}
                     {{ form.i5_option.render("col-6") }}
                     {% else %}
                     {{ form.i5_option.render("col-6", disabled=true) }}
@@ -57,7 +57,7 @@
                 </div>
                 <div class="row">
                     {{ form.i7_primer.render("col-6") }}
-                    {% if index_type == C.IndexType.DUAL_INDEX %}
+                    {% if index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX] %}
                     {{ form.i5_primer.render("col-6") }}
                     {% else %}
                     {{ form.i5_primer.render("col-6", disabled=true) }}
@@ -108,7 +108,7 @@
                 toggleCustomOption(i7_kit, "i7_option");
             });
 
-            {% if index_type == C.IndexType.DUAL_INDEX %}
+            {% if index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX] %}
             const i5_kit = $('[name="i5_kit"]');
             toggleCustomOption(i5_kit, "i5_option");
             i5_kit.on('change', function () {

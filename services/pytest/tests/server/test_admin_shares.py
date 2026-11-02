@@ -137,6 +137,16 @@ def test_expire(client: TestClient, session: SyncSession, admin_token: str, user
     assert client.get(f"/api/shares/browse/{share.uuid}").status_code == 403
 
 
+def test_expire_already_expired_token(client: TestClient, session: SyncSession, admin_token: str, user: models.User):
+    share = _share(session, user, ["BSF_PROJECTS/P1"], age_min=120)
+
+    response = post_form(client, f"/htmx/admin/share-tokens/{share.uuid}/expire", {}, admin_token, htmx=True)
+
+    assert response.status_code == 400
+    session.expire_all()
+    assert not session.get_one(Q.share_token.select(uuid=share.uuid))._expired
+
+
 def test_expire_unknown_token(client: TestClient, admin_token: str):
     assert post_form(client, "/htmx/admin/share-tokens/does-not-exist/expire", {}, admin_token, htmx=True).status_code == 404
 

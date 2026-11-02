@@ -36,7 +36,8 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
-                        {{ modal_button("Edit", class="dropdown-item", url=url_for('ProjectForm.Edit', project_id=project.id)) }}
+                        {{ modal_button("Edit", class="dropdown-item", url=url_for('ProjectForm.Edit', project_id=project.id), disabled=access_level < C.AccessLevel.WRITE,
+                            disabled_tooltip="Only insiders can edit a project after it is submitted.", tooltip_position="left") }}
                     </li>
                     {% if current_user.is_insider %}
                     <li>
@@ -71,8 +72,8 @@
                             confirm_action_button(
                                 "Delete", class="dropdown-item", title='Delete project ' + project.title,
                                 url=url_for('delete_project', project_id=project.id), method="hx-delete",
-                                disabled=project.num_samples > 0,
-                                disabled_tooltip="Non-empty project cannot be deleted.",
+                                disabled=project.num_samples > 0 or access_level < C.AccessLevel.WRITE,
+                                disabled_tooltip="Non-empty project cannot be deleted." if project.num_samples > 0 else "Only insiders can delete a non-draft project.",
                                 tooltip="Delete project. This action cannot be undone.",
                                 tooltip_position="left",
                             )
@@ -174,9 +175,9 @@
                     {{
                         modal_button(
                             "Edit Attributes", url=url_for('SampleAttributeTableAction.Begin', project_id=project.id),
-                            disabled=not (current_user.is_insider or project.status <= C.ProjectStatus.SEQUENCED),
+                            disabled=not current_user.is_insider,
                             size="fullscreen",
-                            disabled_tooltip="Only insiders can edit attributes of a completed project.",
+                            disabled_tooltip="Only insiders can edit sample attributes.", tooltip_position="left",
                         )
                     }}
                 </div>
@@ -240,12 +241,14 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
+                    <span {% if not current_user.is_insider %}{{ tooltip("Only insiders can add assignees.", "left", "warning") }}{% endif %}>
                     <button hx-get="{{ url_for('AddProjectAssigneeAction.Begin', project_id=project.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider %}disabled{% endif %}>
                         Add Assignee
                     </button>
+                    </span>
                 </div>
             </div>
             <div hx-get="{{ url_for('render_assignee_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">

@@ -71,10 +71,11 @@ def render_sample_table(
     )
     
     if library_id is not None:
-        if session.get_access_level(Q.library.permissions(library_id, current_user.id)) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.library.permissions(library_id, current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view samples for this library.")
         table.template = "components/tables/library-sample.html"
         table.url_params["library_id"] = library_id
+        table.context["access_level"] = access_level
         table.context["library"] = session.get_one(Q.library.select(id=library_id))
     elif project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:

@@ -5,9 +5,14 @@ services:
             context: .
             dockerfile: ./services/backend/Dockerfile
             target: pytest
-        # One xdist worker per CPU. Capped at 16 because each worker gets its own Redis database
-        # (tests/conftest.py) and Redis has 16 by default.
-        command: "pytest tests/ -W always -n auto --maxprocesses=16"
+        # One xdist worker per CPU, at most 6: each worker takes ~500 MB and Postgres keeps its data in
+        # RAM (tmpfs), so 10 workers on an 8 GB Docker VM get OOM-killed ("worker 'gwN' crashed", listed
+        # as FAILED) and the run is slower than with 6. The hard limit is 16, one Redis database each
+        # (tests/conftest.py).
+        # No cache provider and no bytecode (PYTHONDONTWRITEBYTECODE below): the workers race to write
+        # .pyc files into the bind-mounted tests/**/__pycache__, and a half-written one fails collection
+        # with "EOFError: marshal data too short" / "Different tests were collected between gw…".
+        command: "pytest tests/ -W always -n auto --maxprocesses=6 -p no:cacheprovider"
         volumes:
             # Host tests overlay the image copy so local edits are picked up without a stale cache.
             - ./services/pytest/tests:/app/tests
@@ -31,6 +36,7 @@ services:
             TIMEZONE: "Europe/Vienna"
             TZ: "Europe/Vienna"
             ENVIRONMENT: test
+            PYTHONDONTWRITEBYTECODE: "1"
             SECRET_KEY: "test-secret-key-1234-5678-9012-3456"
             REDIS_HOST: redis-cache
             REDIS_PORT: 6379

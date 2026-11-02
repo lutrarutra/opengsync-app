@@ -58,14 +58,18 @@ class MediaFileForm(HTMXForm):
         seq_request_id: int | None = None,
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,
+        file_type: C.MediaFileType | None = None,
     ):
         if seq_request_id is None and experiment_id is None and lab_prep_id is None:
             raise exc.BadRequestException(
                 "At least one of seq_request_id, experiment_id, or lab_prep_id must be provided."
             )
         if seq_request_id is not None:
-            if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
-                raise exc.NoPermissionsException("You do not have permission to upload files to this sequencing request.")
+            # Customers add files at any status, e.g. to add information after submitting,
+            # but the signed authorization form can only be replaced while they can edit the request.
+            required = C.AccessLevel.WRITE if file_type == C.MediaFileType.SEQ_AUTH_FORM else C.AccessLevel.READ
+            if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < required:
+                raise exc.NoPermissionsException("You do not have permission to upload this file to this sequencing request.")
 
         if experiment_id is not None or lab_prep_id is not None:
             if not current_user.is_insider:
@@ -87,6 +91,7 @@ class MediaFileForm(HTMXForm):
                 seq_request_id=seq_request_id,
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
+                file_type=type,
             )
 
             form = MediaFileForm(
@@ -126,14 +131,6 @@ class MediaFileForm(HTMXForm):
                 redirect = responses.url_for("lab_prep_page", lab_prep_id=lab_prep_id)
             else:
                 raise exc.BadRequestException("At least one of seq_request_id, experiment_id, or lab_prep_id must be provided.")
-            
-            MediaFileForm.check_permissions(
-                session=session,
-                current_user=current_user,
-                seq_request_id=seq_request_id,
-                experiment_id=experiment_id,
-                lab_prep_id=lab_prep_id,
-            )
 
             if not form.file.data.filename:
                 raise exc.BadRequestException("No file was uploaded.")
@@ -142,6 +139,15 @@ class MediaFileForm(HTMXForm):
                 file_type = C.MediaFileType.get(int(str(form.file_type.data)))
             except (ValueError, TypeError):
                 raise exc.BadRequestException("Invalid file type.")
+
+            MediaFileForm.check_permissions(
+                session=session,
+                current_user=current_user,
+                seq_request_id=seq_request_id,
+                experiment_id=experiment_id,
+                lab_prep_id=lab_prep_id,
+                file_type=file_type,
+            )
 
             if file_type == C.MediaFileType.SEQ_AUTH_FORM:
                 if form.seq_request_id is None:

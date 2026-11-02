@@ -61,7 +61,9 @@
             ['name', 'id'].forEach(function(attr) {
                 input.setAttribute(attr, input.getAttribute(attr).replace(pattern, prefix + '-' + index + '-'));
             });
-            row.querySelector('.selected-path-remove').disabled = rows.length === 1;
+            const button = row.querySelector('.selected-path-remove');
+            button.disabled = rows.length === 1;
+            button.title = button.disabled ? 'At least one path is required.' : 'Remove from this form';
         });
         count.textContent = '(' + rows.length + ')';
     }

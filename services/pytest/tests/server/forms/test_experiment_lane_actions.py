@@ -5,8 +5,8 @@ and picked the form from ``experiment.workflow.combined_lanes``; here the templa
 pick the action by name, so each variant needs its own path. They used to share one,
 which made every Combined action unreachable.
 
-Access matches legacy: insider-only for GET and POST; read distribution on a
-non-draft experiment is admin-only.
+Access: insider-only for GET and POST; read distribution once sequencing has
+started is admin-only (same as the rest of the experiment checklist).
 """
 
 import re
@@ -82,7 +82,7 @@ def test_anonymous_is_redirected_to_login(
 
 
 @pytest.mark.parametrize("variant,workflow", [("combined", COMBINED), ("separate", SEPARATE)])
-def test_distribute_reads_on_non_draft_experiment_is_admin_only(
+def test_distribute_reads_once_sequencing_is_admin_only(
     client: TestClient, session: SyncSession, insider, insider_token: str, admin_token: str, variant: str, workflow,
 ):
     experiment = _experiment(session, insider, workflow)
@@ -95,6 +95,18 @@ def test_distribute_reads_on_non_draft_experiment_is_admin_only(
     assert post_form(client, path, {}, token=insider_token).status_code == 403
 
     assert get(client, path, admin_token).status_code == 200
+
+
+@pytest.mark.parametrize("variant,workflow", [("combined", COMBINED), ("separate", SEPARATE)])
+def test_distribute_reads_on_loaded_experiment_is_allowed_for_insiders(
+    client: TestClient, session: SyncSession, insider, insider_token: str, variant: str, workflow,
+):
+    experiment = _experiment(session, insider, workflow)
+    experiment.status = C.ExperimentStatus.LOADED
+    session.save(experiment)
+    session.commit()
+
+    assert get(client, _path(experiment, "distribute-reads", variant), insider_token).status_code == 200
 
 
 # ── File browser forms (previously shadowed by the /{subpath:path} catch-all) ──

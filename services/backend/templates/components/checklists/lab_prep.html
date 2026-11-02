@@ -2,6 +2,9 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/button.jinja2" import confirm_action_button %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+{% from "components/tooltip.jinja2" import tooltip as tooltip_func %}
+
+{% set completed_tooltip = "Completed lab preps cannot be edited." %}
 
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
@@ -15,10 +18,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if lab_prep_completed %}<span {{ tooltip_func(completed_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
                         hx-get="{{ url_for('LibraryPrepAction.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Add Libraries' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button>{% if lab_prep_completed %}</span>{% endif %} 'Add Libraries' - Workflow
                     </li>
                     <li>Select libraries</li>
                     <li>Complete workflow</li>
@@ -37,10 +41,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not mux_required or lab_prep_completed %}<span {{ tooltip_func(completed_tooltip if lab_prep_completed else "No libraries in this prep require sample multiplexing.", "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn"data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('SamplePoolingAction.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
-                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Sample Pooling' - Workflow
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button>{% if not mux_required or lab_prep_completed %}</span>{% endif %} 'Sample Pooling' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -63,10 +68,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not mux_required or lab_prep_completed %}<span {{ tooltip_func(completed_tooltip if lab_prep_completed else "No libraries in this prep require sample multiplexing.", "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('RejectSamplesAction.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
-                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Reject Samples' - Workflow
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button>{% if not mux_required or lab_prep_completed %}</span>{% endif %} 'Reject Samples' - Workflow
                     </li>
                     <li>Specify <span class="code-highlight">x</span> in the 'Reject'-column for failed samples.</li>
                 </ol>
@@ -91,10 +97,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not oligo_mux_required or lab_prep_completed %}<span {{ tooltip_func(completed_tooltip if lab_prep_completed else "No libraries in this prep require oligo multiplexing.", "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('MuxPrepWorkflow.Begin', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_OLIGO.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" {% if not oligo_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
+                        hx-swap="innerHTML" {% if not oligo_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button>{% if not oligo_mux_required or lab_prep_completed %}</span>{% endif %} 'Oligo Multiplexing Prep' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -115,10 +122,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not flex_mux_required or lab_prep_completed %}<span {{ tooltip_func(completed_tooltip if lab_prep_completed else "No libraries in this prep require flex multiplexing.", "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('MuxPrepWorkflow.Begin', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_FLEX_PROBE.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" {% if not flex_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
+                        hx-swap="innerHTML" {% if not flex_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button>{% if not flex_mux_required or lab_prep_completed %}</span>{% endif %} 'Flex Multiplexing Prep' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -140,10 +148,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not on_chip_mux_required or lab_prep_completed %}<span {{ tooltip_func(completed_tooltip if lab_prep_completed else "No libraries in this prep require on-chip multiplexing.", "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('MuxPrepWorkflow.Begin', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_ON_CHIP.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" {% if not on_chip_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
+                        hx-swap="innerHTML" {% if not on_chip_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button>{% if not on_chip_mux_required or lab_prep_completed %}</span>{% endif %} 'On-Chip Multiplexing Prep' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -175,10 +184,10 @@
                         <a class="btn btn-primary" onclick="download_template()" data-url="{{ url_for('download_lab_prep_spreadsheet_template', lab_prep_id=lab_prep.id, direction='columns') }}">Columns</a>
                     </li>
                     <li>
-                        Fill the template as required and <button class="btn-success btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        Fill the template as required and {% if lab_prep_completed %}<span {{ tooltip_func(completed_tooltip, "top", "warning") }}>{% endif %}<button class="btn-success btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('UploadLibraryPrepSpreadsheetAction.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Upload</button> the completed prep-table.
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Upload</button>{% if lab_prep_completed %}</span>{% endif %} the completed prep-table.
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -200,10 +209,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if lab_prep_completed %}<span {{ tooltip_func(completed_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('SelectLibraryProtocolsWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Select Library Protocols' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button>{% if lab_prep_completed %}</span>{% endif %} 'Select Library Protocols' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -243,10 +253,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if lab_prep_completed %}<span {{ tooltip_func(completed_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('BAReportWorkflow.Begin', lab_prep_id=lab_prep.id, entity='library') }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button>{% if lab_prep_completed %}</span>{% endif %} 'Bio Analyzer' - Workflow
                     </li>
                 </ol>
                 <div class="table-container">
@@ -288,10 +299,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if lab_prep_completed %}<span {{ tooltip_func(completed_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('ReindexWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Index Libraries' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button>{% if lab_prep_completed %}</span>{% endif %} 'Index Libraries' - Workflow
                     </li>
                 </ol>
                 <div class="table-container">
@@ -332,10 +344,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if lab_prep_completed %}<span {{ tooltip_func(completed_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('LibraryPoolingWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Pool Libraries' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button>{% if lab_prep_completed %}</span>{% endif %} 'Pool Libraries' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -382,7 +395,7 @@
                                 url=url_for('complete_lab_prep', lab_prep_id=lab_prep.id),
                                 disabled=lab_prep_completed is not false,
                                 color="success",
-                                disabled_tooltip="Lab prep can only be completed once all required steps have been completed.",
+                                disabled_tooltip="Lab prep is already completed." if lab_prep_completed else "Lab prep can only be completed once all required steps have been completed.",
                                 method="hx-post",
                             )
                         }}

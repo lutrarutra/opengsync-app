@@ -21,7 +21,7 @@
                 {{
                     context_menu([
                         {"type": "copy", "value": sample.name, "label": "Copy Name"},
-                        {"type": "hxdelete", "label": "Remove", "disabled": false if library.status == C.LibraryStatus.DRAFT or current_user.is_insider else true, "config": {
+                        {"type": "hxdelete", "label": "Remove", "disabled": access_level < C.AccessLevel.WRITE, "config": {
                             "url": url_for("remove_sample_from_library", library_id=library.id, sample_id=sample.id).__str__(),
                             "target": "#library-sample-table",
                             "text": "Are you sure?",

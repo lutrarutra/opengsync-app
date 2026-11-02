@@ -796,6 +796,24 @@ def test_insider_can_transfer_group_ownership(
     assert _affiliation_type(session, lab, user_2) == C.AffiliationType.OWNER
 
 
+def test_cannot_make_non_member_group_owner(
+    client: TestClient, session: SyncSession, lab, user, insider, insider_token: str,
+):
+    response = post_form(client, f"/htmx/groups/{lab.id}/make-owner/{insider.id}", {}, token=insider_token)
+
+    assert response.status_code == 400
+    assert _affiliation_type(session, lab, user) == C.AffiliationType.OWNER
+
+
+def test_making_the_owner_owner_again_keeps_ownership(
+    client: TestClient, session: SyncSession, lab, user, user_token: str,
+):
+    response = post_form(client, f"/htmx/groups/{lab.id}/make-owner/{user.id}", {}, token=user_token)
+
+    assert response.status_code == 204
+    assert _affiliation_type(session, lab, user) == C.AffiliationType.OWNER
+
+
 def _seq_request_payload(name: str, group_id: int) -> dict[str, str]:
     from .forms.test_seq_request_form import _request_payload
     return _request_payload(name, **{"basic_info-group_id": str(group_id)})

@@ -10,23 +10,28 @@
             <h1>Sample: {{ sample.name }} {% if sample.status is not none %}<span class="desc">{{ sample.status.label }} {{ sample.status.icon }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
+            {% set can_write = access_level >= C.AccessLevel.WRITE %}
+            {% set no_write_reason = "Only insiders can edit a rejected sample." if sample.status == C.SampleStatus.REJECTED else "Only insiders can edit samples of a non-draft project." %}
             <span
-            {% if not sample.is_editable() and not current_user.is_insider %}
-            {{ tooltip('Sample is not editable after one of its libraries is submitted.') }}
+            {% if not can_write %}
+            {{ tooltip(no_write_reason, "left", "warning") }}
             {% endif %}>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
                     hx-get="{{ url_for('SampleForm.Edit', sample_id=sample.id) }}"
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
+                    hx-swap="innerHTML" hx-trigger="click"
+                    {% if not can_write %}disabled{% endif %}>
                     Edit
                 </button>
             </span>
             <span
             {% if not sample.is_editable() %}
-            {{ tooltip('Sample is not editable after it is added to library.', category='danger') }}
+            {{ tooltip('Only draft samples can be deleted.', "left", "warning") }}
+            {% elif not can_write %}
+            {{ tooltip("Only insiders can delete samples of a non-draft project.", "left", "warning") }}
             {% endif %}>
                 <button class="btn btn-danger"
-                {% if sample.is_editable() %}
+                {% if sample.is_editable() and can_write %}
                 hx-delete="{{ url_for('delete_sample', sample_id=sample.id) }}" 
                     _="on htmx:confirm(issueRequest)
                     halt the event
@@ -39,7 +44,7 @@
                     })
                     if result.isConfirmed issueRequest()"
                 {% endif %}
-                {% if not sample.is_editable() %}disabled{% endif %}>
+                {% if not (sample.is_editable() and can_write) %}disabled{% endif %}>
                     Delete Sample
                 </button>
             </span>

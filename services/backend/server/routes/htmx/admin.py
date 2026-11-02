@@ -171,6 +171,8 @@ def expire_share_token(
     redis: rds.RedisClient = Depends(dependencies.redis),
 ):
     share_token = _get_share_token(session, uuid)
+    if share_token.is_expired:
+        raise exc.BadRequestException("Share link has already expired.")
     share_token._expired = True
     session.save(share_token)
     # the share routes cache the token, so without this the link would keep working for a while

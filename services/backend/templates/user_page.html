@@ -1,5 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_email_link %}
 {% from "components/button.jinja2" import confirm_action_button, modal_button %}
+{% from "components/tooltip.jinja2" import tooltip as tooltip_func %}
 
 {% extends "base.html" %}
 {% set active_page = "users-page" %}
@@ -16,20 +17,26 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li>
+                        {% set edit_disabled = access_level < C.AccessLevel.WRITE %}
+                        {% if edit_disabled %}<span {{ tooltip_func("You do not have permission to edit this user.", "left", "warning") }}>{% endif %}
                         <button class="dropdown-item"
                         hx-get="{{ url_for('UserForm.RenderEdit', user_id=user.id) }}"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
-                        {% if current_user.id != user.id and not current_user.is_admin %}disabled{% endif %}>
+                        {% if edit_disabled %}disabled{% endif %}>
                             Edit User
                         </button>
+                        {% if edit_disabled %}</span>{% endif %}
                     </li>
                     <li>
+                        {% set change_password_disabled = current_user.id != user.id and access_level < C.AccessLevel.ADMIN %}
+                        {% if change_password_disabled %}<span {{ tooltip_func("Only admins can change other users' passwords.", "left", "warning") }}>{% endif %}
                         <button class="dropdown-item"
                         hx-get="{{ url_for('ChangePasswordForm.Render', user_id=user.id) }}"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
-                        {% if current_user.id != user.id %}disabled{% endif %}>
+                        {% if change_password_disabled %}disabled{% endif %}>
                             Change Password
                         </button>
+                        {% if change_password_disabled %}</span>{% endif %}
                     </li>
                     {% if current_user.is_insider %}
                     <li>
@@ -41,7 +48,9 @@
                                 method="hx-post",
                                 url=url_for('send_reset_password_email', user_id=user.id),
                                 class="dropdown-item",
-                                disabled=not (current_user.is_admin or current_user.id == user.id)
+                                disabled=current_user.id != user.id and access_level < C.AccessLevel.ADMIN,
+                                disabled_tooltip="Only admins can reset other users' passwords.",
+                                tooltip_position="left"
                             )
                         }}
                     </li>
@@ -55,6 +64,8 @@
                                 url=url_for('activate_user', user_id=user.id),
                                 class="dropdown-item",
                                 disabled=(user.role != C.UserRole.DEACTIVATED) or not current_user.is_insider,
+                                disabled_tooltip="Only insiders can activate accounts." if not current_user.is_insider else "Account is already active.",
+                                tooltip_position="left"
                             )
                         }}
                     </li>
@@ -68,7 +79,8 @@
                                 url=url_for('start_user_session', user_id=user.id),
                                 class="dropdown-item",
                                 disabled=not current_user.is_admin,
-                                disabled_tooltip="Only admins can start sessions as other users."
+                                disabled_tooltip="Only admins can start sessions as other users.",
+                                tooltip_position="left"
                             )
                         }}
                     </li>
@@ -191,8 +203,8 @@
                     {{
                         modal_button(
                             "New Token", url=url_for('APITokenForm.Begin', user_id=user.id), size="sm",
-                            disabled=not (current_user.is_admin or (current_user.id == user.id and current_user.is_insider)),
-                            disabled_tooltip="Only insiders can create API tokens.", tooltip_position="left"
+                            disabled=current_user.id != user.id and access_level < C.AccessLevel.ADMIN,
+                            disabled_tooltip="Only admins can create API tokens for other users.", tooltip_position="left"
                         )
                     }}
                 </div>

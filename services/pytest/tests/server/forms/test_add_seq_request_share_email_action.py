@@ -2,8 +2,8 @@
 
 Access control:
 - **Init()** requires the seq request to exist (404 if not).
-- **GET (Begin)** requires WRITE on the seq request.
-- **POST (Submit)** requires WRITE on the seq request.
+- **GET (Begin)** requires READ on the seq request.
+- **POST (Submit)** requires READ on the seq request, so emails can be added at any status.
 - Duplicate emails are rejected.
 """
 
@@ -67,13 +67,34 @@ def test_render_get_allows_owner(
     assert 'name="csrf_token"' in response.text
 
 
+def test_owner_can_add_email_to_submitted_request(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    """Emails can be added at any point, not only while the request is a draft."""
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.FINISHED
+    session.save(seq_request)
+    _commit(session)
+
+    assert get(client, _render_path(seq_request.id), user_token).status_code == 200
+    response = post_form(client, _submit_path(seq_request.id), _payload(), token=user_token)
+
+    assert_htmx_redirect(response)
+    session.expire_all()
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request.id))
+    assert TEST_EMAIL in [link.email for link in seq_request.delivery_email_links]
+
+
 def test_render_get_denies_stranger(
     client: TestClient,
     session: SyncSession,
     user,
     user_2_token: str,
 ):
-    """A user with no relationship to the seq request lacks WRITE."""
+    """A user with no relationship to the seq request has no access."""
     seq_request = create_seq_request(session, user)
     _commit(session)
 
@@ -98,7 +119,7 @@ def test_submit_requires_write(
     user,
     user_2_token: str,
 ):
-    """A stranger lacks WRITE and is denied."""
+    """A stranger has no access and is denied."""
     seq_request = create_seq_request(session, user)
     _commit(session)
 

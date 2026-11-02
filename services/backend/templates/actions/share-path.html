@@ -74,8 +74,11 @@
                 });
             });
         });
+        // The form needs at least one recipient (recipients min_elements=1), so the last row can't be removed.
         rows.forEach(function(row) {
-            row.querySelector('.recipient-remove').disabled = rows.length === 1;
+            const button = row.querySelector('.recipient-remove');
+            button.disabled = rows.length === 1;
+            button.title = button.disabled ? 'At least one recipient is required.' : 'Remove recipient';
         });
     }
 

@@ -3,7 +3,7 @@
 {# Workflow launcher tile: opens `url` in the fullscreen/xl modal. With `disabled_reason`, renders an inert tile explaining why. #}
 {% macro workflow_tile(title, description, url, modal="fullscreen", img=none, bi=none, disabled_reason=none) %}
 {% if disabled_reason %}
-<div class="workflow-tile disabled" aria-disabled="true" {{ tooltip(disabled_reason, category="warning") }}>
+<div class="workflow-tile disabled" aria-disabled="true" data-action-method="hx-get" data-action-url="{{ url }}" {{ tooltip(disabled_reason, category="warning") }}>
 {% else %}
 <button type="button" class="workflow-tile"
     data-bs-toggle="modal" data-bs-target="#{{ modal }}-modal"

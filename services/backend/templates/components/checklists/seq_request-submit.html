@@ -18,7 +18,8 @@
                             modal_button(
                                 text="Begin", size="fullscreen",
                                 url=url_for('LibraryAnnotationWorkflow.Begin', seq_request_id=seq_request.id),
-                                disabled=not current_user.is_insider and seq_request.status != C.SeqRequestStatus.DRAFT
+                                disabled=not current_user.is_insider and seq_request.status != C.SeqRequestStatus.DRAFT,
+                                disabled_tooltip="Request cannot be edited after submission."
                             )
                         }} - Sample Annotation Workflow
                     </li>
@@ -52,7 +53,8 @@
                             modal_button(
                                 text="Upload", size="xl",
                                 url=url_for('MediaFileForm.Upload', seq_request_id=seq_request.id, type=C.MediaFileType.SEQ_AUTH_FORM.id),
-                                disabled=not (current_user.is_insider or (seq_request.status == C.SeqRequestStatus.DRAFT) or seq_request.seq_auth_form_file is none)
+                                disabled=not current_user.is_insider and seq_request.status != C.SeqRequestStatus.DRAFT,
+                                disabled_tooltip="Request cannot be edited after submission."
                             )
                         }} - Signed Sequencing Authorization Form
                     </li>
@@ -86,7 +88,8 @@
                             modal_button(
                                 text="Submit", size="xl", color="success",
                                 url=url_for('SubmitSeqRequestAction.Submit', seq_request_id=seq_request.id),
-                                disabled=not is_submittable and not current_user.is_insider,
+                                disabled=seq_request.status != C.SeqRequestStatus.DRAFT or (not is_submittable and not current_user.is_insider),
+                                disabled_tooltip="Request has already been submitted." if seq_request.status != C.SeqRequestStatus.DRAFT else "Add samples and upload the signed authorization form first.",
                             )
                         }} - Sequencing Request for Review
                     </li>
@@ -128,7 +131,7 @@
                         Once approved, you can bring us the samples at the scheduled submission time or send them by mail if you selected that option, unless otherwise agreed with us.
                     </li>
                     <li>
-                        After sequencing is complete and the data is processed and ready, we will notify the contact person ({{ seq_request.contact_person.email or seq_request.request.email }}) with instructions on how to access and download the data.
+                        After sequencing is complete and the data is processed and ready, we will notify the contact person ({{ seq_request.contact_person.email or seq_request.requestor.email }}) with instructions on how to access and download the data.
                     </li>
                     <li>
                         You can add additional email recipients in "Share"-tab of the sequencing request.

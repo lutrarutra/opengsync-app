@@ -17,9 +17,12 @@ class ChangePasswordForm(HTMXForm):
     new_password = inputs.string.PasswordInputField("New Password", min_length=8, autocomplete="new-password")
     confirm_new_password = inputs.string.PasswordInputField("Confirm New Password", autocomplete="new-password")
 
-    def __init__(self, user: models.User):
+    def __init__(self, user: models.User, is_self: bool):
         super().__init__()
         self.user = user
+        # admins changing another user's password don't know (and don't need) it
+        self.is_self = is_self
+        self.current_password.required = is_self
         self.post_url = responses.url_for("ChangePasswordForm.Submit").include_query_params(user_id=user.id)
 
     @classmethod
@@ -35,7 +38,7 @@ class ChangePasswordForm(HTMXForm):
                     raise exc.NoPermissionsException("You do not have permission to change this user's password.")
                 user = session.get_one(Q.user.select(id=user_id))
             
-            return ChangePasswordForm(user=user)
+            return ChangePasswordForm(user=user, is_self=user.id == current_user.id)
         return dependency
 
     @htmx_route("GET")
@@ -60,7 +63,7 @@ class ChangePasswordForm(HTMXForm):
                 raise exc.NoPermissionsException("You do not have permission to change this user's password.")
 
             user = session.get_one(Q.user.select(id=form.user.id))
-            if not bcrypt.check_password_hash(user.password, form.current_password.data):
+            if form.is_self and not bcrypt.check_password_hash(user.password, form.current_password.data):
                 form.current_password.errors.append("Current password is incorrect.")
                 raise exc.FormValidationException(form)
 

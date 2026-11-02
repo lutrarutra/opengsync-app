@@ -13,9 +13,10 @@ def pools_page():
     return responses.html_response(template="pools_page.html", title="Pools")
 
 
-@router.get("/{pool_id}", dependencies=[Depends(dependencies.pool_permissions)])
+@router.get("/{pool_id}")
 def pool_page(
     pool_id: int,
+    access_level: C.AccessLevel = Depends(dependencies.pool_permissions),
     current_user: models.User = Depends(dependencies.require_user),
     path_list: list = Depends(dependencies.parse_from_page),
     session: SyncSession = Depends(dependencies.db_session)
@@ -36,6 +37,6 @@ def pool_page(
             break
 
     return responses.html_response(
-        template="pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable,
+        template="pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable, access_level=access_level,
         is_plated=False, is_indexed=is_indexed, title=f"Pool: {pool.name}"
     )

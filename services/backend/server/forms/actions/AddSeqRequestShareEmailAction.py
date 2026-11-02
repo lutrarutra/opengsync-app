@@ -36,7 +36,7 @@ class AddSeqRequestShareEmailAction(HTMXForm):
             form: AddSeqRequestShareEmailAction = Depends(AddSeqRequestShareEmailAction.Init()),
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
         ):
-            if access_level < C.AccessLevel.WRITE:
+            if access_level < C.AccessLevel.READ:
                 raise exc.NoPermissionsException()
             return form.make_response()
         return route
@@ -48,7 +48,7 @@ class AddSeqRequestShareEmailAction(HTMXForm):
             form: "AddSeqRequestShareEmailAction" = Depends(AddSeqRequestShareEmailAction.Validate()),
             access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
         ):
-            if access_level < C.AccessLevel.WRITE:
+            if access_level < C.AccessLevel.READ:
                 raise exc.NoPermissionsException()
             
             email = form.email.data.strip()

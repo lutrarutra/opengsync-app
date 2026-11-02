@@ -91,7 +91,9 @@ def test_admin_can_render_another_users_change_password_form(
     )
 
     assert response.status_code == 200
-    assert 'name="current_password"' in response.text
+    # admins don't know the other user's password, so it isn't asked for
+    assert 'name="current_password"' not in response.text
+    assert 'name="new_password"' in response.text
 
 
 def test_change_password_valid_self_change_persists_and_redirects(
@@ -144,6 +146,39 @@ def test_change_password_admin_can_change_another_user(
     from server.core.secrets import BcryptCompat
 
     assert BcryptCompat().check_password_hash(changed.password, new_password)
+
+
+def test_change_password_admin_does_not_need_other_users_current_password(
+    client: TestClient, session: SyncSession, admin_token: str, user,
+):
+    new_password = "admin-set-password2"
+    response = _change(
+        client,
+        {"new_password": new_password, "confirm_new_password": new_password},
+        token=admin_token,
+        user_id=user.id,
+    )
+
+    assert_htmx_redirect(response, contains=f"/users/{user.id}")
+
+    session.expire_all()
+    changed = session.get_one(Q.user.select(id=user.id))
+    from server.core.secrets import BcryptCompat
+
+    assert BcryptCompat().check_password_hash(changed.password, new_password)
+
+
+def test_change_password_self_change_still_requires_current_password(
+    client: TestClient, user, user_token: str,
+):
+    response = _change(
+        client,
+        {"new_password": "new-password1", "confirm_new_password": "new-password1"},
+        token=user_token,
+        user_id=user.id,
+    )
+
+    assert_form_invalid(response, contains="Current Password is required")
 
 
 def test_change_password_wrong_current_password_rerenders(

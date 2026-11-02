@@ -1,3 +1,4 @@
+{% from "components/tooltip.jinja2" import tooltip as tooltip_func %}
 <div id="merge-users-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Merge Users</h1>
@@ -61,10 +62,12 @@
             {% if preview is defined and preview %}
             <button id="back-merge-users-btn" class="btn btn-secondary"
             hx-get="{{ url_for('MergeUsersAction.Begin') }}" hx-target="#merge-users-form-container" hx-swap="outerHTML">Back</button>
+            {% if preview.conflicts %}<span {{ tooltip_func("Resolve the conflicts above before merging.", "top", "warning") }}>{% endif %}
             <button id="submit-merge-users-btn" class="btn btn-danger"
             hx-include="#merge-users-form" hx-target="#merge-users-form-container" hx-swap="outerHTML"
             hx-post="{{ form.post_url }}"
             {% if preview.conflicts %}disabled{% endif %}>Merge</button>
+            {% if preview.conflicts %}</span>{% endif %}
             {% else %}
             <button id="preview-merge-users-btn" class="btn btn-primary"
             hx-include="#merge-users-form" hx-target="#merge-users-form-container" hx-swap="outerHTML"

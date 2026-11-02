@@ -129,11 +129,13 @@ def make_owner_of_group(
     ):
         raise exc.NoPermissionsException("Only the group owner can transfer ownership.")
 
-    if owner is not None:
+    if (affiliation := session.first(Q.affiliation.select(group_id=group_id, user_id=user_id))) is None:
+        raise exc.BadRequestException("User is not a member of this group.")
+
+    if owner is not None and owner.id != user_id:
         owner_affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=owner.id))
         owner_affiliation.affiliation_type = C.AffiliationType.MANAGER
-    
-    affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=user_id))
+
     affiliation.affiliation_type = C.AffiliationType.OWNER
 
     return responses.htmx_response(

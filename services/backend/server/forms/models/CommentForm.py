@@ -48,8 +48,9 @@ class CommentForm(HTMXForm):
             if form.seq_request_id is None and form.experiment_id is None and form.lab_prep_id is None:
                 raise exc.BadRequestException("At least one of seq_request_id, experiment_id, or lab_prep_id must be provided.")
             # Each target is checked on its own: the comment is attached to all of them.
+            # Customers comment at any status, e.g. to add information after submitting.
             if form.seq_request_id is not None:
-                if session.get_access_level(Q.seq_request.permissions(seq_request_id=form.seq_request_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
+                if session.get_access_level(Q.seq_request.permissions(seq_request_id=form.seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
                     raise exc.NoPermissionsException("You do not have permission to comment on this sequencing request.")
             if form.experiment_id is not None or form.lab_prep_id is not None:
                 if not current_user.is_insider:

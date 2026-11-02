@@ -34,8 +34,8 @@ class DistributeReadsCombinedAction(HTMXForm):
             experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
                 orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links).selectinload(models.links.LanePoolLink.lane)
             ))
-            if experiment.status != C.ExperimentStatus.DRAFT and not current_user.is_admin:
-                raise exc.NoPermissionsException("Only admin can edit non-draft experiments")
+            if experiment.status >= C.ExperimentStatus.SEQUENCING and not current_user.is_admin:
+                raise exc.NoPermissionsException("Only admin can edit experiments once sequencing has started")
             
             if not experiment.workflow.combined_lanes:
                 raise exc.BadRequestException("This experiment uses a separate lane workflow, not a combined lane workflow.")

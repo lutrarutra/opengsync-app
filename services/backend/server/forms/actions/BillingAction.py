@@ -51,6 +51,8 @@ class BillingAction(HTMXForm):
                 "group": [],
                 "contact_name": [],
                 "contact_email": [],
+                "pi_name": [],
+                "pi_email": [],
                 "billing_name": [],
                 "billing_email": [],
                 "billing_code": [],
@@ -86,11 +88,13 @@ class BillingAction(HTMXForm):
                 session=session, options=[
                     orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links).selectinload(models.links.LanePoolLink.pool),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links),
-                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.libraries).selectinload(models.Library.seq_request),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.libraries).selectinload(models.Library.seq_request).selectinload(models.SeqRequest.pi_contact),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.libraries).selectinload(models.Library.protocol),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.libraries).selectinload(models.Library.sample_links),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.contact_person),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.group),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.billing_contact),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.pi_contact),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lab_prep),
                     orm.selectinload(models.Experiment.pools).selectinload(models.Pool.contact),
                 ]
@@ -183,13 +187,16 @@ class BillingAction(HTMXForm):
                     pool_data["service"].append(pool.lab_prep.service_type.label if pool.lab_prep else "")
                     pool_data["contact_name"].append(contact.name if contact else "")
                     pool_data["contact_email"].append(contact.email if contact else "")
+                    pi_contact = seq_request.pi_contact if seq_request else None
+                    pool_data["pi_name"].append(pi_contact.name if pi_contact else "")
+                    pool_data["pi_email"].append((pi_contact.email or "") if pi_contact else "")
                     pool_data["billing_name"].append(seq_request.billing_contact.name if seq_request else "")
                     pool_data["billing_email"].append(seq_request.billing_contact.email if seq_request else "")
                     pool_data["billing_code"].append(billing_code or "")
                     pool_data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
                     pool_data["num_m_reads_requested"].append(pool.num_m_reads_requested or 0)
                     pool_data["num_libraries"].append(pool.num_libraries)
-                    pool_data["num_samples"].append(sum(library.num_samples for library in pool.libraries))
+                    pool_data["num_samples"].append(len({link.sample_id for library in pool.libraries for link in library.sample_links}))
                     pool_data["lab_contact_name"].append(pool.contact.name if pool.contact else "")
                     pool_data["lab_contact_email"].append(pool.contact.email if pool.contact else "")
                     pool_data["lab_prep"].append(pool.lab_prep.name if pool.lab_prep else "")

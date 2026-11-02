@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q
+from opengsync_db import models, SyncSession, categories as C, queries as Q
 
 from ...core import dependencies, responses
 
@@ -13,9 +13,10 @@ def samples_page():
     return responses.html_response(template="samples_page.html", title="Samples")
 
 
-@router.get("/{sample_id}", dependencies=[Depends(dependencies.sample_permissions)])
+@router.get("/{sample_id}")
 def sample_page(
     sample_id: int,
+    access_level: C.AccessLevel = Depends(dependencies.sample_permissions),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     sample = session.get_one(Q.sample.select(id=sample_id).options(
@@ -28,5 +29,6 @@ def sample_page(
     return responses.html_response(
         template="sample_page.html",
         sample=sample,
+        access_level=access_level,
         title=f"Sample {sample.name}",
     )

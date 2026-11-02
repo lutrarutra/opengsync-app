@@ -4,7 +4,9 @@
 {% if disabled and disabled_tooltip %}
 <span {{ tooltip_func(disabled_tooltip, tooltip_position, "warning") }}>
 {% endif %}
+{# data-action-* name the endpoint even when disabled (the hx attribute is then left out); tests/server/test_ui_backend_sync.py reads them #}
 <{{ container }} type="button" class="{{ class }} {% if class == "btn" %}btn-{{ color }}{% endif %}"
+    data-action-method="{{ method }}" data-action-url="{{ url }}"
     {% if not disabled %}
     {{ method }}="{{ url }}"
     _='on htmx:confirm(issueRequest)

@@ -70,7 +70,7 @@
                 <td class="x-scroll-cell">
                     <span class="scroll-container">
                         {% if not can_edit_pooling %}
-                        <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
+                        <span class="table-btn" {{ tooltip("Pools cannot be assigned to individual lanes in a combined-lane workflow." if experiment.workflow.combined_lanes else "Only admins can edit lanes of non-draft experiments.", "top", category="warning") }}>
                         {% endif %}
                             <div class="btn-group table-btn {% if not can_edit_pooling %}disabled{% endif %}">
                                 {% for lane_num in range(1, experiment.num_lanes + 1) %}

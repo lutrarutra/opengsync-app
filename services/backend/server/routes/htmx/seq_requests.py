@@ -845,6 +845,9 @@ def remove_library_from_request(
     if library.seq_request_id != seq_request.id:
         raise exc.BadRequestException()
 
+    if library.status >= C.LibraryStatus.SEQUENCED and access_level < C.AccessLevel.ADMIN:
+        raise exc.NoPermissionsException("Only admins can remove sequenced libraries.")
+
     session.delete(library)
 
     return responses.htmx_response(
@@ -900,6 +903,10 @@ def remove_sample_from_request(
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
+
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
+    if seq_request.status != C.SeqRequestStatus.DRAFT and access_level < C.AccessLevel.ADMIN:
+        raise exc.NoPermissionsException("Only admins can remove samples from a submitted request.")
 
     sample = session.get_one(Q.sample.select(id=sample_id))
 

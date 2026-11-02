@@ -21,7 +21,7 @@
         {{
             context_menu([
                 {"type": "copy", "value": file.basename, "label": "Copy Name"},
-                {"type": "hxdelete", "label": "Delete File", "disabled": access_level < C.AccessLevel.WRITE, "config": {
+                {"type": "hxdelete", "label": "Delete File", "disabled": not (access_level >= C.AccessLevel.INSIDER or file.uploader_id == current_user.id), "config": {
                     "url": url_for('delete_media_file', media_file_id=file.id).__str__(),
                     "target": "#media_file-table",
                     "title": "Delete {file.basename}?".format(file=file)

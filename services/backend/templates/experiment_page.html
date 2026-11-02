@@ -26,8 +26,8 @@
                 Edit Experiment
             </button>
             <span
-            {% if not experiment.is_deleteable() %}
-            {{ tooltip("Only draft experiments can be deleted.", category="danger") }}
+            {% if not experiment.is_deleteable() and not current_user.is_admin %}
+            {{ tooltip("Only admins can delete non-draft experiments.", category="danger") }}
             {% endif %}>
                 <button type="button" class="btn btn-danger"
                     hx-delete="{{ url_for('delete_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
@@ -41,7 +41,7 @@
                         denyButtonText: 'No'
                     })
                     if result.isConfirmed issueRequest()"
-                    {% if not experiment.is_deleteable() %}disabled{% endif %}>
+                    {% if not experiment.is_deleteable() and not current_user.is_admin %}disabled{% endif %}>
                     Delete Experiment
                 </button>
             </span>

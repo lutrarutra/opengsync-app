@@ -4,6 +4,10 @@
 {% from "components/checklists/history.jinja2" import checklist_history_button, checklist_last_change %}
 {% from "components/legends.jinja2" import index_badge_legend %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+{% from "components/tooltip.jinja2" import tooltip as tooltip_func %}
+
+{% set not_editable_tooltip = "Only admins can edit experiments once sequencing has started." %}
+{% set no_pools_tooltip = "Add pools to the experiment first." %}
 
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
@@ -22,7 +26,8 @@
                                 "Begin", 
                                 url_for('SelectExperimentPoolsAction.Begin', experiment_id=experiment.id), 
                                 size="xl",
-                                disabled=not can_be_edited
+                                disabled=not can_be_edited,
+                                disabled_tooltip=not_editable_tooltip
                             )
                         }}
                     </li>
@@ -105,7 +110,8 @@
                             "Begin",
                             url_for('IndexCheckWorkflow.Begin', experiment_id=experiment.id),
                             size="fullscreen",
-                            disabled=not can_be_edited or indices_validated is none
+                            disabled=not can_be_edited or indices_validated is none,
+                            disabled_tooltip=not_editable_tooltip if not can_be_edited else "Add pools with libraries to the experiment first."
                         )
                     }}
                 </p>
@@ -157,7 +163,8 @@
                                 "Check Clashes", 
                                 url_for('CheckBarcodeClashesAction.Render', experiment_id=experiment.id), 
                                 size="fullscreen",
-                                disabled=barcode_clashes_checked is none
+                                disabled=barcode_clashes_checked is none,
+                                disabled_tooltip=no_pools_tooltip
                             )
                         }}
                     </li>
@@ -165,10 +172,12 @@
                 </ol>
                 <hr>
                 {% if not barcode_clashes_checked %}
+                {% if barcode_clashes_checked is none %}<span {{ tooltip_func(no_pools_tooltip, "top", "warning") }}>{% endif %}
                 <button type="button" class="btn btn-success" {% if barcode_clashes_checked is none %}disabled{% endif %}
                     hx-post="{{ url_for('check_experiment_checklist_step', experiment_id=experiment.id, step='check_barcode_clashes') }}">
                     Check
                 </button>
+                {% if barcode_clashes_checked is none %}</span>{% endif %}
                 {% else %}
                 <button type="button" class="btn btn-warning"
                     hx-post="{{ url_for('uncheck_experiment_checklist_step', experiment_id=experiment.id, step='check_barcode_clashes') }}">
@@ -196,7 +205,8 @@
                                 "Assign", 
                                 url_for('DistributeReadsCombinedAction.Begin', experiment_id=experiment.id), 
                                 size="xl",
-                                disabled=not can_be_edited or reads_assigned is none
+                                disabled=not can_be_edited or reads_assigned is none,
+                                disabled_tooltip=not_editable_tooltip if not can_be_edited else no_pools_tooltip
                             )
                         }} reads to each pool
                         {% else %}
@@ -205,7 +215,8 @@
                                 "Assign", 
                                 url_for('DistributeReadsSeparateAction.Begin', experiment_id=experiment.id), 
                                 size="xl",
-                                disabled=not can_be_edited or reads_assigned is none
+                                disabled=not can_be_edited or reads_assigned is none,
+                                disabled_tooltip=not_editable_tooltip if not can_be_edited else no_pools_tooltip
                             )
                         }} reads to each pool
                         {% endif %}
@@ -269,7 +280,8 @@
                                 "Begin", 
                                 url_for('QubitMeasureWorkflow.Begin', experiment_id=experiment.id, entity='pool'), 
                                 size="fullscreen",
-                                disabled=pool_qubits_measured is none
+                                disabled=pool_qubits_measured is none,
+                                disabled_tooltip=no_pools_tooltip
                             )
                         }} 'Qubit Concentration' - Workflow
                     </li>
@@ -314,7 +326,8 @@
                                 "Begin", 
                                 url_for('BAReportWorkflow.Begin', experiment_id=experiment.id, entity='pool'), 
                                 size="fullscreen",
-                                disabled=pool_fragment_sizes_measured is none or not can_be_edited
+                                disabled=pool_fragment_sizes_measured is none or not can_be_edited,
+                                disabled_tooltip=not_editable_tooltip if not can_be_edited else no_pools_tooltip
                             )
                         }}
                     </li>
@@ -358,10 +371,11 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not can_be_edited or lanes_assigned is none %}<span {{ tooltip_func(not_editable_tooltip if not can_be_edited else no_pools_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('DilutePoolsAction.Begin', experiment_id=experiment.id) }}"
-                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Dilute Pools' - Workflow.
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if not can_be_edited or lanes_assigned is none %}disabled{% endif %}>Begin</button>{% if not can_be_edited or lanes_assigned is none %}</span>{% endif %} 'Dilute Pools' - Workflow.
                     </li>
                 </ol>
                 <div hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once">
@@ -421,6 +435,7 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not can_be_edited or laning_completed is none %}<span {{ tooltip_func(not_editable_tooltip if not can_be_edited else no_pools_tooltip, "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         {% if experiment.workflow.combined_lanes %}
@@ -428,7 +443,7 @@
                         {% else %}
                         hx-get="{{ url_for('LanePoolsSeparateAction.Begin', experiment_id=experiment.id) }}"
                         {% endif %}
-                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if laning_completed is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Lane Pools' - Workflow.
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if not can_be_edited or laning_completed is none %}disabled{% endif %}>Begin</button>{% if not can_be_edited or laning_completed is none %}</span>{% endif %} 'Lane Pools' - Workflow.
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -461,7 +476,8 @@
                                 "Begin", 
                                 url_for('QubitMeasureWorkflow.Begin', experiment_id=experiment.id, entity='lane'), 
                                 size="fullscreen",
-                                disabled=lane_qubit_measured is none
+                                disabled=lane_qubit_measured is none,
+                                disabled_tooltip="Complete the 'Lane Pools' step first."
                             )
                         }} 'Qubit Concentration' - Workflow
                     </li>
@@ -517,7 +533,8 @@
                                 "Begin", 
                                 url_for('BAReportWorkflow.Begin', experiment_id=experiment.id, entity='lane'), 
                                 size="fullscreen",
-                                disabled=lane_fragment_size_measured is none or not can_be_edited
+                                disabled=lane_fragment_size_measured is none or not can_be_edited,
+                                disabled_tooltip=not_editable_tooltip if not can_be_edited else "Complete the 'Lane Pools' step first."
                             )
                         }} 'Bio Analyzer Report' - Workflow
                     </li>
@@ -577,6 +594,7 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if not can_be_edited or flowcell_loaded is none %}<span {{ tooltip_func(not_editable_tooltip if not can_be_edited else "Measure Qubit concentration and fragment size of all lanes first.", "top", "warning") }}>{% endif %}
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         {% if experiment.workflow.combined_lanes %}
@@ -584,7 +602,7 @@
                         {% else %}
                         hx-get="{{ url_for('LoadFlowCellSeparateAction.Begin', experiment_id=experiment.id) }}"
                         {% endif %}
-                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if flowcell_loaded is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Load Flow Cell' - Workflow.
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if not can_be_edited or flowcell_loaded is none %}disabled{% endif %}>Begin</button>{% if not can_be_edited or flowcell_loaded is none %}</span>{% endif %} 'Load Flow Cell' - Workflow.
                     </li>
                 </ol>
                 <div class="table-container">
@@ -673,7 +691,8 @@
                         {{ 
                             modal_button(
                                 "Begin", url_for('GenerateSequencerLoadingChecklistAction.Begin', experiment_id=experiment.id),
-                                disabled=not can_be_edited,
+                                disabled=not can_be_edited or not experiment.workflow.load_sequencer_workflow_checklist,
+                                disabled_tooltip=not_editable_tooltip if not can_be_edited else "This workflow has no sequencer loading checklist template.",
                             )
                         }} Workflow
                     </li>

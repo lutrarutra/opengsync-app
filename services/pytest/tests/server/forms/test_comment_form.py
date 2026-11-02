@@ -2,7 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncSession, models, queries as Q
+from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...db.create_units import create_seq_request
 from .._http import assert_flash, assert_form_invalid, assert_htmx_redirect, get, post_form, post_form_csrf_mismatch
@@ -49,6 +49,19 @@ def test_submit_on_own_seq_request(client: TestClient, session: SyncSession, use
     assert_htmx_redirect(response)
     assert_flash(response, "Comment Added!", "success")
     assert session.first(Q.comment.select(author_id=user.id)) is not None
+
+
+def test_owner_can_comment_on_submitted_request(client: TestClient, session: SyncSession, user, user_token: str):
+    """Customers comment at any status, e.g. to add information after submitting."""
+    sr = create_seq_request(session, user)
+    sr.status = C.SeqRequestStatus.FINISHED
+    session.save(sr)
+    session.commit()
+
+    assert get(client, _url(FORM_PATH, seq_request_id=sr.id), user_token).status_code == 200
+    response = post_form(client, _url(FORM_PATH, seq_request_id=sr.id), _payload(), token=user_token)
+    assert_htmx_redirect(response)
+    assert_flash(response, "Comment Added!", "success")
 
 
 def test_submit_without_context_returns_400(client: TestClient, user_token: str):
