@@ -338,3 +338,73 @@ def test_webdav_file_deleted_after_cached_lookup_is_not_found(
     (share_fixture.root / "shared" / "root.txt").unlink()
     assert client.head(url).status_code == 404
     assert client.get(url).status_code == 404
+
+
+BROWSER_ACCEPT = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
+
+
+@pytest.mark.parametrize("subpath, browse_path", [
+    ("", ""),
+    ("/", ""),
+    ("/shared", "/shared"),
+    ("/shared/nested/", "/shared/nested"),
+])
+def test_webdav_folder_opened_in_browser_redirects_to_share_browser(
+    client: TestClient,
+    share_fixture: ShareFixture,
+    subpath: str,
+    browse_path: str,
+):
+    token = share_fixture.token.uuid
+    response = client.get(f"/api/webdav/{token}{subpath}", headers=BROWSER_ACCEPT, follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"].endswith(f"/api/shares/browse/{token}{browse_path}")
+
+    assert client.get(f"/api/webdav/{token}{subpath}", headers=BROWSER_ACCEPT).status_code == 200
+
+
+def test_webdav_browser_get_of_file_or_missing_path_does_not_redirect(
+    client: TestClient,
+    share_fixture: ShareFixture,
+):
+    token = share_fixture.token.uuid
+    (share_fixture.root / "private").mkdir()
+
+    file = client.get(f"/api/webdav/{token}/shared/root.txt", headers=BROWSER_ACCEPT, follow_redirects=False)
+    assert file.status_code == 200
+    assert file.content == b"root"
+
+    missing = client.get(f"/api/webdav/{token}/shared/missing.txt", headers=BROWSER_ACCEPT, follow_redirects=False)
+    assert missing.status_code == 404
+    assert "File not found: /shared/missing.txt" in missing.text
+
+    # unshared folders must not leak their existence through a redirect
+    unshared = client.get(f"/api/webdav/{token}/private", headers=BROWSER_ACCEPT, follow_redirects=False)
+    assert unshared.status_code == 404
+    assert "File not found: /private" in unshared.text
+
+
+def test_webdav_clients_are_not_redirected(
+    client: TestClient,
+    share_fixture: ShareFixture,
+):
+    """rclone, Finder and gvfs list folders with PROPFIND and don't ask for text/html: folder GETs stay 404."""
+    token = share_fixture.token.uuid
+
+    for url in (f"/api/webdav/{token}", f"/api/webdav/{token}/shared"):
+        response = client.get(url, follow_redirects=False)
+        assert response.status_code == 404
+        assert "is a folder" in response.text
+
+    propfind = client.request(
+        "PROPFIND", f"/api/webdav/{token}/shared", headers={"Depth": "1", **BROWSER_ACCEPT}, follow_redirects=False,
+    )
+    assert propfind.status_code == 207
+    assert "root.txt" in propfind.text
+
+    head = client.head(f"/api/webdav/{token}/shared", headers=BROWSER_ACCEPT, follow_redirects=False)
+    assert head.status_code == 404
+
+    get_file = client.get(f"/api/webdav/{token}/shared/root.txt", follow_redirects=False)
+    assert get_file.status_code == 200
+    assert get_file.content == b"root"

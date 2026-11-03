@@ -2,7 +2,7 @@ from pathlib import Path
 import mimetypes
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 
 from opengsync_db import models
 
@@ -26,6 +26,15 @@ def _subpath(subpath: str) -> Path:
     if not subpath or subpath in (".", "/"):
         return Path()
     return Path(subpath)
+
+
+def _display_path(path: Path) -> str:
+    return "/" + path.as_posix() if path.parts else "/"
+
+
+def _wants_html(request: Request) -> bool:
+    """Browsers ask for text/html; WebDAV clients (rclone, Finder, gvfs) don't, and never GET folders."""
+    return "text/html" in request.headers.get("accept", "")
 
 
 @router.api_route("/{token}", methods=WEBDAV_METHODS, name="webdav.share", operation_id="webdav_share")
@@ -52,7 +61,7 @@ def share(
     elif request.method == "HEAD":
         # get_file is cached, so the file may have been deleted since
         if (path := browser.get_file(current_path)) is None or not path.is_file():
-            raise exc.NotFoundException(f"File not found: {current_path}")
+            raise exc.NotFoundException(f"File not found: {_display_path(current_path)}")
 
         stat = path.stat()
         mimetype, _ = mimetypes.guess_type(path.name)
@@ -86,7 +95,17 @@ def share(
     elif request.method == "GET":
         # get_file is cached, so the file may have been deleted since
         if (path := browser.get_file(current_path)) is None or not path.is_file():
-            raise exc.NotFoundException(f"File not found: {current_path}")
+            if browser.is_safe(current_path) and (browser.root_dir / current_path).is_dir():
+                # a browser opened the WebDAV link of a folder: show it in the share browser
+                if _wants_html(request):
+                    return RedirectResponse(
+                        url=str(responses.url_for("file_share.browse", token=token, subpath=current_path)),
+                        status_code=302,
+                    )
+                raise exc.NotFoundException(
+                    f"'{_display_path(current_path)}' is a folder. Open the share in a browser or use a WebDAV client such as rclone."
+                )
+            raise exc.NotFoundException(f"File not found: {_display_path(current_path)}")
 
         mimetype, _ = mimetypes.guess_type(path.name)
         if not mimetype:

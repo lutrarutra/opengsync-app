@@ -1,15 +1,27 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import orm
 
 from opengsync_db import categories as C, queries as Q, SyncSession, models
 
-from ...core import dependencies, responses
+from ...core import dependencies, responses, exceptions as exc
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 @router.get("/")
 def projects_page(path_list: list = Depends(dependencies.parse_from_page)):
     return responses.html_response(template="projects_page.html", title="Projects", path_list=path_list)
+
+
+@router.get("/i/{identifier}")
+def project_page_by_identifier(
+    request: Request,
+    identifier: str,
+    _viewer_id: int = Depends(dependencies.require_user_id),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    if (project := session.first(Q.project.select(identifier=identifier))) is None:
+        raise exc.NotFoundException("Project not found.")
+    return responses.html_response(redirect=request.url_for("project_page", project_id=project.id))
 
 
 @router.get("/{project_id}")

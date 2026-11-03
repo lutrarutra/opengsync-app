@@ -146,7 +146,7 @@
             <b>If group is selected</b>, the sequencing request will be
             editable by ALL members of the group until it is submitted.
             After submission, the request will be read-only for all group
-            members. You can create new group in <a href="/groups" target="_blank">Groups</a>-page.
+            members. You can create new group in <a href="{{ url_for('groups_page') }}" target="_blank">Groups</a>-page.
             <b>The sequencing results will be shared with all group members.</b>
         </p>
         {{ form.basic_info.group_id.render() }}
