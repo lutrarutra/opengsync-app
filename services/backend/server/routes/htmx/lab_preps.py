@@ -168,9 +168,21 @@ def render_lab_prep_checklist(
         )
     )
     checklist = lab_prep.get_checklist()
+    # Requests of the prep's libraries (deduplicated) with their submission layouts, for printing
+    layout = orm.selectinload(models.SeqRequest.submission_layout)
+    seq_requests = session.get_all(
+        Q.seq_request.select().where(
+            models.SeqRequest.id.in_({library.seq_request_id for library in lab_prep.libraries})
+        ).options(
+            orm.selectinload(models.SeqRequest.requestor),
+            layout.selectinload(models.SampleSubmissionLayout.sample),
+            layout.selectinload(models.SampleSubmissionLayout.library),
+            layout.selectinload(models.SampleSubmissionLayout.pool),
+        ), order_by=models.SeqRequest.id.asc(), limit=None
+    )
     return responses.htmx_response(
         template="components/checklists/lab_prep.html",
-        lab_prep=lab_prep, **checklist
+        lab_prep=lab_prep, seq_requests=seq_requests, **checklist
     )
 
 @router.get("/{lab_prep_id}/mux-spreadsheet")
@@ -427,7 +439,8 @@ def render_lab_prep_plates(
             orm.selectinload(models.Plate.sample_links)
         ), limit=None
     )
-    return responses.htmx_response(template="components/plates.html", plates=plates)
+    lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    return responses.htmx_response(template="components/plates.html", plates=plates, lab_prep=lab_prep)
 
 
 @router.get("/{lab_prep_id}/mux-prep")

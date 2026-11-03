@@ -21,6 +21,8 @@ def _relevant_review_steps(session: dependencies.SyncSession, seq_request: model
         sa.select(sa.exists().where(models.Library.seq_request_id == seq_request.id, models.Library.is_multiplexed))
     ):
         checklist.pop("check_multiplexing")
+    if not checklist["submission_layout_checked"] and not seq_request.submission_layout and not seq_request.get_submission_layout_status()["required"]:
+        checklist.pop("submission_layout_checked")
 
     return checklist
 
@@ -61,8 +63,12 @@ def seq_request_page(
     submit_steps = [
         submit_checklist["samples_added"],
         submit_checklist["authorization_form_added"],
+        submit_checklist["share_emails_added"],
         submit_checklist["request_submitted"],
     ]
+    # Optional (not counted) when only one sample/library/pool is handed in
+    if submit_checklist["submission_layout_required"] or submit_checklist["submission_layout_added"] is None:
+        submit_steps.insert(2, submit_checklist["submission_layout_added"])
 
     review_checklist = _relevant_review_steps(session, seq_request)
 

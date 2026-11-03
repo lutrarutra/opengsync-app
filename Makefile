@@ -2,10 +2,10 @@
 
 help:
 	@echo "Error: Please specify a target."
-	@echo "Usage: make [deploy|test|pentest|debug|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-restart|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
+	@echo "Usage: make [deploy|test|pentest|debug|static-deps|prod-build|prod-migrate|prod-downgrade|prod-pull|prod-run|prod-restart|prod-logs|prod-stop|dev-build|dev-migrate|dev-downgrade|dev-run|dev-logs|dev-stop|gitlab-runner|gitlab-runner-stop]"
 	@exit 1
 
-.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-nginx dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop prod-pgbackrest-init prod-pgbackrest-backup prod-pgbackrest-info deploy test pentest gitlab-runner gitlab-runner-stop
+.PHONY: dev-build dev-build-logs dev-migrate dev-downgrade dev-nginx dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-migrate prod-downgrade prod-pull prod-run prod-restart prod-logs prod-logs-all prod-stop prod-pgbackrest-init prod-pgbackrest-backup prod-pgbackrest-info deploy test pentest gitlab-runner gitlab-runner-stop static-deps
 
 VERSION := $(shell git describe --tags --abbrev=0)
 
@@ -136,6 +136,17 @@ test:
 pentest:
 	@set -a; [ -f $(ENV_FILE) ] && . ./$(ENV_FILE); set +a; \
 	uv run strix --target .
+
+# Builds the jspreadsheet fork (vendor/jspreadsheet-ce submodule) and copies it to static.
+# --ignore-scripts skips the fork's prebuild, which runs prettier/eslint --fix over its sources.
+# Its build does not output the CSS, which is copied from its src.
+JSS_DIR := vendor/jspreadsheet-ce
+static-deps:
+	[ -e $(JSS_DIR)/.git ] || git submodule update --init $(JSS_DIR)
+	[ -d $(JSS_DIR)/node_modules ] || npm --prefix $(JSS_DIR) install
+	npm --prefix $(JSS_DIR) run build --ignore-scripts
+	cp $(JSS_DIR)/dist/index.js services/backend/static/js/jss-extended.js
+	cp $(JSS_DIR)/src/jspreadsheet.css $(JSS_DIR)/src/jspreadsheet.themes.css services/backend/static/style/vendor/jspreadsheet/
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d

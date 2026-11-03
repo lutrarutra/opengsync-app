@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..core.EnumColumn import EnumColumn
-from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType, BarcodeOrientation
+from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType, BarcodeOrientation, SubmissionLayoutType
 from . import links
 from .. import models
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from .Group import Group
     from .DataPath import DataPath
     from .Project import Project
+    from .SampleSubmissionLayout import SampleSubmissionLayout, DeliverableKind
 
 
 class SeqRequest(Base):
@@ -45,6 +47,7 @@ class SeqRequest(Base):
     """Route id pinned by staff (opengsync_db.transitions.routes); NULL means inferred."""
     submission_type: Mapped[SubmissionType] = mapped_column(EnumColumn[SubmissionType](SubmissionType), nullable=False, name="submission_type_id", key="submission_type")
     status: Mapped[SeqRequestStatus] = mapped_column(EnumColumn[SeqRequestStatus](SeqRequestStatus), nullable=False, default=SeqRequestStatus.DRAFT.id, name="status_id", key="status", active_history=True)
+    submission_layout_type: Mapped[SubmissionLayoutType | None] = mapped_column(EnumColumn[SubmissionLayoutType](SubmissionLayoutType), nullable=True, default=None, name="submission_layout_type_id", key="submission_layout_type")
 
     timestamp_submitted_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     timestamp_finished_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
@@ -86,6 +89,10 @@ class SeqRequest(Base):
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     checklist_logs: Mapped[list["ChecklistLog"]] = relationship("ChecklistLog", lazy="select", cascade="all, delete-orphan", passive_deletes=True, order_by="ChecklistLog.timestamp_utc.desc()")
+    submission_layout: Mapped[list["SampleSubmissionLayout"]] = relationship(
+        "SampleSubmissionLayout", back_populates="seq_request", lazy="select", cascade="all, delete-orphan", passive_deletes=True,
+        order_by="[SampleSubmissionLayout.set_name, SampleSubmissionLayout.position]",
+    )
     delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="all, save-update, delete, merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
         "Sample", viewonly=True,
@@ -111,7 +118,8 @@ class SeqRequest(Base):
 
     MANUAL_REVIEW_STEPS = (
         "technical_requirements", "check_libraries", "check_multiplexing", "check_overview", "check_contacts",
-        "check_comments", "samples_checked", "check_submission_date", "auth_form_checked",
+        "check_comments", "samples_checked", "check_submission_date", "auth_form_checked", "submission_layout_checked",
+        "check_share_emails",
     )
     """Review steps checked by hand (stored in `review_checklist`, logged in `checklist_logs`)."""
 
@@ -121,16 +129,61 @@ class SeqRequest(Base):
         
         samples_added = self.num_samples > 0 and self.num_libraries > 0
         authorization_form_added = self.seq_auth_form_file is not None
+        share_emails_added = self.num_delivery_email_links > 0
         is_submittable = self.is_submittable()
         request_submitted = self.status >= SeqRequestStatus.SUBMITTED if samples_added else None
+        layout = self.get_submission_layout_status()
 
         return {
             "samples_added": samples_added,
             "authorization_form_added": authorization_form_added,
+            "submission_layout_required": layout["required"],
+            "submission_layout_added": layout["complete"] if samples_added else None,
+            "share_emails_added": share_emails_added,
             "is_submittable": is_submittable,
             "request_submitted": request_submitted,
         }
-    
+
+    def get_submission_layout_status(self) -> dict:
+        """What the submission layout places (samples, libraries or pools) and whether every one of them has a position.
+
+        QC-only requests can hand in samples or libraries; the kind is taken from the saved layout, defaulting to samples.
+        """
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open for submission layout status")
+
+        kind: "DeliverableKind"
+        match self.submission_type:
+            case SubmissionType.POOLED_LIBRARIES:
+                kind = "pool"
+            case SubmissionType.UNPOOLED_LIBRARIES:
+                kind = "library"
+            case SubmissionType.QC_ONLY:
+                kind = self.submission_layout[0].kind if self.submission_layout else "sample"
+            case _:
+                kind = "sample"
+
+        num_deliverables = {"sample": self.num_samples, "library": self.num_libraries, "pool": self.num_pools}[kind]
+        num_placed = sum(1 for entry in self.submission_layout if entry.kind == kind)
+
+        return {
+            "kind": kind,
+            "num_deliverables": num_deliverables,
+            "num_placed": num_placed,
+            "required": num_deliverables > 1,
+            "complete": self.submission_layout_type is not None and num_deliverables > 0 and num_placed >= num_deliverables,
+        }
+
+    def get_submission_layout_sets(self) -> dict[str, list["SampleSubmissionLayout"]]:
+        """Submission layout grouped by plate/tube set (default set '' first), positions in natural order (2 before 10)."""
+        def natural_key(value: str) -> list:
+            return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", value)]
+
+        sets: dict[str, list["SampleSubmissionLayout"]] = {}
+        for entry in sorted(self.submission_layout, key=lambda e: (natural_key(e.set_name), natural_key(e.position))):
+            sets.setdefault(entry.set_name, []).append(entry)
+        return sets
+
     def get_review_checklist(self) -> dict[str, bool]:
         if orm.object_session(self) is None:
             raise orm.exc.DetachedInstanceError("Session must be open for checklist")
@@ -140,11 +193,12 @@ class SeqRequest(Base):
             checklist.update(self.review_checklist)
 
         for step in SeqRequest.MANUAL_REVIEW_STEPS:
-            if step != "auth_form_checked":
+            if step not in ("auth_form_checked", "submission_layout_checked"):
                 checklist[step] = checklist.get(step, False)
         checklist["check_barcodes"] = self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] or self.all_indices_validated()
         checklist["index_check"] = None if self.submission_type in [SubmissionType.RAW_SAMPLES, SubmissionType.QC_ONLY] else self.all_indices_validated()
         checklist["auth_form_checked"] = checklist.get("auth_form_checked", None if self.seq_auth_form_file is None else False)
+        checklist["submission_layout_checked"] = checklist.get("submission_layout_checked", None if not self.submission_layout else False)
         checklist["submission_processed"] = self.status > SeqRequestStatus.SUBMITTED
 
         return checklist
@@ -658,7 +712,7 @@ class SeqRequest(Base):
         return self.seq_auth_form_file is not None
     
     def is_submittable(self) -> bool:
-        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
+        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized() and self.num_delivery_email_links > 0
     
     def timestamp_submitted_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         if (ts := self.timestamp_submitted) is None:

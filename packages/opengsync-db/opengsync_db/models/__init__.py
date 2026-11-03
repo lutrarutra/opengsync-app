@@ -20,6 +20,7 @@ from .SeqRun import SeqRun
 from .Lane import Lane
 from .PoolDilution import PoolDilution
 from .Plate import Plate
+from .SampleSubmissionLayout import SampleSubmissionLayout
 from .Barcode import Barcode
 from .LibraryIndex import LibraryIndex
 from .LabPrep import LabPrep
@@ -63,6 +64,7 @@ __all__ = [
     "Lane",
     "PoolDilution",
     "Plate",
+    "SampleSubmissionLayout",
     "Barcode",
     "LibraryIndex",
     "LabPrep",

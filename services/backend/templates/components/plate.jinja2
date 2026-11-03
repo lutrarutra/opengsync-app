@@ -1,0 +1,29 @@
+{# Grid of a plate with row letters and column numbers; caller(row, col) renders the cell of each well. #}
+{% macro plate_grid(num_rows, num_cols) -%}
+<div class="plate">
+    {% for row in range(-1, num_rows) %}
+    <div class="plate-row" id="plate-row-{{row}}">
+    {% for col in range(-1, num_cols) %}
+        {% if row == -1 or col == -1 %}
+        {% if row == col %}
+        <div class="plate-index"></div>
+        {% elif col == -1 %}
+        <div class="plate-index">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[row] }}</div>
+        {% else %}
+        <div class="plate-header">{{ col + 1 }}</div>
+        {% endif %}
+        {% else %}
+        {{ caller(row, col) }}
+        {% endif %}
+    {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{%- endmacro %}
+
+
+{% macro plate_print_button(plate) -%}
+<button type="button" class="btn btn-sm btn-outline-secondary" onclick="print_div('plate-print-{{ plate.id }}')" title="Print plate">
+    <i class="bi bi-printer"></i> Print
+</button>
+{%- endmacro %}

@@ -18,4 +18,4 @@ router.include_router(wf.select_library_protocols.SelectLibraryProtocolsWorkflow
 router.include_router(wf.qubit_measure.QubitMeasureWorkflow.Router(), dependencies=[Depends(dependencies.require_insider)])
 router.include_router(wf.split_project.SplitProjectWorkflow.Router())
 router.include_router(wf.index_check.IndexCheckWorkflow.Router())
-
+router.include_router(wf.sample_submission_layout.SampleSubmissionLayoutWorkflow.Router())

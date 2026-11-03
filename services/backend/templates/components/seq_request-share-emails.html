@@ -1,0 +1,49 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% set container_id = "seq_request-share-emails-" ~ context %}
+{# Copies of this list elsewhere on the page refresh when one of them changes the emails #}
+<div class="share-email-list" id="{{ container_id }}"
+    hx-get="{{ get_url }}" hx-trigger="shareEmailsChanged[detail.context!='{{ context }}'] from:body" hx-swap="outerHTML">
+    <ul class="share-email-rows">
+        {% for link in seq_request.delivery_email_links %}
+        {% set dispatched = link.status == C.DeliveryStatus.DISPATCHED %}
+        <li class="share-email-row">
+            <i class="bi bi-envelope share-email-icon" aria-hidden="true"></i>
+            <a class="share-email-address" href="mailto:{{ link.email }}" title="{{ link.email }}">{{ link.email }}</a>
+            <span class="share-email-status {% if dispatched %}dispatched{% else %}pending{% endif %}"
+                {{ tooltip("The data access instructions were sent to this address." if dispatched else "Receives the data access instructions once the data is ready.", "top") }}>
+                <i class="bi {% if dispatched %}bi-check2{% else %}bi-clock{% endif %}" aria-hidden="true"></i>{{ link.status.label }}
+            </span>
+            <span class="share-email-remove" {% if not can_remove %}{{ tooltip(remove_disabled_reason, 'left', 'warning') }}{% endif %}>
+                <button type="button" class="btn" aria-label="Remove {{ link.email }}" {% if can_remove %}title="Remove"{% else %}disabled{% endif %}
+                    hx-delete="{{ url_for('AddSeqRequestShareEmailAction.Remove', seq_request_id=seq_request.id, email=link.email, context=context) }}"
+                    hx-target="#{{ container_id }}" hx-swap="outerHTML">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </span>
+        </li>
+        {% else %}
+        <li class="share-email-empty">
+            <i class="bi bi-envelope-exclamation" aria-hidden="true"></i>
+            No recipients yet. Add at least one email address to receive the data.
+        </li>
+        {% endfor %}
+    </ul>
+    <form class="share-email-add" hx-post="{{ post_url }}" hx-target="#{{ container_id }}" hx-swap="outerHTML">
+        {{ form.csrf_token.render() }}
+        <div class="input-group input-group-sm has-validation">
+            <input type="email" class="form-control{% if form.email.errors %} is-invalid{% endif %}" id="{{ form.email.id }}" name="{{ form.email.name }}"
+                value="{{ form.email.data or '' }}" placeholder="Add an email address" aria-label="Email address to add"
+                autocomplete="email" maxlength="128" required {% if not can_add %}disabled{% endif %}>
+            <button type="submit" class="btn btn-success" {% if not can_add %}disabled{% endif %}>
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Add
+            </button>
+            {% if form.email.errors %}
+            <div class="invalid-feedback" role="alert">{{ form.email.errors | join(" ") }}</div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% if changed is defined and changed %}
+<span id="request-share-tab-count" hx-swap-oob="true">{{ tab_count(seq_request.delivery_email_links | length) }}</span>
+<span id="request-submit-share-emails-icon" hx-swap-oob="true">{% if seq_request.delivery_email_links %}✅{% else %}⚠️{% endif %}</span>
+{% endif %}

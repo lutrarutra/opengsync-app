@@ -375,21 +375,93 @@ body {
 }
 
 .share-email-list {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    justify-content: center;
-    .row {
-        width: 100%;
-        padding: 0 100px 0 100px;
-        .remove-btn-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            button {
-                margin-top: 6px;
-            }
+    max-width: 640px;
+    margin: 8px 0;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-300);
+    border-radius: 8px;
+    overflow: hidden;
+
+    .share-email-rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .share-email-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 4px 6px 4px 14px;
+        border-bottom: 1px solid var(--color-gray-200);
+    }
+    .share-email-icon {
+        color: var(--color-gray-500);
+    }
+    .share-email-address {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--color-gray-900);
+        text-decoration: none;
+        &:hover {
+            color: var(--color-cemm-secondary);
+            text-decoration: underline;
         }
+    }
+    .share-email-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        white-space: nowrap;
+        &.pending {
+            color: var(--color-gray-700);
+            background-color: var(--color-gray-100);
+            border: 1px solid var(--color-gray-300);
+        }
+        &.dispatched {
+            color: #0f5132;
+            background-color: #d1e7dd;
+            border: 1px solid #a3cfbb;
+        }
+    }
+    .share-email-remove .btn {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        color: var(--color-gray-600);
+        &:hover {
+            color: var(--color-danger);
+            background-color: #f8d7da;
+        }
+        &:disabled {
+            color: var(--color-gray-400);
+            background: none;
+        }
+    }
+    .share-email-empty {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        color: var(--color-gray-600);
+        border-bottom: 1px solid var(--color-gray-200);
+        i {
+            font-size: 1.1rem;
+            color: var(--color-cemm-yellow-dark);
+        }
+    }
+    .share-email-add {
+        padding: 10px 14px;
+        background-color: var(--color-gray-100);
     }
 }
 

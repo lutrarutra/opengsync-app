@@ -229,7 +229,8 @@ def render_plate_tab(
             orm.selectinload(models.Plate.sample_links),
         )
     )
-    return responses.htmx_response(template="components/plate.html", plate=plate)
+    pool = session.scalar(Q.pool.select().where(models.Pool.plate_id == plate_id))
+    return responses.htmx_response(template="components/plate.html", plate=plate, pool=pool)
 
 
 @router.get("/render-feed", dependencies=[Depends(dependencies.require_insider)])

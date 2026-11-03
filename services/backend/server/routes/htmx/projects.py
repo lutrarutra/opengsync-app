@@ -460,7 +460,10 @@ def render_project_feed(
             ),
             orm.with_expression(
                 models.Project._library_status_counts, models.Project.library_status_counts.expression
-            )
+            ),
+            orm.with_expression(
+                models.Project._library_types, models.Project.library_types.expression
+            ),
         ],
     )
     return responses.htmx_response(

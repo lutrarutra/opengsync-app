@@ -1,5 +1,7 @@
 """Seq request page: placement of the insider 'Review' tab across request statuses."""
 
+import re
+
 import pytest
 import sqlalchemy as sa
 from fastapi.testclient import TestClient
@@ -12,6 +14,7 @@ from ._http import get, post_form, flush_redis, assert_htmx_redirect
 REVIEW_TAB = 'data-bs-target="#request-review-tab"'
 DATA_TAB = 'data-bs-target="#request-data_paths-tab"'
 CHECKLIST_TAB = 'data-bs-target="#request-checklist-tab"'
+SHARE_TAB = 'data-bs-target="#request-share-tab"'
 PROCESS_BUTTON = "Process Request"
 
 
@@ -45,6 +48,7 @@ def test_reviewed_request_keeps_review_tab_last(
     html = _page(client, session, user, insider_token, status)
     assert html.count(REVIEW_TAB) == 1
     assert html.index(REVIEW_TAB) > html.index(DATA_TAB)
+    assert html.index(DATA_TAB) < html.index(SHARE_TAB) < html.index(REVIEW_TAB)
     assert 'class="tab-pane fade " id="request-review-tab"' in html
     assert 'class="tab-pane fade show active" id="request-checklist-tab"' in html
     assert PROCESS_BUTTON not in html
@@ -55,6 +59,12 @@ def test_draft_request_has_no_review_tab(client: TestClient, session: SyncSessio
     assert REVIEW_TAB not in html
 
 
+def test_share_tab_is_last_tab(client: TestClient, session: SyncSession, user, user_token: str):
+    html = _page(client, session, user, user_token, C.SeqRequestStatus.DRAFT)
+    tabs = html[:html.index('<div class="page-content">')]
+    assert tabs.rindex('data-bs-target="#') == tabs.index(SHARE_TAB)
+
+
 def test_client_never_sees_review_tab(client: TestClient, session: SyncSession, user, user_token: str):
     html = _page(client, session, user, user_token, C.SeqRequestStatus.ACCEPTED)
     assert REVIEW_TAB not in html
@@ -62,7 +72,7 @@ def test_client_never_sees_review_tab(client: TestClient, session: SyncSession, 
 
 MANUAL_STEPS = [
     "technical_requirements", "check_contacts", "auth_form_checked", "check_comments",
-    "check_submission_date", "check_overview", "samples_checked", "check_libraries",
+    "check_submission_date", "check_overview", "samples_checked", "check_libraries", "check_share_emails",
 ]
 
 
@@ -82,7 +92,7 @@ def test_raw_samples_count_skips_not_relevant_steps(client: TestClient, session:
 
     html = get(client, f"/seq_requests/{seq_request.id}", insider_token).text
 
-    assert _review_count(html) == '<span class="tab-count tab-count-done">9/9</span>'
+    assert _review_count(html) == '<span class="tab-count tab-count-done">10/10</span>'
 
 
 def test_libraries_without_mux_skip_multiplexing_step(client: TestClient, session: SyncSession, user, insider_token: str):
@@ -94,7 +104,7 @@ def test_libraries_without_mux_skip_multiplexing_step(client: TestClient, sessio
 
     html = get(client, f"/seq_requests/{seq_request.id}", insider_token).text
 
-    assert _review_count(html).endswith("/11</span>")
+    assert _review_count(html).endswith("/12</span>")
 
 
 def test_mux_libraries_keep_multiplexing_step(client: TestClient, session: SyncSession, user, insider_token: str):
@@ -106,7 +116,7 @@ def test_mux_libraries_keep_multiplexing_step(client: TestClient, session: SyncS
 
     html = get(client, f"/seq_requests/{seq_request.id}", insider_token).text
 
-    assert _review_count(html).endswith("/12</span>")
+    assert _review_count(html).endswith("/13</span>")
 
 
 def test_review_shows_pi_contact_and_library_organisms(client: TestClient, session: SyncSession, user, insider_token: str):
@@ -207,3 +217,99 @@ def test_checklist_log_deleted_with_request(client: TestClient, session: SyncSes
     session.commit()
 
     assert _logs(session, seq_request_id) == []
+
+
+# ── Share emails ─────────────────────────────────────────────────────────────
+
+def _with_share_email(session: SyncSession, seq_request: models.SeqRequest, email: str = "share@example.com") -> None:
+    seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(email=email))
+    session.save(seq_request)
+
+
+def test_review_checklist_has_share_email_step(client: TestClient, session: SyncSession, user, insider_token: str):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    _with_share_email(session, seq_request)
+    session.commit()
+
+    html = get(client, f"/htmx/seq_requests/{seq_request.id}/review-checklist", insider_token, htmx=True).text
+
+    assert "⚠️ Check Data Share Emails" in html
+    assert f"/htmx/seq_requests/{seq_request.id}/share-email?context=review" in html
+    assert f"/htmx/seq_requests/{seq_request.id}/review-check/check_share_emails" in html
+
+
+def test_review_share_email_step_flags_missing_emails(client: TestClient, session: SyncSession, user, insider_token: str):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.commit()
+
+    html = get(client, f"/htmx/seq_requests/{seq_request.id}/review-checklist", insider_token, htmx=True).text
+
+    assert "❗ Check Data Share Emails" in html
+
+
+def test_share_email_step_is_checked_manually(client: TestClient, session: SyncSession, user, insider, insider_token: str):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    _with_share_email(session, seq_request)
+    session.commit()
+
+    assert_htmx_redirect(_toggle(client, seq_request.id, "review-check", "check_share_emails", insider_token), f"/seq_requests/{seq_request.id}")
+
+    html = get(client, f"/htmx/seq_requests/{seq_request.id}/review-checklist", insider_token, htmx=True).text
+    assert "✅ Check Data Share Emails" in html
+    assert f"/htmx/seq_requests/{seq_request.id}/review-uncheck/check_share_emails" in html
+    assert [(log.step, log.checked, log.actor_id) for log in _logs(session, seq_request.id)] == [("check_share_emails", True, insider.id)]
+
+
+@pytest.mark.parametrize("action", ["review-check", "review-uncheck"])  # type: ignore[attr-defined]
+def test_owner_cannot_toggle_share_email_step(client: TestClient, session: SyncSession, user, user_token: str, action: str):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.commit()
+
+    assert _toggle(client, seq_request.id, action, "check_share_emails", user_token).status_code == 403
+    assert _logs(session, seq_request.id) == []
+
+
+def _submit_step_icon(html: str) -> str:
+    match = re.search(r'<span id="request-submit-share-emails-icon">(.*?)</span>', html)
+    assert match is not None
+    return match.group(1)
+
+
+def test_submit_checklist_share_email_step(client: TestClient, session: SyncSession, user, user_token: str):
+    seq_request = create_seq_request(session, user)
+    session.commit()
+    path = f"/htmx/seq_requests/{seq_request.id}/submit-checklist"
+
+    html = get(client, path, user_token, htmx=True).text
+    assert _submit_step_icon(html) == "⚠️"
+    assert "Add Data Share Emails" in html
+    assert f"/htmx/seq_requests/{seq_request.id}/share-email?context=submit" in html
+    # the step comes right before the submit step
+    assert html.index("Add Data Share Emails") < html.index("Submit Sequencing Request for Review")
+
+    _with_share_email(session, seq_request)
+    session.commit()
+    assert _submit_step_icon(get(client, path, user_token, htmx=True).text) == "✅"
+
+
+def _checklist_count(html: str) -> str:
+    button = html[html.index(CHECKLIST_TAB):]
+    button = button[:button.index("</button>")]
+    return button[button.index('<span class="tab-count'):]
+
+
+def test_share_email_counts_toward_submit_checklist(client: TestClient, session: SyncSession, user, user_token: str):
+    seq_request = create_seq_request(session, user)
+    session.commit()
+    flush_redis(client)
+    path = f"/seq_requests/{seq_request.id}"
+
+    assert _checklist_count(get(client, path, user_token).text) == '<span class="tab-count tab-count-pending">0/5</span>'
+
+    _with_share_email(session, seq_request)
+    session.commit()
+    assert _checklist_count(get(client, path, user_token).text) == '<span class="tab-count tab-count-pending">1/5</span>'

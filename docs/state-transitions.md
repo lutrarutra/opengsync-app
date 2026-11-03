@@ -508,13 +508,13 @@ Table `seq_request_delivery_email_link`, enum `DeliveryStatus`.
 
 | Status | Id | Description | Set by |
 |---|---|---|---|
-| PENDING | 0 |  | `request.add_share_email` |
+| PENDING | 0 |  | `request.create`, `request.add_share_email` |
 | DISPATCHED | 1 |  | `project.share_data`, `api.release_project` |
 
 ```mermaid
 stateDiagram-v2
     state "any status" as any
-    [*] --> PENDING : request.add_share_email
+    [*] --> PENDING : request.create, request.add_share_email
     any --> DISPATCHED : project.share_data, api.release_project
 ```
 
@@ -524,11 +524,11 @@ stateDiagram-v2
 
 | Operation | Kind | Effects | Guard / reason | Where |
 |---|---|---|---|---|
-| `request.create`<br>Create request | Action | Request: new → DRAFT | — | `services/backend/server/forms/models/SeqRequestForm.py` |
+| `request.create`<br>Create request | Action | Request: new → DRAFT<br>Delivery email: new → PENDING <sub>via `delivery_email_links`</sub> | — | `services/backend/server/forms/models/SeqRequestForm.py` |
 | `request.complete_sas`<br>Complete sample annotation sheet | Workflow | Project: new → DRAFT <sub>via `samples.project`</sub> — a new project is created<br>Sample: new → DRAFT <sub>via `samples`</sub> — raw-sample submissions; pooled-library submissions create samples without status<br>Library: new → DRAFT <sub>via `libraries`</sub><br>Pool: new → DRAFT <sub>via `pools`</sub> — pooled-library submissions | — | `services/backend/server/forms/workflows/library_annotation/CompleteSASForm.py` |
 | `request.clone`<br>Clone request | Action | Request: new → DRAFT<br>Library: new → ACCEPTED, STORED, POOLED <sub>via `libraries`</sub> — POOLED (pooled), STORED (indexed), ACCEPTED (raw)<br>Pool: new → STORED <sub>via `pools`</sub> — pooled | — | `services/backend/server/routes/htmx/seq_requests.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py` |
 | `request.add_share_email`<br>Add delivery email | Action | Delivery email: new → PENDING <sub>via `delivery_email_links`</sub> | — | `services/backend/server/forms/actions/AddSeqRequestShareEmailAction.py` |
-| `request.submit`<br>Submit request | Action | Request: DRAFT → SUBMITTED<br>Library: DRAFT → SUBMITTED <sub>via `libraries`</sub><br>Pool: DRAFT → SUBMITTED <sub>via `pools`</sub> | guard: status is DRAFT and request is submittable (auth form uploaded, libraries annotated) | `services/backend/server/forms/actions/SubmitSeqRequestAction.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py:submit_seq_request` |
+| `request.submit`<br>Submit request | Action | Request: DRAFT → SUBMITTED<br>Library: DRAFT → SUBMITTED <sub>via `libraries`</sub><br>Pool: DRAFT → SUBMITTED <sub>via `pools`</sub> | guard: status is DRAFT and request is submittable (auth form uploaded, libraries annotated, share emails added) | `services/backend/server/forms/actions/SubmitSeqRequestAction.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py:submit_seq_request` |
 | `request.accept`<br>Accept request | Action | Request: any → ACCEPTED<br>Sample: DRAFT → WAITING_DELIVERY <sub>via `samples`</sub><br>Library: SUBMITTED → ACCEPTED <sub>via `libraries`</sub><br>Library: any → POOLED <sub>via `libraries`</sub> — library is in a pool ⚠️ no status check: can move SEQUENCED or FAILED libraries back to POOLED<br>Pool: SUBMITTED → ACCEPTED <sub>via `pools`</sub><br>Project: any → PROCESSING <sub>via `samples.project`</sub> ⚠️ no status check: re-opens DELIVERED or ARCHIVED projects | guard: status is SUBMITTED<br>⚠️ no check on the request's current status | `services/backend/server/forms/actions/ProcessSeqRequestAction.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py:process_seq_request` |
 | `request.return`<br>Return request for revision | Action | Request: any → DRAFT<br>Library: SUBMITTED → DRAFT <sub>via `libraries`</sub><br>Pool: SUBMITTED → DRAFT <sub>via `pools`</sub> | guard: status is SUBMITTED<br>⚠️ no check on the request's current status | `services/backend/server/forms/actions/ProcessSeqRequestAction.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py:process_seq_request` |
 | `request.reject`<br>Reject request | Action | Request: any → REJECTED<br>Library: SUBMITTED → REJECTED <sub>via `libraries`</sub><br>Pool: SUBMITTED → REJECTED <sub>via `pools`</sub> | guard: status is SUBMITTED<br>⚠️ no check on the request's current status | `services/backend/server/forms/actions/ProcessSeqRequestAction.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py:process_seq_request` |

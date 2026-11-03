@@ -30,6 +30,62 @@
             </div>
         </div>
     </div>
+    {% set layout_requests = seq_requests | selectattr("submission_layout") | list %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1b" aria-expanded="false" aria-controls="sops-accordiod-collapse-1b">
+                <b>{% if libraries_added %}🔘{% else %}❗{% endif %} Print Sample Submission Layouts (Optional)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-1b" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <p>How the samples of the requests in this prep were handed in.</p>
+                <button type="button" class="btn btn-primary mb-2" onclick="print_div('lab-prep-submission-layouts')"{% if not layout_requests %} disabled{% endif %}>
+                    <i class="bi bi-printer"></i> Print All
+                </button>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Request</th>
+                            <th>Requestor</th>
+                            <th>Tube Set / Plate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for seq_request in seq_requests %}
+                        {% set print_id = "submission-layout-labprep-" ~ seq_request.id %}
+                        {% set sets = seq_request.get_submission_layout_sets() if seq_request.submission_layout else {} %}
+                        {% for set_name in sets or [none] %}
+                        <tr>
+                            {% if loop.first %}
+                            <td rowspan="{{ loop.length }}"><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">{{ seq_request.identifier }} {{ seq_request.name }}</a></td>
+                            <td rowspan="{{ loop.length }}">{{ seq_request.requestor.name }}</td>
+                            {% endif %}
+                            <td>
+                                {% if set_name is none %}
+                                <span class="text-body-secondary">No submission layout specified.</span>
+                                {% else %}
+                                <a href="#" onclick="print_div('{{ print_id }}-set-{{ loop.index }}'); return false;" title="Print">
+                                    <i class="bi {{ seq_request.submission_layout_type.icon }}"></i> {{ set_name or ("Plate" if seq_request.submission_layout_type == C.SubmissionLayoutType.PLATE else "Tubes") }} <i class="bi bi-printer"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr><td colspan="3" class="text-body-secondary">No libraries in this prep.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {# Print sources for the links above #}
+                <div id="lab-prep-submission-layouts" class="d-none">
+                    {% for seq_request in layout_requests %}
+                    {% with submission_layout_context = "labprep" %}{% include "components/sample_submission_layout.html" %}{% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">

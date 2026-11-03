@@ -2,7 +2,7 @@
 from ._common import *  # noqa: F401,F403
 from ._common import collect
 
-SUBMITTABLE = rules.Predicate("request is submittable (auth form uploaded, libraries annotated)", lambda session, req: req.is_submittable())
+SUBMITTABLE = rules.Predicate("request is submittable (auth form uploaded, libraries annotated, share emails added)", lambda session, req: req.is_submittable())
 
 SUBMIT = operation(
     "request.submit", "Submit request", K.ACTION, E.SEQ_REQUEST,

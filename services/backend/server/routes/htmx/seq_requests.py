@@ -496,6 +496,17 @@ def remove_seq_request_assignee(
     return responses.htmx_response(flash=responses.flash("Assignee removed.", "success"))
 
 
+def _submission_layout_options() -> list:
+    """Load the submission layout with the samples, libraries and pools it places, and the requestor for the printout (for components/sample_submission_layout.html)."""
+    layout = orm.selectinload(models.SeqRequest.submission_layout)
+    return [
+        orm.selectinload(models.SeqRequest.requestor),
+        layout.selectinload(models.SampleSubmissionLayout.sample),
+        layout.selectinload(models.SampleSubmissionLayout.library),
+        layout.selectinload(models.SampleSubmissionLayout.pool),
+    ]
+
+
 @router.get("/{seq_request_id}/submit-checklist")
 def get_seq_request_submit_checklist(
     seq_request_id: int,
@@ -525,6 +536,7 @@ def get_seq_request_submit_checklist(
                 models.SeqRequest._library_type_counts,
                 models.SeqRequest.library_type_counts.expression,
             ),
+            *_submission_layout_options(),
         )
     )
     checklist = seq_request.get_submit_checklist()
@@ -532,6 +544,7 @@ def get_seq_request_submit_checklist(
     return responses.htmx_response(
         template="components/checklists/seq_request-submit.html",
         seq_request=seq_request,
+        submission_layout_status=seq_request.get_submission_layout_status(),
         **checklist,
     )
 
@@ -560,7 +573,9 @@ def get_seq_request_review_checklist(
             orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.library),
             orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.sample),
             orm.selectinload(models.SeqRequest.seq_auth_form_file),
+            orm.selectinload(models.SeqRequest.delivery_email_links),
             orm.selectinload(models.SeqRequest.checklist_logs).selectinload(models.ChecklistLog.actor),
+            *_submission_layout_options(),
         ],
     )
 
@@ -572,6 +587,7 @@ def get_seq_request_review_checklist(
         seq_request=seq_request,
         contains_mux_samples=contains_mux_samples,
         review_history=checklists.history(seq_request),
+        submission_layout_status=seq_request.get_submission_layout_status(),
         **checklist,
     )
 
@@ -673,41 +689,6 @@ def get_seq_request_sample_table(
 
     return responses.htmx_response(
         template="components/static-spreadsheet.html", seq_request=seq_request, spreadsheet=spreadsheet
-    )
-
-
-@router.delete("/{seq_request_id}/remove-share-email/{email}")
-def remove_seq_request_share_email(
-    seq_request_id: int,
-    email: str,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.delivery_email_links)],
-    )
-
-    if len(seq_request.delivery_email_links) == 1:
-        raise exc.NoPermissionsException()
-
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    share_email_link = session.first(
-        Q.links.get_seq_request_delivery_email_link(
-            seq_request_id=seq_request_id, email=email
-        )
-    )
-    if share_email_link is None:
-        raise exc.NotFoundException()
-
-    session.delete(share_email_link)
-
-    return responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-share-tab"),
-        flash=responses.flash("Removed email!", "success"),
     )
 
 

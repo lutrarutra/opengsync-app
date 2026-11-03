@@ -138,6 +138,28 @@ def test_get_routes_do_not_write_or_crash(
     assert fragments == []
 
 
+def test_edit_forms_select_the_stored_option(client: TestClient, session: SyncSession, admin, admin_token: str):
+    """A pre-filled select whose data does not match an option value (e.g. an enum instead of its id)
+    renders nothing selected, so the browser shows the first option and saving the form overwrites
+    the stored value."""
+    ids = _ids(session, admin)
+    unselected, requested = [], 0
+    for path, route in _routes(client.app.routes):
+        if "GET" not in route.methods or not re.search(r"/edit[^/]*$", path):
+            continue
+        url = re.sub(r"{(\w+)(?::\w+)?}", lambda m: str(ids.get(m.group(1), 1)), path)
+        response = get(client, url, admin_token, htmx=True)
+        if response.status_code != 200:
+            continue
+        requested += 1
+        for select in re.finditer(r'<select[^>]*name="([^"]+)".*?</select>', response.text, re.S):
+            if not re.search(r"<option[^>]*\bselected\b", select.group(0)):
+                unselected.append(f"{path}: {select.group(1)}")
+
+    assert requested > 15
+    assert unselected == []
+
+
 def _status(send) -> int | str:
     try:
         return send().status_code

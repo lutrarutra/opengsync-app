@@ -457,6 +457,31 @@ def test_edit_form_prefills_submission_type_and_group(
     assert re.search(rf'name="basic_info-group_id" value="{group.id}"', response.text)
 
 
+def _selected_option(html: str, field_name: str) -> str | None:
+    select = re.search(rf'<select[^>]*name="{field_name}".*?</select>', html, re.S)
+    assert select is not None
+    selected = re.search(r'<option value="([^"]*)"[^>]*\bselected\b', select.group(0))
+    return selected.group(1) if selected else None
+
+
+def test_edit_form_prefills_read_type_and_data_delivery_mode(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    request = create_seq_request(session, user)
+    request.read_type = C.ReadType.SINGLE_END
+    request.data_delivery_mode = C.DataDeliveryMode.READS_ONLY
+    session.commit()
+
+    response = get(client, f"/htmx/seq_requests/{request.id}/edit", token=user_token, htmx=True)
+
+    assert response.status_code == 200
+    assert _selected_option(response.text, "technical_info-read_type") == str(C.ReadType.SINGLE_END.id)
+    assert _selected_option(response.text, "technical_info-data_delivery_mode") == str(C.DataDeliveryMode.READS_ONLY.id)
+
+
 def test_edit_persists_pi_contact_fields(
     client: TestClient,
     session: SyncSession,
@@ -528,6 +553,52 @@ def test_optional_fields_can_be_omitted_on_create(
     assert request.pi_contact.email == "pi@example.com"
     assert request.billing_contact.phone is None
     assert request.billing_code is None
+
+
+def _share_emails(session: SyncSession, name: str) -> dict[str, C.DeliveryStatus]:
+    session.expire_all()
+    request = _created_request(session, name)
+    assert request is not None
+    return {link.email: link.status for link in request.delivery_email_links}
+
+
+def test_create_shares_data_with_contact_person(client: TestClient, session: SyncSession, user_token: str):
+    """Like the legacy app, the contact person receives the data by default."""
+    name = f"share-contact-{uuid4().hex}"
+
+    response = post_form(client, "/htmx/seq_requests/create", _request_payload(name), token=user_token)
+
+    assert response.status_code == 204
+    assert _share_emails(session, name) == {"contact@example.com": C.DeliveryStatus.PENDING}
+
+
+def test_create_shares_data_with_bioinformatician(client: TestClient, session: SyncSession, user_token: str):
+    name = f"share-bioinf-{uuid4().hex}"
+    payload = _request_payload(name, **{
+        "bioinformatician-name": "Bio Informatician",
+        "bioinformatician-email": "bioinf@example.com",
+    })
+
+    response = post_form(client, "/htmx/seq_requests/create", payload, token=user_token)
+
+    assert response.status_code == 204
+    assert _share_emails(session, name) == {
+        "contact@example.com": C.DeliveryStatus.PENDING,
+        "bioinf@example.com": C.DeliveryStatus.PENDING,
+    }
+
+
+def test_create_does_not_share_twice_with_same_email(client: TestClient, session: SyncSession, user_token: str):
+    name = f"share-dedupe-{uuid4().hex}"
+    payload = _request_payload(name, **{
+        "bioinformatician-name": "Same Person",
+        "bioinformatician-email": "contact@example.com",
+    })
+
+    response = post_form(client, "/htmx/seq_requests/create", payload, token=user_token)
+
+    assert response.status_code == 204
+    assert list(_share_emails(session, name)) == ["contact@example.com"]
 
 
 def test_create_form_keeps_legacy_defaults_for_unchanged_inputs():

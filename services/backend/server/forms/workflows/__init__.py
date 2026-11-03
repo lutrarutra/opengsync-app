@@ -13,6 +13,7 @@ from . import select_library_protocols
 from . import merge_projects
 from . import split_project
 from . import index_check
+from . import sample_submission_layout
 
 __all__ = [
     "library_annotation",
@@ -29,4 +30,5 @@ __all__ = [
     "merge_projects",
     "split_project",
     "index_check",
+    "sample_submission_layout",
 ]

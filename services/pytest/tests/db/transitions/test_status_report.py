@@ -36,7 +36,7 @@ def test_draft_request_next_step_is_submit(session: SyncSession):
     assert report.next_title == "Submit"
     submit = _way(report.next_ways, "request.submit")
     assert submit.started_here and not submit.available  # no auth form uploaded yet
-    assert [b.text for b in report.next_blockers] == ["not: request is submittable (auth form uploaded, libraries annotated)"]
+    assert [b.text for b in report.next_blockers] == ["not: request is submittable (auth form uploaded, libraries annotated, share emails added)"]
     # 'status is DRAFT, needs ...' is not shown: unarchive does not apply to a draft
     assert all(w.operation.id != "request.unarchive" for w in report.other_ways)
 

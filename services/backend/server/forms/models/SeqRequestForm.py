@@ -425,10 +425,10 @@ class SeqRequestForm(HTMXForm):
             form.basic_info.group_id.data = form.seq_request.group_id
 
             # Technical info
-            form.technical_info.read_type.data = form.seq_request.read_type
+            form.technical_info.read_type.data = form.seq_request.read_type.id
             form.technical_info.read_length.data = form.seq_request.read_length
             form.technical_info.num_lanes.data = form.seq_request.num_lanes
-            form.technical_info.data_delivery_mode.data = form.seq_request.data_delivery_mode
+            form.technical_info.data_delivery_mode.data = form.seq_request.data_delivery_mode.id
             form.technical_info.special_requirements.data = (
                 form.seq_request.special_requirements or ""
             )
@@ -565,6 +565,13 @@ class SeqRequestForm(HTMXForm):
                     ),
                     flush=True,
                 )
+                # The contact person (or requestor) and bioinformatician receive the data by default
+                share_emails = [contact_person.email or requestor.email]
+                if bioinformatician is not None and bioinformatician.email:
+                    share_emails.append(bioinformatician.email)
+                for email in dict.fromkeys(e.strip() for e in share_emails if e):
+                    seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(email=email, status=C.DeliveryStatus.PENDING))
+                session.save(seq_request)
 
             return responses.htmx_response(
                 redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),

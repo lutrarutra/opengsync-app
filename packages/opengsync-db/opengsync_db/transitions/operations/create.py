@@ -5,6 +5,7 @@ from ._common import collect
 REQUEST_CREATE = operation(
     "request.create", "Create request", K.ACTION, E.SEQ_REQUEST,
     effect(E.SEQ_REQUEST, NEW, RQ.DRAFT),
+    effect(E.DELIVERY_LINK, NEW, DL.PENDING, via="delivery_email_links"),
     where=[B + "forms/models/SeqRequestForm.py"],
 )
 

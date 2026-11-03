@@ -1,6 +1,10 @@
+{% from "components/plate.jinja2" import plate_print_button %}
 {% for plate in plates %}
-<h3>{{ plate.name }}</h3>
+<div class="d-flex justify-content-between align-items-center">
+    <h3>{{ plate.name }}</h3>
+    {{ plate_print_button(plate) }}
+</div>
 <div class="pb-3">
-    {% include "components/plate.html" %}
+    {% with hide_print_button = true %}{% include "components/plate.html" %}{% endwith %}
 </div>
 {% endfor %}

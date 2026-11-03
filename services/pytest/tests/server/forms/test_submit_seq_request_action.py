@@ -4,7 +4,7 @@ Access control:
 - **Init()** requires WRITE on the seq request (owner / insider / admin).
 - **GET (Render)** has no extra auth — anyone with WRITE can view.
 - **POST (Submit)** is open to anyone with WRITE; non-insiders additionally
-  need ``is_submittable()`` (at least one library and a signed auth form).
+  need ``is_submittable()`` (at least one library, a signed auth form and a share email).
 - Only DRAFT seq requests can be submitted.
 """
 
@@ -46,11 +46,14 @@ def _payload(**overrides: object) -> dict[str, str]:
 
 
 def _seq_request_with_library(
-    session: SyncSession, user: models.User,
+    session: SyncSession, user: models.User, share_email: bool = True,
 ) -> models.SeqRequest:
-    """Create a DRAFT seq request with one library (so it is submittable)."""
+    """Create a DRAFT seq request with one library and a share email (submittable once the auth form is attached)."""
     seq_request = create_seq_request(session, user)
     create_library(session, user, seq_request)
+    if share_email:
+        seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(email="share@example.com"))
+        session.save(seq_request)
     session.commit()
     return seq_request
 
@@ -168,6 +171,49 @@ def test_submit_owner_without_auth_form_is_400(
     assert session.first(
         Q.seq_request.select(id=seq_request.id)
     ).status == C.SeqRequestStatus.DRAFT
+
+
+def test_submit_owner_without_share_email_is_400(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+):
+    seq_request = _seq_request_with_library(session, user, share_email=False)
+    _attach_auth_form(session, seq_request)
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(samples_delivered_by_mail="on"),
+        token=user_token,
+    )
+
+    assert response.status_code == 400
+    session.expire_all()
+    assert session.first(
+        Q.seq_request.select(id=seq_request.id)
+    ).status == C.SeqRequestStatus.DRAFT
+
+
+def test_submit_insider_without_share_email_is_allowed(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    insider_token: str,
+):
+    """Insiders can still submit on the customer's behalf."""
+    seq_request = _seq_request_with_library(session, user, share_email=False)
+    _attach_auth_form(session, seq_request)
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(samples_delivered_by_mail="on"),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
 
 
 def test_submit_denied_for_stranger(

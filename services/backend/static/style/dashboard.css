@@ -15,10 +15,31 @@
     padding: 0;
     gap: 10px;
 
+    /* assignee initials: soft circle like .feed-chip, pale blue (others) or stronger green (current user) */
     .assignee-badge {
-        height: 20px;
+        flex: none;
+        height: 24px;
         width: 24px;
-        font-size: 12px !important;
+        padding: 0;
+        border-radius: 50%;
+        letter-spacing: -0.02em;
+        border: 1px solid #b8e4ee;
+        background-color: #eaf7fa;
+        color: var(--color-cemm-blue-dark) !important;
+        font-size: 11px !important;
+        font-weight: 600;
+
+        &.badge-success {
+            background-color: #e3f0c8;
+            border-color: var(--color-cemm-green);
+            color: var(--color-cemm-green-dark) !important;
+        }
+
+        &.btn:hover {
+            background-color: #fbeaea !important;
+            border-color: #f0c4c4;
+            color: var(--color-cemm-red-dark) !important;
+        }
     }
 
     .dash-left,
@@ -203,6 +224,15 @@
         & .status-label {
             font-size: 0.8rem;
             color: var(--color-gray-600);
+        }
+
+        & > .feed-chips {
+            margin-left: auto;
+            min-width: 0;
+            flex-wrap: nowrap;
+            padding-top: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
     }
 }

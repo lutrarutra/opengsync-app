@@ -1,0 +1,70 @@
+{% from "components/plate.jinja2" import plate_grid %}
+{# How the samples/libraries/pools of `seq_request` are handed in; needs submission_layout (with sample, library, pool) loaded. #}
+
+{% macro item_link(entry, class) -%}
+{% if entry.sample_id %}{% set href = url_for('sample_page', sample_id=entry.sample_id) %}
+{% elif entry.library_id %}{% set href = url_for('library_page', library_id=entry.library_id) %}
+{% else %}{% set href = url_for('pool_page', pool_id=entry.pool_id) %}{% endif %}
+<a href="{{ href }}" class="{{ class }}" title="{{ entry.item_name }}">{{ caller() }}</a>
+{%- endmacro %}
+
+{% set layout_type = seq_request.submission_layout_type %}
+{% if layout_type is none or not seq_request.submission_layout %}
+<p class="text-body-secondary">No submission layout specified.</p>
+{% else %}
+{# Unique per include: the submit and review checklists can both be on the page #}
+{% set print_id = "submission-layout-" ~ (submission_layout_context | default("view")) ~ "-" ~ seq_request.id %}
+{# Set heading; the first one carries the print button (not printed itself) #}
+{% macro set_heading(first, print_id) -%}
+<div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+    <h6 class="m-0">{{ caller() }}</h6>
+    {% if first %}
+    <button type="button" class="btn btn-sm btn-outline-secondary d-print-none" onclick="print_div('{{ print_id }}')" title="Print layout">
+        <i class="bi bi-printer"></i> Print
+    </button>
+    {% endif %}
+</div>
+{%- endmacro %}
+{# Each plate/tube set prints on its own as {{ print_id }}-set-<n> (e.g. from the lab prep checklist) and repeats the request heading #}
+<div id="{{ print_id }}">
+    {% for set_name, entries in seq_request.get_submission_layout_sets().items() %}
+    <div id="{{ print_id }}-set-{{ loop.index }}">
+    <div class="submission-layout{% if layout_type == C.SubmissionLayoutType.PLATE %} plate-layout{% endif %}">
+    <p class="print-only small fw-bold layout-request">[{{ seq_request.identifier }}] {{ seq_request.name }} - {{ seq_request.requestor.name }} - Sample Submission</p>
+    {% if layout_type == C.SubmissionLayoutType.PLATE %}
+    {% call set_heading(loop.first, print_id) %}<i class="bi {{ layout_type.icon }}"></i> {{ set_name or "Plate" }} <span class="text-body-secondary">({{ entries | length }} well{{ "" if entries | length == 1 else "s" }})</span>{% endcall %}
+    {% set wells = {} %}
+    {% for entry in entries %}{% set _ = wells.update({entry.position: entry}) %}{% endfor %}
+    <div class="plate-container mb-3">
+        {% call(row, col) plate_grid(8, 12) %}
+        {% set well = "ABCDEFGH"[row] ~ (col + 1) %}
+        {% if well in wells %}
+        {% call item_link(wells[well], "plate-cell filled") %}{{ wells[well].item_name }}{% endcall %}
+        {% else %}
+        <div class="plate-cell empty">&nbsp;</div>
+        {% endif %}
+        {% endcall %}
+    </div>
+    {% else %}
+    {% call set_heading(loop.first, print_id) %}<i class="bi {{ layout_type.icon }}"></i> {{ set_name or "Tubes" }} <span class="text-body-secondary">({{ entries | length }} tube{{ "" if entries | length == 1 else "s" }})</span>{% endcall %}
+    <div class="tube-set mb-3">
+        {# Rows of 12 for printing; on screen the tubes wrap freely #}
+        {% for tube_row in entries | batch(12) %}
+        <div class="tube-row">
+            {% for entry in tube_row %}
+            {% call item_link(entry, "tube") %}
+            <span class="tube-label">{{ entry.position }}</span>
+            <span class="tube-item">{{ entry.item_name }}</span>
+            {# Tube sets can span pages: every printed tube names its request #}
+            <span class="tube-request print-only">{{ seq_request.identifier }}</span>
+            {% endcall %}
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

@@ -1,3 +1,4 @@
+{% from "components/button.jinja2" import modal_button %}
 {% from "components/legends.jinja2" import index_badge_legend %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
@@ -171,6 +172,39 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_share_emails" aria-expanded="false" aria-controls="request-review-accordion-check_share_emails">
+                <b>{% if check_share_emails %}✅{% if not seq_request.delivery_email_links %}❗{% endif %}{% else %}{% if seq_request.delivery_email_links %}⚠️{% else %}❗{% endif %}{% endif %} Check Data Share Emails</b> {{ checklist_last_change(review_history.get("check_share_emails", []), check_share_emails) }}
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_share_emails" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that the data will be shared with the right people, e.g. the contact person and the bioinformatician.</li>
+                    <li>Check that the email addresses look valid (no typos).</li>
+                </ul>
+                <hr>
+                <div hx-get="{{ url_for('AddSeqRequestShareEmailAction.Begin', seq_request_id=seq_request.id, context='review') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+                <hr>
+                {% if not check_share_emails %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_share_emails') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_share_emails') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+                {{ checklist_history_button("request-review-check_share_emails", review_history.get("check_share_emails", [])) }}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-auth_form_checked" aria-expanded="false" aria-controls="request-review-accordion-auth_form_checked">
                 <b>{% if auth_form_checked %}✅{% if seq_request.seq_auth_form_file is none %}❗{% endif %}{% else %}{% if seq_request.seq_auth_form_file is not none %}⚠️{% else %}❗{% endif %}{% endif %} Check Sequencing Authorization Form</b> {{ checklist_last_change(review_history.get("auth_form_checked", []), auth_form_checked) }}
             </button>
@@ -327,6 +361,47 @@
                 </button>
                 {% endif %}
                 {{ checklist_history_button("request-review-samples_checked", review_history.get("samples_checked", [])) }}
+            </div>
+        </div>
+    </div>
+    {% set layout_not_relevant = not seq_request.submission_layout and not submission_layout_status.required and not submission_layout_checked %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" {% if layout_not_relevant %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-submission_layout_checked" aria-expanded="false" aria-controls="request-review-accordion-submission_layout_checked">
+                {% if layout_not_relevant %}
+                <b>🚫 Check Sample Submission Layout</b>
+                {% else %}
+                <b>{% if submission_layout_checked %}✅{% if not seq_request.submission_layout %}❗{% endif %}{% else %}{% if seq_request.submission_layout %}⚠️{% else %}❗{% endif %}{% endif %} Check Sample Submission Layout</b> {{ checklist_last_change(review_history.get("submission_layout_checked", []), submission_layout_checked) }}
+                {% endif %}
+            </button>
+        </h2>
+        <div id="request-review-accordion-submission_layout_checked" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Every {{ submission_layout_status.kind }} of the request has a tube or well ({{ submission_layout_status.num_placed }} of {{ submission_layout_status.num_deliverables }} placed).</li>
+                    <li>The tubes or plates handed in match the layout: labels and wells are correct and readable, nothing is missing or extra.</li>
+                    <li>Edit the layout if it does not match what was handed in.</li>
+                </ul>
+                {% with submission_layout_context = "review" %}{% include "components/sample_submission_layout.html" %}{% endwith %}
+                {{
+                    modal_button(
+                        text="Edit Layout", size="fullscreen",
+                        url=url_for('SampleSubmissionLayoutWorkflow.Begin', seq_request_id=seq_request.id),
+                    )
+                }}
+                {% if not submission_layout_checked %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='submission_layout_checked') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='submission_layout_checked') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+                {{ checklist_history_button("request-review-submission_layout_checked", review_history.get("submission_layout_checked", [])) }}
             </div>
         </div>
     </div>

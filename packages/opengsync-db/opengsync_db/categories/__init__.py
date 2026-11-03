@@ -23,6 +23,7 @@ from .RunStatus import RunStatus
 from .AttributeType import AttributeType
 from .IndexType import IndexType
 from .SubmissionType import SubmissionType
+from .SubmissionLayoutType import SubmissionLayoutType
 from .LabChecklistType import LabChecklistType
 from .ChecklistType import ChecklistType
 from .EventType import EventType
@@ -66,6 +67,7 @@ __all__ = [
     "AttributeType",
     "IndexType",
     "SubmissionType",
+    "SubmissionLayoutType",
     "LabChecklistType",
     "ChecklistType",
     "EventType",

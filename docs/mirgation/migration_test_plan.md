@@ -371,7 +371,7 @@ For every action, test GET/render, valid POST, invalid POST, CSRF, authorization
 
 - [x] `AddProjectAssigneeAction`: add valid assignee; duplicate assignee; invalid user; CSRF; insider permissions; 404.
 - [x] `AddSeqRequestAssigneeAction`: add valid assignee; assign another user (not the submitter); duplicate; non-insider rejected; insider permissions; CSRF; 404. Dashboard `self_assign_seq_request` route tested separately. *(See §6.)*
-- [x] `AddSeqRequestShareEmailAction`: valid email; duplicate email; permission checks; CSRF; 404.
+- [x] `AddSeqRequestShareEmailAction` (inline share-email list on Share tab, submit + review checklists): add (READ, any status), remove (WRITE, keeps one), review context INSIDER-only; duplicate email; CSRF; 404.
 - [x] `ProcessSeqRequestAction`: accept; reject; pending revision; comment; assign to self; insider permissions; CSRF; 404.
 - [x] `SubmitSeqRequestAction`: valid submission; missing required fields; invalid state; owner versus insider behavior; CSRF; 404.
 - [x] `AddUserToGroupAction`: add member; nonexistent user; owner affiliation rejected; duplicate user; WRITE permission; CSRF; 404.

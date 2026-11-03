@@ -1,0 +1,102 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+{% set item = form.kind_label %}
+{% set set_title = form.spreadsheet.columns["set_name"].name %}
+{% set position_title = form.spreadsheet.columns["position"].name %}
+
+<div id="sample-submission-layout-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Sample Submission Layout: {{ form.layout_type.label }}</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
+                aria-controls="form-tab-spreadsheet" aria-selected="true">
+                Sheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-help" type="button" role="tab"
+                aria-controls="form-tab-help" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
+                {% if not form.is_plate %}
+                <p class="my-2">If the label on the tube differs from the {{ item | lower }} name, specify the label on the tube in '{{ position_title }}' -column.</p>
+                {% endif %}
+                {{ form.spreadsheet.render(target_element_id="sample-submission-layout-container", submit_btn_id="parse-spreadsheet-btn") }}
+            </div>
+            <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ul>
+                        <li>The sheet lists every {{ item | lower }} of the request, one per row. Fill in where each one is when you hand it in.</li>
+                        {% if form.is_plate %}
+                        <li>All plates are 96-well plates (rows A-H, columns 1-12).</li>
+                        {% endif %}
+                        <li>You can copy-paste the {{ set_title }} and {{ position_title }} columns from Excel or another spreadsheet.</li>
+                    </ul>
+                    <h5>Columns</h5>
+                    <ul>
+                        <li>
+                            <b>{{ item }}</b> <span class="desc">read-only</span>
+                            <ul>
+                                <li>The {{ item | lower }}s of the request, shown by name (with the ID where two have the same name). They cannot be changed here.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>{{ set_title }}</b> <span class="desc">optional</span>
+                            <ul>
+                                {% if form.is_plate %}
+                                <li>The name or barcode written on the plate, e.g. <i>plate_1</i>.</li>
+                                <li>Leave it empty if everything is on one plate. All rows with an empty {{ set_title }} are on the same plate.</li>
+                                {% else %}
+                                <li>The name of the box, rack or bag the tube is in, e.g. <i>box_1</i>.</li>
+                                <li>Leave it empty if all tubes come together. All rows with an empty {{ set_title }} belong to the same set.</li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        <li>
+                            <b>{{ position_title }}</b> <span class="desc">required</span>
+                            <ul>
+                                {% if form.is_plate %}
+                                <li>The well of the {{ item | lower }}: a row letter A-H followed by a column number 1-12, e.g. <i>A1</i>, <i>B12</i> or <i>H7</i>.</li>
+                                <li>Leading zeros are allowed (<i>A01</i> is <i>A1</i>), and so is lower case.</li>
+                                <li>Two {{ item | lower }}s cannot be in the same well of the same plate.</li>
+                                {% else %}
+                                <li>What is written on the tube, e.g. a number <i>1</i>, <i>2</i>, ... or a short label.</li>
+                                <li>Two {{ item | lower }}s cannot have the same label in the same tube set. Labels that differ only in upper/lower case count as the same.</li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                    </ul>
+                    <h5>Example</h5>
+                </div>
+                {% if example_spreadsheet is defined %}{{ example_spreadsheet.render(height="220px") }}{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#sample-submission-layout-container" hx-swap="outerHTML"
+            hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn">
+                Save
+            </button>
+        </div>
+    </div>
+</div>

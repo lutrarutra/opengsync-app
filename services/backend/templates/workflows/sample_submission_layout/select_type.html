@@ -1,0 +1,50 @@
+{% macro option_cards(field, options) -%}
+{% set selected = field.data if field.data is not none else field._data %}
+<div class="submission-type-options" role="radiogroup" aria-label="{{ field.label }}">
+    {% for value, label, icon, description in options %}
+    <input type="radio" class="btn-check" name="{{ field.name }}" id="{{ field.id }}-{{ value }}" value="{{ value }}" autocomplete="off"
+        {% if selected is not none and selected|string == value|string %}checked{% endif %}>
+    <label class="submission-type-option{% if field.errors %} is-invalid{% endif %}" for="{{ field.id }}-{{ value }}">
+        <i class="bi {{ icon }}"></i>
+        <span class="submission-type-label">{{ label }}</span>
+        <span class="submission-type-description">{{ description }}</span>
+    </label>
+    {% endfor %}
+</div>
+<div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+    {% for error in field.errors %}
+    <p>{{ error }}</p>
+    {% endfor %}
+</div>
+{%- endmacro %}
+
+<div id="sample-submission-layout-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Sample Submission Layout</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick="confirm_close_modal('#fullscreen-modal')"></button>
+    </div>
+    <div class="modal-body">
+        {{ form.render_general_errors() }}
+        <p>Tell us how the {{ form.items_label }} of this request are packed when you hand them in.</p>
+        {% if form.is_qc_only %}
+        <h6>What are you handing in?</h6>
+        {{ option_cards(form.kind, form.KIND_OPTIONS) }}
+        {% endif %}
+        <h6>How are they packed?</h6>
+        {{ option_cards(form.layout_type, form.LAYOUT_OPTIONS) }}
+        {{ form.csrf_token.render() }}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-primary"
+                hx-target="#sample-submission-layout-container" hx-swap="outerHTML"
+                hx-include="#sample-submission-layout-container"
+                hx-post="{{ form.post_url }}">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

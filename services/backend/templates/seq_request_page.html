@@ -238,12 +238,6 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#request-share-tab" type="button" role="tab"
-            aria-controls="request-share-tab" aria-selected="true"
-            id="request-share-tab-btn">Share {{ tab_count(seq_request.num_delivery_email_links) }}</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-projects-tab" type="button" role="tab"
             aria-controls="request-projects-tab" aria-selected="true"
             id="request-projects-tab-btn">Projects {{ tab_count(seq_request.num_projects) }}</button>
@@ -259,6 +253,12 @@
             data-bs-target="#request-data_paths-tab" type="button" role="tab"
             aria-controls="request-data_paths-tab" aria-selected="true">
             Data {{ tab_count(seq_request.num_data_paths) }}</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-share-tab" type="button" role="tab"
+            aria-controls="request-share-tab" aria-selected="true"
+            id="request-share-tab-btn">Share <span id="request-share-tab-count">{{ tab_count(seq_request.num_delivery_email_links) }}</span></button>
         </li>
         {% if reviewed %}{{ review_tab_button(active=false) }}{% endif %}
     </ul>
@@ -487,44 +487,7 @@
                 {{ spinner() }}
             </div>
         </div>  
-        <div class="tab-pane fade" id="request-share-tab" role="tabpanel" tabindex="10">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>The data will be shared with following emails:</h2>
-                </div>
-                <div>
-                    {{ modal_button("Add Email", url=url_for('AddSeqRequestShareEmailAction.Begin', seq_request_id=seq_request.id), tooltip_position="left") }}
-                </div>
-            </div>     
-            {% set only_one = seq_request.delivery_email_links | length == 1 %}
-            {% set can_remove_email = seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}
-            <div class="share-email-list">
-                {% for link in seq_request.delivery_email_links %}
-                <div class="row">
-                    <div class="col-7">
-                        {{ metadata_group_email_link("Recipient", link.email, class="col") }}
-                    </div>
-                    <div class="col-4">
-                        {{ metadata_group("Status", link.status.label + " " + link.status.icon, class="col") }}
-                    </div>
-                    <div class="col-1 remove-btn-container">
-                        <span
-                        {% if only_one %}
-                            {{ tooltip('Atleast one email is required. Add another email to remove this.', category='danger') }}
-                        {% elif not can_remove_email %}
-                            {{ tooltip('Only insiders can remove emails from a submitted request.', 'left', 'warning') }}
-                        {% endif %}>
-                            <button class="btn btn-danger" {% if only_one or not can_remove_email %}disabled{% endif %}
-                            hx-delete="{{ url_for('remove_seq_request_share_email', seq_request_id=seq_request.id, email=link.email) }}">
-                                Remove
-                            </button>
-                        </span>
-                    </div>        
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="11">
+        <div class="tab-pane fade" id="request-projects-tab" role="tabpanel" tabindex="11">
             <div hx-get="{{ url_for('render_project_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
@@ -557,7 +520,14 @@
             {% endif %}
             {{ file_browser('seq_request_browser_entries', {'seq_request_id': seq_request.id}, trigger='intersect once', search_route='seq_request_browser_search' if fs_index_enabled is defined and fs_index_enabled else none) }}
         </div>
-        {% if reviewed %}{{ review_tab_pane(active=false, tabindex=14) }}{% endif %}
+        <div class="tab-pane fade" id="request-share-tab" role="tabpanel" tabindex="14">
+            <h3>Data Share Emails</h3>
+            <p class="text-muted mb-0">Once the data is ready, these addresses receive instructions on how to access and download it.</p>
+            <div hx-get="{{ url_for('AddSeqRequestShareEmailAction.Begin', seq_request_id=seq_request.id, context='share') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% if reviewed %}{{ review_tab_pane(active=false, tabindex=15) }}{% endif %}
     </div>
 </div>
 

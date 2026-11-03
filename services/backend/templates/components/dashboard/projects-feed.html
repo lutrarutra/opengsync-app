@@ -22,16 +22,23 @@ hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger=
         <span><i class="bi bi-eyedropper"></i>{{ project.num_samples }} samples</span>
         {% if project.group %}<span>{{ project.group.type.icon }} {{ project.group.name }}</span>{% endif %}
     </div>
-    {% if project.library_status_counts %}
+    {% if project.library_types %}
     <div class="feed-chips">
-        {% for status, count in project.library_status_counts.items() %}
-        <span class="feed-chip">{{ status.icon }} {{ status.label }} <b>{{ count }}</b></span>
+        {% for library_type in project.library_types %}
+        <span class="feed-chip" {{ tooltip(library_type.label) }}>{{ library_type.identifier }}</span>
         {% endfor %}
     </div>
     {% endif %}
     <div class="status-row">
         {{ project_status_bar(project) }}
         <span class="status-label">{{ project.status.label }} {{ project.status.icon | safe }}</span>
+        {% if project.library_status_counts %}
+        <div class="feed-chips">
+            {% for status, count in project.library_status_counts.items() %}
+            <span class="feed-chip">{{ status.icon }} {{ status.label }} <b>{{ count }}</b></span>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endfor %}

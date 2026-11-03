@@ -65,6 +65,65 @@
             </div>
         </div>
     </div>
+    {% set layout_items = {"sample": "samples", "library": "libraries", "pool": "pools"}[submission_layout_status.kind] %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-layout" aria-expanded="false" aria-controls="request-submit-accordion-layout">
+                <b>{% if submission_layout_added is none %}❗{% elif submission_layout_added %}✅{% elif not submission_layout_required %}🔘{% else %}⚠️{% endif %} Specify Sample Submission Layout{% if not submission_layout_required %} (Optional){% endif %}</b>
+            </button>
+        </h2>
+        <div id="request-submit-accordion-layout" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
+            <div class="accordion-body">
+                <p>Tell us how your {{ "samples or libraries" if seq_request.submission_type == C.SubmissionType.QC_ONLY else layout_items }} are packed when you hand them in: in labelled tubes or in the wells of 96-well plates.</p>
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        {{
+                            modal_button(
+                                text="Begin", size="fullscreen",
+                                url=url_for('SampleSubmissionLayoutWorkflow.Begin', seq_request_id=seq_request.id),
+                                disabled=(not current_user.is_insider and seq_request.status != C.SeqRequestStatus.DRAFT) or submission_layout_added is none,
+                                disabled_tooltip="Request cannot be edited after submission." if seq_request.status != C.SeqRequestStatus.DRAFT else "Add samples to the request first.",
+                            )
+                        }} - Sample Submission Layout Workflow
+                    </li>
+                </ol>
+                <b>Notes</b>:
+                <ul>
+                    {% if not submission_layout_required %}
+                    <li>Only one {{ submission_layout_status.kind }} is handed in, so this step is optional.</li>
+                    {% endif %}
+                    {% if submission_layout_status.num_placed > 0 %}
+                    <li>{{ submission_layout_status.num_placed }} of {{ submission_layout_status.num_deliverables }} {{ layout_items }} have a position.{% if submission_layout_status.num_placed < submission_layout_status.num_deliverables %} Run the workflow again to place the others.{% endif %}</li>
+                    {% endif %}
+                    <li>You can run the workflow again to change the layout as long as the request is not submitted.</li>
+                </ul>
+                {% if seq_request.submission_layout %}
+                {% with submission_layout_context = "submit" %}{% include "components/sample_submission_layout.html" %}{% endwith %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-share_emails" aria-expanded="false" aria-controls="request-submit-accordion-share_emails">
+                <b><span id="request-submit-share-emails-icon">{% if share_emails_added %}✅{% else %}⚠️{% endif %}</span> Add Data Share Emails</b>
+            </button>
+        </h2>
+        <div id="request-submit-accordion-share_emails" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
+            <div class="accordion-body">
+                <p>Once the data is processed, we send instructions on how to access and download it to these email addresses.</p>
+                <div hx-get="{{ url_for('AddSeqRequestShareEmailAction.Begin', seq_request_id=seq_request.id, context='submit') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+                <b>Notes</b>:
+                <ul>
+                    <li>At least one email is required to submit the request.</li>
+                    <li>You can add more recipients at any time, also after the request is submitted.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-3" aria-expanded="false" aria-controls="request-submit-accordion-3">
@@ -80,6 +139,7 @@
                             <li><button type="button" class="btn btn-primary" onclick="open_tab('request-overview')">Review</button> - Overview of the Sequencing Request</li>
                             <li><b>Number of samples: {{ seq_request.num_samples }}</b></li>
                             <li><b>Number of libraries: {{ seq_request.num_libraries }}</b> {% for library_type, count in seq_request.library_type_counts.items() %}<span class="badge">{{ library_type.abbreviation }} ({{ count }})</span> {% endfor %}</li>
+                            <li><b>Submission layout: {% if seq_request.submission_layout_type and seq_request.submission_layout %}{{ seq_request.submission_layout_type.label }}{% else %}not specified{% endif %}</b></li>
                         </ul>
                     </li>
                     <li>If times for sample submission (listed below) are not suitable, please contact us <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> to arrange an alternative submission time.</li>
@@ -89,7 +149,7 @@
                                 text="Submit", size="xl", color="success",
                                 url=url_for('SubmitSeqRequestAction.Submit', seq_request_id=seq_request.id),
                                 disabled=seq_request.status != C.SeqRequestStatus.DRAFT or (not is_submittable and not current_user.is_insider),
-                                disabled_tooltip="Request has already been submitted." if seq_request.status != C.SeqRequestStatus.DRAFT else "Add samples and upload the signed authorization form first.",
+                                disabled_tooltip="Request has already been submitted." if seq_request.status != C.SeqRequestStatus.DRAFT else "Add samples, upload the signed authorization form and add at least one share email first.",
                             )
                         }} - Sequencing Request for Review
                     </li>
@@ -134,7 +194,7 @@
                         After sequencing is complete and the data is processed and ready, we will notify the contact person ({{ seq_request.contact_person.email or seq_request.requestor.email }}) with instructions on how to access and download the data.
                     </li>
                     <li>
-                        You can add additional email recipients in "Share"-tab of the sequencing request.
+                        You can add additional email recipients in the "Share"-tab of the sequencing request.
                     </li>
                 </ol>
             </div>
