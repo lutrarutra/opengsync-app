@@ -126,6 +126,26 @@
     text-decoration: underline;
 }
 
+/* Ordered by a named sorting of the column: its title and direction instead of the arrow */
+.jss_worksheet > thead > tr > td[data-order] {
+    background-image: none;
+}
+
+.jss_worksheet > thead > tr > td[data-order]::after {
+    content: attr(data-order);
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    padding: 0 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: inherit;
+    color: gray;
+    font-size: 0.8em;
+    line-height: 1.4;
+}
+
 .jss_worksheet > tbody > tr > td:first-child {
     position: relative;
     background-color: #f3f3f3;

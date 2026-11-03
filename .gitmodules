@@ -1,0 +1,4 @@
+[submodule "vendor/jspreadsheet-ce"]
+	path = vendor/jspreadsheet-ce
+	url = git@github.com:lutrarutra/ce.git
+	branch = master
