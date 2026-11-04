@@ -6,7 +6,7 @@ from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, exceptions as exc, responses, redis as rds
+from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
 from ...components.tables.spreadsheet import TextColumn, DropdownColumn, DBObjectColumn
 from ..HTMXForm import RouteFunc, htmx_route, HTMXForm, FormFunc
@@ -92,7 +92,6 @@ class RejectSamplesAction(HTMXForm):
         def route(
             form: "RejectSamplesAction" = Depends(RejectSamplesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            r: rds.RedisClient = Depends(dependencies.redis),
         ) -> Response:
             if (lab_prep := session.first(Q.lab_prep.select(id=form.lab_prep_id))) is None:
                 raise exc.NotFoundException()
@@ -119,10 +118,7 @@ class RejectSamplesAction(HTMXForm):
                     else:
                         continue
 
-                    session.save(sample)
-                    # Write access depends on the sample status
-                    for key in r.scan_iter(match=f"access:sample:{sample.id}:user:*"):
-                        r.delete(key)
+                    session.save(sample)  # cached write access is dropped on commit (core/access_cache.py)
 
             return responses.htmx_response(
                 redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep_id),

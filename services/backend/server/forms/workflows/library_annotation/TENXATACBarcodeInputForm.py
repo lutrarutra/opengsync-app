@@ -230,7 +230,7 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
                 if pd.notna(row["index_well"]) and row["index_well"] == "del":
                     continue
                 if row["library_name"] not in form.library_table["library_name"].values:
-                    form.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
+                    form.spreadsheet.add_error(idx, "library_name", InvalidCellValue(f"Invalid value for '{form.spreadsheet.header('library_name')}'"))
 
                 if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
                     if pd.notna(row["kit"]):

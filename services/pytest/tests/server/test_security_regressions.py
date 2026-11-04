@@ -1012,3 +1012,23 @@ def test_tokens_round_trip_with_secret_key(user):
     assert secrets.verify_registration_token(
         secrets.generate_registration_token("new@example.com", C.UserRole.CLIENT),
     ) == ("new@example.com", C.UserRole.CLIENT)
+
+
+# ── customer test 2026-11-04 ────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("name", ["bock lab", "  Bock Lab ", "BOCK LAB"])
+def test_group_name_lookalike_is_rejected(client: TestClient, session: SyncSession, user_token: str, name: str):
+    session.save(Q.group.create(name="Bock Lab", type=C.GroupType.RESEARCH_GROUP), flush=True)
+    session.commit()
+
+    response = post_form(client, "/htmx/groups/create", {"name": name, "group_type": str(C.GroupType.RESEARCH_GROUP.id)}, user_token)
+    assert response.status_code == 202
+    assert "A group with this name already exists." in response.text
+
+
+def test_responses_carry_security_headers(client: TestClient, user_token: str):
+    for response in (get(client, "/", user_token), get(client, "/auth/login")):
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+        assert response.headers["Referrer-Policy"] == "same-origin"

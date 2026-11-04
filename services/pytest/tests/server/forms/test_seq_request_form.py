@@ -3,9 +3,10 @@
 import re
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncSession, queries as Q, categories as C
+from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...db.create_units import create_contact, create_group, create_seq_request
 from .._http import assert_form_invalid, get, post_form
@@ -231,7 +232,7 @@ def test_edit_persists_all_billing_contact_fields(
             **{
                 "billing-name": "New Billing",
                 "billing-email": "new-billing@example.com",
-                "billing-phone": "new phone",
+                "billing-phone": "+43 1 555 0300",
                 "billing-address": "New address",
             },
         ),
@@ -243,7 +244,7 @@ def test_edit_persists_all_billing_contact_fields(
     session.refresh(request)
     assert request.billing_contact.name == "New Billing"
     assert request.billing_contact.email == "new-billing@example.com"
-    assert request.billing_contact.phone == "new phone"
+    assert request.billing_contact.phone == "+43 1 555 0300"
     assert request.billing_contact.address == "New address"
 
 
@@ -1003,3 +1004,76 @@ def test_contact_step_is_not_prefilled_again(client: TestClient, session: SyncSe
     response = post_form(client, "/htmx/seq_requests/create/step", payload, token=insider_token)
 
     assert _pi(response) == ("", "")
+
+
+# ── Length and range limits (customer test 2026-11-04) ───────────────────────
+# A 300-character name passed every step and the Create failed with a 500; a read length beyond the
+# integer column passed its step and the Create answered "Invalid request." with no field marked.
+
+
+@pytest.mark.parametrize("field, step, limit", [
+    ("basic_info-name", "basic_info", models.SeqRequest.name.type.length),
+    ("basic_info-description", "basic_info", models.SeqRequest.description.type.length),
+    ("technical_info-special_requirements", "technical_info", models.SeqRequest.special_requirements.type.length),
+    ("contact-name", "contact", models.Contact.name.type.length),
+    ("contact-phone", "contact", models.Contact.phone.type.length),
+    ("organization-name", "organization", models.Contact.name.type.length),
+    ("billing-code", "billing", models.SeqRequest.billing_code.type.length),
+])
+def test_overlong_value_is_a_field_error_at_its_step(client: TestClient, user_token: str, field: str, step: str, limit: int):
+    payload = _request_payload(f"long-{uuid4().hex}", **{field: "x" * (limit + 1)}, step=step)
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
+    assert_form_invalid(response)
+    assert _active_step(response) == step
+
+    response = post_form(client, "/htmx/seq_requests/create", _request_payload(f"long-{uuid4().hex}", **{field: "x" * (limit + 1)}), token=user_token)
+    assert_form_invalid(response)
+
+
+@pytest.mark.parametrize("value", ["999999999999", "0"])
+def test_read_length_out_of_range_is_a_field_error(client: TestClient, user_token: str, value: str):
+    payload = _request_payload(f"rl-{uuid4().hex}", **{"technical_info-read_length": value}, step="technical_info")
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
+    assert_form_invalid(response)
+    assert _active_step(response) == "technical_info"
+
+
+# ── UX (customer test 2026-11-04) ─────────────────────────────────────────────
+
+
+def test_create_form_prefills_organization_from_profile(client: TestClient, session: SyncSession, user, user_token: str):
+    user.institute = "Test Institute A"
+    session.save(user)
+    session.commit()
+    response = get(client, "/htmx/seq_requests/create", user_token, htmx=True)
+    assert re.search(r'name="organization-name"[^>]*value="Test Institute A"|value="Test Institute A"[^>]*name="organization-name"', response.text)
+
+
+def test_validator_messages_have_no_pydantic_prefix(client: TestClient, user_token: str):
+    payload = _request_payload(f"lanes-{uuid4().hex}", **{"technical_info-num_lanes": "9"}, step="technical_info")
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
+    assert_form_invalid(response)
+    assert "Value must be &lt;= 8" in response.text or "Value must be <= 8" in response.text
+    assert "Value error," not in response.text
+
+
+@pytest.mark.parametrize("phone, ok", [("+43 1 40160-0", True), ("(01) 234/567.8", True), ("not a phone", False), ("12", False)])
+def test_contact_phone_is_validated(client: TestClient, user_token: str, phone: str, ok: bool):
+    payload = _request_payload(f"phone-{uuid4().hex}", **{"contact-phone": phone}, step="contact")
+    response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
+    if ok:
+        assert response.status_code == 200 and _active_step(response) != "contact"
+    else:
+        assert_form_invalid(response)
+        assert "Enter a phone number" in response.text
+
+
+def test_edit_form_refused_once_submitted(client: TestClient, session: SyncSession, user, user_token: str):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request)
+    session.commit()
+
+    assert get(client, f"/htmx/seq_requests/{seq_request.id}/edit", user_token, htmx=True).status_code == 403
+    payload = _request_payload(seq_request.name, step="basic_info")
+    assert post_form(client, f"/htmx/seq_requests/{seq_request.id}/edit/step", payload, token=user_token).status_code == 403

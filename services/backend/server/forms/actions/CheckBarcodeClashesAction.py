@@ -55,6 +55,8 @@ class CheckBarcodeClashesAction(HTMXForm):
             libraries_df = barcode_utils.check_indices(libraries_df)
         elif groupby == "pool":
             libraries_df = barcode_utils.check_indices(libraries_df, groupby="pool_id").sort_values(["pool_id", "library_id"])
+            # unpooled libraries get their own tab instead of disappearing from the grouped view
+            libraries_df["pool"] = libraries_df["pool"].fillna("Not pooled")
         elif groupby == "lane":
             libraries_df = barcode_utils.check_indices(libraries_df, groupby="lane_id").sort_values(["lane", "library_id"])
 
@@ -73,9 +75,9 @@ class CheckBarcodeClashesAction(HTMXForm):
     @htmx_route("POST", "/select-samples", name="SelectSamples")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_insider),
             form: CheckBarcodeClashesAction = Depends(CheckBarcodeClashesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
         ) -> Response:
             if not form.library_ids.data:
                 raise exc.BadRequestException("No libraries selected.")

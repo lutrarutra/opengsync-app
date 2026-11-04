@@ -268,3 +268,15 @@ def test_path_longer_than_the_share_path_column_is_rejected(
     assert_form_invalid(response, f"longer than {MAX_SHARE_PATH_LENGTH} characters")
     assert _tokens(session, bioinformatician) == []
     assert fake_mailer.sent == []
+
+
+def test_mail_failure_is_a_form_error_and_shares_nothing(
+    client: TestClient, session: SyncSession, bioinformatician, bioinformatician_token: str, fake_mailer, share_root: Path,
+):
+    """An SMTP failure used to surface as a 500 after the token was created."""
+    fake_mailer.fail = True
+
+    response = _share(client, bioinformatician_token)
+
+    assert_form_invalid(response, "Failed to send the email. Please try again later.")
+    assert _tokens(session, bioinformatician) == []

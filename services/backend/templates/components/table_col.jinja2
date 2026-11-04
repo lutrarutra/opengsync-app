@@ -48,6 +48,7 @@ data-sort_by="{{ table_col.sort_by }}"
                     choices=table_col.choices,
                     field_name=table_col.label,
                     placeholder=table_col.title,
+                    id_prefix=table_container_id ~ "-",
                 )
             }}
             {% endif %}

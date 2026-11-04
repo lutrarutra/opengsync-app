@@ -2,6 +2,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, ValidationError, create_model
 
 from ..components import inputs
+from ..components.inputs.BaseInputField import error_message
 
 
 class SubHTMXForm:
@@ -204,11 +205,7 @@ class SubHTMXForm:
                     for field in pydantic_fields:
                         pydantic_key = field.name.replace("-", "_")
                         if pydantic_key == error_field_name and not field.errors:
-                            msg = error["msg"]
-                            if isinstance(field, inputs.string.StringInputField):
-                                msg = msg.replace("String", field.label)
-                            msg = msg[0].upper() + msg[1:]
-                            field.errors.append(msg)
+                            field.errors.append(error_message(error["msg"], field))
                             break
 
         self.validated = True

@@ -44,9 +44,9 @@ class SelectExperimentPoolsAction(HTMXForm):
     @htmx_route("POST", "/{experiment_id}/select-pools", name="Submit")
     def Submit(cls) -> RouteFunc:
         def route(
+            _=Depends(dependencies.require_insider),
             form: "SelectExperimentPoolsAction" = Depends(SelectExperimentPoolsAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ) -> Response:
             experiment = session.get_one(Q.experiment.select(id=form.experiment_id))
 

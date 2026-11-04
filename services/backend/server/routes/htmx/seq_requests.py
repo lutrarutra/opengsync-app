@@ -21,6 +21,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, request as request_ops, create as create_ops
 
 from ...core import dependencies, overview, responses, exceptions as exc, config, query_options, checklists
+from ...utils.io import cells_as_text, neutralize_formulas
 from ... import forms
 from .data_browser import DataScope, data_browser_router
 from ...components.tables import HTMXTable, TableCol
@@ -260,19 +261,17 @@ def delete_seq_request(
     request: Request,
     session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+    user_id: int = Depends(dependencies.require_user_id),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if (
-        seq_request.status != C.SeqRequestStatus.DRAFT
-        and access_level < C.AccessLevel.INSIDER
-    ):
-        raise exc.NoPermissionsException(
-            "Only draft requests can be deleted by non-admins."
-        )
+    if seq_request.status != C.SeqRequestStatus.DRAFT and access_level < C.AccessLevel.INSIDER:
+        raise exc.NoPermissionsException("Only draft requests can be deleted by non-admins.")
+    if not session.scalar(Q.seq_request.delete_permission(seq_request_id, user_id)):
+        raise exc.NoPermissionsException("Only the requestor or a manager of the group can delete this request.")
 
     session.delete(seq_request)
 
@@ -382,6 +381,7 @@ def export_seq_request(
         metadata_df.to_excel(writer, sheet_name="metadata", index=True)
         libraries_df.to_excel(writer, sheet_name="libraries", index=False)
         features_df.to_excel(writer, sheet_name="features", index=False)
+        cells_as_text(writer.book)
 
     return responses.bytes_response(
         data=bytes_io, filename=f"request_{seq_request_id}.xlsx",
@@ -409,7 +409,7 @@ def export_seq_request_libraries(
     )
 
     return Response(
-        libraries_df.to_csv(sep="\t", index=False).encode("utf-8"),
+        neutralize_formulas(libraries_df).to_csv(sep="\t", index=False).encode("utf-8"),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename=libraries_{seq_request.id}.tsv"

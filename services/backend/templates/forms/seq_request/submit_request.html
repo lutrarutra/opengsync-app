@@ -10,7 +10,7 @@
             <ul>
                 {% for window in sample_submission_windows %}
                 <li>
-                    <span class="badge">{{ window.weekday }}</span> @ <span class="badge">
+                    <span class="badge">{{ window.weekday | weekday_name }}</span> @ <span class="badge">
                     {{ window.start_time.strftime("%H:%M") }}</span> - <span class="badge">{{ window.end_time.strftime("%H:%M") }}
                     </span>
                 </li>
@@ -39,7 +39,7 @@
                 _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
-                        title: 'Submit request \'{{ form.seq_request.name }}\'',
+                        titleText: {{ ("Submit request '" ~ form.seq_request.name ~ "'") | hs_string }},
                         showDenyButton: true,
                         icon: 'warning',
                         text: 'You can no longer edit the sequencing request after it is submitted. Do you want to proceed?',

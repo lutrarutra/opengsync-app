@@ -1,3 +1,4 @@
+import re
 from typing import Any, Hashable, Generic, Literal, TypeVar, overload
 import json
 import string
@@ -24,6 +25,11 @@ from ...core import responses
 
 _DataT = TypeVar("_DataT", pd.DataFrame, pd.DataFrame | None, covariant=True)
 
+
+
+def _error_row(message: str) -> int:
+    """Sort key: general errors first, then cell errors by row number (stable within a row)."""
+    return int(m.group(1)) if (m := re.match(r"Row (\d+):", message)) else 0
 
 class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
     @overload
@@ -434,6 +440,10 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self._validated = True
         return True
 
+    def header(self, key: str) -> str:
+        """The header users see for a column key (e.g. 'Index Well' for 'index_well')."""
+        return self.columns[key].name if key in self.columns else key
+
     def add_error(self, idx: Hashable, column: str | list[str], exception: SpreadSheetException) -> None:
         """Record a cell-level error with styling and a human-readable message."""
         message = exception.message
@@ -446,8 +456,10 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         message = f"Row {row_num}: {message}"
         if message not in self._errors:
             self._errors.append(message)
+            self._errors.sort(key=_error_row)
         if message not in self.errors:
             self.errors.append(message)
+            self.errors.sort(key=_error_row)
 
     def add_general_error(self, message: str) -> None:
         """Record a form-level error message."""

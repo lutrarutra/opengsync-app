@@ -237,13 +237,13 @@ def test_missing_num_m_reads_is_rejected(client: TestClient, prep: Prep, insider
 def test_negative_num_m_reads_is_rejected(client: TestClient, prep: Prep, insider_token: str):
     response = _select(client, prep, insider_token, [(prep.a, "1", -1), (prep.b, "1", -1), (prep.c, "1", -1)])
 
-    assert_form_invalid(response, "Number of M reads requested must be >= 0")
+    assert_form_invalid(response, "Value for 'M Reads Requested' must be at least 0.")
 
 
-def test_different_num_m_reads_within_pool_is_rejected(client: TestClient, prep: Prep, insider_token: str):
+def test_different_num_m_reads_within_pool_are_allowed(client: TestClient, prep: Prep, insider_token: str):
     response = _select(client, prep, insider_token, [(prep.a, "1", 10), (prep.b, "1", 20), (prep.c, "2", 30)])
 
-    assert_form_invalid(response, "All libraries in pool '1' must have the same number of M reads requested")
+    assert response.status_code == 200, response.text
 
 
 def test_num_m_reads_not_required_for_x_and_skip(client: TestClient, prep: Prep, insider_token: str):
@@ -274,12 +274,13 @@ def test_several_pools_are_created_with_suffix(
 
 
 def test_pools_get_num_m_reads_requested(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
-    _run(client, prep, insider_token, [(prep.a, "1", 0), (prep.b, "1", 0), (prep.c, "2", 250.5)])
+    """The pool requests the sum of its libraries' reads (2 x 25 M -> 50 M)."""
+    _run(client, prep, insider_token, [(prep.a, "1", 25), (prep.b, "1", 25.5), (prep.c, "2", 250.5)])
 
     session.expire_all()
     pool_1 = session.get_one(Q.pool.select(id=_library(session, prep.a).pool_id))
     pool_2 = session.get_one(Q.pool.select(id=_library(session, prep.c).pool_id))
-    assert (pool_1.num_m_reads_requested, pool_2.num_m_reads_requested) == (0.0, 250.5)
+    assert (pool_1.num_m_reads_requested, pool_2.num_m_reads_requested) == (50.5, 250.5)
 
 
 def test_single_pool_gets_num_m_reads_requested(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
@@ -287,12 +288,13 @@ def test_single_pool_gets_num_m_reads_requested(client: TestClient, session: Syn
 
     session.expire_all()
     pool = session.get_one(Q.pool.select(id=_library(session, prep.a).pool_id))
-    assert pool.num_m_reads_requested == 42.0
+    assert pool.num_m_reads_requested == 126.0
 
 
 def test_begin_prefills_num_m_reads_from_current_pool(
     client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
 ):
+    """Libraries are prefilled with an equal share of the pool total, so a rerun keeps the total."""
     _run(client, prep, insider_token, [(prep.a, "1", 123.5), (prep.b, "1", 123.5), (prep.c, "skip", None)])
 
     prep.params["uuid"] = str(uuid.uuid4())
@@ -300,6 +302,7 @@ def test_begin_prefills_num_m_reads_from_current_pool(
 
     assert response.status_code == 200, response.text
     assert "123.5" in response.text
+    assert "247" not in response.text
 
 
 def test_single_pool_is_named_after_prep(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):

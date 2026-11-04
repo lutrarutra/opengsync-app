@@ -11,7 +11,7 @@ from loguru import logger
 
 from opengsync_db import models, SyncSession
 
-from . import runtime, secrets, config, audit, redis as rds
+from . import runtime, secrets, config, audit, access_cache, redis as rds
 from ..utils import share_fs_cache
 
 async def state_initialization_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
@@ -78,6 +78,20 @@ async def timing_middleware(request: runtime.Request, call_next: Callable[[runti
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     request.state.process_time = str(process_time)
+    return response
+
+# Baseline hardening for every response; a route's own value (e.g. the sandbox CSP of rendered files) wins.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "same-origin",
+}
+
+
+async def security_headers_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
     return response
 
 # Files macOS Finder probes for (PROPFIND, then PUT) in every folder of a mounted WebDAV share
@@ -251,6 +265,7 @@ def _finish_transaction(request: runtime.Request, status_code: int | None, close
     try:
         if not getattr(request.state, "rollback", False) and status_code is not None and 200 <= status_code < 300:
             session.commit()
+            access_cache.invalidate_committed(session, getattr(request.app.state, "redis_pool", None))
             return audit.pop_changes(session)
         # Unhandled-exception error pages render after this runs and read current_user;
         # detach it first so rollback doesn't expire it.

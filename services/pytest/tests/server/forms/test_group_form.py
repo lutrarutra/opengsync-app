@@ -53,12 +53,19 @@ def test_create_csrf_mismatch(client: TestClient, session: SyncSession, user_tok
     assert_form_invalid(response)
 
 
-def test_edit_render(client: TestClient, session: SyncSession, user_token: str):
+def test_edit_render(client: TestClient, session: SyncSession, user, user_token: str):
     g = create_group(session)
+    _make_owner(session, g, user)
     session.commit()
     response = get(client, f"{PREFIX}/{g.id}/edit", user_token)
     assert response.status_code == 200
     assert g.name in response.text
+
+
+def test_edit_render_denied_to_non_manager(client: TestClient, session: SyncSession, user_token: str):
+    g = create_group(session)
+    session.commit()
+    assert get(client, f"{PREFIX}/{g.id}/edit", user_token).status_code == 403
 
 
 def test_edit_render_unknown_is_404(client: TestClient, user_token: str):

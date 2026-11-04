@@ -41,5 +41,7 @@ hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger=
         {% endif %}
     </div>
 </div>
+{% else %}
+{% if current_page == 0 %}<p class="text-muted text-center my-3">No projects yet. A project is created when you add samples to a sequencing request.</p>{% endif %}
 {% endfor %}
 {{ spinner(id="projects-feed-indicator") }}

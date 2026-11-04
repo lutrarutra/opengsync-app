@@ -98,7 +98,7 @@
     <div class="copyable-input">
         <a style="text-decoration: none; width: 100%;"
         onclick="Swal.fire({
-            title: 'Send email to {{ email }}',
+            titleText: {{ ("Send email to " ~ email) | tojson | forceescape }},
             showDenyButton: true,
             icon: 'question',
             text: 'Open default email app?',
@@ -106,7 +106,7 @@
             denyButtonText: 'No'
         }).then(function(e) {
             if (e.isConfirmed) {
-                window.location.href = 'mailto:{{ email }}?subject={{ subject }}';
+                window.location.href = {{ ("mailto:" ~ email ~ "?subject=" ~ (subject | urlencode)) | tojson | forceescape }};
             }
         });">
             <input class="form-control" style="cursor: pointer; color: #0d6efd;" readonly type="text" value="{{ email }}">

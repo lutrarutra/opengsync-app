@@ -8,7 +8,7 @@ from fastapi import Request, Cookie, Depends, Response, APIRouter
 from pydantic import BaseModel, ValidationError, create_model
 from markupsafe import Markup
 
-from ..components.inputs.BaseInputField import BaseInputField
+from ..components.inputs.BaseInputField import BaseInputField, error_message
 from ..components import inputs
 from ..core import templates, config, secrets, responses, exceptions as exc
 from ..core.context import ctx
@@ -323,11 +323,7 @@ class HTMXForm(ABC):
                         if field.name == field_name:
                             if field.errors:
                                 break
-                            msg = error["msg"]
-                            if isinstance(field, inputs.string.StringInputField):
-                                msg = msg.replace("String", field.label)
-                            msg = msg[0].upper() + msg[1:]
-                            field.errors.append(msg)
+                            field.errors.append(error_message(error["msg"], field))
                             break
 
             # Mark all fields as validated so their submitted

@@ -96,8 +96,8 @@ class FeatureKitForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "FeatureKitForm" = Depends(FeatureKitForm.Validate(form_type="edit")),
             _=Depends(dependencies.require_insider),
+            form: "FeatureKitForm" = Depends(FeatureKitForm.Validate(form_type="edit")),
         ) -> Response:
             if form.feature_kit is None:
                 raise exc.BadRequestException("Feature kit ID must be provided for edit form.")
@@ -143,8 +143,8 @@ class FeatureKitForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "FeatureKitForm" = Depends(FeatureKitForm.Validate(form_type="create")),
             _=Depends(dependencies.require_insider),
+            form: "FeatureKitForm" = Depends(FeatureKitForm.Validate(form_type="create")),
         ) -> Response:
             form.identifier.data = form.identifier.data.strip()
             if form.identifier.data.startswith("#"):

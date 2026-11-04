@@ -1,8 +1,10 @@
+import datetime as dt
+
 from fastapi import Depends
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
-from ...core import dependencies, exceptions as exc, responses
+from ...core import dependencies, exceptions as exc, responses, config
 from ...components import inputs
 from ..HTMXForm import HTMXForm, FormFunc, RouteFunc, htmx_route
 
@@ -62,6 +64,18 @@ class SubmitSeqRequestAction(HTMXForm):
                 form.samples_delivered_by_mail.errors.append("Select sample submission time or delivery by mail.")
                 raise exc.FormValidationException(form)
 
+            submission_time = None
+            if (value := form.sample_submission_time.data) is not None:
+                # the picker sends local time without a zone
+                submission_time = value if value.tzinfo else value.replace(tzinfo=config.settings.TIMEZONE)
+                if submission_time < config.settings.now():
+                    form.sample_submission_time.errors.append("Sample submission time cannot be in the past.")
+                    raise exc.FormValidationException(form)
+                windows = config.settings.app_config.sample_submission_windows
+                if windows and not form.custom_sample_submission_time.data and not any(w.contains(submission_time) for w in windows):
+                    form.sample_submission_time.errors.append("Sample submission time must be within the allowed submission times.")
+                    raise exc.FormValidationException(form)
+
             if form.comment.data and (comment := form.comment.data.strip()):
                 session.save(
                     Q.comment.create(
@@ -70,6 +84,18 @@ class SubmitSeqRequestAction(HTMXForm):
                         text=f"Sample submission comment: {comment}",
                     )
                 )
+
+            if submission_time is not None:
+                timestamp_utc = submission_time.astimezone(dt.timezone.utc)
+                if (event := form.seq_request.sample_submission_event) is None:
+                    form.seq_request.sample_submission_event = Q.event.create(
+                        title=f"Sample Submission: {form.seq_request.name}",
+                        timestamp_utc=timestamp_utc,
+                        type=C.EventType.SAMPLE_SUBMISSION,
+                        user_id=current_user.id,
+                    )
+                else:
+                    event.timestamp_utc = timestamp_utc
 
             seq_request = actions.submit_seq_request(session=session, seq_request=form.seq_request)
 

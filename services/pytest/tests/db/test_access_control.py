@@ -6,7 +6,7 @@ from opengsync_db import SyncSession, queries as Q, categories as C
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
-    create_pool, create_group,
+    create_pool, create_group, create_file, create_experiment, create_lab_prep,
 )
 
 
@@ -345,3 +345,93 @@ def test_user_insider_and_admin_viewing_other(session: SyncSession):
 
     assert _level(session, Q.user.permissions(client.id, insider.id)) == C.AccessLevel.INSIDER
     assert _level(session, Q.user.permissions(client.id, admin.id)) == C.AccessLevel.ADMIN
+
+
+# ---------------------------------------------------------------------------
+# MediaFile: follows the parent seq request (READ), uploader may delete while DRAFT
+# ---------------------------------------------------------------------------
+
+def _insider(session: SyncSession, email: str):
+    return session.save(Q.user.create(
+        email=email, hashed_password="x", first_name="T", last_name="I", role=C.UserRole.TECHNICIAN,
+    ), flush=True)
+
+
+def test_media_file_uploading_any_file_grants_nothing_on_other_files(session: SyncSession):
+    """Regression: the uploader check was an uncorrelated EXISTS, so uploading one file gave WRITE on all files."""
+    owner = create_user(session)
+    stranger = create_user(session)
+    file = create_file(session, seq_request=create_seq_request(session, owner), uploader=owner)
+    create_file(session, seq_request=create_seq_request(session, stranger), uploader=stranger)
+
+    assert _level(session, Q.media_file.permissions(file.id, stranger.id)) == C.AccessLevel.NONE
+
+
+def test_media_file_uploader_write_while_draft_read_after_submit(session: SyncSession):
+    owner = create_user(session)
+    seq_request = create_seq_request(session, owner)
+    file = create_file(session, seq_request=seq_request, uploader=owner)
+    assert _level(session, Q.media_file.permissions(file.id, owner.id)) == C.AccessLevel.WRITE
+
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request, flush=True)
+    assert _level(session, Q.media_file.permissions(file.id, owner.id)) == C.AccessLevel.READ
+
+
+def test_media_file_requestor_reads_file_uploaded_by_staff(session: SyncSession):
+    owner = create_user(session)
+    staff = _insider(session, "mf-staff@example.com")
+    file = create_file(session, seq_request=create_seq_request(session, owner), uploader=staff)
+
+    assert _level(session, Q.media_file.permissions(file.id, owner.id)) == C.AccessLevel.READ
+    assert _level(session, Q.media_file.permissions(file.id, staff.id)) == C.AccessLevel.INSIDER
+
+
+def test_media_file_group_member_reads_but_cannot_delete_others_file(session: SyncSession):
+    owner = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    seq_request = create_seq_request(session, owner)
+    seq_request.group_id = group.id
+    session.save(seq_request, flush=True)
+    file = create_file(session, seq_request=seq_request, uploader=owner)
+
+    assert _level(session, Q.media_file.permissions(file.id, member.id)) == C.AccessLevel.READ
+
+
+def test_media_file_experiment_and_lab_prep_files_insiders_only(session: SyncSession):
+    staff = _insider(session, "mf-staff2@example.com")
+    client = create_user(session)
+    create_file(session, seq_request=create_seq_request(session, client), uploader=client)
+    exp_file = create_file(session, experiment=create_experiment(session, staff, C.ExperimentWorkFlow.NOVASEQ_6K_S4_XP), uploader=staff)
+    prep_file = create_file(session, lab_prep=create_lab_prep(session, staff), uploader=staff)
+
+    for f in (exp_file, prep_file):
+        assert _level(session, Q.media_file.permissions(f.id, client.id)) == C.AccessLevel.NONE
+        assert _level(session, Q.media_file.permissions(f.id, staff.id)) == C.AccessLevel.INSIDER
+
+
+# ---------------------------------------------------------------------------
+# SeqRequest deletion: requestor or group OWNER/MANAGER while DRAFT, insiders always
+# ---------------------------------------------------------------------------
+
+def test_seq_request_delete_permission(session: SyncSession):
+    requestor, member, manager, stranger = (create_user(session) for _ in range(4))
+    staff = _insider(session, "del-staff@example.com")
+    group = create_group(session)
+    _affiliate(session, requestor, group, C.AffiliationType.OWNER)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    _affiliate(session, manager, group, C.AffiliationType.MANAGER)
+    seq_request = create_seq_request(session, requestor)
+    seq_request.group_id = group.id
+    session.save(seq_request, flush=True)
+
+    def can(user) -> bool:
+        return bool(session.scalar(Q.seq_request.delete_permission(seq_request.id, user.id)))
+
+    assert [can(u) for u in (requestor, member, manager, stranger, staff)] == [True, False, True, False, True]
+
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request, flush=True)
+    assert [can(u) for u in (requestor, manager, staff)] == [False, False, True]

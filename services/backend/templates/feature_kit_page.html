@@ -39,7 +39,7 @@
                                 _="on htmx:confirm(issueRequest)
                                 halt the event
                                 call Swal.fire({
-                                    title: 'Delete Kit \'{{ feature_kit.identifier }}\'',
+                                    titleText: {{ ("Delete Kit '" ~ feature_kit.identifier ~ "'") | hs_string }},
                                     icon: 'warning',
                                     showDenyButton: true,
                                     text: 'Proceed?',

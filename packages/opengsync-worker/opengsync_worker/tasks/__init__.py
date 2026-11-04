@@ -9,7 +9,7 @@ from opengsync_db import SyncDBHandler
 
 from opengsync_worker import celery
 from opengsync_worker.tasks.clean_upload_folder import clean_upload_folder
-from opengsync_worker.tasks.deactivate_inactive_users import deactivate_inactive_users
+from opengsync_worker.tasks.deactivate_inactive_users import deactivate_inactive_users, forget_cached_users
 from opengsync_worker.tasks.rf_scanner import process_run_folder
 from opengsync_worker.tasks.status_updater import update_statuses
 from opengsync_worker.tasks.fs_index_common import FsIndexSettings
@@ -81,15 +81,21 @@ def clean_upload_folder_wrapper(upload_folder: str, upload_folder_file_age_days:
 def deactivate_inactive_users_wrapper(inactivity_days: int):
     db = connect()
     rollback = False
+    deactivated: list[int] = []
     logger.info("Starting inactive user deactivation task...")
     try:
         db.open_session()
-        deactivate_inactive_users(db, inactivity_days)
+        deactivated = deactivate_inactive_users(db, inactivity_days)
     except Exception as e:
         logger.error(f"\n-------- Exception [ deactivate_inactive_users ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
         rollback = True
     finally:
         db.close_session(rollback=rollback, commit=True)
+    if deactivated and not rollback:
+        try:
+            forget_cached_users(_redis(), deactivated)
+        except Exception as e:
+            logger.error(f"Failed to clear cached users {deactivated}: {e}")
 
 
 # Redis set of directories the app just listed live (server/utils/fs_index.py), checked first by the next crawl

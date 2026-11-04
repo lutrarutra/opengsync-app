@@ -53,10 +53,10 @@ class ChangePasswordForm(HTMXForm):
     def Submit(cls) -> RouteFunc:
         def route(
             session: SyncSession = Depends(dependencies.db_session),
+            access_level: C.AccessLevel = Depends(dependencies.user_permissions),
             form: "ChangePasswordForm" = Depends(ChangePasswordForm.Validate()),
             bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
             current_user: models.User = Depends(dependencies.require_user),
-            access_level: C.AccessLevel = Depends(dependencies.user_permissions),
             r: rds.RedisClient = Depends(dependencies.redis),
         ) -> Response:
             if current_user.id != form.user.id and access_level < C.AccessLevel.ADMIN:

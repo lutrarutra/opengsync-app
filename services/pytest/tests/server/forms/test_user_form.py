@@ -481,3 +481,24 @@ def test_edit_form_email_read_only_except_for_admin(
 
     assert "readonly" in email_input(user_token)
     assert "readonly" not in email_input(admin_token)
+
+
+def _role_select(html: str) -> str:
+    import re
+    match = re.search(r'<select[^>]*name="role"[^>]*>', html)
+    assert match is not None
+    return match.group(0)
+
+
+def test_role_field_is_read_only_for_non_admins(client: TestClient, user, user_token: str, insider_token: str):
+    """Non-admins only see their role; the select used to look editable and failed on save."""
+    for token in (user_token, insider_token):
+        response = get(client, _edit_path(user.id), token)
+        assert "disabled" in _role_select(response.text)
+        assert f'<input type="hidden" name="role" value="{user.role.id}">' in response.text
+
+
+def test_role_field_is_editable_for_admin(client: TestClient, user, admin_token: str):
+    response = get(client, _edit_path(user.id), admin_token)
+
+    assert "disabled" not in _role_select(response.text)

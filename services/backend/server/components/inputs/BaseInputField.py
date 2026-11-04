@@ -6,6 +6,20 @@ from ...core.templates import render_template
 from ...core.context import get_request_context
 
 
+
+# Prefixes pydantic puts in front of the message of a ValueError/AssertionError raised by a validator
+_PYDANTIC_PREFIXES = ("Value error, ", "Assertion failed, ")
+
+
+def error_message(msg: str, field: "BaseInputField") -> str:
+    """User-facing message of a pydantic validation error of ``field``."""
+    for prefix in _PYDANTIC_PREFIXES:
+        msg = msg.removeprefix(prefix)
+    from .string import StringInputField  # circular import
+    if isinstance(field, StringInputField):
+        msg = msg.replace("String", field.label)
+    return msg[:1].upper() + msg[1:]
+
 class BaseInputField(ABC):
     def __init__(
         self,

@@ -23,7 +23,7 @@ class Mailer:
         self.smtp_user = settings.MAIL_USER
         self.smtp_password = settings.MAIL_PASSWORD
         self.smtp_port = settings.MAIL_PORT
-        self.use_tls = True
+        self.use_tls = settings.MAIL_USE_TLS
         self._email_style: str | None = None
 
     def _get_email_style(self) -> str:
@@ -66,6 +66,32 @@ class Mailer:
             subject="OpeNGSync Password Reset",
             body=templates.render_template("email/password-reset.html", link=reset_link, style=style),
             mime_type="html"
+        )
+
+    def send_seq_request_processed(
+        self,
+        recipient_email: str,
+        seq_request: models.SeqRequest,
+        response_type,
+        comment: str | None = None,
+    ):
+        style = self._get_email_style()
+        recipient = seq_request.contact_person if seq_request.contact_person.email == recipient_email else None
+        body = templates.render_template(
+            "email/seq-request-processed.html",
+            style=style,
+            seq_request=seq_request,
+            response_type=response_type,
+            comment=comment,
+            link=str(responses.external_url_for("seq_request_page", seq_request_id=seq_request.id)),
+            organization_name=settings.app_config.personalization.organization,
+            **({"recipient": recipient} if recipient is not None else {}),
+        )
+        self.__send_email(
+            recipients=recipient_email,
+            subject=f"[R{seq_request.id}] Sequencing Request {response_type.display_name}: {seq_request.name}",
+            body=body,
+            mime_type="html",
         )
 
     def send_share_paths(

@@ -100,8 +100,8 @@ class TODOCommentForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "TODOCommentForm" = Depends(TODOCommentForm.Validate()),
             current_user: models.User = Depends(dependencies.require_insider),
+            form: "TODOCommentForm" = Depends(TODOCommentForm.Validate()),
         ) -> Response:
             if form.todo_comment is not None:
                 raise exc.BadRequestException("Use the edit route to update an existing TODO comment.")
@@ -123,8 +123,8 @@ class TODOCommentForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "TODOCommentForm" = Depends(TODOCommentForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "TODOCommentForm" = Depends(TODOCommentForm.Validate()),
         ) -> Response:
             if form.todo_comment is None:
                 raise exc.BadRequestException("TODO comment must be provided for edit.")

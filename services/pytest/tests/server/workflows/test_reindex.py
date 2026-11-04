@@ -219,8 +219,8 @@ def test_kit_barcode_by_name(client: TestClient, session: SyncSession, run: Run,
 @pytest.mark.parametrize("row, message", [
     (["", "H12", "KIT", "", "", "", "", ""], "i7 well 'H12' not found in kit"),
     (["", "", "KIT", "D799", "", "", "", ""], "i7 name 'D799' not found in kit"),
-    (["", "", "KIT", "", "", "", "", ""], "'index_well' or 'name_i7' must be defined when kit is defined"),
-    (["", "", "", "", "", "", "", ""], "missing kit/name or sequence_i7"),
+    (["", "", "KIT", "", "", "", "", ""], "'Index Well' or 'i7 Name' must be defined when a kit is selected"),
+    (["", "", "", "", "", "", "", ""], "Select a kit and 'i7 Name', or enter the 'i7 Sequence'"),
     (["", "", "", "custom", "ACGTXACG", "", "", ""], "Invalid base(s) 'X'"),
 ])
 def test_invalid_barcode_input_is_rejected(
@@ -465,3 +465,15 @@ def test_run_cannot_switch_to_another_request(
 
     assert run.complete(client, user_token).status_code == 400
     assert _indices(session, run.a) == [("OLD", "GGGGGGGG", None, None, None, None)]
+
+
+def test_title_names_the_lab_prep_step(client: TestClient, session: SyncSession, insider, user_token: str, insider_token: str, run: Run):
+    """Opened from a lab prep checklist the workflow is its 'Index Libraries' step."""
+    lab_prep = create_lab_prep(session, insider)
+    session.commit()
+
+    from_prep = get(client, _url(client, "Begin"), insider_token, params={"uuid": str(uuid.uuid4()), "lab_prep_id": lab_prep.id})
+    from_request = get(client, _url(client, "Begin"), user_token, params=run.params)
+
+    assert "Index Libraries (Select Libraries)" in from_prep.text
+    assert "Reindex (Select Libraries)" in from_request.text

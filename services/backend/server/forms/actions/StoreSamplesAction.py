@@ -86,9 +86,9 @@ class StoreSamplesAction(HTMXForm):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
+            _=Depends(dependencies.require_insider),
             form: "StoreSamplesAction" = Depends(StoreSamplesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ) -> Response:
             seq_request = None
             if form.seq_request_id is not None:

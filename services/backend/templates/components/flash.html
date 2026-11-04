@@ -57,15 +57,3 @@
 </div>
 {% endif %}
 {% endwith %}
-
-{% if praise %}
-<script>
-    Swal.fire({
-        title: {{ praise.title | tojson }},
-        html: {{ praise.html | tojson | forceescape }},
-        icon: 'success',
-        confirmButtonText: 'Ok'
-    });
-</script>
-{% endif %}
-

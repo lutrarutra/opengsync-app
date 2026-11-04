@@ -57,9 +57,9 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_insider),
             form: CompleteLibraryPoolingForm = Depends(CompleteLibraryPoolingForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
         ) -> Response:
             lab_prep = session.get_one(
                 Q.lab_prep.select(id=form.workflow.lab_prep_id).options(
@@ -94,9 +94,9 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                     return experiment_mappings.get(pool_suffix)
 
                 def _num_m_reads_requested(group: pd.DataFrame) -> float | None:
-                    # validated to be set and equal within a pool in the pooling step
+                    # per library in the pooling step; the pool requests the total
                     values = group["num_m_reads_requested"].dropna()
-                    return float(values.iloc[0]) if not values.empty else None
+                    return float(values.sum()) if not values.empty else None
 
                 if not single_pool:
                     for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):

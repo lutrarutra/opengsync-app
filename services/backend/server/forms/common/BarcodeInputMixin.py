@@ -135,10 +135,10 @@ class BarcodeInputMixin:
             if pd.notna(row["index_well"]) and row["index_well"] == "del":
                 continue
             if pd.notna(row["kit_i7"]) and pd.isna(row["index_well"]) and pd.isna(row["name_i7"]):
-                spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue("'index_well' or 'name_i7' must be defined when kit is defined"))
+                spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue(f"'{spreadsheet.header('index_well')}' or '{spreadsheet.header('name_i7')}' must be defined when a kit is selected"))
                 continue
             if pd.notna(row["kit_i5"]) and pd.notna(row["sequence_i5"]) and pd.isna(row["index_well"]) and pd.isna(row["name_i5"]):
-                spreadsheet.add_error(idx, ["index_well", "name_i5"], MissingCellValue("'index_well' or 'name_i5' must be defined when kit is defined"))
+                spreadsheet.add_error(idx, ["index_well", "name_i5"], MissingCellValue(f"'{spreadsheet.header('index_well')}' or '{spreadsheet.header('name_i5')}' must be defined when a kit is selected"))
                 continue
             if kit_defined.at[idx]:
                 _, kit_i7_df = kits[row["kit_i7"]]
@@ -167,10 +167,10 @@ class BarcodeInputMixin:
                     continue
             else:
                 if pd.notna(row["kit_i7"]) or pd.notna(row["index_well"]) or pd.notna(row["name_i7"]) or pd.isna(row["sequence_i7"]):
-                    spreadsheet.add_error(idx, ["kit_i7_id", "name_i7"], MissingCellValue("missing kit/name or sequence_i7"))
+                    spreadsheet.add_error(idx, ["kit_i7_id", "name_i7"], MissingCellValue(f"Select a kit and '{spreadsheet.header('name_i7')}', or enter the '{spreadsheet.header('sequence_i7')}'"))
                     continue
             if pd.isna(row["sequence_i7"]):
-                spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7'"))
+                spreadsheet.add_error(idx, "sequence_i7", MissingCellValue(f"Missing value for '{spreadsheet.header('sequence_i7')}'"))
 
         df["index_type_id"] = None
         df.loc[df["sequence_i7"].notna() & df["sequence_i5"].notna(), "index_type_id"] = C.IndexType.DUAL_INDEX.id

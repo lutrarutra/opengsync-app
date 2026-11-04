@@ -104,7 +104,7 @@
                                 <th scope="row">{{ row["library_name"] }}</th>
                                 <td>{{ row["library_type"] }}</td>
                                 <td>{{ row["genome"] }}</td>
-                                {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
+                                {% if "pool" in library_table %}<td>{{ pool_name(row["pool"]) }}</td>{% endif %}
                                 {% if "protocol_id" in library_table.columns %}<td>{% if notna(row["protocol_id"]) %}{{ protocol_names.get(row["protocol_id"] | int, "") }}{% endif %}</td>{% endif %}
                                 {% if barcode_table is not none %}
                                 <td class="x-scroll-cell">

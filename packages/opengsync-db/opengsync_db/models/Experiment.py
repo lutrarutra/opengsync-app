@@ -121,7 +121,8 @@ class Experiment(Base):
 
         pool_qubits_measured = all(pool.qubit_concentration is not None for pool in self.pools) if pools_added else None
         pool_fragment_sizes_measured = all(pool.avg_fragment_size is not None for pool in self.pools) if pools_added else None
-        laning_completed = all(len(lane.pool_links) == 1 for lane in self.lanes) if pools_added else None
+        # a lane without pools needs no pooling, measuring or loading (e.g. one pool on a 2-lane flow cell)
+        laning_completed = all(len(lane.pool_links) <= 1 for lane in self.lanes) if pools_added else None
 
         if not laning_completed:
             if len(self.lane_pooling_tables) > 0:
@@ -132,12 +133,14 @@ class Experiment(Base):
                 laning_completed = False if pools_added else None
                 break
                 
-        lane_qubit_measured = True
-        lane_fragment_size_measured = True
+        # lanes without pools need no measuring or loading, but at least one lane must hold a pool
+        laned_lanes = [lane for lane in self.lanes if lane.pool_links]
+        lane_qubit_measured = len(laned_lanes) > 0
+        lane_fragment_size_measured = len(laned_lanes) > 0
         missing_lane_qubits = set()
         missing_lane_fragment_sizes = set()
 
-        for lane in self.lanes:
+        for lane in laned_lanes:
             _lane_qubit_measured = lane.original_qubit_concentration is not None
             _lane_fragment_size_measured = lane.avg_fragment_size is not None
 
@@ -157,7 +160,7 @@ class Experiment(Base):
             if not laning_completed:
                 lane_qubit_measured = None
 
-        flowcell_loaded = all(lane.is_loaded() for lane in self.lanes)
+        flowcell_loaded = len(laned_lanes) > 0 and all(lane.is_loaded() for lane in laned_lanes)
         # if not all lanes are loaded, check that we have the prerequisites
         if not flowcell_loaded:
             if not lane_qubit_measured or not lane_fragment_size_measured:

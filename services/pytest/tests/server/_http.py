@@ -217,3 +217,12 @@ def flash_cookie_payload(response) -> dict[str, Any] | None:
     if match is None:
         return None
     return json.loads(unquote(match.group(1)))
+
+
+def spreadsheet_data(response) -> list[list]:
+    """Rows a rendered spreadsheet was filled with (``data: [[...]],`` written with ``| js_data``)."""
+    import json
+    import re
+    match = re.search(r"data: (\[\[.*?\]\]),\n", response.text)
+    assert match is not None, "no spreadsheet data in response"
+    return json.loads(match.group(1))

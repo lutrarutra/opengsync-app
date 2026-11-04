@@ -165,6 +165,10 @@ def data_error_handler(request: Request, e: sa_exc.DataError) -> Response:
     if isinstance(e.orig, psycopg_errors.NumericValueOutOfRange):
         logger.debug(f"Numeric parameter out of range: {request.method.upper()} {request.url.path}")
         return error_response(request, status.HTTP_422_UNPROCESSABLE_CONTENT, "Invalid request.")
+    if isinstance(e.orig, psycopg_errors.StringDataRightTruncation):
+        # a form field without max_length: answer like a validation error instead of a 500
+        logger.warning(f"Value too long for its column: {request.method.upper()} {request.url.path}: {e.orig}")
+        return error_response(request, status.HTTP_422_UNPROCESSABLE_CONTENT, "A value is too long.")
     return OpeNGSyncServerException.Handler(request, e)
 
 

@@ -88,9 +88,9 @@ class SampleAttributeTableAction(HTMXForm):
     @htmx_route("POST", "/{project_id}/edit-sample-attributes")
     def Submit(cls) -> RouteFunc:
         def route(
+            _=Depends(dependencies.require_insider),
             form: "SampleAttributeTableAction" = Depends(SampleAttributeTableAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ) -> responses.Response:
             df = form.spreadsheet.data
 

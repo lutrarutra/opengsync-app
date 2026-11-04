@@ -33,6 +33,8 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.state_initialization_
 app.add_middleware(middleware.DBSessionCleanupMiddleware)
 app.add_middleware(context.ContextMiddleware)
 app.add_middleware(middleware.XForwardedPrefixMiddleware)
+# outermost, so every response gets the headers, including early rejections
+app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.security_headers_middleware)  # type: ignore
 
 class ErrorResponse(BaseModel):
     detail: str

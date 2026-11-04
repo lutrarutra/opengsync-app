@@ -49,9 +49,10 @@ def test_add_user_to_group_insider_persists(
     assert session.first(Q.affiliation.select(user_id=user_2.id, group_id=group.id)) is not None
 
 
-def test_add_user_to_group_unknown_email_rerenders(
-    client: TestClient, session: SyncSession, insider_token,
+def test_add_user_to_group_unknown_email_sends_invitation(
+    client: TestClient, session: SyncSession, insider_token, fake_mailer,
 ):
+    """An unknown email is invited to register; the affiliation is created when the registration completes."""
     group = create_group(session)
     _commit(session)
 
@@ -61,7 +62,8 @@ def test_add_user_to_group_unknown_email_rerenders(
         {"email": "missing@example.com", "affiliation_type": str(C.AffiliationType.MEMBER.id)},
         token=insider_token,
     )
-    assert response.status_code == 202
+    assert response.status_code == 204
+    assert [email for email, _ in fake_mailer.registration] == ["missing@example.com"]
     assert session.count(Q.affiliation.select(group_id=group.id)) == 0
 
 

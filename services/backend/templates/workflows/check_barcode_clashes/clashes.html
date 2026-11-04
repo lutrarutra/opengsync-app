@@ -10,19 +10,19 @@
     <div class="modal-body tab-body" id="barcode-check-form">
         {% if groupby %}
         <ul class="nav nav-tabs" role="tablist">
-            {% for group, _df in libraries_df.groupby(groupby) %}
+            {% for group, _df in libraries_df.groupby(groupby, dropna=False, sort=False) %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link {% if loop.index0 == 0%}active{% endif %} {% if _df['error'].notna().any() %}cemm-red{% elif _df['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}" data-bs-toggle="tab"
                 id="spreadsheet-tab-btn"
-                data-bs-target="#group-{{ group }}-tab" type="button" role="tab"
-                aria-controls="group-{{ group }}-tab" aria-selected="true">{{ groupby.capitalize() }}: {{ group }}
+                data-bs-target="#clash-group-{{ loop.index }}-tab" type="button" role="tab"
+                aria-controls="clash-group-{{ loop.index }}-tab" aria-selected="true">{{ groupby.capitalize() }}: {{ group }}
                 </button>
             </li>
             {% endfor %}
         </ul>
         <div class="tab-content">
-            {% for group, _df in libraries_df.groupby(groupby) %}
-            <div class="tab-pane fade {% if loop.index0 == 0%}show active{% endif %}" id="group-{{ group }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+            {% for group, _df in libraries_df.groupby(groupby, dropna=False, sort=False) %}
+            <div class="tab-pane fade {% if loop.index0 == 0%}show active{% endif %}" id="clash-group-{{ loop.index }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
                 {{ barcode_clashes_table(_df) }}
             </div>
             {% endfor %}

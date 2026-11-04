@@ -2,6 +2,8 @@
 
 import re
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
@@ -636,3 +638,25 @@ def test_edit_form_prefills_every_field(
     assert _input_value(html, "i1_cycles") == "10"
     assert _input_value(html, "i2_cycles") == "24"
     assert f"/htmx/experiments/{experiment.id}/edit" in html
+
+
+@pytest.mark.parametrize("field", ["r1_cycles", "r2_cycles", "i1_cycles", "i2_cycles"])
+def test_create_negative_cycles_rerenders(
+    client: TestClient,
+    session: SyncSession,
+    insider,
+    insider_token: str,
+    field: str,
+):
+    sequencer = create_sequencer(session)
+    session.commit()
+
+    response = post_form(
+        client,
+        CREATE,
+        _payload("EXP_NEG_CYCLES", sequencer.id, insider.id, **{field: "-5"}),
+        token=insider_token,
+    )
+
+    assert_form_invalid(response)
+    assert _experiment(session, "EXP_NEG_CYCLES") is None

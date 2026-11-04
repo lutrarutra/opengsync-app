@@ -44,8 +44,8 @@ class AddProjectAssigneeAction(HTMXForm):
     def Submit(cls) -> RouteFunc:
         def route(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "AddProjectAssigneeAction" = Depends(AddProjectAssigneeAction.Validate()),
             _ = Depends(dependencies.require_insider),
+            form: "AddProjectAssigneeAction" = Depends(AddProjectAssigneeAction.Validate()),
         ):
             assignee = session.get_one(Q.user.select(id=int(form.user_id.data)))
 

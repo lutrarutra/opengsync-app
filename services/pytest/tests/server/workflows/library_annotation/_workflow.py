@@ -147,7 +147,10 @@ def spreadsheet_rows(response) -> list[list]:
     """Rows the server pre-filled into the rendered spreadsheet."""
     match = re.search(r"data: (\[\[.*?\]\]),\n", response.text)
     assert match is not None, "no spreadsheet data in response"
-    return ast.literal_eval(match.group(1))
+    try:
+        return json.loads(match.group(1))  # rendered with | js_data
+    except json.JSONDecodeError:
+        return ast.literal_eval(match.group(1))
 
 
 def spreadsheet_records(response) -> list[dict[str, Any]]:

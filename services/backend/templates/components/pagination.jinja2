@@ -20,5 +20,12 @@
         </a>
     </li>
 </ul>
+{% elif table.num_pages == 0 %}
+<p class="table-empty-state text-muted text-center my-3">
+    No entries to show.
+    {% if table.filter_values or table.active_query_value %}
+    <br><span class="desc">Filters or a search are active: change them in the column headers to see more.</span>
+    {% endif %}
+</p>
 {% endif %}
 {%- endmacro %}

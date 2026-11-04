@@ -1,10 +1,10 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import User, SeqRequest, Group, Sample, Library, links, Contact
+from ..models import User, SeqRequest, Group, Sample, Library, links, Contact, OperationRun
 from ..categories import (
     SeqRequestStatus, DataDeliveryMode, ReadType,
-    SubmissionType, LibraryType, AccessLevel
+    SubmissionType, LibraryType, AccessLevel, AffiliationType
 )
 from ..core import utils
 
@@ -151,6 +151,41 @@ def select(
 
 def permissions(seq_request_id: int, user_id: int) -> sql.Select[AccessLevel]:
     return sa.select(access_level(user_id)).where(SeqRequest.id == seq_request_id)
+
+
+def can_delete(user_id: int) -> sql.ColumnElement[bool]:
+    """Insiders, or while DRAFT the requestor and the OWNER/MANAGER of the request's group.
+
+    Plain group members may edit a group's draft (WRITE) but not delete another member's request."""
+    is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
+    is_group_manager = sa.select(1).where(
+        (links.UserAffiliation.user_id == user_id) &
+        (links.UserAffiliation.group_id == SeqRequest.group_id) &
+        links.UserAffiliation.affiliation_type.in_([AffiliationType.OWNER, AffiliationType.MANAGER])
+    ).correlate_except(links.UserAffiliation).exists()
+    return sa.or_(
+        sa.exists(is_insider),
+        sa.and_(
+            SeqRequest.status == SeqRequestStatus.DRAFT,
+            sa.or_(SeqRequest.requestor_id == user_id, is_group_manager),
+        ),
+    )
+
+
+def delete_permission(seq_request_id: int, user_id: int) -> sql.Select[bool]:
+    return sa.select(can_delete(user_id)).where(SeqRequest.id == seq_request_id)
+
+
+def submitted_by(seq_request_id: int) -> sql.Select[tuple[User]]:
+    """The user who last submitted the request (latest recorded `request.submit` run).
+
+    Not the requestor: insiders may submit on a customer's behalf. Requests submitted before
+    status tracking, or by the system, have no submitter."""
+    return sa.select(User).join(OperationRun, OperationRun.actor_id == User.id).where(
+        OperationRun.operation == "request.submit",
+        OperationRun.subject_type == "seq_request",
+        OperationRun.subject_id == seq_request_id,
+    ).order_by(OperationRun.timestamp_utc.desc(), OperationRun.id.desc()).limit(1)
 
 
 def where_clauses(

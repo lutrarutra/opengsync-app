@@ -1,12 +1,21 @@
 from typing import Literal
 
 from fastapi import Depends, Response
+import sqlalchemy as sa
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+
+
+def _name_taken(session: SyncSession, name: str, exclude_id: int | None = None) -> bool:
+    """Names compare case- and whitespace-insensitively, so no look-alike of an existing lab can be created."""
+    statement = sa.select(models.Group).where(sa.func.lower(sa.func.trim(models.Group.name)) == name.strip().lower())
+    if exclude_id is not None:
+        statement = statement.where(models.Group.id != exclude_id)
+    return session.exists(statement)
 
 
 class GroupForm(HTMXForm):
@@ -51,10 +60,13 @@ class GroupForm(HTMXForm):
     @htmx_route("GET", "/{group_id}/edit", name="Edit")
     def RenderEdit(cls) -> RouteFunc:
         def route(
-            form: "GroupForm" = Depends(GroupForm.Init(form_type="edit"))
+            access_level: C.AccessLevel = Depends(dependencies.group_permissions),
+            form: "GroupForm" = Depends(GroupForm.Init(form_type="edit")),
         ):
             if form.group is None:
                 raise exc.BadRequestException("Group ID must be provided for edit form.")
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this group.")
 
             form.name.data = form.group.name
             form.group_type.data = form.group.type.id
@@ -82,15 +94,11 @@ class GroupForm(HTMXForm):
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this group.")
 
-            if session.exists(
-                Q.group.select(name=form.name.data).where(
-                    models.Group.id != form.group.id
-                )
-            ):
+            if _name_taken(session, form.name.data, exclude_id=form.group.id):
                 form.name.errors.append("A group with this name already exists.")
                 raise exc.FormValidationException(form)
 
-            form.group.name = form.name.data
+            form.group.name = form.name.data.strip()
             form.group.type = C.GroupType.get(form.group_type.data)
 
             return responses.htmx_response(
@@ -106,12 +114,12 @@ class GroupForm(HTMXForm):
             current_user: models.User = Depends(dependencies.require_user),
             form: "GroupForm" = Depends(GroupForm.Validate(form_type="create")),
         ) -> Response:
-            if session.exists(Q.group.select(name=form.name.data)):
+            if _name_taken(session, form.name.data):
                 form.name.errors.append("A group with this name already exists.")
                 raise exc.FormValidationException(form)
 
             group = Q.group.create(
-                name=form.name.data,
+                name=form.name.data.strip(),
                 type=C.GroupType.get(form.group_type.data),
             )
             group.user_links.append(Q.affiliation.create(

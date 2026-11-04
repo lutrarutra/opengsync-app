@@ -123,7 +123,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                 pool: str
 
             for group, _ in parsing.safe_groupby(self.library_table, LibraryPoolGroup):
-                self.barcode_table.loc[self.barcode_table["library_name"] == group.library_name, "pool"] = group.pool
+                self.barcode_table.loc[self.barcode_table["library_name"] == group.library_name, "pool"] = self.pool_name(group.pool)
 
             self.barcode_table = barcodes.check_indices(self.barcode_table, groupby="pool")
         
@@ -135,6 +135,14 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         for group, _ in parsing.safe_groupby(self.sample_pooling_table, SamplePoolingLibraryMuxGroup, dropna=True):
             self.library_table.loc[self.library_table["library_name"] == group.library_name, "mux_type_id"] = group.mux_type_id
     
+    def pool_name(self, label: str) -> str:
+        """Name given in the pool step to the pool grouped by ``label`` in the library sheet."""
+        if self.pool_table is not None and {"pool_label", "pool_name"} <= set(self.pool_table.columns):
+            names = self.pool_table.loc[self.pool_table["pool_label"] == label, "pool_name"]
+            if len(names) > 0:
+                return str(names.iloc[0])
+        return label
+
     def protocol_ids(self) -> set[int]:
         if "protocol_id" not in self.library_table.columns:
             return set()
@@ -154,6 +162,8 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         self._context["feature_table"] = self.feature_table
         self._context["library_properties_table"] = self.library_properties_table
         self._context["pool_table"] = self.pool_table
+        # Pools are grouped by the label typed in the library sheet, and named in the pool step
+        self._context["pool_name"] = self.pool_name
         self._context["protocol_names"] = self.protocol_names()
 
         LINK_WIDTH_UNIT = 1
@@ -207,7 +217,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                             if (pool_node := pool_nodes.get(library_row["pool"])) is None:
                                 pool_node = {
                                     "node": node_idx,
-                                    "name": library_row["pool"],
+                                    "name": self.pool_name(library_row["pool"]),
                                 }
                                 nodes.append(pool_node)
                                 node_idx += 1

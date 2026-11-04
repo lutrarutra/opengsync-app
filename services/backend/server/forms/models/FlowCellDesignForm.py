@@ -57,8 +57,8 @@ class FlowCellDesignForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "FlowCellDesignForm" = Depends(FlowCellDesignForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "FlowCellDesignForm" = Depends(FlowCellDesignForm.Validate()),
         ) -> Response:
             if form.flow_cell_design is None:
                 raise exc.BadRequestException("Flow cell design ID must be provided for edit form.")

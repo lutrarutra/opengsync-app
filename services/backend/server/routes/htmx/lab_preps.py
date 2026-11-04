@@ -12,6 +12,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import dependencies, responses, exceptions as exc
+from ...utils.io import set_text
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
 from ... import forms
 
@@ -99,10 +100,13 @@ def render_lab_prep_table(
 def uncomplete_lab_prep(
     lab_prep_id: int,
     request: Request,
+    _admin: models.User = Depends(dependencies.require_admin),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    """Revert a completed lab prep back to preparing."""
+    """Revert a completed lab prep back to preparing (admins only, as the UI)."""
     lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    if lab_prep.status != C.PrepStatus.COMPLETED:
+        raise exc.BadRequestException("Only completed preps can be uncompleted.")
     with run_operation(session, lab_ops.UNCOMPLETE, subject=lab_prep):
         lab_prep.status = C.PrepStatus.PREPARING
 
@@ -323,11 +327,11 @@ def download_lab_prep_spreadsheet_template(
         name_i7_cell = prep_table[f"{column_mapping['name_i7']}{i + 2}"]
         name_i5_cell = prep_table[f"{column_mapping['name_i5']}{i + 2}"]
         library_id_cell.value = library.id
-        library_name_cell.value = library.name
-        requestor_cell.value = library.seq_request.requestor.name
+        set_text(library_name_cell, library.name)
+        set_text(requestor_cell, library.seq_request.requestor.name)
         if len(library.indices) > 0:
-            name_i7_cell.value = library.indices[0].name_i7
-            name_i5_cell.value = library.indices[0].name_i5
+            set_text(name_i7_cell, library.indices[0].name_i7)
+            set_text(name_i5_cell, library.indices[0].name_i5)
         sequence_i7_cell.value = library.sequences_i7_str(";")
         sequence_i5_cell.value = library.sequences_i5_str(";")
 
@@ -349,7 +353,7 @@ def download_lab_prep_spreadsheet_template(
                     sample_num_cell = flex_table[f"{column_mapping['sample_num']}{i}"]
                     sample_name_cell = flex_table[f"{column_mapping['sample_name']}{i}"]
                     sample_num_cell.value = i - 1
-                    sample_name_cell.value = sample_link.sample.name
+                    set_text(sample_name_cell, sample_link.sample.name)
                     i += 1
 
     if "10X_table" in template.sheetnames:
@@ -374,10 +378,10 @@ def download_lab_prep_spreadsheet_template(
                     requestor_cell = tenx_table[f"{column_mapping['requestor']}{i}"]
 
                     sample_num_cell.value = i - 1
-                    sample_name_cell.value = sample_link.sample.name
-                    library_name_cell.value = library.name
+                    set_text(sample_name_cell, sample_link.sample.name)
+                    set_text(library_name_cell, library.name)
                     library_id_cell.value = library.id
-                    requestor_cell.value = library.seq_request.requestor.name
+                    set_text(requestor_cell, library.seq_request.requestor.name)
                     i += 1
             
     bytes_io = io.BytesIO()

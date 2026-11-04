@@ -18,10 +18,10 @@ class PoolDesignForm(HTMXForm):
         min_length=1,
         description="Name of the pool design.",
     )
-    r1_cycles = inputs.numeric.IntInputField("R1 Cycles", required=True)
-    i1_cycles = inputs.numeric.IntInputField("I1 Cycles", required=True)
-    i2_cycles = inputs.numeric.IntInputField("I2 Cycles", required=True)
-    r2_cycles = inputs.numeric.IntInputField("R2 Cycles", required=True)
+    r1_cycles = inputs.numeric.IntInputField("R1 Cycles", required=True, ge=0)
+    i1_cycles = inputs.numeric.IntInputField("I1 Cycles", required=True, ge=0)
+    i2_cycles = inputs.numeric.IntInputField("I2 Cycles", required=True, ge=0)
+    r2_cycles = inputs.numeric.IntInputField("R2 Cycles", required=True, ge=0)
     num_m_requested_reads = inputs.numeric.FloatInputField(
         "Number of Requested Reads (Millions)",
         required=True,
@@ -76,8 +76,8 @@ class PoolDesignForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "PoolDesignForm" = Depends(PoolDesignForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "PoolDesignForm" = Depends(PoolDesignForm.Validate()),
         ) -> Response:
             if form.pool_design is not None:
                 raise exc.BadRequestException("Pool design must be absent for create form.")
@@ -113,8 +113,8 @@ class PoolDesignForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "PoolDesignForm" = Depends(PoolDesignForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "PoolDesignForm" = Depends(PoolDesignForm.Validate()),
         ) -> Response:
             if form.pool_design is None:
                 raise exc.BadRequestException("Pool design ID must be provided for edit form.")

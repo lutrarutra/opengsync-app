@@ -112,8 +112,8 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
     @htmx_route("POST", "/upload-prep-table/{lab_prep_id}")
     def Submit(cls) -> RouteFunc:
         def route(
-            form: UploadLibraryPrepSpreadsheetAction = Depends(UploadLibraryPrepSpreadsheetAction.Validate()),
             current_user: models.User = Depends(dependencies.require_insider),
+            form: UploadLibraryPrepSpreadsheetAction = Depends(UploadLibraryPrepSpreadsheetAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ):
             df = form.spreadsheet.data

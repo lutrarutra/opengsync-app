@@ -130,8 +130,8 @@ class SeqRunForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "SeqRunForm" = Depends(SeqRunForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "SeqRunForm" = Depends(SeqRunForm.Validate()),
         ) -> Response:
             if form.seq_run is None:
                 raise exc.BadRequestException("Seq run ID must be provided for edit form.")
@@ -169,8 +169,8 @@ class SeqRunForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "SeqRunForm" = Depends(SeqRunForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "SeqRunForm" = Depends(SeqRunForm.Validate()),
         ) -> Response:
             if session.exists(Q.seq_run.select(experiment_name=form.experiment_name.data)):
                 form.experiment_name.errors.append("Experiment name not unique.")

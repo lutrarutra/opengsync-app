@@ -137,6 +137,8 @@ class SelectSamplesForm(ReindexWorkflowStep):
             self.selected_library_ids.query_params["lab_prep_id"] = self.workflow.lab_prep_id
         if self.workflow.pool_id is not None:
             self.selected_library_ids.query_params["pool_id"] = self.workflow.pool_id
+        # a lab prep's checklist starts this workflow as its 'Index Libraries' step
+        self._context["title"] = "Index Libraries" if self.workflow.lab_prep_id is not None else "Reindex"
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:

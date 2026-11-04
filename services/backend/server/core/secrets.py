@@ -6,7 +6,7 @@ import secrets
 
 from loguru import logger
 
-from opengsync_db.categories import UserRole
+from opengsync_db.categories import UserRole, AffiliationType
 from opengsync_db import models
 
 from .config import settings, secret_value
@@ -102,7 +102,11 @@ def verify_activation_token(
     except jwt.InvalidTokenError:
         return None
 
-def generate_registration_token(email: str, role: UserRole, valid_minutes: int = 60 * 24) -> str:
+def generate_registration_token(
+    email: str, role: UserRole, valid_minutes: int = 60 * 24,
+    group_id: int | None = None, affiliation_type: AffiliationType | None = None,
+) -> str:
+    """``group_id``/``affiliation_type``: an invitation to a group, joined when the registration completes."""
     expire = dt.datetime.now(settings.TIMEZONE) + dt.timedelta(minutes=valid_minutes)
     payload = {
         "email": email,
@@ -110,7 +114,24 @@ def generate_registration_token(email: str, role: UserRole, valid_minutes: int =
         "exp": expire,
         "action": "registration"
     }
+    if group_id is not None and affiliation_type is not None:
+        payload["group_id"] = group_id
+        payload["affiliation_type"] = affiliation_type.id
     return jwt.encode(payload, require_secret_key(), algorithm=settings.JWT_ALGORITHM)
+
+
+def registration_group(token: str) -> tuple[int, AffiliationType] | None:
+    """The group (and affiliation) a registration token invites to, if any."""
+    try:
+        payload = jwt.decode(token, require_secret_key(), algorithms=[settings.JWT_ALGORITHM])
+    except jwt.InvalidTokenError:
+        return None
+    if payload.get("action") != "registration" or payload.get("group_id") is None:
+        return None
+    try:
+        return int(payload["group_id"]), AffiliationType.get(payload.get("affiliation_type"))
+    except ValueError:
+        return None
 
 def verify_registration_token(token: str) -> tuple[str, UserRole] | None:
     try:

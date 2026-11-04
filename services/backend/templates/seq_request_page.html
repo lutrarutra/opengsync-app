@@ -96,8 +96,8 @@
                         {{
                             confirm_action_button(
                                 "Delete", class="dropdown-item", title="Delete request {name}".format(name=seq_request.identifier),
-                                disabled=not (seq_request.is_editable() or current_user.is_insider),
-                                disabled_tooltip="Only insiders can delete a submitted request.",
+                                disabled=not can_delete,
+                                disabled_tooltip="Only insiders can delete a submitted request." if not seq_request.is_editable() else "Only the requestor or a manager of the group can delete this request.",
                                 tooltip_position="left", method="hx-delete",
                                 url=url_for('delete_seq_request', seq_request_id=seq_request.id),
                             )
@@ -320,6 +320,12 @@
                 {{ workflow_tile("Edit Libraries", "Make changes to libraries.", url_for('RelibWorkflow.Begin', seq_request_id=seq_request.id), bi="bi-pencil-square") }}
                 {% endif %}
             </div>
+            {% if not current_user.is_insider and seq_request.submission_type not in [C.SubmissionType.POOLED_LIBRARIES, C.SubmissionType.UNPOOLED_LIBRARIES] %}
+            <p class="text-muted">
+                There are no workflows for this kind of request. To add samples, open the <b>Checklist</b> tab and
+                start <b>Add Samples to the Request</b>.
+            </p>
+            {% endif %}
         </div>
         <div class="tab-pane fade" id="request-libraries-tab" role="tabpanel" tabindex="4">
             <div class="d-flex justify-content-between align-items-center">

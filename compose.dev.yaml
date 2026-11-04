@@ -50,8 +50,11 @@ services:
             POSTGRES_DB: ${POSTGRES_DB}
             POSTGRES_HOST: ${POSTGRES_HOST}
             POSTGRES_PORT: ${POSTGRES_PORT}
-            MAIL_SERVER: ${MAIL_SERVER}
-            MAIL_PORT: ${MAIL_PORT}
+            # dev mail goes to the local Mailpit catcher (http://localhost:8025), never to real inboxes;
+            # set DEV_MAIL_SERVER/DEV_MAIL_PORT to the .env values to send for real
+            MAIL_SERVER: ${DEV_MAIL_SERVER:-mailpit}
+            MAIL_PORT: ${DEV_MAIL_PORT:-1025}
+            MAIL_USE_TLS: ${DEV_MAIL_USE_TLS:-false}
             MAIL_SENDER: ${MAIL_SENDER}
             MAIL_PASSWORD: ${MAIL_PASSWORD}
             SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
@@ -205,6 +208,19 @@ services:
             opengsync-app:
                 condition: service_started
         restart: on-failure
+
+    mailpit:
+        container_name: mailpit-dev
+        image: axllent/mailpit:v1.27.0
+        environment:
+            # the app logs in (without TLS, see MAIL_USE_TLS): accept any credentials
+            MP_SMTP_AUTH_ACCEPT_ANY: 1
+            MP_SMTP_AUTH_ALLOW_INSECURE: 1
+            TZ: ${TIMEZONE}
+        ports:
+            - 127.0.0.1:8025:8025
+        restart: on-failure
+        attach: false  # no logs
 
     pgadmin:
         container_name: pgadmin-dev

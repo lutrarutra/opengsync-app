@@ -19,9 +19,13 @@ class Personalization(BaseModel):
 
 
 class SampleSubmissionWindow(BaseModel):
-    weekday: int
+    weekday: int  # 0 = Monday
     start_time: time
     end_time: time
+
+    def contains(self, moment: datetime) -> bool:
+        """Whether the (local) moment falls into this weekly window."""
+        return moment.weekday() == self.weekday and self.start_time <= moment.time() <= self.end_time
 
 
 class DBConfig(BaseModel):
@@ -122,6 +126,7 @@ class Settings(BaseSettings):
     MAIL_USER: str = ""
     MAIL_PASSWORD: SecretStr = SecretStr("")
     MAIL_SENDER: str = ""
+    MAIL_USE_TLS: bool = True  # STARTTLS; off only for a local mail catcher
 
     # Database
     POSTGRES_USER: str = "admin"

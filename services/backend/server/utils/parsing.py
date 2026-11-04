@@ -53,6 +53,15 @@ def make_filenameable(val, keep: list[str] | tuple[str, ...] = ('-', '.', '_')) 
     return "".join(c for c in str(val) if c.isalnum() or c in keep)
 
 
+def normalize_name(val: str | None) -> str | None:
+    """Spaces and dashes become '_' (collapsed); any other character is left for validation to report,
+    instead of being dropped silently (``<b>x</b>`` would otherwise turn into ``bxb``)."""
+    if pd.isna(val) or not val:  # type: ignore
+        return None
+    val = re.sub(r"[\s-]+", "_", str(val).strip())
+    return re.sub(r"_+", "_", val)
+
+
 def make_alpha_numeric(val: str | None, keep: list[str] | tuple[str, ...] = (".", "-", "_"), replace_white_spaces_with: str | None = "_") -> str | None:
     if pd.isna(val) or not val:  # type: ignore
         return None

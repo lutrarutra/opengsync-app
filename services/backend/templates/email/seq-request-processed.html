@@ -1,0 +1,18 @@
+{% extends "email/base.html" %}
+{% block content %}
+{% if response_type.name == "ACCEPTED" %}
+<p>Your sequencing request <b>{{ seq_request.name }}</b> has been accepted.</p>
+{% elif response_type.name == "REJECTED" %}
+<p>Unfortunately, your sequencing request <b>{{ seq_request.name }}</b> has been rejected.</p>
+{% else %}
+<p>Your sequencing request <b>{{ seq_request.name }}</b> needs revision before it can be processed. It has been returned to draft so you can edit and submit it again.</p>
+{% endif %}
+{% if comment %}
+<p><b>Comment:</b></p>
+<p style="white-space: pre-wrap;">{{ comment }}</p>
+{% endif %}
+<p>
+    View the request:<br>
+    🔗 <a href="{{ link }}">{{ link }}</a>
+</p>
+{% endblock %}

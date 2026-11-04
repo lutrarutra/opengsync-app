@@ -29,10 +29,14 @@
             <div class="tab-pane fade show active" id="form-tab" role="tabpanel" tabindex="0">
                 <div class="input-help">
                     <p>
+                        {% if (form.i7_kit.options | rejectattr(0, "in", [0, "0", ""]) | list) or (form.i5_kit.options | rejectattr(0, "in", [0, "0", ""]) | list) %}
                         The sequences were queried against all barcodes in the database and some matches were found.
                         If the barcodes originate from a kit, please select the kit from available options.
                         If the barcodes do not originate from a kit, please select "Custom". Using pre-defined kits helps
                         to minimize the risk of input errors.
+                        {% else %}
+                        None of the sequences match a kit in the database, so they are treated as custom barcodes.
+                        {% endif %}
                     </p>
                     <p>
                         ⚠️ Mistakes in index kit selection can lead to barcode clashes and therefore <b>irreversible data loss</b>.

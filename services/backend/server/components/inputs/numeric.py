@@ -5,6 +5,9 @@ from .BaseInputField import BaseInputField
 _FloatDataT = TypeVar("_FloatDataT", float, float | None, covariant=True)
 
 
+
+INT32_MIN, INT32_MAX = -(2**31), 2**31 - 1
+
 class FloatInputField(BaseInputField, Generic[_FloatDataT]):
     data: _FloatDataT
 
@@ -145,17 +148,18 @@ class IntInputField(BaseInputField, Generic[_IntDataT]):
         hidden: bool = False,
         read_only: bool = False,
     ):
-        pydantic_type: Any = int
+        # Values beyond the database integer range would otherwise fail only when saved
+        ge = INT32_MIN if ge is None else ge
+        le = INT32_MAX if le is None else le
 
-        if ge is not None or le is not None:
-            def _validate(x: int) -> int:
-                if ge is not None and x < ge:
-                    raise ValueError(f"Value must be >= {ge}")
-                if le is not None and x > le:
-                    raise ValueError(f"Value must be <= {le}")
-                return x
+        def _validate(x: int) -> int:
+            if x < ge:
+                raise ValueError(f"Value must be >= {ge}")
+            if x > le:
+                raise ValueError(f"Value must be <= {le}")
+            return x
 
-            pydantic_type = Annotated[int, AfterValidator(_validate)]
+        pydantic_type: Any = Annotated[int, AfterValidator(_validate)]
 
         super().__init__(
             label=label,

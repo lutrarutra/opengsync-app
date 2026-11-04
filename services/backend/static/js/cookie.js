@@ -35,3 +35,13 @@ $(document).ready(function() {
     }
 });
 
+
+// The notice sits bottom-right, over the footer buttons of open modals: hide it while a modal is open.
+$(document).on("show.bs.modal", function() {
+    $("#cookie-toast").hide();
+});
+$(document).on("hidden.bs.modal", function() {
+    if (!getCookie("cookies_accepted") && $(".modal.show").length === 0) {
+        $("#cookie-toast").show();
+    }
+});

@@ -10,6 +10,16 @@
             {{ form.notification_receiver.render("col-8") }}
         </div>
         {{ form.notification_comment.render() }}
+        {{ form.notify_customer.render("pt-2") }}
+        <div class="form-text">
+            {% if submitter is none %}
+            Submitter unknown (submitted before submissions were tracked).
+            {% elif submitter.is_insider %}
+            Submitted by staff ({{ submitter.name }}): the customer is not notified by default.
+            {% else %}
+            Submitted by the customer ({{ submitter.name }}).
+            {% endif %}
+        </div>
         {{ form.csrf_token.render() }}
     </div>
     <div class="modal-footer">

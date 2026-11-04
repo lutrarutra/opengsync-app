@@ -35,7 +35,7 @@ class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
             "sample_id", "Sample Name", 300, required=True, unique=True, url=None, lookup=_sample_names(None), allow_new=True,
             name_column=TextColumn(
                 "sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4,
-                clean_up_fnc=lambda x: utils.parsing.make_alpha_numeric(x, keep=["_", "."]),
+                clean_up_fnc=utils.parsing.normalize_name,
                 validation_fnc=lambda x: utils.parsing.check_string(x, allowed_special_characters=["_"]),
             ),
         ),

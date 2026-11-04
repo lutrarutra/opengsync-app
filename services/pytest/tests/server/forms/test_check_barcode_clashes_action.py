@@ -14,6 +14,7 @@ Clashes are flagged on the row: Hamming distance 0 is an error, < 3 a warning.
 """
 
 import json
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -309,7 +310,7 @@ def test_render_experiment_groups_by_lane(
     for name in ("L1_Lib_A", "L1_Lib_B", "L2_Lib_A"):
         assert name in response.text
     # Lane 1 clashes; lane 2 has the same barcode alone, which is fine.
-    lane_2 = response.text.split('id="group-')[2]
+    lane_2 = response.text.split('id="clash-group-')[2]
     assert ERROR in response.text
     assert ERROR not in lane_2
 
@@ -333,3 +334,20 @@ def test_render_experiment_unknown_is_404(client: TestClient, insider_token: str
 
 def test_render_without_context_is_bad_request(client: TestClient, insider_token: str):
     assert get(client, RENDER, insider_token).status_code == 400
+
+
+def test_render_seq_request_shows_unpooled_libraries(client: TestClient, session: SyncSession, user, user_token: str):
+    """Grouping by pool dropped libraries without a pool from the view."""
+    seq_request = create_seq_request(session, user)
+    pool = _pool(session, user, seq_request, "Pool_One")
+    _library(session, user, seq_request, "Pooled_Lib", I7_A, I5_A, pool)
+    _library(session, user, seq_request, "Loose_Lib", I7_B, I5_B)
+    session.commit()
+
+    response = get(client, RENDER, user_token, params={"seq_request_id": seq_request.id})
+
+    assert response.status_code == 200
+    assert "Pool: Pool_One" in response.text and "Pool: Not pooled" in response.text
+    assert "Loose_Lib" in response.text
+    tab_ids = re.findall(r'id="(clash-group-\d+-tab)"', response.text)
+    assert len(tab_ids) == 2 and len(set(tab_ids)) == 2

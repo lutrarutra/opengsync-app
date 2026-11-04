@@ -22,6 +22,26 @@ class FileUpload(BaseModel):
 _DataT = TypeVar("_DataT", FileUpload, FileUpload | None, covariant=True)
 
 
+# File signatures of the binary formats; text formats only must not be binary.
+_SIGNATURES: dict[str, tuple[bytes, ...]] = {
+    "pdf": (b"%PDF-",),
+    "png": (b"\x89PNG\r\n\x1a\n",),
+    "jpg": (b"\xff\xd8\xff",),
+    "jpeg": (b"\xff\xd8\xff",),
+    "xlsx": (b"PK\x03\x04",),
+}
+_TEXT_EXTENSIONS = frozenset({"csv", "tsv", "txt", "md"})
+
+
+def content_matches_extension(content: bytes, extension: str) -> bool:
+    """Whether the bytes are plausibly a file of this extension (an HTML page renamed to .pdf is not)."""
+    if (signatures := _SIGNATURES.get(extension)) is not None:
+        return content.startswith(signatures)
+    if extension in _TEXT_EXTENSIONS:
+        return b"\x00" not in content[:8192]
+    return True
+
+
 class FileInputField(BaseInputField, Generic[_DataT]):
     """File upload input field.
 
@@ -122,6 +142,11 @@ class FileInputField(BaseInputField, Generic[_DataT]):
             if size > self.max_size_mb * 1024 * 1024:
                 self.errors.append(f"File is too large. Maximum size is {self.max_size_mb} MB.")
                 return False
+
+        ext = os.path.splitext(upload["filename"])[1].lower().lstrip(".")
+        if not content_matches_extension(upload.get("content") or b"", ext):
+            self.errors.append(f"The file content is not a valid '.{ext}' file.")
+            return False
 
         return True
 

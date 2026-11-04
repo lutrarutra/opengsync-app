@@ -66,15 +66,15 @@ def search(
 
     if title:
         filter_conditions.append(utils.safe_trgm_search(Project.title, title))
-        relevance += sa.func.similarity(Project.title, title) * title_weight
+        relevance += sa.func.coalesce(sa.func.similarity(Project.title, title), 0.0) * title_weight
 
     if identifier:
         filter_conditions.append(utils.safe_ilike(Project.identifier, identifier))
-        relevance += sa.func.similarity(Project.identifier, identifier) * identifier_weight
+        relevance += sa.func.coalesce(sa.func.similarity(Project.identifier, identifier), 0.0) * identifier_weight
 
     if owner_name:
         filter_conditions.append(utils.safe_trgm_search(User.name.expression, owner_name))
-        relevance += sa.func.similarity(User.name.expression, owner_name) * owner_name_weight
+        relevance += sa.func.coalesce(sa.func.similarity(User.name.expression, owner_name), 0.0) * owner_name_weight
 
     if not filter_conditions:
         return statement

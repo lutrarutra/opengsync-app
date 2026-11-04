@@ -56,12 +56,12 @@ class SpreadSheetColumn:
         if pd.isna(value):
             if self.required and not ignore_missing:
                 logger.error(f"Value for '{self.label}' is required but missing.")
-                raise ValueError(f"Value for '{self.label}' is required but missing.")
+                raise ValueError(f"Value for '{self.name}' is required but missing.")
             return None
         
         if isinstance(value, str):
             if not (value := value.strip()) and self.required:
-                raise MissingCellValue(f"Value for '{self.label}' is required but missing.")
+                raise MissingCellValue(f"Value for '{self.name}' is required but missing.")
             
             if not value:
                 value = None
@@ -76,11 +76,11 @@ class SpreadSheetColumn:
     
     def validate(self, value: Any, column_values: Sequence[Any]):
         if self.required and pd.isna(value):
-            raise MissingCellValue(f"Missing value for '{self.label}'")
+            raise MissingCellValue(f"Missing value for '{self.name}'")
         
         if self.unique and pd.notna(value):
             if column_values.count(self.clean_up(value, ignore_missing=True)) > 1:
-                raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
+                raise DuplicateCellValue(f"Value '{value}' for '{self.name}' is not unique. It appears multiple times in the column.")
 
     def set_choices(self, choices: list[Any] | Callable[[], list[Any]]) -> None:
         raise NotImplementedError("set_choices must be implemented in subclasses that support choices.")
@@ -108,20 +108,20 @@ class TextColumn(SpreadSheetColumn):
         super().validate(value, column_values)
         if pd.isna(value):
             if self.required:
-                raise MissingCellValue(f"Missing value for '{self.label}'")
+                raise MissingCellValue(f"Missing value for '{self.name}'")
             return
         value = self.clean_up(value)
         value = str(value)
         if len(value) < self.min_length:
-            raise InvalidCellValue(f"Value for '{self.label}' is too short. Minimum length is {self.min_length}.")
+            raise InvalidCellValue(f"Value for '{self.name}' is too short. Minimum length is {self.min_length}.")
         if len(value) > self.max_length:
-            raise InvalidCellValue(f"Value for '{self.label}' is too long. Maximum length is {self.max_length}.")
+            raise InvalidCellValue(f"Value for '{self.name}' is too long. Maximum length is {self.max_length}.")
         
         if self.validation_fnc is not None:
             if self.clean_up_fnc is not None:
                 value = self.clean_up_fnc(value)
             if (error := self.validation_fnc(value)) is not None:
-                raise InvalidCellValue(f"Validation failed for '{self.label}': {error}")
+                raise InvalidCellValue(f"Validation failed for '{self.name}': {error}")
 
 
 class IntegerColumn(SpreadSheetColumn):
@@ -141,7 +141,7 @@ class IntegerColumn(SpreadSheetColumn):
             try:
                 value = int(value.strip())
             except ValueError:
-                raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'. Must be an integer.")
+                raise InvalidCellValue(f"Invalid value '{value}' for '{self.name}'. Must be an integer.")
     
     def clean_up(self, value: Any) -> int | None:
         if (value := super().clean_up(value)) is None:
@@ -152,12 +152,13 @@ class IntegerColumn(SpreadSheetColumn):
 class FloatColumn(SpreadSheetColumn):
     def __init__(
         self, label: str, name: str, width: float, required: bool = False, letter: str | None = None,
-        optional_col: bool = False, unique: bool = False, read_only: bool = False
+        optional_col: bool = False, unique: bool = False, read_only: bool = False, min_value: float | None = None,
     ):
         super().__init__(
             label=label, name=name, type="numeric", width=width, var_type=float, letter=letter,
             required=required, optional_col=optional_col, unique=unique, read_only=read_only
         )
+        self.min_value = min_value
 
     def validate(self, value: Any, column_values: Sequence[Any]):
         super().validate(value, column_values)
@@ -165,7 +166,9 @@ class FloatColumn(SpreadSheetColumn):
             try:
                 value = float(value.strip())
             except ValueError:
-                raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
+                raise InvalidCellValue(f"Invalid value '{value}' for '{self.name}'.")
+        if self.min_value is not None and value is not None and not pd.isna(value) and float(value) < self.min_value:
+            raise InvalidCellValue(f"Value for '{self.name}' must be at least {self.min_value:g}.")
     
     def clean_up(self, value: Any) -> float | None:
         if (value := super().clean_up(value)) is None:
@@ -208,7 +211,7 @@ class DropdownColumn(SpreadSheetColumn):
                 return
             if self.source is None:
                 raise ValueError(f"Dropdown column '{self.label}' must have a source list of choices.")
-            raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'. Must be one of: {', '.join(self.source)}")
+            raise InvalidCellValue(f"Invalid value '{value}' for '{self.name}'. Must be one of: {', '.join(self.source)}")
         
 
 class CategoricalDropDown(SpreadSheetColumn):
@@ -248,7 +251,7 @@ class CategoricalDropDown(SpreadSheetColumn):
         if pd.isna(value) and not self.required:
             return
         if value not in self.rev_categories:
-            raise InvalidCellValue(f"Invalid category '{value}' for '{self.label}'.")
+            raise InvalidCellValue(f"Invalid category '{value}' for '{self.name}'.")
         
     def clean_up(self, value: Any) -> Any:
         self._ensure_categories()
@@ -322,13 +325,13 @@ class DBObjectColumn(CategoricalDropDown):
         self._ensure_categories()
         if pd.isna(value):
             if self.required:
-                raise MissingCellValue(f"Missing value for '{self.label}'")
+                raise MissingCellValue(f"Missing value for '{self.name}'")
             return
         options = self.categories or self.new_values
         if options and value not in self.rev_categories and value not in self.new_values:
-            raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
+            raise InvalidCellValue(f"Invalid value '{value}' for '{self.name}'.")
         if self.unique and list(column_values).count(value) > 1:
-            raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
+            raise DuplicateCellValue(f"Value '{value}' for '{self.name}' is not unique. It appears multiple times in the column.")
 
     def to_display_row(self, row: pd.Series) -> Any:
         self._ensure_categories()
@@ -364,13 +367,13 @@ class DBObjectColumn(CategoricalDropDown):
         # Expected format: "name [id]"
         name, separator, identifier = text.rpartition(" [")
         if not separator or not identifier.endswith("]"):
-            raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
+            raise InvalidCellValue(f"Invalid value '{value}' for '{self.name}'.")
         if text in self.new_values:
             return {self.backend_columns[0]: None, self.backend_columns[1]: name.strip()}
         try:
             object_id = int(identifier[:-1])
         except ValueError as error:
-            raise InvalidCellValue(f"Invalid ID in '{value}' for '{self.label}'.") from error
+            raise InvalidCellValue(f"Invalid ID in '{value}' for '{self.name}'.") from error
         return {self.backend_columns[0]: object_id, self.backend_columns[1]: name.strip()}
 
 
@@ -473,7 +476,7 @@ class QueryColumn(SpreadSheetColumn):
     def validate(self, value: Any, column_values: Sequence[Any]):
         if pd.isna(value):
             if self.required:
-                raise MissingCellValue(f"Missing value for '{self.label}'")
+                raise MissingCellValue(f"Missing value for '{self.name}'")
             return
         if (object_id := self.to_id(value)) is not None:
             if object_id not in self.labels:
@@ -484,7 +487,7 @@ class QueryColumn(SpreadSheetColumn):
             raise InvalidCellValue(f"Unknown {self.name.lower()} '{value}'.")
         if self.unique:
             if [self._unique_key(v) for v in column_values].count(self._unique_key(value)) > 1:
-                raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
+                raise DuplicateCellValue(f"Value '{value}' for '{self.name}' is not unique. It appears multiple times in the column.")
 
     def clean_up(self, value: Any, ignore_missing: bool = False) -> int | None:
         if pd.isna(value):

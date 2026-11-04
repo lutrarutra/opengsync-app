@@ -146,9 +146,9 @@ class LanePoolsSeparateAction(HTMXForm):
     @htmx_route("POST", "/{experiment_id}/lane-pools/separate")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_insider),
             form: "LanePoolsSeparateAction" = Depends(LanePoolsSeparateAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
         ):
             for lane_sub_form in form.lane_sub_forms:
                 lane = session.get_one(Q.lane.select(experiment_id=form.experiment.id, number=lane_sub_form.lane.data))

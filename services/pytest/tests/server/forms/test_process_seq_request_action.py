@@ -7,11 +7,16 @@ Access control:
 - Accepts / rejects / marks as pending revision a sequencing request.
 """
 
+import re
+
+import pytest
+
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from opengsync_db import actions
+from opengsync_db.transitions import tracking
 
 from ...db.create_units import create_seq_request, create_library, create_project, create_sample
 from .._http import (
@@ -178,6 +183,7 @@ def test_submit_rejects_request(
         _submit_path(seq_request.id),
         _payload(
             response_type=str(C.RequestResponse.REJECTED.id),
+            notification_comment="Samples degraded",
             assign_seq_request_to_me="on",
         ),
         token=insider_token,
@@ -210,7 +216,7 @@ def test_submit_reject_keeps_samples_draft(
     response = post_form(
         client,
         _submit_path(seq_request.id),
-        _payload(response_type=str(C.RequestResponse.REJECTED.id)),
+        _payload(response_type=str(C.RequestResponse.REJECTED.id), notification_comment="Samples degraded"),
         token=insider_token,
     )
 
@@ -232,6 +238,7 @@ def test_submit_marks_pending_revision(
         _submit_path(seq_request.id),
         _payload(
             response_type=str(C.RequestResponse.PENDING_REVISION.id),
+            notification_comment="Please fix the organism",
             assign_seq_request_to_me="on",
         ),
         token=insider_token,
@@ -385,3 +392,179 @@ def test_submit_unknown_is_404(
     )
 
     assert response.status_code == 404
+
+# ── Notification email ─────────────────────────────────────────────────────
+
+
+def _submitted_by(session: SyncSession, seq_request: models.SeqRequest, actor: models.User) -> None:
+    tracking.set_actor(session, actor.id)
+    actions.submit_seq_request(session, seq_request)
+    tracking.set_actor(session, None)
+    session.commit()
+
+
+def _notifications(fake_mailer) -> list[dict]:
+    return [mail for mail in fake_mailer.sent if mail["method"] == "send_seq_request_processed"]
+
+
+def test_render_notify_checked_when_customer_submitted(
+    client: TestClient, session: SyncSession, user, insider_token: str,
+):
+    seq_request = _seq_request_with_library(session, user)
+    _submitted_by(session, seq_request, user)
+
+    response = get(client, _render_path(seq_request.id), insider_token)
+
+    assert response.status_code == 200
+    assert re.search(r'<input[^>]*name="notify_customer"[^>]*checked', response.text)
+    assert "Submitted by the customer" in response.text
+
+
+def test_render_notify_unchecked_when_insider_submitted(
+    client: TestClient, session: SyncSession, user, insider, insider_token: str,
+):
+    """Insiders fill in and submit requests on a customer's behalf: the requestor field cannot tell."""
+    seq_request = _seq_request_with_library(session, user)
+    _submitted_by(session, seq_request, insider)
+
+    response = get(client, _render_path(seq_request.id), insider_token)
+
+    assert response.status_code == 200
+    assert not re.search(r'<input[^>]*name="notify_customer"[^>]*checked', response.text)
+    assert "Submitted by staff" in response.text
+
+
+def test_render_notify_unchecked_without_tracked_submit(
+    client: TestClient, session: SyncSession, user, insider_token: str,
+):
+    seq_request = _seq_request_with_library(session, user)
+
+    response = get(client, _render_path(seq_request.id), insider_token)
+
+    assert not re.search(r'<input[^>]*name="notify_customer"[^>]*checked', response.text)
+    assert "Submitter unknown" in response.text
+
+
+def test_latest_submit_decides(session: SyncSession, user, insider):
+    """Resubmission after revision: the latest submitter counts."""
+    seq_request = _seq_request_with_library(session, user)
+    _submitted_by(session, seq_request, insider)
+    actions.process_seq_request(session=session, seq_request=seq_request, status=C.SeqRequestStatus.DRAFT)
+    session.commit()
+    _submitted_by(session, seq_request, user)
+
+    assert session.first(Q.seq_request.submitted_by(seq_request.id)).id == user.id
+
+
+def test_submit_with_notify_sends_email(
+    client: TestClient, session: SyncSession, user, insider_token: str, fake_mailer,
+):
+    seq_request = _seq_request_with_library(session, user)
+
+    response = post_form(
+        client,
+        _submit_path(seq_request.id),
+        _payload(
+            response_type=str(C.RequestResponse.PENDING_REVISION.id),
+            notification_comment="Please fix the organism",
+            notify_customer="on",
+        ),
+        token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    [mail] = _notifications(fake_mailer)
+    receiver, sent_request, response_type = mail["args"]
+    assert (receiver, sent_request.id, response_type) == (
+        "notify@example.com", seq_request.id, C.RequestResponse.PENDING_REVISION,
+    )
+    assert mail["kwargs"]["comment"] == "Please fix the organism"
+
+
+def test_submit_without_notify_sends_nothing(
+    client: TestClient, session: SyncSession, user, insider_token: str, fake_mailer,
+):
+    seq_request = _seq_request_with_library(session, user)
+
+    response = post_form(client, _submit_path(seq_request.id), _payload(), token=insider_token)
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    assert _notifications(fake_mailer) == []
+
+
+def test_notify_requires_receiver(
+    client: TestClient, session: SyncSession, user, insider_token: str, fake_mailer,
+):
+    seq_request = _seq_request_with_library(session, user)
+    status = seq_request.status
+
+    response = post_form(
+        client, _submit_path(seq_request.id),
+        _payload(notification_receiver="", notify_customer="on"), token=insider_token,
+    )
+
+    assert_form_invalid(response, "Notification email is required to notify the customer.")
+    assert _notifications(fake_mailer) == []
+    session.expire_all()
+    assert session.get_one(Q.seq_request.select(id=seq_request.id)).status == status
+
+
+def test_reject_requires_comment(
+    client: TestClient, session: SyncSession, user, insider_token: str,
+):
+    """Legacy parity: the customer must be told why a request was not accepted."""
+    seq_request = _seq_request_with_library(session, user)
+
+    response = post_form(
+        client, _submit_path(seq_request.id),
+        _payload(response_type=str(C.RequestResponse.REJECTED.id), notification_comment="  "), token=insider_token,
+    )
+
+    assert_form_invalid(response, "A comment is required if the request is not accepted.")
+
+
+def test_mail_failure_still_processes_request(
+    client: TestClient, session: SyncSession, user, insider_token: str, fake_mailer,
+):
+    seq_request = _seq_request_with_library(session, user)
+    fake_mailer.fail = True
+
+    response = post_form(
+        client, _submit_path(seq_request.id), _payload(notify_customer="on"), token=insider_token,
+    )
+
+    assert_htmx_redirect(response, f"/seq_requests/{seq_request.id}")
+    assert_flash(response, "notification email to notify@example.com could not be sent", category="warning")
+    session.expire_all()
+    assert session.get_one(Q.seq_request.select(id=seq_request.id)).status == C.SeqRequestStatus.ACCEPTED
+
+
+@pytest.mark.parametrize("response_type, wording", [
+    (C.RequestResponse.ACCEPTED, "has been accepted"),
+    (C.RequestResponse.REJECTED, "has been rejected"),
+    (C.RequestResponse.PENDING_REVISION, "needs revision"),
+])
+def test_notification_email_renders(
+    client: TestClient, session: SyncSession, user, monkeypatch: pytest.MonkeyPatch, response_type, wording: str,
+):
+    """The real template: wording per response, escaped comment, contact greeting, request link."""
+    from server.core import mailer as mailer_module
+
+    sent: list[dict] = []
+    monkeypatch.setattr(mailer_module.responses, "external_url_for", lambda *args, **kwargs: "https://example.com/seq_requests/1")
+    monkeypatch.setattr(mailer_module.templates.context, "get_request_context", lambda: {})
+    monkeypatch.setattr(mailer_module.Mailer, "_get_email_style", lambda self: "")
+    monkeypatch.setattr(mailer_module.Mailer, "_Mailer__send_email", lambda _, **kwargs: sent.append(kwargs))
+    seq_request = _seq_request_with_library(session, user)
+
+    mailer_module.Mailer().send_seq_request_processed(
+        seq_request.contact_person.email, seq_request, response_type, comment="<b>fix</b> the organism",
+    )
+
+    [mail] = sent
+    assert mail["recipients"] == seq_request.contact_person.email
+    assert mail["subject"].startswith(f"[R{seq_request.id}] Sequencing Request {response_type.display_name}")
+    assert wording in mail["body"]
+    assert f"Dear {seq_request.contact_person.name}" in mail["body"]
+    assert "&lt;b&gt;fix&lt;/b&gt; the organism" in mail["body"]
+    assert "https://example.com/seq_requests/1" in mail["body"]

@@ -28,7 +28,12 @@ class APITokenForm(HTMXForm):
         def dependency(
             user_id: int,
             session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
+            access_level: C.AccessLevel = Depends(dependencies.user_permissions),
         ) -> "APITokenForm":
+            # API tokens act as their owner: only the user themselves or an admin may create them
+            if current_user.id != user_id and access_level < C.AccessLevel.ADMIN:
+                raise exc.NoPermissionsException("You do not have permission to create API tokens for this user.")
             user = session.get_one(Q.user.select(id=user_id))
             return APITokenForm(user=user)
         return dependency
@@ -47,8 +52,8 @@ class APITokenForm(HTMXForm):
             user_id: int,
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),
-            form: "APITokenForm" = Depends(APITokenForm.Validate()),
             access_level: C.AccessLevel = Depends(dependencies.user_permissions),
+            form: "APITokenForm" = Depends(APITokenForm.Validate()),
         ) -> Response:
             if current_user.id != user_id and access_level < C.AccessLevel.ADMIN:
                 raise exc.NoPermissionsException("You do not have permission to create API tokens for this user.")

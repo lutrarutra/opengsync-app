@@ -2,7 +2,7 @@ function swal_message(title, icon, text=null, timer=2000) {
     Swal.fire({
         position: 'top',
         icon: icon,
-        title: title,
+        titleText: title,
         text: text,
         showConfirmButton: false,
         timer: timer,
@@ -134,7 +134,7 @@ function hx_request(url, title, text, icon, swap, target, confirm, type, sourceE
 
     if (confirm) {
         Swal.fire({
-            title: title,
+            titleText: title,
             showDenyButton: true,
             text: text,
             confirmButtonText: 'Yes',

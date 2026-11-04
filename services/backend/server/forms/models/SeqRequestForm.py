@@ -12,6 +12,12 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..SubHTMXForm import SubHTMXForm
 
 
+
+# Contact columns (name/email/phone; the address is a Text column)
+_CONTACT_NAME = models.Contact.name.type.length
+_CONTACT_EMAIL = models.Contact.email.type.length
+_CONTACT_PHONE = models.Contact.phone.type.length
+
 class DisclaimerSubForm(SubHTMXForm):
     """Disclaimer that must be accepted."""
     title = "Disclaimer"
@@ -86,8 +92,8 @@ class BasicInfoSubForm(SubHTMXForm):
     title = "Request Info"
     icon = "bi-info-circle"
 
-    name = inputs.string.StringInputField("Request Name", required=True)
-    description = inputs.string.TextAreaInputField("Description", required=False)
+    name = inputs.string.StringInputField("Request Name", required=True, max_length=models.SeqRequest.name.type.length)
+    description = inputs.string.TextAreaInputField("Description", required=False, max_length=models.SeqRequest.description.type.length)
     group_id = inputs.searchable.SearchableInputField("Group", route="search_groups", required=False)
 
 
@@ -98,9 +104,9 @@ class UserSelectionSubForm(SubHTMXForm):
 
     user_id = inputs.searchable.SearchableInputField("User", route="search_users", required=False)
     # Required together unless a user is selected
-    email = inputs.string.EmailInputField("New User Email", required=False, placeholder="Required for a new user")
-    first_name = inputs.string.StringInputField("New User First Name", required=False, placeholder="Required for a new user")
-    last_name = inputs.string.StringInputField("New User Last Name", required=False, placeholder="Required for a new user")
+    email = inputs.string.EmailInputField("New User Email", required=False, placeholder="Required for a new user", max_length=models.User.email.type.length)
+    first_name = inputs.string.StringInputField("New User First Name", required=False, placeholder="Required for a new user", max_length=models.User.first_name.type.length)
+    last_name = inputs.string.StringInputField("New User Last Name", required=False, placeholder="Required for a new user", max_length=models.User.last_name.type.length)
 
 
 class TechnicalInfoSubForm(SubHTMXForm):
@@ -113,10 +119,10 @@ class TechnicalInfoSubForm(SubHTMXForm):
         options=C.ReadType.as_selectable(),
         default=C.ReadType.PAIRED_END.id,
     )
-    read_length = inputs.numeric.IntInputField("Read Length", required=False, ge=1)
+    read_length = inputs.numeric.IntInputField("Read Length", required=False, ge=1, le=10_000)
     num_lanes = inputs.numeric.IntInputField("Number of Lanes", required=False, ge=1, le=8)
     data_delivery_mode = inputs.selectable.SelectableInputField("Data Delivery Mode", options=C.DataDeliveryMode.as_selectable(), default=C.DataDeliveryMode.CUSTOM.id)
-    special_requirements = inputs.string.TextAreaInputField("Special Requirements", required=False)
+    special_requirements = inputs.string.TextAreaInputField("Special Requirements", required=False, max_length=models.SeqRequest.special_requirements.type.length)
 
 
 class ContactSubForm(SubHTMXForm):
@@ -125,11 +131,11 @@ class ContactSubForm(SubHTMXForm):
     icon = "bi-person"
 
     current_user_is_contact = inputs.boolean.SwitchInputField("Requestor is the contact person")
-    name = inputs.string.StringInputField("Contact Person Name", required=True)
-    email = inputs.string.EmailInputField("Contact Person Email", required=True)
-    phone = inputs.string.StringInputField("Contact Person Phone", required=True)
-    pi_name = inputs.string.StringInputField("Principal Investigator Name", required=True)
-    pi_email = inputs.string.EmailInputField("Principal Investigator Email", required=True)
+    name = inputs.string.StringInputField("Contact Person Name", required=True, max_length=_CONTACT_NAME)
+    email = inputs.string.EmailInputField("Contact Person Email", required=True, max_length=_CONTACT_EMAIL)
+    phone = inputs.string.PhoneInputField("Contact Person Phone", required=True, max_length=_CONTACT_PHONE)
+    pi_name = inputs.string.StringInputField("Principal Investigator Name", required=True, max_length=_CONTACT_NAME)
+    pi_email = inputs.string.EmailInputField("Principal Investigator Email", required=True, max_length=_CONTACT_EMAIL)
 
 
 class BioinformaticianSubForm(SubHTMXForm):
@@ -137,9 +143,9 @@ class BioinformaticianSubForm(SubHTMXForm):
     title = "Bioinformatician Contact"
     icon = "bi-robot"
 
-    name = inputs.string.StringInputField("Bioinformatician Name", required=False)
-    email = inputs.string.EmailInputField("Bioinformatician Email", required=False, placeholder="Required with a name")
-    phone = inputs.string.StringInputField("Bioinformatician Phone", required=False)
+    name = inputs.string.StringInputField("Bioinformatician Name", required=False, max_length=_CONTACT_NAME)
+    email = inputs.string.EmailInputField("Bioinformatician Email", required=False, placeholder="Required with a name", max_length=_CONTACT_EMAIL)
+    phone = inputs.string.PhoneInputField("Bioinformatician Phone", required=False, max_length=_CONTACT_PHONE)
 
 
 class OrganizationSubForm(SubHTMXForm):
@@ -147,7 +153,7 @@ class OrganizationSubForm(SubHTMXForm):
     title = "Organization"
     icon = "bi-building"
 
-    name = inputs.string.StringInputField("Organization Name", required=True)
+    name = inputs.string.StringInputField("Organization Name", required=True, max_length=_CONTACT_NAME)
     address = inputs.string.TextAreaInputField("Organization Address", required=True)
 
 
@@ -158,10 +164,10 @@ class BillingSubForm(SubHTMXForm):
 
     # UI-only: copies the organization name/address into the billing fields.
     use_organization = inputs.boolean.SwitchInputField("Use organization for billing")
-    code = inputs.string.StringInputField("Billing Code", required=False)
-    name = inputs.string.StringInputField("Billing Contact Name", required=True)
-    email = inputs.string.EmailInputField("Billing Contact Email", required=True)
-    phone = inputs.string.StringInputField("Billing Contact Phone", required=False)
+    code = inputs.string.StringInputField("Billing Code", required=False, max_length=models.SeqRequest.billing_code.type.length)
+    name = inputs.string.StringInputField("Billing Contact Name", required=True, max_length=_CONTACT_NAME)
+    email = inputs.string.EmailInputField("Billing Contact Email", required=True, max_length=_CONTACT_EMAIL)
+    phone = inputs.string.PhoneInputField("Billing Contact Phone", required=False, max_length=_CONTACT_PHONE)
     address = inputs.string.TextAreaInputField("Billing Address", required=True)
 
 
@@ -397,6 +403,8 @@ class SeqRequestForm(HTMXForm):
             if not current_user.is_insider and current_user.pi_name and current_user.pi_email:
                 form.contact.pi_name.data = current_user.pi_name
                 form.contact.pi_email.data = current_user.pi_email
+            if not current_user.is_insider and current_user.institute:
+                form.organization.name.data = current_user.institute
             return form.make_response()
         return route
 

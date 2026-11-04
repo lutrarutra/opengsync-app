@@ -68,9 +68,9 @@
                 columns: [
                     {% for col in form.spreadsheet.columns.values() %}
                     {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    { type: "text", title: {{ col.name | tojson }}, width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
                     {%- elif col["type"] == "dropdown" -%}
-                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    { type: "text", title: {{ col.name | tojson }}, width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
                     {%- endif -%}
                     {% endfor %}
                 ],
@@ -103,9 +103,9 @@
                 columns: [
                     {% for col in form.spreadsheet.columns.values() %}
                     {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                    { type: "text", title: {{ col.name | tojson }}, width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
                     {%- elif col["type"] == "dropdown" -%}
-                    { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                    { type: "text", title: {{ col.name | tojson }}, width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
                     {%- endif -%}
                     {% endfor %}
                 ],

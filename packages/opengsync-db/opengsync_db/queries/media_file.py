@@ -3,7 +3,7 @@ import sqlalchemy as sa
 from sqlalchemy import sql
 
 from ..models import MediaFile, User, links, SeqRequest
-from ..categories import MediaFileType, AccessLevel
+from ..categories import MediaFileType, AccessLevel, SeqRequestStatus
 from ..core import utils
 
 
@@ -33,19 +33,34 @@ def create(
 def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
     is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
-    is_owner = sa.select(1).where(MediaFile.uploader_id == user_id)
+    # Compare MediaFile's own column: a subquery whose only FROM is MediaFile is not auto-correlated,
+    # so it would ask "has the viewer uploaded any file" instead of "this file".
+    is_uploader = MediaFile.uploader_id == user_id
 
-    has_read_access = sa.select(1).where(
-        (MediaFile.seq_request_id == SeqRequest.id) &
-        (links.UserAffiliation.user_id == user_id) &
-        (links.UserAffiliation.group_id == SeqRequest.group_id)
-    ).correlate_except(SeqRequest, links.UserAffiliation)
+    # Files of a seq request follow the request: readable by its requestor and group members.
+    # Experiment and lab prep files have no client branch, so only insiders can access them.
+    can_read_request = sa.select(1).where(
+        SeqRequest.id == MediaFile.seq_request_id,
+        sa.or_(
+            SeqRequest.requestor_id == user_id,
+            sa.select(1).where(
+                (links.UserAffiliation.user_id == user_id) &
+                (links.UserAffiliation.group_id == SeqRequest.group_id)
+            ).correlate_except(links.UserAffiliation).exists(),
+        ),
+    ).correlate_except(SeqRequest)
+
+    # Removing a file is an edit of the request: the uploader may do it only while the request is a draft.
+    request_is_draft = sa.select(1).where(
+        SeqRequest.id == MediaFile.seq_request_id,
+        SeqRequest.status == SeqRequestStatus.DRAFT,
+    ).correlate_except(SeqRequest)
 
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
-        (sa.exists(is_owner), AccessLevel.WRITE),
-        (sa.exists(has_read_access), AccessLevel.READ),
+        (is_uploader & sa.exists(request_is_draft), AccessLevel.WRITE),
+        (is_uploader | sa.exists(can_read_request), AccessLevel.READ),
         else_=AccessLevel.NONE
     )
 

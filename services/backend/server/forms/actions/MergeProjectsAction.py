@@ -64,9 +64,9 @@ class MergeProjectsAction(HTMXForm):
     @htmx_route("POST", "/merge-projects")
     def Submit(cls) -> RouteFunc:
         def route(
+            _=Depends(dependencies.require_insider),
             form: "MergeProjectsAction" = Depends(MergeProjectsAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_insider),
         ) -> responses.Response:
             if form.project_dst.data is None:
                 form.project_dst.errors.append("Please select a destination project to merge into.")

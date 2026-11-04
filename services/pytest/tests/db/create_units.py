@@ -146,7 +146,8 @@ def create_experiment(session: SyncSession, user: models.User, workflow: Experim
 
 def create_file(
     session: SyncSession, seq_request: Optional[models.SeqRequest] = None,
-    experiment: Optional[models.Experiment] = None, lab_prep: Optional[models.LabPrep] = None
+    experiment: Optional[models.Experiment] = None, lab_prep: Optional[models.LabPrep] = None,
+    uploader: Optional[models.User] = None,
 ) -> models.MediaFile:
     _uuid = str(uuid.uuid1())
 
@@ -154,7 +155,7 @@ def create_file(
         name=_uuid,
         type=MediaFileType.CUSTOM,
         extension=".txt",
-        uploader_id=create_user(session).id,
+        uploader_id=(uploader or create_user(session)).id,
         size_bytes=1,
         uuid=_uuid,
         seq_request_id=seq_request.id if seq_request else None,

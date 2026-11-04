@@ -74,6 +74,36 @@ BorderStyle = Literal[
     'mediumDashed', 'slantDashDot', 'thick', 'thin'
 ]
 
+# Spreadsheet formula injection: exported values are data, never formulas.
+# '-' is not listed: negative numbers and other legitimate values start with it.
+_FORMULA_PREFIXES = ("=", "+", "@", "\t", "\r")
+
+
+def cells_as_text(book) -> None:
+    """Keep every exported value as written: openpyxl stores a string starting with '=' as a formula."""
+    for sheet in book.worksheets:
+        for row in sheet.iter_rows():
+            for cell in row:
+                if cell.data_type == "f":
+                    cell.data_type = "s"
+
+
+def set_text(cell, value) -> None:
+    """Write ``value`` into an openpyxl cell as text, even when it starts with '=' (keeps a template's own formulas)."""
+    cell.value = value
+    if cell.data_type == "f":
+        cell.data_type = "s"
+
+
+def neutralize_formulas(df: pd.DataFrame) -> pd.DataFrame:
+    """For CSV/TSV, which spreadsheet apps evaluate: prefix values that would start a formula with '."""
+    df = df.copy()
+    for column in df.columns:
+        if not pd.api.types.is_numeric_dtype(df[column]):  # object or string dtype
+            df[column] = df[column].map(lambda v: "'" + v if isinstance(v, str) and v.startswith(_FORMULA_PREFIXES) else v)
+    return df
+
+
 class ExcelWriter:
     def __init__(self, dfs: dict[str, pd.DataFrame], index: bool = True):
         self.dfs = dfs
@@ -81,6 +111,7 @@ class ExcelWriter:
         self.writer = pd.ExcelWriter(self.bytes_io, engine="openpyxl", mode="w")
         for sheet_name, df in dfs.items():
             df.to_excel(self.writer, sheet_name=sheet_name, index=index)
+        cells_as_text(self.writer.book)
 
     def apply_header_style(
         self, sheet_name: str | None, fill_color: str = "E0E0E0",

@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import jinja2
 from markupsafe import Markup, escape
+from jinja2.utils import htmlsafe_json_dumps
 from fastapi.routing import iter_route_contexts
 from fastapi.templating import Jinja2Templates
 from starlette.datastructures import URL
@@ -21,8 +22,11 @@ from ..utils.file_browser import file_icon
 
 j2 = Jinja2Templates(env=jinja2.Environment(
     loader=jinja2.FileSystemLoader("/templates"),
-    autoescape=jinja2.select_autoescape(),
+    # .jinja2 holds the macros: escape them too, they print names, emails and index names
+    autoescape=jinja2.select_autoescape(enabled_extensions=("html", "htm", "xml", "jinja2")),
     undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined,
+    # unset values render empty, not as the text "None" (e.g. "None bp", Special Requirements "None")
+    finalize=lambda value: "" if value is None else value,
 ))
 
 def format_timestamp(value: float, format: str = "%Y-%m-%d %H:%M"):
@@ -52,6 +56,41 @@ def weekday_name(value: int):
     return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][value]
 
 
+def hs_string(value) -> Markup:
+    """A hyperscript string literal for use inside an HTML attribute (``_="..."`` or ``_='...'``).
+
+    Hyperscript does not understand JSON's \\uXXXX escapes (``| tojson`` turns ' into \\u0027, which it
+    shows as 'u0027'), so only the backslash and the double quote are escaped for hyperscript. The literal
+    is then HTML-escaped here, not left to autoescaping: ``.jinja2`` macros are not autoescaped, and a raw
+    ' would end a single-quoted attribute. The browser decodes it before hyperscript parses it.
+    """
+    text = str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\r", " ").replace("\n", " ")
+    return escape(f'"{text}"')
+
+
+def _json_default(value):
+    """Values json can't encode that pandas/numpy leave in table data."""
+    if hasattr(value, "item"):  # numpy scalar
+        return value.item()
+    if hasattr(value, "isoformat"):  # datetime, pd.Timestamp
+        return value.isoformat()
+    if pd.isna(value):  # pd.NA, NaT
+        return None
+    return str(value)
+
+
+def js_data(value) -> Markup:
+    """Data for a <script> block: JSON with <, >, & and ' escaped, so a value like '</script>' cannot end it.
+    (``| safe`` on a Python list printed its repr, which let a cell value break out of the script.)"""
+    def clean(v):
+        if isinstance(v, float) and v != v:  # NaN -> null (not valid JSON)
+            return None
+        if isinstance(v, (list, tuple)):
+            return [clean(x) for x in v]
+        return v
+    return htmlsafe_json_dumps(clean(value), default=_json_default)
+
+
 def filesize(value: int | float):
     """Convert bytes to human readable format"""
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
@@ -72,6 +111,8 @@ j2.env.filters["format_short_date"] = format_short_date
 j2.env.filters["format_markdown"] = format_markdown
 j2.env.filters["weekday_name"] = weekday_name
 j2.env.filters["filesize"] = filesize
+j2.env.filters["hs_string"] = hs_string
+j2.env.filters["js_data"] = js_data
 
 
 def format_iso(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:

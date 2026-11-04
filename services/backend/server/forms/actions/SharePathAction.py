@@ -1,4 +1,5 @@
 from fastapi import Depends, Query
+from loguru import logger
 
 from opengsync_db import queries as Q, SyncSession, models
 
@@ -15,7 +16,7 @@ TIME_VALID_CHOICES = [
     (60 * 24, "24 Hours"),
     (60 * 72, "3 Days"),
     (60 * 24 * 7, "1 Week"),
-    (60 * 24 * 14, "2 Week"),
+    (60 * 24 * 14, "2 Weeks"),
     (60 * 24 * 30, "1 Month"),
 ]
 
@@ -77,9 +78,9 @@ class SharePathAction(HTMXForm, SelectedPathsMixin):
     @htmx_route("POST", "/share-path")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_data_assigner),
             form: "SharePathAction" = Depends(SharePathAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_data_assigner),
             mailer: Mailer = Depends(dependencies.mail_client),
         ):
             # As legacy's SelectField: only the offered validity periods
@@ -114,12 +115,18 @@ class SharePathAction(HTMXForm, SelectedPathsMixin):
 
             # Send email
             browse_link = str(responses.external_url_for("file_share.browse", token=share_token.uuid))
-            mailer.send_share_paths(
-                recipients=list(set(recipients)),
-                share_token=share_token,
-                author=None if form.anonymous_send.data else current_user,
-                browse_link=browse_link,
-            )
+            try:
+                mailer.send_share_paths(
+                    recipients=list(set(recipients)),
+                    share_token=share_token,
+                    author=None if form.anonymous_send.data else current_user,
+                    browse_link=browse_link,
+                )
+            except Exception as e:
+                # the validation error rolls back the share token: nothing is shared without the email
+                logger.error(f"Failed to send share email to {recipients}: {e}")
+                form.recipients[0].email.errors.append("Failed to send the email. Please try again later.")
+                raise exc.FormValidationException(form)
 
             return responses.htmx_response(
                 flash=responses.flash("Email Sent!", "success"),

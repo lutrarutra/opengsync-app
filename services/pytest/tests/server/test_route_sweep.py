@@ -205,6 +205,61 @@ def test_state_changing_routes_do_not_crash(client: TestClient, session: SyncSes
     assert errors == []
 
 
+# Routes a stranger may legitimately call with an empty body (create forms open to every logged-in user,
+# public lookups); they still must not show or change another customer's data.
+STRANGER_ALLOWED_2XX = {
+    "/htmx/seq_requests/create", "/htmx/seq_requests/create/step", "/htmx/projects/create", "/htmx/pools/create",
+    "/htmx/groups/create", "/htmx/comments/comment", "/htmx/auth/logout", "/htmx/auth/change-password",
+    "/htmx/kits/check-barcode-constraints", "/htmx/kits/query-barcode-sequences",
+    "/api/passkeys/register/options",  # registers a passkey for the caller's own account
+    # public auth forms: re-render empty on invalid input
+    "/api/passkeys/login/options", "/htmx/auth/login", "/htmx/auth/register", "/htmx/auth/reset-password/{token}",
+    "/htmx/auth/activate/{token}", "/htmx/auth/complete-registration/{token}",
+}
+
+
+def _names(session: SyncSession, ids: dict) -> list[str]:
+    objects = [
+        session.get(models.Project, ids["project_id"]).title, session.get(models.SeqRequest, ids["seq_request_id"]).name,
+        session.get(models.Library, ids["library_id"]).name, session.get(models.Pool, ids["pool_id"]).name,
+        session.get(models.Sample, ids["sample_id"]).name, session.get(models.LabPrep, ids["lab_prep_id"]).name,
+        session.get(models.Experiment, ids["experiment_id"]).name,
+    ]
+    return [name for name in objects if name and len(name) >= 8]
+
+
+def test_state_changing_routes_reject_a_stranger(
+    client: TestClient, session: SyncSession, user, user_2, user_2_token: str, audit_records: list[dict],
+):
+    """A client POSTs/DELETEs every state-changing route with an empty body against another customer's
+    (and staff's) objects. Regression for the customer test 2026-11-04: forms validated before checking
+    permissions re-rendered with the other customer's data (202)."""
+    ids = _ids(session, user)
+    names = _names(session, ids)
+    headers = cookie_header(client, user_2_token, csrf_token=CSRF) | {"X-CSRF-Token": CSRF, "HX-Request": "true"}
+    accepted, leaks, writes = [], [], []
+    for path, route in _routes(client.app.routes):
+        if path in STRANGER_ALLOWED_2XX:
+            continue
+        for method in sorted(route.methods & {"POST", "PUT", "PATCH", "DELETE"}):
+            url = re.sub(r"{(\w+)(?::\w+)?}", lambda m: str(ids.get(m.group(1), 1)), path)
+            params = {name: ids[name] for name in CONTEXT_PARAMS if name in set(_query_params(route.dependant))}
+            audit_records.clear()
+            response = client.request(
+                method, url, headers=headers, params=params, data={"csrf_token": CSRF}, follow_redirects=False,
+            )
+            if 200 <= response.status_code < 300:
+                accepted.append(f"{method} {path}: {response.status_code}")
+            if found := [name for name in names if name in response.text]:
+                leaks.append(f"{method} {path}: {found}")
+            if [change for record in audit_records for change in record["changes"]]:
+                writes.append(f"{method} {path}")
+
+    assert not writes, "\n".join(writes)
+    assert not leaks, "\n".join(leaks)
+    assert not accepted, "\n".join(accepted)
+
+
 # ── Fixes found by the sweep ────────────────────────────────────────────────
 
 

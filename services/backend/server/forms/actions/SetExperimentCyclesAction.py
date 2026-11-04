@@ -47,9 +47,9 @@ class SetExperimentCyclesAction(HTMXForm):
     @htmx_route("POST", "/{experiment_id}/cycles")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_insider),
             form: "SetExperimentCyclesAction" = Depends(SetExperimentCyclesAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
         ):
             form.experiment.r1_cycles = form.cycles_r1.data
             form.experiment.r2_cycles = form.cycles_r2.data

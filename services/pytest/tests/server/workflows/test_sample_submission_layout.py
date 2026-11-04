@@ -10,6 +10,7 @@ from opengsync_db import SyncSession, actions, categories as C, models
 
 from ...db.create_units import create_library, create_pool, create_project, create_sample, create_seq_request
 from .._http import (
+    spreadsheet_data,
     OpenGSyncTestClient,
     assert_flash,
     assert_form_invalid,
@@ -259,9 +260,9 @@ def test_first_tubes_layout_prefills_labels_with_names(client: OpenGSyncTestClie
     tubes, _ = _select(client, user_token, seq_request.id, C.SubmissionLayoutType.TUBES)
     plate, _ = _select(client, user_token, seq_request.id, C.SubmissionLayoutType.PLATE)
     for sample in samples:
-        assert f"['{_cell(sample)}', '', '{sample.name}']" in tubes.text
+        assert [_cell(sample), "", sample.name] in spreadsheet_data(tubes)
         # Wells are not guessed
-        assert f"['{_cell(sample)}', '', '']" in plate.text
+        assert [_cell(sample), "", ""] in spreadsheet_data(plate)
 
 
 def test_back_returns_to_type_selection(client: OpenGSyncTestClient, session: SyncSession, user, user_token: str):

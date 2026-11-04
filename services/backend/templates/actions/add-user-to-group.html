@@ -10,6 +10,7 @@
     <div class="modal-body">
         <div id="add_user_to_group-form">
             {{ form.csrf_token.render() }}
+            <p class="input-help">Colleagues without an account get an email to register; they join the group when they complete it.</p>
             {{ form.email.render() }}
             {{ form.affiliation_type.render() }}
         </div>

@@ -74,8 +74,8 @@ class SequencerForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "SequencerForm" = Depends(SequencerForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "SequencerForm" = Depends(SequencerForm.Validate()),
         ) -> Response:
             if form.sequencer is None:
                 raise exc.BadRequestException("Sequencer ID must be provided for edit form.")
@@ -98,8 +98,8 @@ class SequencerForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "SequencerForm" = Depends(SequencerForm.Validate()),
             _=Depends(dependencies.require_insider),
+            form: "SequencerForm" = Depends(SequencerForm.Validate()),
         ) -> Response:
             if session.exists(Q.sequencer.select(name=form.name.data)):
                 form.name.errors.append("You already have a sequencer with this name.")

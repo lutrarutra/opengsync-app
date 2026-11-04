@@ -27,9 +27,9 @@ class BillingAction(HTMXForm):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_insider),
             form: BillingAction = Depends(BillingAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
         ):
             if not form.experiment_ids.data:
                 raise exc.BadRequestException("No experiments selected.")

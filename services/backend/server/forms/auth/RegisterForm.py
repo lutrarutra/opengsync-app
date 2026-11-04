@@ -10,6 +10,12 @@ from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, htmx_route
 
 
+def email_domain_allowed(email: str) -> bool:
+    """Self-service sign-ups (and invitations by customers) only for the whitelisted email domains, if any."""
+    white_list = config.settings.app_config.email_domain_white_list
+    return not white_list or email.split("@")[-1].lower() in [domain.lower() for domain in white_list]
+
+
 class RegisterForm(HTMXForm):
     """Register form handler — validation, rendering, and response logic."""
 
@@ -38,10 +44,9 @@ class RegisterForm(HTMXForm):
         ) -> Response:
             # Email domain whitelist check
             if current_user is None or not current_user.is_insider:
-                if config.settings.app_config.email_domain_white_list:
-                    if form.email.data.split("@")[-1].lower() not in [domain.lower() for domain in config.settings.app_config.email_domain_white_list]:
-                        form.email.errors.append("Specified email domain is not found in white-list. Please contact us.")
-                        raise exc.FormValidationException(form)
+                if not email_domain_allowed(form.email.data):
+                    form.email.errors.append("Specified email domain is not found in white-list. Please contact us.")
+                    raise exc.FormValidationException(form)
 
             # Role validation
             try:

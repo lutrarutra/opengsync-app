@@ -12,10 +12,10 @@
     _='on htmx:confirm(issueRequest)
         halt the event
         call Swal.fire({
-            title: {{ title | tojson | forceescape }},
+            titleText: {{ title | hs_string }},
             icon: "{{ icon }}",
             showDenyButton: true,
-            text: {{ body | tojson | forceescape }},
+            text: {{ body | hs_string }},
             confirmButtonText: "Yes",
             denyButtonText: "No"
         })

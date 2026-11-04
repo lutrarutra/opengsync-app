@@ -208,7 +208,7 @@
             if (!removed.length) return;
             event.preventDefault();
             Swal.fire({
-                title: 'Remove ' + (removed.length === 1 ? '1 path' : removed.length + ' paths') + ' from the ' + OWNER + '?',
+                titleText: 'Remove ' + (removed.length === 1 ? '1 path' : removed.length + ' paths') + ' from the ' + OWNER + '?',
                 text: 'The files stay on disk.',
                 icon: 'warning',
                 showCancelButton: true,

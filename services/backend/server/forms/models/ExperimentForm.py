@@ -22,10 +22,10 @@ class ExperimentForm(HTMXForm):
     sequencer = inputs.searchable.SearchableInputField("Sequencer", route="search_sequencers",)
     operator = inputs.searchable.SearchableInputField("Operator", route="search_users")
     status = inputs.selectable.SelectableInputField("Status", options=C.ExperimentStatus.as_selectable(), default=C.ExperimentStatus.DRAFT.id)
-    r1_cycles = inputs.numeric.IntInputField("R1 Cycles", required=False)
-    r2_cycles = inputs.numeric.IntInputField("R2 Cycles", required=False)
-    i1_cycles = inputs.numeric.IntInputField("I1 Cycles", required=False)
-    i2_cycles = inputs.numeric.IntInputField("I2 Cycles", required=False)
+    r1_cycles = inputs.numeric.IntInputField("R1 Cycles", required=False, ge=0)
+    r2_cycles = inputs.numeric.IntInputField("R2 Cycles", required=False, ge=0)
+    i1_cycles = inputs.numeric.IntInputField("I1 Cycles", required=False, ge=0)
+    i2_cycles = inputs.numeric.IntInputField("I2 Cycles", required=False, ge=0)
 
     def __init__(self, form_type: Literal["create", "edit"], experiment: models.Experiment | None) -> None:
         super().__init__()
@@ -94,8 +94,8 @@ class ExperimentForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "ExperimentForm" = Depends(ExperimentForm.Validate(form_type="edit")),
             _ = Depends(dependencies.require_insider),
+            form: "ExperimentForm" = Depends(ExperimentForm.Validate(form_type="edit")),
         ) -> Response:
             if form.experiment is None:
                 raise exc.BadRequestException("Experiment ID must be provided for edit form.")
@@ -137,8 +137,8 @@ class ExperimentForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "ExperimentForm" = Depends(ExperimentForm.Validate(form_type="create")),
             _ = Depends(dependencies.require_insider),
+            form: "ExperimentForm" = Depends(ExperimentForm.Validate(form_type="create")),
         ) -> Response:
             sequencer = session.get_one(Q.sequencer.select(id=form.sequencer.data))
             operator = session.get_one(Q.user.select(id=form.operator.data))

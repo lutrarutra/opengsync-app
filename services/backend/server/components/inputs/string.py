@@ -1,7 +1,8 @@
+import re
 from typing import Any, Annotated, Generic, Literal, TypeVar, overload
 from .BaseInputField import BaseInputField
 
-from pydantic import EmailStr, StringConstraints
+from pydantic import AfterValidator, EmailStr, StringConstraints
 
 _DataT = TypeVar("_DataT", str, str | None, covariant=True)
 
@@ -79,6 +80,7 @@ class StringInputField(BaseInputField, Generic[_DataT]):
         )
         self.placeholder = placeholder
         self.autocomplete = autocomplete
+        self.max_length = max_length
 
 
 class EmailInputField(StringInputField[_DataT]):
@@ -102,6 +104,7 @@ class EmailInputField(StringInputField[_DataT]):
             description=description,
             default=default,
             autocomplete=autocomplete,
+            max_length=max_length,
             pydantic_type=Annotated[
                 str,
                 EmailStr,
@@ -134,6 +137,7 @@ class PasswordInputField(StringInputField[_DataT]):
             description=description,
             default=default,
             autocomplete=autocomplete,
+            max_length=max_length,
             pydantic_type=Annotated[
                 str, StringConstraints(max_length=max_length, min_length=min_length)
             ],
@@ -164,11 +168,52 @@ class TextAreaInputField(StringInputField[_DataT]):
             description=description,
             default=default,
             autocomplete=autocomplete,
+            max_length=max_length,
             template="components/inputs/textarea.html",
             pydantic_type=Annotated[
                 str, StringConstraints(strip_whitespace=True, max_length=max_length, min_length=min_length)
             ],
             type="textarea",
+            hidden=hidden,
+            read_only=read_only,
+        )
+
+
+_PHONE = re.compile(r"^\+?[0-9(][0-9 ()./-]{2,}$")
+
+
+def _check_phone(value: str) -> str:
+    if value and not _PHONE.match(value):
+        raise ValueError("Enter a phone number: digits, spaces and + ( ) - / . only.")
+    return value
+
+
+class PhoneInputField(StringInputField[_DataT]):
+    """Phone number: digits with the usual separators, optionally starting with '+'."""
+
+    def __init__(
+        self,
+        label: str,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        required: bool = True,
+        hidden: bool = False,
+        read_only: bool = False,
+    ):
+        super().__init__(
+            label=label,
+            required=required,  # type: ignore
+            placeholder=placeholder,
+            description=description,
+            default=default,
+            autocomplete="tel",
+            max_length=max_length,
+            pydantic_type=Annotated[
+                str, StringConstraints(strip_whitespace=True, max_length=max_length), AfterValidator(_check_phone)
+            ],
+            type="tel",
             hidden=hidden,
             read_only=read_only,
         )

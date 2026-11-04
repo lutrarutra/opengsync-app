@@ -1,6 +1,6 @@
 function confirm_close_modal(modal_query){
     return Swal.fire({
-        title: "Exit Form?",
+        titleText: "Exit Form?",
         text: "You won't be able to revert this!",
         icon: "warning",
         showCancelButton: true,
@@ -11,7 +11,7 @@ function confirm_close_modal(modal_query){
                 $(modal_query).modal("hide");
                 let time_interval;
                 Swal.fire({
-                    title: "Closed!",
+                    titleText: "Closed!",
                     icon: "info",
                     timer: 1000,
                     timerProgressBar: true,

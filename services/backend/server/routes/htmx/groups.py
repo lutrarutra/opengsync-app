@@ -99,15 +99,21 @@ def remove_user_from_group(
     current_user_id: int = Depends(dependencies.require_user_id),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.WRITE:
+    leaving = user_id == current_user_id  # any member may leave a group
+    if not leaving and session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException("You do not have permission to remove users from this group.")
 
     affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=user_id))
     if affiliation.affiliation_type == C.AffiliationType.OWNER:
-        raise exc.NoPermissionsException("You cannot remove an owner from the group.")
+        message = "Transfer the ownership before leaving the group." if leaving else "You cannot remove an owner from the group."
+        raise exc.NoPermissionsException(message)
     
     session.delete(affiliation)
 
+    if leaving:
+        return responses.htmx_response(
+            redirect=responses.url_for("groups_page"), flash=responses.flash("You left the group.", "success"),
+        )
     return responses.htmx_response(
         # redirect=responses.url_for("group_page", group_id=group_id),
         flash=responses.flash("User removed from group.", "success")

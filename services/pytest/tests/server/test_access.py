@@ -281,6 +281,75 @@ def test_draft_seq_request_owner_can_delete_submitted_cannot(
     assert delete(client, f"/htmx/seq_requests/{submitted.id}/delete", user_token).status_code == 403
 
 
+def _group_draft(session: SyncSession, requestor, member_type: C.AffiliationType | None = None, member=None):
+    group = create_group(session)
+    _affiliate(session, requestor, group, C.AffiliationType.OWNER)
+    if member is not None:
+        _affiliate(session, member, group, member_type)
+    seq_request = create_seq_request(session, requestor)
+    seq_request.group_id = group.id
+    session.save(seq_request, flush=True)
+    _commit(session)
+    return seq_request
+
+
+def test_group_member_cannot_delete_others_draft(client: TestClient, session: SyncSession, user, user_2, user_2_token):
+    """Members may edit a group draft, but deleting another member's request needs requestor or manager."""
+    seq_request = _group_draft(session, user, C.AffiliationType.MEMBER, user_2)
+
+    assert get(client, f"/seq_requests/{seq_request.id}", user_2_token).status_code == 200
+    assert delete(client, f"/htmx/seq_requests/{seq_request.id}/delete", user_2_token).status_code == 403
+
+
+def test_group_manager_can_delete_members_draft(client: TestClient, session: SyncSession, user, user_2, user_2_token):
+    seq_request = _group_draft(session, user, C.AffiliationType.MANAGER, user_2)
+    assert delete(client, f"/htmx/seq_requests/{seq_request.id}/delete", user_2_token).status_code == 204
+
+
+def test_requestor_can_delete_own_group_draft(client: TestClient, session: SyncSession, user, user_token):
+    seq_request = _group_draft(session, user)
+    assert delete(client, f"/htmx/seq_requests/{seq_request.id}/delete", user_token).status_code == 204
+
+
+def test_api_token_form_only_for_self_or_admin(client: TestClient, user, user_token, user_2_token, admin_token):
+    path = f"/htmx/users/{user.id}/create-api-token"
+    assert get(client, path, user_2_token, htmx=True).status_code == 403
+    assert post_form(client, path, {}, user_2_token).status_code == 403
+    _allowed(get(client, path, user_token, htmx=True))
+    _allowed(get(client, path, admin_token, htmx=True))
+
+
+def test_group_edit_form_needs_write(client: TestClient, session: SyncSession, user, user_2, user_token, user_2_token):
+    group = create_group(session)
+    _affiliate(session, user, group, C.AffiliationType.OWNER)
+    _affiliate(session, user_2, group, C.AffiliationType.MEMBER)
+    _commit(session)
+
+    assert get(client, f"/htmx/groups/{group.id}/edit", user_2_token, htmx=True).status_code == 403
+    _allowed(get(client, f"/htmx/groups/{group.id}/edit", user_token, htmx=True))
+
+
+def test_member_can_leave_group_but_not_remove_others(client: TestClient, session: SyncSession, user, user_2, user_2_token):
+    group = create_group(session)
+    _affiliate(session, user, group, C.AffiliationType.OWNER)
+    _affiliate(session, user_2, group, C.AffiliationType.MEMBER)
+    _commit(session)
+
+    assert delete(client, f"/htmx/groups/{group.id}/remove-user/{user.id}", user_2_token).status_code == 403
+    response = delete(client, f"/htmx/groups/{group.id}/remove-user/{user_2.id}", user_2_token)
+    assert response.status_code == 204 and response.headers["HX-Redirect"].endswith("/groups/")
+    session.expire_all()
+    assert session.first(Q.affiliation.select(group_id=group.id, user_id=user_2.id)) is None
+    assert get(client, f"/groups/{group.id}", user_2_token).status_code == 403
+
+
+def test_owner_cannot_leave_without_transferring(client: TestClient, session: SyncSession, user, user_token):
+    group = create_group(session)
+    _affiliate(session, user, group, C.AffiliationType.OWNER)
+    _commit(session)
+    assert delete(client, f"/htmx/groups/{group.id}/remove-user/{user.id}", user_token).status_code == 403
+
+
 def test_seq_request_missing_is_404(client: TestClient, user_token: str):
     assert get(client, "/seq_requests/999999", user_token).status_code == 404
 

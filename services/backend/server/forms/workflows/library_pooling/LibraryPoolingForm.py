@@ -25,7 +25,7 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
             # Categories are the lab prep's libraries, set in build
             DBObjectColumn(("library_id", "library_name"), "Library", 300, categories={}, required=True, read_only=True),
             TextColumn("pool", "Pool", 300, required=True),
-            FloatColumn("num_m_reads_requested", "M Reads Requested", 150),
+            FloatColumn("num_m_reads_requested", "M Reads Requested", 150, min_value=0),
         ],
         allow_new_rows=False,
     )
@@ -94,6 +94,10 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
 
         library_table["pool"] = library_table["pool"].apply(clean_pool_value).astype(str)
 
+        # the pool stores the total of its libraries: prefill each library with an equal share
+        pool_sizes = library_table.groupby("pool_id")["library_id"].transform("count")
+        library_table["num_m_reads_requested"] = (library_table["num_m_reads_requested"] / pool_sizes).round(4)
+
         form = cls(workflow=workflow)
         form.lab_prep = lab_prep
         form.library_table = library_table
@@ -138,8 +142,7 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
             if df.loc[~df["pool"].astype(str).str.strip().str.lower().isin(["x", "t", "skip"]), "pool"].isna().all():
                 df.loc[df["pool"].isna(), "pool"] = "1"
 
-            # one value per pool: required and >= 0 for pooled rows, identical within a pool
-            pool_num_m_reads: dict[str, float] = {}
+            # per library: required for pooled rows (>= 0 by the column); the pool requests the sum
             for idx, row in df.iterrows():
                 pool = str(row["pool"]).strip() if pd.notna(row["pool"]) else ""
                 if pool.lower() in ("", "x", "t", "skip"):
@@ -147,10 +150,6 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
                 num_m_reads = row["num_m_reads_requested"]
                 if pd.isna(num_m_reads):
                     form.spreadsheet.add_error(idx, "num_m_reads_requested", MissingCellValue("Number of M reads requested is required"))
-                elif float(num_m_reads) < 0:
-                    form.spreadsheet.add_error(idx, "num_m_reads_requested", InvalidCellValue("Number of M reads requested must be >= 0"))
-                elif pool_num_m_reads.setdefault(pool, float(num_m_reads)) != float(num_m_reads):
-                    form.spreadsheet.add_error(idx, "num_m_reads_requested", InvalidCellValue(f"All libraries in pool '{pool}' must have the same number of M reads requested"))
 
             # the Library column only accepts the prep's libraries (id and name), so every row is one of them
             for idx, row in df.iterrows():

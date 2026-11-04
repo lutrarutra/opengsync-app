@@ -14,6 +14,8 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 class MediaFileForm(HTMXForm):
     template_path = "forms/file-upload.html"
     MAX_SIZE_MBYTES: int = 5
+    # Types a customer may upload; the others are produced by the facility (QC reports, pooling tables, ...)
+    CUSTOMER_FILE_TYPES = (C.MediaFileType.CUSTOM, C.MediaFileType.SEQ_AUTH_FORM, C.MediaFileType.BIOANALYZER_REPORT)
 
     file_type = inputs.selectable.SelectableInputField(
         "File Type", options=C.MediaFileType.as_selectable(), description="Select the type of file you are uploading.",
@@ -100,6 +102,8 @@ class MediaFileForm(HTMXForm):
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
             )
+            if not current_user.is_insider:
+                form.file_type.set_options([(t.id, t.label) for t in MediaFileForm.CUSTOMER_FILE_TYPES])
             form.file_type.data = type.id if type is not None else None
             return form
 
@@ -139,6 +143,17 @@ class MediaFileForm(HTMXForm):
                 file_type = C.MediaFileType.get(int(str(form.file_type.data)))
             except (ValueError, TypeError):
                 raise exc.BadRequestException("Invalid file type.")
+
+            if not current_user.is_insider and file_type not in MediaFileForm.CUSTOMER_FILE_TYPES:
+                form.file_type.errors.append("You cannot upload files of this type.")
+                raise exc.FormValidationException(form)
+
+            extension = os.path.splitext(form.file.data.filename)[1].lower().lstrip(".")
+            if file_type.extensions and extension not in file_type.extensions:
+                form.file.errors.append(
+                    f"A {file_type.label} must be a {', '.join('.' + ext for ext in file_type.extensions)} file."
+                )
+                raise exc.FormValidationException(form)
 
             MediaFileForm.check_permissions(
                 session=session,

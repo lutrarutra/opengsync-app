@@ -25,9 +25,9 @@
                 _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
-                        title: 'Warning',
+                        titleText: 'Warning',
                         showDenyButton: true,
-                        text: 'There is already prep table uploaded at {{ lab_prep.prep_file.timestamp_str() }} by \'{{ lab_prep.prep_file.uploader.name }}\', do you want to overwrite it?',
+                        text: {{ ("There is already prep table uploaded at " ~ lab_prep.prep_file.timestamp_str() ~ " by '" ~ lab_prep.prep_file.uploader.name ~ "', do you want to overwrite it?") | hs_string }},
                         confirmButtonText: 'Yes',
                         icon: 'warning',
                         denyButtonText: 'No'

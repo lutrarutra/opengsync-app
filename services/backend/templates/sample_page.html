@@ -36,7 +36,7 @@
                     _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
-                        title: 'Delete sample \'{{ sample.name }}\'',
+                        titleText: {{ ("Delete sample '" ~ sample.name ~ "'") | hs_string }},
                         showDenyButton: true,
                         text: 'Proceed?',
                         confirmButtonText: 'Yes',

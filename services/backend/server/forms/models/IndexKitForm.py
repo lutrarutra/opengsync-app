@@ -96,8 +96,8 @@ class IndexKitForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "IndexKitForm" = Depends(IndexKitForm.Validate(form_type="edit")),
             _=Depends(dependencies.require_insider),
+            form: "IndexKitForm" = Depends(IndexKitForm.Validate(form_type="edit")),
         ) -> Response:
             if form.index_kit is None:
                 raise exc.BadRequestException("Index kit ID must be provided for edit form.")
@@ -137,8 +137,8 @@ class IndexKitForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "IndexKitForm" = Depends(IndexKitForm.Validate(form_type="create")),
             _=Depends(dependencies.require_insider),
+            form: "IndexKitForm" = Depends(IndexKitForm.Validate(form_type="create")),
         ) -> Response:
             # Validate identifier
             form.identifier.data = form.identifier.data.strip()

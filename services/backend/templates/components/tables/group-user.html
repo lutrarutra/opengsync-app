@@ -20,7 +20,7 @@
                 <td class="cm-callback"
                 {{
                     context_menu([
-                        {"type": "hxdelete", "label": "Remove User", "disabled": access_level < C.AccessLevel.WRITE or affiliation.affiliation_type == C.AffiliationType.OWNER, "config": {
+                        {"type": "hxdelete", "label": "Leave Group" if affiliation.user_id == current_user.id else "Remove User", "disabled": (access_level < C.AccessLevel.WRITE and affiliation.user_id != current_user.id) or affiliation.affiliation_type == C.AffiliationType.OWNER, "config": {
                             "url": url_for('remove_user_from_group', group_id=group.id, user_id=affiliation.user.id).__str__(),
                             "target": "#group-user-table",
                             "title": "Remove user '{user}' from group '{group}'?".format(user=affiliation.user.name, group=group.name)

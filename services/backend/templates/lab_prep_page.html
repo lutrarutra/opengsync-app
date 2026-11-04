@@ -277,7 +277,7 @@
         ev.preventDefault();
         var url = ev.target.href;
         Swal.fire({
-            title: 'Prep \'{{ lab_prep.name }}\' is empty.',
+            titleText: {{ ("Prep '" ~ lab_prep.name ~ "' is empty.") | tojson }},
             showDenyButton: true,
             text: 'Do you want to download empty template?',
             confirmButtonText: 'Yes',

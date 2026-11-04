@@ -97,6 +97,13 @@ class CompleteRegistrationForm(UserProfileMixin, HTMXForm):
             ), flush=True)
 
             logger.info(f"User {user.email} completed registration.")
+
+            # Invited to a group from its 'Add Member' form
+            if (invite := secrets.registration_group(form.token)) is not None:
+                group_id, affiliation_type = invite
+                if (group := session.first(Q.group.select(id=group_id))) is not None:
+                    session.save(Q.affiliation.create(user=user, group=group, type=affiliation_type))
+
             return responses.htmx_response(
                 redirect=responses.url_for("login_page"),
                 flash=responses.flash("Registration completed successfully.", "success"),

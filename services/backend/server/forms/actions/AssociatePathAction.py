@@ -79,9 +79,9 @@ class AssociatePathAction(HTMXForm, SelectedPathsMixin):
     @htmx_route("POST", "/associate-path")
     def Submit(cls) -> RouteFunc:
         def route(
+            _=Depends(dependencies.require_data_assigner),
             form: "AssociatePathAction" = Depends(AssociatePathAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            _=Depends(dependencies.require_data_assigner),
         ):
             form.assert_path_count()
 

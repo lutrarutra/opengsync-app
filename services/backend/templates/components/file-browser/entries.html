@@ -133,18 +133,18 @@
         <span class="browser-entry-associations">
             {% for data_path in browser_path.data_paths %}
             {% if data_path.project %}
-            <a href="{{ url_for('project_page', project_id=data_path.project.id) }}" class="badge">
+            <a href="{{ url_for('project_page', project_id=data_path.project.id) }}" class="badge search-result-badge">
                 {{ data_path.project.identifier or data_path.project.title }}
             </a>
             {% endif %}
             {% if data_path.experiment %}
-            <span class="badge">{{ data_path.experiment.name }}</span>
+            <span class="badge search-result-badge">{{ data_path.experiment.name }}</span>
             {% endif %}
             {% if data_path.seq_request %}
-            <span class="badge">{{ data_path.seq_request.name }}</span>
+            <span class="badge search-result-badge">{{ data_path.seq_request.name }}</span>
             {% endif %}
             {% if data_path.library %}
-            <a href="{{ url_for('library_page', library_id=data_path.library.id) }}" class="badge">
+            <a href="{{ url_for('library_page', library_id=data_path.library.id) }}" class="badge search-result-badge">
                 {{ data_path.library.name }}
             </a>
             {% endif %}

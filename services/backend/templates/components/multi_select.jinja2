@@ -31,7 +31,8 @@
 </div>
 {% endmacro %}
 
-{% macro multi_select2(choices, field_name, placeholder="Select...", class="") %}
+{# id_prefix keeps checkbox ids unique when the same table is rendered twice (page and modal) #}
+{% macro multi_select2(choices, field_name, placeholder="Select...", class="", id_prefix="") %}
 <div class="multiple-select {{ class }}" id="{{ field_name }}-multiselect-container" data-field_name="{{ field_name }}" data-placeholder="{{ placeholder }}">
     <div class="input-group">
         <span class="form-select dropdown-toggle text-muted selected-container minimal-scrollbar">{{ placeholder }}</span>
@@ -40,16 +41,16 @@
         <li>
             <input class="form-control option-search" autocomplete="off" type="text" value="" placeholder="Filter...">
             <div class="form-group form-check select-all-container">
-                <input type="checkbox" class="form-check-input select-all" id="{{ field_name }}-select-all">
-                <label class="btn" for="{{ field_name }}-select-all">Select All</label>
+                <input type="checkbox" class="form-check-input select-all" id="{{ id_prefix }}{{ field_name }}-select-all">
+                <label class="btn" for="{{ id_prefix }}{{ field_name }}-select-all">Select All</label>
             </div>
             <button type="button" class="btn btn-success apply-btn">Apply</button>
         </li>
         {% for (id, label) in choices %}
         {# None is rendered as 'null' so jQuery's .data() reads it back as null #}
         <li class="option" data-value="{{ 'null' if id is none else id }}" data-label="{{ label }}">
-            <input type="checkbox" class="form-check-input" id="{{ field_name }}-select-{{ id }}">
-            <label class="btn" for="{{ field_name }}-select-{{ id }}"><span class="label-name">{{ label }}</span><span class="label-id text-muted">{{ '' if id is none else id }}</span></label>
+            <input type="checkbox" class="form-check-input" id="{{ id_prefix }}{{ field_name }}-select-{{ id }}">
+            <label class="btn" for="{{ id_prefix }}{{ field_name }}-select-{{ id }}"><span class="label-name">{{ label }}</span><span class="label-id text-muted">{{ '' if id is none else id }}</span></label>
         </li>
         {% endfor %}
     </ul>

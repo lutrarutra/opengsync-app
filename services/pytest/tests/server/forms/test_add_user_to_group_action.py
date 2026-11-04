@@ -158,23 +158,44 @@ def test_submit_adds_user_as_member(
     assert any(link.user_id == target.id for link in updated.user_links)
 
 
-def test_submit_rejects_nonexistent_user(
+def test_submit_invites_unregistered_email(
     client: TestClient,
     session: SyncSession,
     user,
     user_token: str,
+    fake_mailer,
+    monkeypatch,
 ):
+    """An email without an account gets a registration link; completing it joins the group (customer test 2026-11-04)."""
+    from server.core import config, secrets
+    monkeypatch.setattr(config.settings.app_config, "email_domain_white_list", ["example.com"])
     group = _group_with_owner(session, user)
 
-    response = post_form(
-        client,
-        _submit_path(group.id),
-        _payload(email="noone@example.com"),
-        token=user_token,
-    )
+    response = post_form(client, _submit_path(group.id), _payload(email="colleague@example.com"), token=user_token)
+
+    assert response.status_code == 204
+    assert [email for email, _ in fake_mailer.registration] == ["colleague@example.com"]
+    token = fake_mailer.registration[0][1].rstrip("/").rsplit("/", 1)[-1]
+    assert secrets.registration_group(token) == (group.id, C.AffiliationType.MEMBER)
+
+
+def test_invite_respects_email_domain_white_list(
+    client: TestClient,
+    session: SyncSession,
+    user,
+    user_token: str,
+    fake_mailer,
+    monkeypatch,
+):
+    from server.core import config
+    monkeypatch.setattr(config.settings.app_config, "email_domain_white_list", ["cemm.at"])
+    group = _group_with_owner(session, user)
+
+    response = post_form(client, _submit_path(group.id), _payload(email="noone@example.com"), token=user_token)
 
     assert_form_invalid(response)
-    assert "User with this email does not exist" in response.text
+    assert "its domain cannot register" in response.text
+    assert fake_mailer.registration == []
 
 
 def test_submit_rejects_owner_affiliation_type(

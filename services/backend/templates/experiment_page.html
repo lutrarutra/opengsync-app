@@ -33,7 +33,7 @@
                     hx-delete="{{ url_for('delete_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
-                        title: 'Delete Experiment \'{{ experiment.name }}\'',
+                        titleText: {{ ("Delete Experiment '" ~ experiment.name ~ "'") | hs_string }},
                         showDenyButton: true,
                         text: 'Are you sure?',
                         icon: 'question',

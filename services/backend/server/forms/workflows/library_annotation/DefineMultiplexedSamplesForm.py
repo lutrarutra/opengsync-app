@@ -125,7 +125,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
 
                 if not df["pool"].isna().all():
                     if pd.isna(row["pool"]):
-                        form.spreadsheet.add_error(idx, "pool", MissingCellValue("missing 'Pool'"))
+                        form.spreadsheet.add_error(idx, "pool", MissingCellValue(f"Missing value for '{form.spreadsheet.header('pool')}'"))
 
                 if pd.notna(row["pool"]) and len(str(row["pool"])) < 4:
                     form.spreadsheet.add_error(idx, "pool", InvalidCellValue("Pool must be at least 4 characters long"))

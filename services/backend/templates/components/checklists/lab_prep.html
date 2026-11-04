@@ -228,7 +228,7 @@
             <div class="accordion-body">
                 <select class="form-select" style="width: 250px;" id="checklist_id">
                     {% for checklist in C.LabChecklistType.as_list() %}
-                    <option value="{{ checklist.id }}" {% if lab_prep.checklist_type.id == checklist.id %}selected{% endif %}>{{ checklist.name }}</option>
+                    <option value="{{ checklist.id }}" {% if lab_prep.checklist_type.id == checklist.id %}selected{% endif %}>{{ checklist.label }}</option>
                     {% endfor %}
                 </select>
                 <b class="pt-2">Steps:</b>

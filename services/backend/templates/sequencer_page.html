@@ -18,7 +18,7 @@
                 _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
-                        title: 'Delete Sequencer \'{{ sequencer.name }}\'',
+                        titleText: {{ ("Delete Sequencer '" ~ sequencer.name ~ "'") | hs_string }},
                         showDenyButton: true,
                         text: 'Do you want to proceed?',
                         confirmButtonText: 'Yes',

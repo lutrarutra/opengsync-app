@@ -45,8 +45,8 @@ class AddSeqRequestAssigneeAction(HTMXForm):
     def Submit(cls) -> RouteFunc:
         def route(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "AddSeqRequestAssigneeAction" = Depends(AddSeqRequestAssigneeAction.Validate()),
             _ = Depends(dependencies.require_insider),
+            form: "AddSeqRequestAssigneeAction" = Depends(AddSeqRequestAssigneeAction.Validate()),
         ):
             assignee = session.get_one(Q.user.select(id=int(form.user_id.data)))
 

@@ -6,7 +6,7 @@
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-1" aria-expanded="false" aria-controls="request-submit-accordion-1">
-                <b>{% if samples_added %}✅{% else %}⚠️{% endif %} Add Samples to the Request</b>
+                <b>{% if samples_added %}✅{% else %}⚠️{% endif %} Add {{ "Libraries" if seq_request.submission_type in [C.SubmissionType.POOLED_LIBRARIES, C.SubmissionType.UNPOOLED_LIBRARIES] else "Samples" }} to the Request</b>
             </button>
         </h2>
         <div id="request-submit-accordion-1" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
@@ -69,7 +69,7 @@
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-layout" aria-expanded="false" aria-controls="request-submit-accordion-layout">
-                <b>{% if submission_layout_added is none %}❗{% elif submission_layout_added %}✅{% elif not submission_layout_required %}🔘{% else %}⚠️{% endif %} Specify Sample Submission Layout{% if not submission_layout_required %} (Optional){% endif %}</b>
+                <b>{% if submission_layout_added is none %}❗{% elif submission_layout_added %}✅{% elif not submission_layout_required %}🔘{% else %}⚠️{% endif %} Specify Sample Submission Layout{% if submission_layout_added is not none and not submission_layout_required %} (Optional){% endif %}</b>
             </button>
         </h2>
         <div id="request-submit-accordion-layout" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
@@ -90,7 +90,9 @@
                 </ol>
                 <b>Notes</b>:
                 <ul>
-                    {% if not submission_layout_required %}
+                    {% if submission_layout_added is none %}
+                    <li>Add samples to the request first.</li>
+                    {% elif not submission_layout_required %}
                     <li>Only one {{ submission_layout_status.kind }} is handed in, so this step is optional.</li>
                     {% endif %}
                     {% if submission_layout_status.num_placed > 0 %}

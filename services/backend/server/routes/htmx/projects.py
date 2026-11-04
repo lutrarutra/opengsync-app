@@ -10,6 +10,7 @@ from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, release as release_ops
 
 from ...core import dependencies, overview, responses, exceptions as exc, query_options
+from ...utils.io import cells_as_text
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
 from ... import forms
@@ -246,6 +247,7 @@ def export_project_data(
         library_properties_df.to_excel(
             writer, sheet_name="Library Properties", index=False
         )
+        cells_as_text(writer.book)
 
     bytes_io.seek(0)
     return responses.bytes_response(data=bytes_io.getvalue(), filename=f"project_{project.identifier or f'P_{project.id}'}.xlsx", content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

@@ -19,7 +19,7 @@ TIME_VALID_CHOICES = [
     (60 * 24, "24 Hours"),
     (60 * 72, "3 Days"),
     (60 * 24 * 7, "1 Week"),
-    (60 * 24 * 14, "2 Week"),
+    (60 * 24 * 14, "2 Weeks"),
     (60 * 24 * 30, "1 Month"),
 ]
 DEFAULT_TIME_VALID_MIN = TIME_VALID_CHOICES[3][0]
@@ -122,9 +122,9 @@ class ShareProjectDataAction(HTMXForm):
     @htmx_route("POST", "/{project_id}/share-data")
     def Submit(cls) -> RouteFunc:
         def route(
-            form: "ShareProjectDataAction" = Depends(ShareProjectDataAction.Validate()),
             current_user: models.User = Depends(dependencies.require_data_assigner),
             access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+            form: "ShareProjectDataAction" = Depends(ShareProjectDataAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             mailer: Mailer = Depends(dependencies.mail_client),
             redis: rds.RedisClient = Depends(dependencies.redis),

@@ -15,6 +15,16 @@ from ....components.tables import MissingCellValue
 SAMPLE_COLUMNS = ("sample_id", "sample_name")
 
 
+
+_SEX_VALUES = {"f": "female", "female": "female", "w": "female", "m": "male", "male": "male"}
+
+
+def _normalize_sex(value):
+    """One spelling per value for downstream analysis ('F', 'f', 'Female' -> 'female'); others kept as given."""
+    if pd.isna(value):
+        return value
+    return _SEX_VALUES.get(str(value).strip().lower(), value)
+
 class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
 
@@ -122,11 +132,17 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
                         continue
                     
                     if pd.isna(row[col]):
-                        form.spreadsheet.add_error(idx, col, MissingCellValue("Missing value"))
+                        column = form.spreadsheet.columns[col].name if col in form.spreadsheet.columns else col
+                        form.spreadsheet.add_error(idx, col, MissingCellValue(
+                            f"Missing value for '{column}': a column must be filled for every sample or left empty (use 'NA' if not applicable)."
+                        ))
 
             form.assert_valid()
 
             df = df.dropna(how="all")
+            for col in df.columns:
+                if col.lower() == "sex":
+                    df[col] = df[col].map(_normalize_sex)
 
             for idx, row in df.iterrows():
                 sample_name = row["sample_name"]

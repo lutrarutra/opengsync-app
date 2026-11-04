@@ -33,7 +33,7 @@
                 _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({
-                    title: 'Remove all libraries from pool \'{{ pool.name }}\'',
+                    titleText: {{ ("Remove all libraries from pool '" ~ pool.name ~ "'") | hs_string }},
                     icon: 'question',
                     showDenyButton: true,
                     text: 'Proceed?',
@@ -49,7 +49,7 @@
                 _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({
-                    title: 'Delete Pool \'{{ pool.name }}\'',
+                    titleText: {{ ("Delete Pool '" ~ pool.name ~ "'") | hs_string }},
                     icon: 'question',
                     showDenyButton: true,
                     text: 'Proceed?',

@@ -34,6 +34,7 @@ from ...db.create_units import (
     create_feature, create_lab_prep, create_library, create_project, create_sample, create_seq_request,
 )
 from .._http import (
+    spreadsheet_data,
     assert_flash,
     assert_form_invalid,
     assert_htmx_redirect,
@@ -249,8 +250,8 @@ def test_render_lists_rejected_samples(
     response = get(client, _path(prep.lab_prep.id), insider_token)
 
     assert response.status_code == 200
-    assert f"['{_label(prep.s2)}', 'PoolA']" in response.text
-    assert "S2 ⛔" in response.text
+    assert [_label(prep.s2), "PoolA"] in spreadsheet_data(response)
+    assert any("S2 ⛔" in row[0] for row in spreadsheet_data(response))
 
 
 def test_rejected_samples_are_pooled_like_any_other(
@@ -449,7 +450,7 @@ def test_render_lists_a_sample_once_per_pool(
 
     assert response.status_code == 200
     for pool in ("PoolA", "PoolB"):
-        assert f"['{_label(prep.s1)}', '{pool}']" in response.text
+        assert [_label(prep.s1), pool] in spreadsheet_data(response)
 
 
 def test_adding_a_row_pools_a_sample_into_another_library(

@@ -23,6 +23,8 @@ from .context import ctx
 from ..utils import share_fs_cache
 
 _USER_CACHE_TTL = 300
+# Cached access levels (access:<model>:<id>:user:<viewer>); changes are invalidated on commit by core/access_cache.py
+ACCESS_CACHE_TTL = 300
 
 
 def _user_to_cache_dict(user: models.User) -> dict:
@@ -500,7 +502,7 @@ def project_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Project not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def seq_request_permissions(
@@ -518,7 +520,7 @@ def seq_request_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Sequencing request not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def sample_permissions(
@@ -536,7 +538,7 @@ def sample_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Sample not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def library_permissions(
@@ -554,7 +556,7 @@ def library_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Library not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def pool_permissions(
@@ -572,7 +574,7 @@ def pool_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Pool not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def media_file_permissions(
@@ -590,7 +592,7 @@ def media_file_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Media file not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def user_permissions(
@@ -608,7 +610,7 @@ def user_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("User not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
 
 def group_permissions(
@@ -626,7 +628,7 @@ def group_permissions(
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Group not found.")
 
-    r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=ACCESS_CACHE_TTL)
     return access_level
     
 E = TypeVar("E", bound=C.ExtendedEnum)

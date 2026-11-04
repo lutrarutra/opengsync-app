@@ -8,9 +8,14 @@ Access control:
 - Only DRAFT seq requests can be submitted.
 """
 
+import datetime as dt
+
+import pytest
 from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
+from server.core import config
+from server.core.config import SampleSubmissionWindow
 
 from ...db.create_units import create_file, create_library, create_seq_request
 from .._http import (
@@ -277,7 +282,7 @@ def test_submit_with_sample_submission_time(
         _submit_path(seq_request.id),
         _payload(
             samples_delivered_by_mail="",
-            sample_submission_time="2026-09-30 10:00",
+            sample_submission_time=_next(2, 16).strftime("%Y-%m-%d %H:%M"),  # future: past times are rejected
         ),
         token=insider_token,
     )
@@ -328,7 +333,7 @@ def test_submit_rejects_both_delivery_and_time(
         _submit_path(seq_request.id),
         _payload(
             samples_delivered_by_mail="on",
-            sample_submission_time="2026-09-30 10:00",
+            sample_submission_time=_next(2, 16).strftime("%Y-%m-%d %H:%M"),  # future: past times are rejected
         ),
         token=insider_token,
     )
@@ -394,3 +399,88 @@ def test_submit_unknown_is_404(
     )
 
     assert response.status_code == 404
+
+# ── Sample submission time (legacy parity; customer test 2026-11-04) ─────────
+# Legacy rejected past times and times outside the submission windows and stored the time as a
+# SAMPLE_SUBMISSION event; the FastAPI port had dropped all three.
+
+@pytest.fixture
+def windows(monkeypatch):
+    """Wednesday 15-17 and Friday 13-15, as in opengsync.yaml."""
+    monkeypatch.setattr(config.settings.app_config, "sample_submission_windows", [
+        SampleSubmissionWindow(weekday=2, start_time=dt.time(15), end_time=dt.time(17)),
+        SampleSubmissionWindow(weekday=4, start_time=dt.time(13), end_time=dt.time(15)),
+    ])
+
+
+def _next(weekday: int, hour: int) -> dt.datetime:
+    """Local naive datetime of the next given weekday (at least a day ahead), as the picker sends it."""
+    today = config.settings.now().date()
+    days = (weekday - today.weekday()) % 7 or 7
+    return dt.datetime.combine(today + dt.timedelta(days=days), dt.time(hour))
+
+
+def _submittable(session: SyncSession, user) -> models.SeqRequest:
+    seq_request = _seq_request_with_library(session, user)
+    _attach_auth_form(session, seq_request)
+    return seq_request
+
+
+def _submit_at(client, token, seq_request, moment: dt.datetime, custom: bool = False):
+    return post_form(client, _submit_path(seq_request.id), {
+        "sample_submission_time": moment.strftime("%Y-%m-%dT%H:%M"),
+        "custom_sample_submission_time": "on" if custom else "",
+        "comment": "",
+    }, token=token)
+
+
+def test_submission_time_in_the_past_is_rejected(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    seq_request = _submittable(session, user)
+    response = _submit_at(client, user_token, seq_request, dt.datetime(2020, 1, 1, 16))
+    assert_form_invalid(response)
+    assert "cannot be in the past" in response.text
+    session.expire_all()
+    assert session.get_one(Q.seq_request.select(id=seq_request.id)).status == C.SeqRequestStatus.DRAFT
+
+
+def test_submission_time_outside_windows_is_rejected(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    seq_request = _submittable(session, user)
+    response = _submit_at(client, user_token, seq_request, _next(0, 10))  # Monday 10:00
+    assert_form_invalid(response)
+    assert "within the allowed submission times" in response.text
+    assert 'name="custom_sample_submission_time"' in response.text
+
+
+def test_custom_time_outside_windows_is_accepted(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    seq_request = _submittable(session, user)
+    assert_htmx_redirect(_submit_at(client, user_token, seq_request, _next(0, 10), custom=True))
+
+
+def test_submission_time_in_window_creates_event(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    seq_request = _submittable(session, user)
+    moment = _next(2, 16)  # Wednesday 16:00 local
+
+    assert_htmx_redirect(_submit_at(client, user_token, seq_request, moment))
+
+    session.expire_all()
+    stored = session.get_one(Q.seq_request.select(id=seq_request.id))
+    assert stored.status == C.SeqRequestStatus.SUBMITTED
+    event = stored.sample_submission_event
+    assert event is not None and event.type == C.EventType.SAMPLE_SUBMISSION
+    assert event.timestamp_utc == moment.replace(tzinfo=config.settings.TIMEZONE).astimezone(dt.timezone.utc)
+
+
+def test_delivery_by_mail_creates_no_event(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    seq_request = _submittable(session, user)
+    assert_htmx_redirect(post_form(client, _submit_path(seq_request.id), _payload(), token=user_token))
+    session.expire_all()
+    assert session.get_one(Q.seq_request.select(id=seq_request.id)).sample_submission_event is None
+
+
+def test_submit_form_lists_weekday_names(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    from server.core.templates import j2
+    j2.env.globals["sample_submission_windows"] = config.settings.app_config.sample_submission_windows
+    seq_request = _seq_request_with_library(session, user)
+    text = get(client, _render_path(seq_request.id), user_token).text
+    assert "Wednesday" in text and "Friday" in text
+    assert '<span class="badge">2</span>' not in text

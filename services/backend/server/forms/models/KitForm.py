@@ -90,8 +90,8 @@ class KitForm(HTMXForm):
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "KitForm" = Depends(KitForm.Validate(form_type="edit")),
             _=Depends(dependencies.require_insider),
+            form: "KitForm" = Depends(KitForm.Validate(form_type="edit")),
         ) -> Response:
             if form.kit is None:
                 raise exc.BadRequestException("Kit ID must be provided for edit form.")
@@ -133,8 +133,8 @@ class KitForm(HTMXForm):
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "KitForm" = Depends(KitForm.Validate(form_type="create")),
             _=Depends(dependencies.require_insider),
+            form: "KitForm" = Depends(KitForm.Validate(form_type="create")),
         ) -> Response:
             # Validate identifier
             form.identifier.data = form.identifier.data.strip()

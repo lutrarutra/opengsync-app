@@ -27,5 +27,7 @@ hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trig
         <span class="status-label">{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</span>
     </div>
 </div>
+{% else %}
+{% if current_page == 0 %}<p class="text-muted text-center my-3">No sequencing requests yet. Start one with <b>Create Sequencing Request</b> under Workflows.</p>{% endif %}
 {% endfor %}
 {{ spinner(id="seq-requests-feed-indicator") }}

@@ -36,6 +36,7 @@ def seq_requests_page():
 def seq_request_page(
     seq_request_id: int,
     session: dependencies.SyncSession = Depends(dependencies.db_session),
+    user_id: int = Depends(dependencies.require_user_id),
 ):
     seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
@@ -75,6 +76,7 @@ def seq_request_page(
     return responses.html_response(
         template="seq_request_page.html",
         seq_request=seq_request,
+        can_delete=bool(session.scalar(Q.seq_request.delete_permission(seq_request.id, user_id))),
         submit_checklist_steps_completed=sum(1 for item in submit_steps if item),
         submit_checklist_steps_total=len(submit_steps),
         review_checklist_steps_completed=sum(1 for item in review_checklist.values() if item),

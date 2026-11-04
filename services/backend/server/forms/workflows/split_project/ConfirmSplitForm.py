@@ -92,8 +92,8 @@ class ConfirmSplitForm(SplitProjectWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            form: "ConfirmSplitForm" = Depends(ConfirmSplitForm.Validate()),
             current_user: models.User = Depends(dependencies.require_insider),
+            form: "ConfirmSplitForm" = Depends(ConfirmSplitForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             source_project = session.get_one(Q.project.select(id=form.workflow.project_id))

@@ -123,9 +123,9 @@ class LanePoolsCombinedAction(HTMXForm):
     @htmx_route("POST", "/{experiment_id}/lane-pools/combined")
     def Submit(cls) -> RouteFunc:
         def route(
+            current_user: models.User = Depends(dependencies.require_insider),
             form: "LanePoolsCombinedAction" = Depends(LanePoolsCombinedAction.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
-            current_user: models.User = Depends(dependencies.require_insider),
         ):
             data = {
                 "lane": [],

@@ -351,9 +351,6 @@ KNOWN_GAPS: dict[tuple[str, str, str, str, str], str] = {
     ("experiment-sequencing", "insider", "Begin", "GET", "/htmx/experiments/{id}/lane-pools/combined"): NO_STATUS_CHECK,
     ("experiment-sequencing", "insider", "Begin", "GET", "/htmx/experiments/{id}/select-pools"): NO_STATUS_CHECK,
     **{(scenario, *key): why for scenario in ("lab_prep-preparing", "lab_prep-completed") for key, why in _LAB_PREP_PREREQUISITES.items()},
-    ("lab_prep-preparing", "*", "Uncomplete Prep", "POST", "/htmx/lab_preps/{id}/uncomplete"): "uncomplete_lab_prep checks neither role nor status",
-    ("lab_prep-completed", "insider", "Uncomplete Prep", "POST", "/htmx/lab_preps/{id}/uncomplete"): "uncomplete_lab_prep checks neither role nor status",
-    ("user", "insider", "New Token", "GET", "/htmx/users/{id}/create-api-token"): "APITokenForm.Begin has no permission check",
 }
 
 

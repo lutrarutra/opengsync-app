@@ -25,8 +25,9 @@ class UserForm(UserProfileMixin, HTMXForm):
         self.editor = editor
         self.post_url = responses.url_for("UserForm.Edit", user_id=user.id)
         self.init_profile_fields(other_user=editor.id != user.id)
-        # Only admins may change the email
+        # Only admins may change the email and the role
         self.email.read_only = not editor.is_admin
+        self.role.read_only = not editor.is_admin
 
     @classmethod
     def Init(cls) -> FormFunc:
@@ -59,8 +60,8 @@ class UserForm(UserProfileMixin, HTMXForm):
     def Edit(cls) -> RouteFunc:
         def route(
             session: SyncSession = Depends(dependencies.db_session),
-            form: "UserForm" = Depends(UserForm.Validate()),
             access_level: C.AccessLevel = Depends(dependencies.user_permissions),
+            form: "UserForm" = Depends(UserForm.Validate()),
         ) -> Response:
             if access_level < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to edit this user.")

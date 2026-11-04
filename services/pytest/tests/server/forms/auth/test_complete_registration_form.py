@@ -405,3 +405,22 @@ def test_complete_registration_department_must_be_of_the_institute(
 def test_profile_fields_mark_new_pi_email_required(client: TestClient):
     html = get(client, _path(_token(NEW_EMAIL))).text
     assert 'placeholder="Required"' in html.split('name="pi_email"')[0].rsplit("<input", 1)[1]
+
+
+def test_invited_registration_joins_the_group(client: TestClient, session: SyncSession):
+    """A registration link sent from a group's 'Add Member' form adds the new user to that group."""
+    from server.core import secrets
+    from opengsync_db import categories as C
+    from ....db.create_units import create_group
+
+    group = create_group(session)
+    session.commit()
+    token = secrets.generate_registration_token(
+        email=NEW_EMAIL, role=UserRole.CLIENT, group_id=group.id, affiliation_type=C.AffiliationType.MANAGER,
+    )
+
+    assert_htmx_redirect(_complete(client, token))
+
+    user = session.first(Q.user.select(email=NEW_EMAIL))
+    affiliation = session.first(Q.affiliation.select(user_id=user.id, group_id=group.id))
+    assert affiliation is not None and affiliation.affiliation_type == C.AffiliationType.MANAGER

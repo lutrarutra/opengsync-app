@@ -41,11 +41,11 @@ def search(
 
     if name is not None:
         filter_conditions.append(utils.safe_trgm_search(Feature.name, name))
-        relevance += sa.func.similarity(Feature.name, name) * name_weight
+        relevance += sa.func.coalesce(sa.func.similarity(Feature.name, name), 0.0) * name_weight
 
     if identifier is not None:
         filter_conditions.append(utils.safe_ilike(Feature.identifier, identifier))
-        relevance += sa.func.similarity(Feature.identifier, identifier) * identifier_weight
+        relevance += sa.func.coalesce(sa.func.similarity(Feature.identifier, identifier), 0.0) * identifier_weight
 
     if not filter_conditions:
         return statement
