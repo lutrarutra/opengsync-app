@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse
 
-from . import barcodes, libraries, passkeys, projects, shares, stats, tokens, webdav
+from . import barcodes, libraries, onboarding, passkeys, projects, shares, stats, tokens, webdav
 
 router = APIRouter(prefix="/api", tags=["api", "json"])
 router.include_router(barcodes.router)
 router.include_router(libraries.router)
+router.include_router(onboarding.router)
 router.include_router(passkeys.router)
 router.include_router(projects.router)
 router.include_router(stats.router)
@@ -23,6 +24,7 @@ __all__ = [
     "router",
     "barcodes",
     "libraries",
+    "onboarding",
     "passkeys",
     "projects",
     "stats",

@@ -180,7 +180,7 @@ class Mailer:
 
         self.__send_email(
             recipients=list(set(recipients)),
-            subject=f"[{project.identifier or f'P{project.id}'}]: {settings.app_config.personalization.organization} Shared Project Data",
+            subject=f"[{project.identifier_display}]: {settings.app_config.personalization.organization} Shared Project Data",
             body=body,
             mime_type="html",
         )

@@ -1,0 +1,167 @@
+/* Onboarding tour (static/js/onboarding-tour.js) */
+
+.onboarding-fab {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    z-index: 1100;
+    height: 44px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 22px;
+    background-color: var(--color-cemm-blue);
+    color: var(--color-white);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+
+    &[hidden] {
+        display: none;
+    }
+
+    &:hover {
+        background-color: var(--color-cemm-blue-darker);
+        transform: scale(1.03);
+    }
+
+    &:focus-visible {
+        outline: 3px solid var(--color-cemm-blue-dark);
+        outline-offset: 2px;
+    }
+
+    i {
+        font-size: 18px;
+    }
+}
+
+/* Driver.js popover */
+.driver-popover.onboarding-popover {
+    max-width: 340px;
+    border-radius: 8px;
+    padding: 16px;
+
+    .driver-popover-title {
+        font-size: 16px;
+    }
+
+    .driver-popover-description {
+        font-size: 14px;
+        color: var(--color-gray-700);
+    }
+
+    .driver-popover-footer {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .driver-popover-progress-text {
+        color: var(--color-gray-600);
+    }
+
+    .driver-popover-navigation-btns {
+        margin-left: auto;
+        gap: 4px;
+    }
+
+    .driver-popover-footer button {
+        text-shadow: none;
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 13px;
+    }
+
+    .driver-popover-next-btn {
+        background-color: var(--color-cemm-blue);
+        border-color: var(--color-cemm-blue);
+        color: var(--color-white);
+
+        &:hover,
+        &:focus {
+            background-color: var(--color-cemm-blue-darker);
+        }
+    }
+}
+
+.onboarding-popover-extra {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    order: 10;
+}
+
+/* Text-style buttons: pause/skip; .driver-popover-footer button styles are reset for them */
+.onboarding-link,
+.driver-popover.onboarding-popover .driver-popover-footer .onboarding-link {
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--color-gray-600);
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--color-gray-900);
+        background: none;
+    }
+}
+
+/* Hint banner while the request form is open (inserted under the modal header) */
+.onboarding-coach {
+    padding: 10px 16px;
+    border-left: 4px solid var(--color-cemm-blue);
+    border-bottom: 1px solid var(--color-gray-300);
+    background-color: #e6f7fa;
+    font-size: 14px;
+
+    p {
+        margin: 4px 0 0;
+    }
+}
+
+.onboarding-coach-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+        color: var(--color-cemm-blue);
+    }
+}
+
+.onboarding-coach-progress {
+    color: var(--color-gray-600);
+    font-size: 12px;
+}
+
+.onboarding-coach-actions {
+    display: flex;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.onboarding-coach-error {
+    color: var(--color-red);
+}
+
+/* The button the tour wants clicked next */
+.onboarding-pulse {
+    animation: onboarding-pulse 1.6s ease-out infinite;
+}
+
+@keyframes onboarding-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 174, 204, 0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 174, 204, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 174, 204, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .onboarding-pulse {
+        animation: none;
+        outline: 3px solid var(--color-cemm-blue);
+    }
+}

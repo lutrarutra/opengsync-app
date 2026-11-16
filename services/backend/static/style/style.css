@@ -26,6 +26,7 @@
 @import "./page-loader.css";
 @import "./experiment-stats.css";
 @import "./audit-log.css";
+@import "./onboarding.css";
 
 .assignee-badge {
     height: 24px;

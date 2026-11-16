@@ -7,7 +7,7 @@ from loguru import logger
 from opengsync_db import queries as Q, SyncSession, models
 from opengsync_db.categories import UserRole
 
-from ...core import responses, secrets, dependencies, exceptions as exc
+from ...core import responses, secrets, dependencies, onboarding, exceptions as exc, redis as rds
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..common import UserProfileMixin
@@ -59,6 +59,7 @@ class CompleteRegistrationForm(UserProfileMixin, HTMXForm):
         def route(
             session: SyncSession = Depends(dependencies.db_session),
             bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
+            r: rds.RedisClient = Depends(dependencies.redis),
             form: "CompleteRegistrationForm" = Depends(CompleteRegistrationForm.Validate()),
             _ = Depends(dependencies.audit_log)
         ) -> Response:
@@ -97,6 +98,8 @@ class CompleteRegistrationForm(UserProfileMixin, HTMXForm):
             ), flush=True)
 
             logger.info(f"User {user.email} completed registration.")
+            if not user.is_insider:
+                onboarding.mark_new(r, user.id)
 
             # Invited to a group from its 'Add Member' form
             if (invite := secrets.registration_group(form.token)) is not None:

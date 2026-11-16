@@ -12,8 +12,8 @@
     </div>
     <div id="navbar-container">
         <a class="nav-link {{ 'active' if active_page == 'dashboard-page' else '' }}" href="{{ url_for('dashboard') }}"><i class="bi bi-house nav-icon"></i><span class="nav-label">Dashboard</span></a>
-        <a class="nav-link {{ 'active' if active_page == 'projects-page' else '' }}" href="{{ url_for('projects_page') }}"><i class="bi bi-folder nav-icon"></i><span class="nav-label">Projects</span></a>
-        <a class="nav-link {{ 'active' if active_page == 'seq_requests-page' else '' }}" href="{{ url_for('seq_requests_page') }}"><i class="bi bi-inbox nav-icon"></i><span class="nav-label">Requests</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'projects-page' else '' }}" data-tour="nav-projects" href="{{ url_for('projects_page') }}"><i class="bi bi-folder nav-icon"></i><span class="nav-label">Projects</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'seq_requests-page' else '' }}" data-tour="nav-requests" href="{{ url_for('seq_requests_page') }}"><i class="bi bi-inbox nav-icon"></i><span class="nav-label">Requests</span></a>
         {% if current_user and current_user.is_insider %}
         <div class="nav-dropdown">
             <button type="button" class="nav-link nav-dropdown-toggle"><i class="bi bi-eyedropper nav-icon"></i><span class="nav-label">Lab</span><i class="bi bi-chevron-down nav-caret"></i></button>
@@ -66,8 +66,8 @@
         </div>
         {% endif %}
         {% elif current_user %}
-        <a class="nav-link {{ 'active' if active_page == 'groups-page' else '' }}" href="{{ url_for('groups_page') }}"><i class="bi bi-people nav-icon"></i><span class="nav-label">Groups</span></a>
-        <a class="nav-link {{ 'active' if active_page == 'help-page' else '' }}" href="{{ url_for('help') }}"><i class="bi bi-question-circle nav-icon"></i><span class="nav-label">Help</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'groups-page' else '' }}" data-tour="nav-groups" href="{{ url_for('groups_page') }}"><i class="bi bi-people nav-icon"></i><span class="nav-label">Groups</span></a>
+        <a class="nav-link {{ 'active' if active_page == 'help-page' else '' }}" data-tour="nav-help" href="{{ url_for('help') }}"><i class="bi bi-question-circle nav-icon"></i><span class="nav-label">Help</span></a>
         {% endif %}
     </div>
     <div class="nav-right">

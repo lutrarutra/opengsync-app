@@ -5,7 +5,7 @@ from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
-from ...core import responses, dependencies, exceptions as exc, secrets, redis as rds
+from ...core import responses, dependencies, exceptions as exc, secrets, onboarding, redis as rds
 from ...components import inputs
 from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 from ..common import UserProfileMixin
@@ -82,6 +82,10 @@ class ActivationForm(UserProfileMixin, HTMXForm):
 
             if form.asks_profile:
                 form.apply_profile(user, form.validate_profile(session, name=user.name, email=user.email, required=True))
+
+            # Placeholder accounts (created by an insider for a request) never had a password; reactivated ones did
+            if user.pw_set_datetime is None and not user.is_insider:
+                onboarding.mark_new(r, user.id)
 
             user.password = bcrypt.generate_password_hash(form.password.data)
             user.pw_set_datetime = dt.datetime.now(dt.timezone.utc)

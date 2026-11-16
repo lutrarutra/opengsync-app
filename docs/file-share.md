@@ -560,7 +560,7 @@ or, from Python in the app, call `share_fs_cache.invalidate(redis, token)`.
 
 ## Sharing with the OpeNGSyncAPI
 
-The `opengsync_api` package (`packages/opengsync-api`) wraps the share endpoints. You need an **insider's** API token, and the project must have an identifier.
+The `opengsync_api` package (`packages/opengsync-api`) wraps the share endpoints. You need an **insider's** API token.
 
 Paths passed to the API are **host paths**. The server translates them with `share_path_mapping`. A path must exist on the server and must lie below one of the mapping's prefixes; the prefix itself, such as `/nobackup/lab_bsf/projects`, cannot be added.
 

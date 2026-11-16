@@ -304,7 +304,6 @@ def test_share_and_release_api_change_the_same_statuses(
     results = []
     for via_api in (False, True):
         project, library = _project_with_library(session, user, C.LibraryStatus.SEQUENCED)
-        project.identifier = f"P{project.id:04d}"
         session.commit()
         if via_api:
             response = client.post(
@@ -648,6 +647,34 @@ def test_anonymous_send_drops_the_author(
     mail.send(session, project, sender, internal_share=False, anonymous=anonymous)
 
     assert mail.renders[mail.BODY]["author"] is (sender if author_is_sender else None)
+
+
+def test_release_api_emails_project_without_identifier(
+    client: TestClient, session: SyncSession, user, bioinformatician_token: str, monkeypatch: pytest.MonkeyPatch, tmp_path,
+):
+    """Releasing needs no identifier; the real email template renders and the subject falls back to PRJ_<id>."""
+    from server.core import mailer as mailer_module
+
+    sent: list[dict] = []
+    monkeypatch.setattr(config.settings, "ENVIRONMENT", "prod")
+    monkeypatch.setattr(config.settings.app_config, "template_folder", str(tmp_path))
+    monkeypatch.setattr(mailer_module.Mailer, "_Mailer__send_email", lambda _, **kwargs: sent.append(kwargs))
+    client.app.state.mailer = mailer_module.Mailer()
+    project = _shareable_project(session, user)
+    assert project.identifier is None
+
+    response = client.post(
+        "/api/shares/release-project_data",
+        json={"project_id": project.id, "internal_access": False, "time_valid_min": 60, "recipients": [RECIPIENT]},
+        headers=auth(bioinformatician_token),
+    )
+
+    assert response.status_code == 200, response.text
+    [mail] = sent
+    assert mail["recipients"] == [RECIPIENT]
+    assert mail["subject"].startswith(f"[PRJ_{project.id:04d}]: ")
+    session.expire_all()
+    assert session.get_one(Q.project.select(id=project.id)).share_token_uuid in mail["body"]
 
 
 @pytest.mark.parametrize("minutes", ["999", "-1"])

@@ -290,9 +290,6 @@ def release_project_data(
     if project is None:
         raise exc.NotFoundException(f"Project with ID '{body.project_id}' not found.")
 
-    if project.identifier is None:
-        raise exc.BadRequestException("Project must have an identifier to release data.")
-
     paths = parsing.filter_subpaths([data_path.path for data_path in project.data_paths])
     if len(paths) == 0:
         raise exc.BadRequestException("No data paths associated with project to share.")
