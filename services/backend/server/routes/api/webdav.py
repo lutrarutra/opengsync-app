@@ -1,5 +1,6 @@
 from pathlib import Path
 import mimetypes
+import urllib.parse
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse, Response
@@ -99,7 +100,7 @@ def share(
                 # a browser opened the WebDAV link of a folder: show it in the share browser
                 if _wants_html(request):
                     return RedirectResponse(
-                        url=str(responses.url_for("file_share.browse", token=token, subpath=current_path)),
+                        url=str(responses.url_for("file_share.browse", token=token, subpath=urllib.parse.quote(current_path.as_posix()))),
                         status_code=302,
                     )
                 raise exc.NotFoundException(

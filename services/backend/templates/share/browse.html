@@ -131,7 +131,7 @@
             <tbody>
                 {% if current_path.parts %}
                 <tr>
-                    <td><a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '') }}">../</a></td>
+                    <td><a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() | urlencode if parent_dir else '') }}">../</a></td>
                     <td>-</td>
                     <td>-</td>
                 </tr>
@@ -143,7 +143,7 @@
                 {% set entry_mtime = browser_path.mtime if browser_path.mtime is not none else path.stat().st_mtime %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}">
+                        <a href="{{ url_for('file_share.browse', token=token, subpath=((current_path / path.name).as_posix() if current_path else path.name) | urlencode) }}">
                             {% if not is_directory %}
                             <i class="bi bi-file-earmark"></i> {{ path.name }}
                             {% else %}
@@ -151,7 +151,7 @@
                             {% endif %}
                         </a>
                         {% if is_directory and zip_available %}
-                        <a class="zip-link" href="{{ url_for('file_share.zip', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}" download title="Download {{ path.name }} as .zip"><i class="bi bi-file-zip"></i> .zip</a>
+                        <a class="zip-link" href="{{ url_for('file_share.zip', token=token, subpath=((current_path / path.name).as_posix() if current_path else path.name) | urlencode) }}" download title="Download {{ path.name }} as .zip"><i class="bi bi-file-zip"></i> .zip</a>
                         {% endif %}
                     </td>
                     <td>{{ entry_size | bytes_to_human }}</td>

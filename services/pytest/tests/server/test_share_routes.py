@@ -408,3 +408,32 @@ def test_webdav_clients_are_not_redirected(
     get_file = client.get(f"/api/webdav/{token}/shared/root.txt", follow_redirects=False)
     assert get_file.status_code == 200
     assert get_file.content == b"root"
+
+
+def test_share_links_escape_special_characters(
+    client: TestClient,
+    share_fixture: ShareFixture,
+):
+    """Starlette's url_for does not escape {subpath:path}: a '#' in a name must not become a fragment."""
+    token = share_fixture.token.uuid
+    odd = share_fixture.root / "shared" / "a#b ?c%"
+    odd.mkdir()
+    (odd / "x#1.bam.md5").write_text("md5")
+
+    browse = client.get(f"/api/shares/browse/{token}/shared")
+    assert f"/api/shares/browse/{token}/shared/a%23b%20%3Fc%25\"" in browse.text
+
+    inner = client.get(f"/api/shares/browse/{token}/shared/a%23b%20%3Fc%25")
+    assert inner.status_code == 200
+    assert f"/api/shares/browse/{token}/shared/a%23b%20%3Fc%25/x%231.bam.md5\"" in inner.text
+
+    rclone = client.get(f"/api/shares/rclone/{token}/shared")
+    assert f"/api/shares/rclone/{token}/shared/a%23b%20%3Fc%25/\"" in rclone.text
+
+    redirect = client.get(f"/api/webdav/{token}/shared/a%23b%20%3Fc%25", headers=BROWSER_ACCEPT, follow_redirects=False)
+    assert redirect.status_code == 302
+    assert redirect.headers["location"].endswith(f"/api/shares/browse/{token}/shared/a%23b%20%3Fc%25")
+
+    file = client.get(f"/api/shares/browse/{token}/shared/a%23b%20%3Fc%25/x%231.bam.md5")
+    assert file.status_code == 200
+    assert file.text == "md5"
