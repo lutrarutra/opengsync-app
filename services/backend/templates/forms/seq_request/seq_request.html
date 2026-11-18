@@ -195,34 +195,47 @@
       {% endcall %}
 
       {% call step_pane("billing") %}
-        {{ form.billing.use_organization.render("mb-2") }}
         <div class="row">
           {{ form.billing.name.render("col-md-4") }} {{
           form.billing.email.render("col-md-4") }} {{
           form.billing.phone.render("col-md-4") }}
         </div>
+        {{ form.billing.use_organization_address.render("mb-2") }}
         {{ form.billing.address.render() }}
         <script>
-          function update_billing_from_organization() {
-              const checked = $("#billing-use_organization").is(":checked");
-              const name = $("#organization-name");
-              const address = $("#organization-address");
-              const billingName = $("#billing-name");
+          function update_billing_address_from_organization() {
+              const checked = $("#billing-use_organization_address").is(":checked");
               const billingAddress = $("#billing-address");
 
               if (checked) {
-                  billingName.val(name.val()).addClass("disabled").prop("readonly", true);
-                  billingAddress.val(address.val()).addClass("disabled").prop("readonly", true);
+                  billingAddress.val($("#organization-address").val()).addClass("disabled").prop("readonly", true);
               } else {
-                  billingName.removeClass("disabled").prop("readonly", false);
                   billingAddress.removeClass("disabled").prop("readonly", false);
               }
           }
 
+          // The billing contact name follows the PI name until the user types a different one.
+          function prefill_billing_name_from_pi() {
+              const billingName = $("#billing-name");
+              const current = billingName.val() || "";
+              if (current === "" || current === billingName.data("pi-autofill")) {
+                  const pi_name = $("#contact-pi_name").val() || "";
+                  billingName.val(pi_name).data("pi-autofill", pi_name);
+              }
+          }
+
           $(document).ready(function() {
-              $("#billing-use_organization").on("change", update_billing_from_organization);
-              $("#organization-name, #organization-address").on("input change", update_billing_from_organization);
-              update_billing_from_organization();
+              $("#billing-use_organization_address").on("change", update_billing_address_from_organization);
+              $("#organization-address").on("input change", update_billing_address_from_organization);
+              update_billing_address_from_organization();
+
+              // After a re-render the autofill marker is lost; a name still equal to the PI name keeps following it.
+              const billingName = $("#billing-name");
+              if (billingName.val() && billingName.val() === $("#contact-pi_name").val()) {
+                  billingName.data("pi-autofill", billingName.val());
+              }
+              $("#contact-pi_name").on("input change", prefill_billing_name_from_pi);
+              prefill_billing_name_from_pi();
           });
         </script>
         <div class="row">

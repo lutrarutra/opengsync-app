@@ -645,7 +645,18 @@ def test_combined_loading_without_target_molarity_is_not_loaded(client: TestClie
     assert combined.status() == C.ExperimentStatus.DRAFT
 
 
-@pytest.mark.parametrize("overrides", [{"phi_x": ""}, {"phi_x": "-1"}, {"total_volume_ul": "-5"}], ids=["missing-phi-x", "negative-phi-x", "negative-volume"])
+def test_combined_loading_without_phi_x_is_loaded(client: TestClient, combined: Setup, insider_token: str):
+    """PhiX is optional (it is given in the sequencer loading checklist)."""
+    _qc_lanes(combined)
+
+    response = post_form(client, combined.path("load-flow-cell"), LOAD | {"phi_x": ""}, token=insider_token)
+
+    assert_htmx_redirect(response, f"/experiments/{combined.experiment.id}")
+    assert all(lane.phi_x is None and lane.library_volume_ul is not None for lane in combined.lanes())
+    assert combined.status() == C.ExperimentStatus.LOADED
+
+
+@pytest.mark.parametrize("overrides", [{"phi_x": "-1"}, {"total_volume_ul": "-5"}], ids=["negative-phi-x", "negative-volume"])
 def test_combined_loading_invalid_values_are_rejected(client: TestClient, combined: Setup, insider_token: str, overrides: dict):
     _qc_lanes(combined)
 
@@ -686,6 +697,18 @@ def test_separate_loading_loads_each_lane(client: TestClient, separate: Setup, i
     assert separate.status() == C.ExperimentStatus.LOADED
 
 
+def test_separate_loading_without_phi_x_is_loaded(client: TestClient, separate: Setup, insider_token: str):
+    _qc_lanes(separate)
+
+    response = post_form(client, separate.path("load-flow-cell"), _separate_load_payload(
+        separate.lanes(), **{"0": {"phi_x": ""}, "1": {"phi_x": ""}},
+    ), token=insider_token)
+
+    assert_htmx_redirect(response, f"/experiments/{separate.experiment.id}")
+    assert all(lane.phi_x is None for lane in separate.lanes())
+    assert separate.status() == C.ExperimentStatus.LOADED
+
+
 def test_separate_loading_one_lane_left_out_is_not_loaded(client: TestClient, separate: Setup, insider_token: str):
     _qc_lanes(separate)
 
@@ -713,7 +736,7 @@ def test_separate_loading_invalid_value_rerenders_and_saves_nothing(client: Test
     _qc_lanes(separate)
 
     response = post_form(client, separate.path("load-flow-cell"), _separate_load_payload(
-        separate.lanes(), **{"1": {"phi_x": ""}},
+        separate.lanes(), **{"1": {"phi_x": "-1"}},
     ), token=insider_token)
 
     assert_form_invalid(response)

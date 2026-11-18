@@ -77,3 +77,25 @@ def test_drag_and_drop_sends_ids_in_query_string(client: TestClient, insider_tok
     assert "values:" not in response.text
     assert "create-flow-cell-design?\" + params" in response.text
     assert "move-pool-design?\" + params" in response.text
+
+
+def test_set_flow_cell_type_from_context_menu(client: TestClient, insider_token: str, session: SyncSession):
+    design = create_flow_cell_design(session)
+    session.commit()
+    fc_type = C.FlowCellType.NOVASEQ_X_10B_ILLUMINA
+    response = post_form(
+        client, "/htmx/flow_cell_design/set-flow-cell-type", {}, insider_token,
+        params={"flow_cell_design_id": design.id, "flow_cell_type_id": fc_type.id}, htmx=True,
+    )
+    assert_htmx_redirect(response, "/design")
+    session.expire_all()
+    assert design.stored_flow_cell_type == fc_type
+
+    # "Automatic" clears the stored type
+    response = post_form(
+        client, "/htmx/flow_cell_design/set-flow-cell-type", {}, insider_token,
+        params={"flow_cell_design_id": design.id, "flow_cell_type_id": -1}, htmx=True,
+    )
+    assert_htmx_redirect(response, "/design")
+    session.expire_all()
+    assert design.stored_flow_cell_type is None

@@ -42,7 +42,7 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-select_service.html"
 
-    service_type = inputs.selectable.SelectableInputField("Service", C.ServiceType.as_selectable())
+    service_type = inputs.selectable.SelectableInputField("Service", [(id, label) for id, label in C.ServiceType.as_selectable() if id not in (C.ServiceType.TENX_SC_4_PLEX_FLEX.id, C.ServiceType.TENX_SC_16_PLEX_FLEX.id, C.ServiceType.TENX_SC_SINGLE_PLEX_FLEX.id)])
     additional_info = inputs.string.TextAreaInputField("Additional Information", description="Please provide any additional information about the assay or library preparation that may be relevant for processing.", max_length=4096, required=False)
     optional_assays = OptionalAssaysForm()
     additional_services = AdditionalSerevicesForm()

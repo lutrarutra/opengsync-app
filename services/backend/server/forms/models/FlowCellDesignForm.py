@@ -27,6 +27,8 @@ class FlowCellDesignForm(HTMXForm):
         super().__init__()
         self.flow_cell_design = flow_cell_design
         self.post_url = responses.url_for("FlowCellDesignForm.Edit")
+        if flow_cell_design is not None:
+            self.post_url = self.post_url.include_query_params(flow_cell_design_id=flow_cell_design.id)
 
     @classmethod
     def Init(cls) -> FormFunc:

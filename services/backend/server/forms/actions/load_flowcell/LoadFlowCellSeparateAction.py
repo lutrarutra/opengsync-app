@@ -24,7 +24,7 @@ class LaneRowSchema(BaseModel):
 
 class LaneSubForm(SubHTMXForm):
     lane_id = inputs.numeric.IntInputField("Lane ID", required=True, read_only=True, hidden=True)
-    phi_x = inputs.numeric.FloatInputField("PhiX", required=True, ge=0.0, unit="%")
+    phi_x = inputs.numeric.FloatInputField("PhiX", required=False, ge=0.0, unit="%")
     measured_qubit = inputs.numeric.FloatInputField("Qubit Concentration After Dilution", required=False, ge=0.0, unit="ng/μL")
     target_molarity = inputs.numeric.FloatInputField("Target Molarity", required=False, ge=0.0, unit="nM")
     total_volume_ul = inputs.numeric.FloatInputField("Total Volume", required=False, ge=0.0, unit="μL")

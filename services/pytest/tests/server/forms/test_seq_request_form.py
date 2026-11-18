@@ -49,7 +49,7 @@ def _created_request(session: SyncSession, name: str):
     return session.first(Q.seq_request.select(name=name))
 
 
-def test_billing_can_reuse_organization_name_and_address(
+def test_billing_can_reuse_pi_name_and_organization_address(
     client: TestClient,
     session: SyncSession,
     user,
@@ -62,7 +62,8 @@ def test_billing_can_reuse_organization_name_and_address(
         _request_payload(
             name,
             **{
-                "billing-name": "Test Organization",
+                "billing-use_organization_address": "true",
+                "billing-name": "Principal Investigator",
                 "billing-address": "1 Organization Street",
             },
         ),
@@ -72,7 +73,7 @@ def test_billing_can_reuse_organization_name_and_address(
     assert response.status_code == 204
     request = _created_request(session, name)
     assert request is not None
-    assert request.billing_contact.name == "Test Organization"
+    assert request.billing_contact.name == "Principal Investigator"
     assert request.billing_contact.address == "1 Organization Street"
 
 

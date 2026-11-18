@@ -65,8 +65,7 @@ class Lane(Base):
             self.sequencing_qubit_concentration is not None and
             self.total_volume_ul is not None and
             self.library_volume_ul is not None and
-            self.target_molarity is not None and
-            self.phi_x is not None
+            self.target_molarity is not None
         )
     
     def get_loaded_reads(self) -> float:

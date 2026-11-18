@@ -68,3 +68,24 @@ def test_edit_csrf_mismatch(client: TestClient, session: SyncSession, insider_to
     session.commit()
     response = post_form_csrf_mismatch(client, _url(EDIT_PATH, flow_cell_design_id=d.id), _payload(), token=insider_token)
     assert_form_invalid(response)
+
+def test_rendered_form_posts_to_url_with_design_id(client: TestClient, session: SyncSession, insider_token: str):
+    """Regression: the modal's Submit posted to a URL without flow_cell_design_id → 400."""
+    import html
+    import re
+
+    from opengsync_db import categories as C
+
+    d = create_flow_cell_design(session)
+    session.commit()
+    rendered = get(client, _url(EDIT_PATH, flow_cell_design_id=d.id), insider_token)
+    m = re.search(r'hx-post="([^"]+)"', rendered.text)
+    assert m is not None
+    post_url = html.unescape(m.group(1))
+    assert f"flow_cell_design_id={d.id}" in post_url
+
+    fc_type = C.FlowCellType.NOVASEQ_X_10B_ILLUMINA
+    response = post_form(client, post_url, _payload(name=d.name, flow_cell_type_id=fc_type.id), token=insider_token)
+    assert_htmx_redirect(response)
+    session.expire_all()
+    assert session.get_one(Q.flow_cell_design.select(id=d.id)).stored_flow_cell_type == fc_type

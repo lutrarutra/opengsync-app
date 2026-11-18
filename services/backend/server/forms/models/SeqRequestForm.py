@@ -162,8 +162,8 @@ class BillingSubForm(SubHTMXForm):
     title = "Billing"
     icon = "bi-credit-card"
 
-    # UI-only: copies the organization name/address into the billing fields.
-    use_organization = inputs.boolean.SwitchInputField("Use organization for billing")
+    # UI-only: copies the organization address into the billing address.
+    use_organization_address = inputs.boolean.SwitchInputField("Use organization address for billing")
     code = inputs.string.StringInputField("Billing Code", required=False, max_length=models.SeqRequest.billing_code.type.length)
     name = inputs.string.StringInputField("Billing Contact Name", required=True, max_length=_CONTACT_NAME)
     email = inputs.string.EmailInputField("Billing Contact Email", required=True, max_length=_CONTACT_EMAIL)
