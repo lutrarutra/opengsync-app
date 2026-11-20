@@ -1058,7 +1058,7 @@ def test_validator_messages_have_no_pydantic_prefix(client: TestClient, user_tok
     assert "Value error," not in response.text
 
 
-@pytest.mark.parametrize("phone, ok", [("+43 1 40160-0", True), ("(01) 234/567.8", True), ("not a phone", False), ("12", False)])
+@pytest.mark.parametrize("phone, ok", [("+43 1 40160-0", True), ("(01) 234/567.8", True), ("not a phone", False), ("12", True), ("-12", False)])
 def test_contact_phone_is_validated(client: TestClient, user_token: str, phone: str, ok: bool):
     payload = _request_payload(f"phone-{uuid4().hex}", **{"contact-phone": phone}, step="contact")
     response = post_form(client, "/htmx/seq_requests/create/step", payload, token=user_token)
