@@ -15,9 +15,9 @@ import pytest
 from fastapi.testclient import TestClient
 from redis import Redis
 
-from opengsync_db import SyncSession, models, queries as Q, categories as C
+from opengsync_db import SyncSession, models, actions, queries as Q, categories as C
 
-from ...db.create_units import create_lab_prep, create_library, create_pool, create_seq_request
+from ...db.create_units import create_experiment, create_lab_prep, create_library, create_pool, create_seq_request
 from .._http import assert_flash, assert_form_invalid, assert_htmx_redirect, get, post_form
 
 
@@ -122,6 +122,35 @@ def test_pool_of_another_request_is_rejected(client: TestClient, session: SyncSe
     response = _select(client, user_token, setup.params(), [setup.a, other.a])
 
     assert response.status_code == 404
+
+
+def _link_to_experiment(session: SyncSession, user: models.User, pool: models.Pool) -> None:
+    """Libraries are in an experiment only through their pool, so merging would move them out of it."""
+    experiment = create_experiment(session, user, C.ExperimentWorkFlow.NOVASEQ_6K_S1_STD)
+    actions.link_pool_experiment(session, experiment, session.get_one(Q.pool.select(id=pool.id)))
+    session.commit()
+
+
+def test_pool_in_an_experiment_cannot_be_selected(client: TestClient, session: SyncSession, setup: Setup, user, user_token: str):
+    _link_to_experiment(session, user, setup.a)
+
+    response = _select(client, user_token, setup.params(), [setup.a, setup.b])
+
+    assert_form_invalid(response, f"Pools linked to an experiment cannot be merged: {setup.a.name}")
+
+
+def test_pool_linked_to_an_experiment_after_selection_cannot_be_merged(
+    client: TestClient, session: SyncSession, setup: Setup, user, user_token: str,
+):
+    params = setup.params()
+    _select(client, user_token, params, [setup.a, setup.b])
+    _link_to_experiment(session, user, setup.b)
+
+    response = _merge(client, user_token, params, _merge_payload([setup.a, setup.b]))
+
+    assert_form_invalid(response, f"Pools linked to an experiment cannot be merged: {setup.b.name}")
+    assert _pools_named(session, "Merged Pool") == []
+    assert setup.reload(setup.b).status != C.PoolStatus.REPOOLED
 
 
 # ── Merge ───────────────────────────────────────────────────────────────────

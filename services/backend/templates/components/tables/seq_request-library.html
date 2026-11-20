@@ -50,7 +50,11 @@
                         {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
-                <td>
+                <td {% if library.pool_id %}class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": library.pool.name, "label": "Copy Name"},
+                    ])
+                }}{% endif %}>
                 {% if library.pool_id %}
                     {% if current_user.is_insider or library.pool.type == C.PoolType.EXTERNAL %}
                     <a href="{{ url_for('pool_page', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>

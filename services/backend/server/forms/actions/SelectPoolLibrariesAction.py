@@ -1,6 +1,6 @@
 from fastapi import Depends, Response
 
-from opengsync_db import queries as Q, SyncSession, categories as C
+from opengsync_db import queries as Q, SyncSession, categories as C, actions
 
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
@@ -63,8 +63,7 @@ class SelectPoolLibrariesAction(HTMXForm):
                 raise exc.NotFoundException()
 
             for library in form.selected_library_ids.get_selected_libraries(session=session):
-                library.pool_id = pool.id
-                session.save(library)
+                actions.set_library_pool(session, library, pool)
 
             session.flush()
 

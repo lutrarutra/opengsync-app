@@ -10,7 +10,7 @@ import pytest
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...db.create_units import (
-    create_user, create_seq_request, create_library, create_index_kit, create_experiment,
+    create_user, create_seq_request, create_library, create_index_kit, create_experiment, put_library_in_experiment,
 )
 from .._http import (
     OpenGSyncTestClient, assert_htmx_redirect, assert_form_invalid,
@@ -118,7 +118,7 @@ class TestIndexCheckBegin:
         lib_unvalidated = create_library(session, insider, sr)
         lib_other = create_library(session, insider, sr)
         for lib in (lib_validated, lib_unvalidated):
-            lib.experiment_id = experiment.id
+            put_library_in_experiment(session, lib, experiment)
         _add_index(session, lib_validated, orientation=C.BarcodeOrientation.FORWARD)
         _add_index(session, lib_unvalidated, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)
         _add_index(session, lib_other, orientation=C.BarcodeOrientation.FORWARD_NOT_VALIDATED)

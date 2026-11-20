@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="user-affiliation-table" class="table-container">
     <table class="table">
@@ -15,7 +16,11 @@
             {% for affiliation in affiliations %}
             <tr>
                 <th scope="row">{{ affiliation.group_id }}</th>
-                <td><a href="{{ url_for('group_page', group_id=affiliation.group_id, from='user@' + user.id | string) }}">{{ affiliation.group.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": affiliation.group.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('group_page', group_id=affiliation.group_id, from='user@' + user.id | string) }}">{{ affiliation.group.name }}</a></td>
                 <td>{{ affiliation.affiliation_type.icon }} {{ affiliation.affiliation_type.label }}</td>
             </tr>
             {% endfor %}

@@ -3,6 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="seq_request-pool-table" class="table-container">
     <table class="table">
@@ -21,7 +22,11 @@
             {% for pool in pools %}
             <tr>
                 <th scope="row">{{ pool.id }}</th>
-                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">
+                <td id="pool-name-cell-{{ pool.id }}" class="pool-name-cell cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": pool.name, "label": "Copy Name"},
+                    ])
+                }}>
                     {% if current_user.is_insider or pool.type == C.PoolType.EXTERNAL %}
                     <a href="{{ url_for('pool_page', pool_id=pool.id, from='seq_request@' + seq_request_id | string) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}

@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="pool-dilution-table" class="table-container">
     <table class="table">
@@ -19,7 +20,11 @@
             {% for dilution in dilutions %}
             <tr>
                 <th scope="row">{{ dilution.identifier }}</th>
-                <td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": dilution.pool.name, "label": "Copy Name"},
+                    ])
+                }}>
                     <a href="{{ url_for('pool_page', pool_id=dilution.pool.id, from='experiment@' + experiment.id | string) }}">
                         {{ dilution.pool.name }}{% if dilution.pool.clone_number > 0 %}<sup class="clone-number">(re:{{ dilution.pool.clone_number }})</sup>{% endif %}
                     </a></td>

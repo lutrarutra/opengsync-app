@@ -179,7 +179,7 @@ class TextAreaInputField(StringInputField[_DataT]):
         )
 
 
-_PHONE = re.compile(r"^\+?[0-9(][0-9 ()./-]{2,}$")
+_PHONE = re.compile(r"^\+?[0-9(][0-9 ()./-]*$")
 
 
 def _check_phone(value: str) -> str:

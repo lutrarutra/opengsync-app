@@ -3,6 +3,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="group-seq_request-table" class="table-container">
     <table class="table">
@@ -22,7 +23,11 @@
             {% for seq_request in seq_requests %}
             <tr>
                 <th scope="row">{{ seq_request.id }}</th>
-                <td><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='group@' + group_id | string) }}">{{ seq_request.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": seq_request.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='group@' + group_id | string) }}">{{ seq_request.name }}</a></td>
                 <td><a href="{{ url_for('user_page', user_id=seq_request.requestor_id, from='group@' + group_id | string) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
                 <td>{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>

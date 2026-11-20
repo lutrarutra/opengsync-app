@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="user-project-table" class="table-container">
     <table class="table">
@@ -19,8 +20,16 @@
             {% for project in projects %}
             <tr>
                 <th scope="row">{{ project.id }}</th>
-                <td><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user_id | string) }}">{{ project.identifier or "" }}</a></td>
-                <td><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user_id | string) }}">{{ project.title }}</a></td>
+                <td {% if project.identifier %}class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": project.identifier, "label": "Copy Identifier"},
+                    ])
+                }}{% endif %}><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user_id | string) }}">{{ project.identifier or "" }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": project.title, "label": "Copy Title"},
+                    ])
+                }}><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user_id | string) }}">{{ project.title }}</a></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
                 <td>{{ project.status.icon }} {{ project.status.label }}</td>
                 <td>{{ project.num_samples }}</td>

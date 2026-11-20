@@ -1,3 +1,4 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
 <div class="table-container">
     <table class="table">
         <thead>
@@ -8,7 +9,11 @@
         <tbody>
             {% for link in project.share_email_links %}
             <tr>
-                <td><a href="{{ url_for('seq_request_page', seq_request_id=link.seq_request.id, from='project@' + project.id | string) }}">{{ link.seq_request.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": link.seq_request.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('seq_request_page', seq_request_id=link.seq_request.id, from='project@' + project.id | string) }}">{{ link.seq_request.name }}</a></td>
                 <td>{{ link.email }}</td>
                 <td>
                     {{ link.status.icon }} {{ link.status.label }}

@@ -3,7 +3,7 @@ from sqlalchemy import orm
 import pandas as pd
 from pydantic import BaseModel
 
-from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db import models, queries as Q, SyncSession, categories as C, actions
 from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from opengsync_db.core.blueprints import pd_transforms as T
@@ -75,6 +75,9 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
 
                 for pool in lab_prep.pools:
                     pooling_table.loc[pooling_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
+                    # Unpool first: deleting the pool would only null pool_id and leave the experiment behind
+                    for library in list(pool.libraries):
+                        actions.set_library_pool(session, library, None)
                     session.delete(pool)
 
                 # x (failed), t (control) and skip are not pools, even when they are the only value
@@ -124,7 +127,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                         ))
                         for _, row in parsing.safe_iter(group, PooledLibraryRow):
                             library = session.get_one(Q.library.select(id=row.library_id))
-                            library.pool_id = pool.id
+                            actions.set_library_pool(session, library, pool)
                             library.status = C.LibraryStatus.POOLED
                             session.save(library)
 
@@ -142,7 +145,7 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                     ))
                     for _, row in parsing.safe_iter(pooling_table, PooledLibraryRow):
                         library = session.get_one(Q.library.select(id=row.library_id))
-                        library.pool_id = pool.id
+                        actions.set_library_pool(session, library, pool)
                         library.status = C.LibraryStatus.POOLED
                         session.save(library)
 

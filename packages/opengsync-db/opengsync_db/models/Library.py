@@ -74,7 +74,7 @@ class Library(Base):
 
     pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
     pool: Mapped["Pool | None"] = relationship(
-        "Pool", back_populates="libraries", lazy="select", cascade="save-update, merge"
+        "Pool", back_populates="libraries", lazy="select", cascade="save-update, merge", foreign_keys=[pool_id],
     )
 
     experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
@@ -459,4 +459,12 @@ class Library(Base):
             sa.text("regexp_replace(lower(sample_name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
             postgresql_using="gin",
         ),
+        # A library is in an experiment only through its pool: the pool must be in the same experiment
+        # (MATCH SIMPLE, so it is only checked when both columns are set; pool (un)linking cascades)...
+        sa.ForeignKeyConstraint(
+            ["pool_id", "experiment_id"], ["pool.id", "pool.experiment_id"],
+            name="fk_library_pool_experiment", onupdate="CASCADE",
+        ),
+        # ...and an unpooled library is in no experiment.
+        sa.CheckConstraint("experiment_id IS NULL OR pool_id IS NOT NULL", name="ck_library_experiment_requires_pool"),
     )

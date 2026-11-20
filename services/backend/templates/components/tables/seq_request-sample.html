@@ -38,7 +38,11 @@
                 {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
                 <td>{% if sample.status is not none %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
                 {% endif %}
-                <td><a href="{{ url_for('project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.identifier or sample.project.title }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": sample.project.identifier or sample.project.title, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.identifier or sample.project.title }}</a></td>
                 <td class="x-scroll-cell">
                     <div class="scroll-container">
                         {% for library_link in sample.library_links %}

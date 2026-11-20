@@ -71,7 +71,9 @@ class Pool(Base):
 
     merge_ratios: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
-    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
+    libraries: Mapped[list["Library"]] = relationship(
+        "Library", back_populates="pool", lazy="select", order_by="Library.id", foreign_keys="Library.pool_id",
+    )
     lane_links: Mapped[list[links.LanePoolLink]] = relationship(
         "LanePoolLink", back_populates="pool", lazy="select",
         cascade="save-update, merge, delete",
@@ -285,4 +287,6 @@ class Pool(Base):
             sa.text("regexp_replace(lower(name), '[^a-z0-9]+', '', 'g') gin_trgm_ops"),
             postgresql_using="gin",
         ),
+        # Target of library.fk_library_pool_experiment (trivially unique: id is the primary key)
+        sa.UniqueConstraint("id", "experiment_id", name="uq_pool_id_experiment_id"),
     )

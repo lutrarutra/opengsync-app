@@ -1,7 +1,9 @@
 import uuid
 from typing import Optional
 
-from opengsync_db import SyncSession, models, queries as Q
+import sqlalchemy as sa
+
+from opengsync_db import SyncSession, models, actions, queries as Q
 
 from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlow, SequencerModel,
@@ -96,6 +98,21 @@ def create_pool(session: SyncSession, user: models.User, seq_request: models.Seq
         pool_type=PoolType.EXTERNAL,
         clone_number=0,
     ), flush=True)
+
+
+def put_library_in_experiment(session: SyncSession, library: models.Library, experiment: models.Experiment) -> models.Pool:
+    """A library is in an experiment only through its pool (fk_library_pool_experiment), so this
+    pools it into a pool of the experiment (one per experiment and request, created without lanes)."""
+    pool = session.scalars(sa.select(models.Pool).where(
+        models.Pool.experiment_id == experiment.id, models.Pool.seq_request_id == library.seq_request_id,
+    )).first()
+    if pool is None:
+        pool = create_pool(session, library.owner, session.get_one(Q.seq_request.select(id=library.seq_request_id)))
+        pool.experiment_id = experiment.id
+        session.flush()
+    actions.set_library_pool(session, library, pool)
+    session.flush()
+    return pool
 
 
 def create_feature(session: SyncSession, kit: models.FeatureKit | None = None) -> models.Feature:

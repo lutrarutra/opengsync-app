@@ -16,7 +16,7 @@ from opengsync_db import SyncSession, models, queries as Q, categories as C
 from ..db.create_units import (
     create_experiment, create_feature, create_feature_kit, create_file, create_group, create_index_kit,
     create_library, create_pool, create_project, create_protocol, create_seq_request, create_sequencer,
-    create_user,
+    create_user, put_library_in_experiment,
 )
 from ._http import get
 
@@ -117,7 +117,7 @@ def test_experiment_table_search_and_filters(client: TestClient, session: SyncSe
     seq_request = create_seq_request(session, hit_operator)
     library = create_library(session, hit_operator, seq_request)
     library.type = C.LibraryType.TENX_SC_GEX_FLEX
-    library.experiment_id = hit.id
+    put_library_in_experiment(session, library, hit)
     session.commit()
 
     path = "/htmx/experiments/render-table-page"

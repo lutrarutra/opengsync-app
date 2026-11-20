@@ -514,10 +514,29 @@ function render(container, [React, ReactDOMClient, XY], data) {
             return { seeds, ...trace(view, seeds) };
         }, [view, hover, focus]);
 
+        // The node sizes React Flow measured, handed back with every node: the nodes are rebuilt on each hover,
+        // and a node without `measured` is reset and hidden until it is measured again, which fires
+        // mouseleave → unhover → mouseenter → … (the node flickers under a resting mouse).
+        const [measured, setMeasured] = React.useState(() => new Map());
+        const onNodesChange = React.useCallback((changes) => {
+            setMeasured((prev) => {
+                let next = null;
+                for (const c of changes) {
+                    if (c.type !== "dimensions" || !c.dimensions) continue;
+                    const was = prev.get(c.id);
+                    if (was && was.width === c.dimensions.width && was.height === c.dimensions.height) continue;
+                    next ??= new Map(prev);
+                    next.set(c.id, c.dimensions);
+                }
+                return next ?? prev;
+            });
+        }, []);
+
         const nodes = React.useMemo(() => {
             const out = data.columns.map((c, i) => ({
                 id: `header:${c.kind}`, type: "header", position: { x: i * (nodeWidth + COLUMN_GAP), y: -model.headerHeight - 4 },
                 data: { kind: c.kind, label: c.label, members: membersOf.get(c.kind), focus, setFocus },
+                measured: measured.get(`header:${c.kind}`),
                 draggable: false, selectable: false, focusable: false,
             }));
             for (const u of view.units.values()) {
@@ -529,11 +548,12 @@ function render(container, [React, ReactDOMClient, XY], data) {
                         unit: u, toggle, labelSize: u.bundle ? null : labelSizes.get(u.members[0].id), seed: !!traced && traced.seeds.has(u.id) && (focus?.type !== "unit" || hover),
                         pinned: focus?.type === "unit" && focus.id === u.id,
                     },
+                    measured: measured.get(u.id),
                     draggable: false, selectable: false, focusable: false,
                 });
             }
             return out;
-        }, [view, labelSizes, traced, focus, hover]);
+        }, [view, labelSizes, traced, focus, hover, measured]);
 
         const edges = React.useMemo(() => [...view.edges.values()].map((e) => {
             const on = traced?.edges.has(e.id);
@@ -576,7 +596,7 @@ function render(container, [React, ReactDOMClient, XY], data) {
             ),
             h("div", { className: "ov-flow", ref: frame },
                 h(ReactFlow, {
-                    nodes, edges, nodeTypes, edgeTypes, defaultViewport: fitted,
+                    nodes, edges, nodeTypes, edgeTypes, onNodesChange, defaultViewport: fitted,
                     nodesConnectable: false, nodesDraggable: false, elementsSelectable: false,
                     minZoom: 0.1, maxZoom: 1.5, onlyRenderVisibleElements: true,
                     onNodeMouseEnter: (_, node) => node.type !== "header" && setHover(node.id),

@@ -152,6 +152,13 @@ class MergePoolsForm(MergePoolsWorkflowStep):
             if sorted(posted_ids) != sorted(selected_ids):
                 form.add_general_error("The pools do not match the pools selected in the previous step.")
 
+            # Re-checked here: a pool may have been linked to an experiment since the selection step
+            linked = session.get_all(
+                Q.pool.select(associated_to_experiment=True).where(models.Pool.id.in_(selected_ids)), limit=None,
+            )
+            if linked:
+                form.add_general_error(f"Pools linked to an experiment cannot be merged: {', '.join(pool.name for pool in linked)}.")
+
             if form.status.data != C.PoolStatus.DRAFT.id and not form.status_selectable(session, current_user.id):
                 form.status.errors.append("Only staff can choose the status of the merged pool.")
 

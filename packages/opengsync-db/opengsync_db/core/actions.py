@@ -31,7 +31,18 @@ def link_sample_library(
         session.flush()
 
     return link
-    
+
+
+def set_library_pool(session: Session, library: models.Library, pool: models.Pool | None) -> models.Library:
+    """Puts a library into a pool, or takes it out of its pool with None. A library is in an experiment only
+    through its pool (fk_library_pool_experiment, ck_library_experiment_requires_pool), so its experiment
+    follows the pool's."""
+    library.pool = pool
+    library.experiment_id = pool.experiment_id if pool is not None else None
+    session.add(library)
+    return library
+
+
 def add_pool_to_lane(
     session: Session, experiment: models.Experiment, pool: models.Pool, lane: models.Lane, flush: bool = True
 ) -> models.Lane:
@@ -359,19 +370,7 @@ def merge_pool(session: Session, merged_pool_id: int, pool_ids: Sequence[int], f
     if len(pool_ids) != len(pools):
         raise exceptions.NotFoundException("One or more pools to merge do not exist")
 
-    for pool in pools:
-        for library in pool.libraries:
-            library.pool_id = merged_pool.id
-
-        pool.status = C.PoolStatus.REPOOLED
-        pool.merged_to_pool_id = merged_pool.id
-        session.add(pool)
-
-    session.add(merged_pool)
-
-    if flush:
-        session.flush()
-    return merged_pool
+    return merge_pools(session, merged_pool=merged_pool, pools=pools, flush=flush)
 
 
 def add_libraries_to_prep(session: Session, lab_prep: models.LabPrep, libraries: Sequence[models.Library]) -> models.LabPrep:
@@ -520,9 +519,12 @@ def dilute_pool(
     return pool
 
 def merge_pools(session: Session, merged_pool: models.Pool, pools: Sequence[models.Pool], flush: bool = True) -> models.Pool:
+    if merged_pool.experiment_id is not None or any(pool.experiment_id is not None for pool in pools):
+        raise exceptions.InvalidOperation("Pools linked to an experiment cannot be merged")
+
     for pool in pools:
-        for library in pool.libraries:
-            library.pool_id = merged_pool.id
+        for library in list(pool.libraries):
+            set_library_pool(session, library, merged_pool)
 
         pool.status = C.PoolStatus.REPOOLED
         pool.merged_to_pool_id = merged_pool.id

@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="sequencer-table" class="table-container">
     <table class="table">
@@ -15,7 +16,11 @@
             {% for sequencer in sequencers %}
             <tr>
                 <th scope="row">{{ sequencer.id }}</th>
-                <td><a href="{{ url_for('sequencer_page', sequencer_id=sequencer.id) }}">{{ sequencer.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": sequencer.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('sequencer_page', sequencer_id=sequencer.id) }}">{{ sequencer.name }}</a></td>
                 <td>{{ sequencer.model.display_name }}</td>
             </tr>
             {% endfor %}

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from opengsync_db import SyncSession, models, queries as Q, categories as C
 
-from ..db.create_units import create_experiment, create_library, create_pool, create_seq_request
+from ..db.create_units import create_experiment, create_library, create_pool, create_seq_request, put_library_in_experiment
 from ._http import get, post_form, assert_htmx_redirect
 
 
@@ -21,7 +21,7 @@ def test_checklist_lists_experiment_seq_requests(
     draft_request = create_seq_request(session, user)
     unrelated_request = create_seq_request(session, user)
     for seq_request in (accepted_request, draft_request):
-        create_library(session, user, seq_request).experiment_id = experiment.id
+        put_library_in_experiment(session, create_library(session, user, seq_request), experiment)
     create_library(session, user, unrelated_request)
     session.commit()
 
@@ -53,7 +53,7 @@ def test_checklist_libraries_indexed_and_index_orientations(
     experiment = create_experiment(session, user, C.ExperimentWorkFlow.NOVASEQ_6K_S4_STD)
     seq_request = create_seq_request(session, user)
     library = create_library(session, user, seq_request)
-    library.experiment_id = experiment.id
+    put_library_in_experiment(session, library, experiment)
     session.commit()
 
     response = get(client, f"/htmx/experiments/{experiment.id}/checklist", insider_token, htmx=True)

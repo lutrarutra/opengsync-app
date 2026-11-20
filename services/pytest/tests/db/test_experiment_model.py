@@ -3,7 +3,7 @@ from opengsync_db.categories import ExperimentWorkFlow, SeqRequestStatus, Barcod
 
 from .create_units import (
     create_user, create_seq_request, create_library, create_pool,
-    create_experiment
+    create_experiment, put_library_in_experiment,
 )  # noqa
 
 
@@ -178,8 +178,7 @@ def test_experiment_checklist_seq_requests_accepted(session: SyncSession):
     unrelated_request = create_seq_request(session, user)
 
     for seq_request in (accepted_request, accepted_request, submitted_request):
-        library = create_library(session, user, seq_request)
-        library.experiment_id = experiment.id
+        put_library_in_experiment(session, create_library(session, user, seq_request), experiment)
     create_library(session, user, unrelated_request)
     session.flush()
 
@@ -205,7 +204,7 @@ def test_experiment_checklist_libraries_indexed_and_orientations(session: SyncSe
     unindexed_library = create_library(session, user, seq_request)
     unrelated_library = create_library(session, user, seq_request)
     for library in (indexed_library, unindexed_library):
-        library.experiment_id = experiment.id
+        put_library_in_experiment(session, library, experiment)
     index = session.save(Q.library_index.create(
         library_id=indexed_library.id, name_i7="i7", name_i5=None, sequence_i7="ACGTAGGT", sequence_i5=None,
         index_kit_i7_id=None, index_kit_i5_id=None, orientation=BarcodeOrientation.FORWARD_NOT_VALIDATED,
@@ -221,7 +220,7 @@ def test_experiment_checklist_libraries_indexed_and_orientations(session: SyncSe
     assert [library.id for library in checklist["unindexed_libraries"]] == [unindexed_library.id]
     assert checklist["indices_validated"] is False
 
-    unindexed_library.experiment_id = None
+    actions.set_library_pool(session, unindexed_library, None)
     index.orientation = BarcodeOrientation.FORWARD
     session.flush()
 

@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="library-feature-table" class="table-container">
     <table class="table">
@@ -20,8 +21,16 @@
             {% for feature in features %}
             <tr>
                 <th scope="row">{{ feature.id }}</th>
-                <td>{{ feature.name }}</td>
-                <td>{{ feature.identifier or '' }}</td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": feature.name, "label": "Copy Name"},
+                    ])
+                }}>{{ feature.name }}</td>
+                <td {% if feature.identifier %}class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": feature.identifier, "label": "Copy Identifier"},
+                    ])
+                }}{% endif %}>{{ feature.identifier or '' }}</td>
                 <td>{{ feature.target_name or '' }}</td>
                 <td>{{ feature.target_id or '' }}</td>
                 <td>{{ feature.sequence }}</td>

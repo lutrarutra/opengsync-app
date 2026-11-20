@@ -4,6 +4,7 @@
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="project-seq_request-table" class="table-container">
     <table class="table">
@@ -28,7 +29,11 @@
                         </span>
                     </span>
                 </th>
-                <td><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='project@' + project.id | string) }}">{{ seq_request.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": seq_request.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='project@' + project.id | string) }}">{{ seq_request.name }}</a></td>
                 <td>{{ seq_request.status.icon }} {{ seq_request.status.label }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>

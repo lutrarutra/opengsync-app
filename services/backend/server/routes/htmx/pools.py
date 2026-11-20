@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
 from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import dependencies, responses, exceptions as exc, query_options
@@ -157,13 +157,13 @@ def remove_library_from_pool(
     if pool.status != C.PoolStatus.DRAFT and not current_user.is_admin:
         raise exc.NoPermissionsException()
 
+    if library.pool_id != pool.id:
+        raise exc.NotFoundException(f"Library {library.name} is not in pool {pool.name}")
+
     with run_operation(session, lab_ops.REMOVE_POOL_LIBRARY, subject=pool):
-        pool.libraries.remove(library)
+        actions.set_library_pool(session, library, None)
         if library.status == C.LibraryStatus.POOLED:
             library.status = C.LibraryStatus.STORED
-
-        if library.experiment_id == pool.experiment_id:
-            library.experiment_id = None
 
         session.save(pool)
     return responses.htmx_response(
@@ -186,8 +186,8 @@ def remove_libraries_from_pool(
         raise exc.NoPermissionsException()
 
     with run_operation(session, lab_ops.REMOVE_POOL_LIBRARY, subject=pool):
-        for library in pool.libraries:
-            library.pool_id = None
+        for library in list(pool.libraries):
+            actions.set_library_pool(session, library, None)
             if library.status == C.LibraryStatus.POOLED:
                 library.status = C.LibraryStatus.STORED
 

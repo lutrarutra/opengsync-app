@@ -61,6 +61,10 @@ class SelectSamplesForm(MergePoolsWorkflowStep):
                 form.add_general_error("You must select at least 2 pools to merge.")
                 raise exc.FormValidationException(form)
 
+            if (linked := [pool.name for pool in pools if pool.experiment_id is not None]):
+                form.add_general_error(f"Pools linked to an experiment cannot be merged: {', '.join(linked)}.")
+                raise exc.FormValidationException(form)
+
             pool_table_data: dict[str, list] = {
                 "pool_id": [],
                 "pool_name": [],
