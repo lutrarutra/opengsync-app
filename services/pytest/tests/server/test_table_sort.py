@@ -1,4 +1,10 @@
-"""HTMX table sorting on hybrid count columns (count subqueries have no column name)."""
+"""HTMX table sorting on hybrid count columns (count subqueries have no column name).
+
+The sort state comes back in the header (``aria-sort``) and in the state the address bar mirrors
+(``data-url-state``), so the header can toggle and a reload keeps the order.
+"""
+
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,6 +39,7 @@ def test_user_table_sorts_by_count_column(
     positions = [html.index(email) for email in expected]
     assert positions == sorted(positions)
 
-    # sort state is echoed back so the header can toggle and pagination keeps the order
-    assert f'data-sort_by="{field}"\ndata-current_sort="{order}"' in html
-    assert f"order_by={field}%3A{order}" in html
+    # sort state is echoed back so the header can toggle and a reload keeps the order
+    aria = "ascending" if order == "asc" else "descending"
+    assert re.search(rf'data-col="{field}"\s+aria-sort="{aria}"', html)
+    assert f"&#34;order_by&#34;: &#34;{field}:{order}&#34;" in html

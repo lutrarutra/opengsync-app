@@ -1,29 +1,22 @@
 {#
-  One row of share-tokens.html, also the response of admin_expire_share_token, which swaps it in place.
+  One row of the admin share links table (rows/admin-share-token.html), also the response of
+  admin_expire_share_token, which swaps it in place. Expire is in the row's ⋯ menu.
   One line per cell, like every table: the paths are listed in the Manage modal, the count's title peeks at them.
   sizes: ShareSize by token uuid from the fs-index, none when the index is disabled or not built.
 #}
-{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/contextmenu.jinja2" import context_menu, row_menu %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% set size = sizes[share_token.uuid] if sizes is not none else none %}
 {% set num_paths = share_token.paths | length %}
 {% set peek = 10 %}
 {% set token_projects = projects.get(share_token.uuid, []) %}
-<tr id="share_token-{{ share_token.uuid }}" class="cm-callback" {{
-    context_menu([
-        {"type": "hxpost", "label": "Expire", "disabled": share_token.is_expired, "config": {
-            "url": url_for('admin_expire_share_token', uuid=share_token.uuid).__str__(),
-            "target": "#share_token-" ~ share_token.uuid,
-            "title": "Expire this share link?",
-            "text": "The link stops working right away.",
-            "icon": "warning",
-        }},
-        {"type": "copy", "label": "Copy Link", "value": url_for('file_share.browse', token=share_token.uuid).__str__()},
-    ])
-}}>
+{% set share_link = url_for('file_share.browse', token=share_token.uuid).__str__() %}
+<tr id="share_token-{{ share_token.uuid }}">
     <th scope="row">
         <span class="share-token-cell">
-            <code title="{{ share_token.uuid }}">{{ share_token.uuid[:8] }}</code>
+            <code class="cm-callback" title="{{ share_token.uuid }}" {{ context_menu([
+                {"type": "copy", "label": "Copy Link", "value": share_link},
+            ]) }}>{{ share_token.uuid[:8] }}</code>
             <a class="share-token-log" href="{{ url_for('admin_audits_page', share=share_token.uuid, start=share_token.created_utc | format_datetime('%Y-%m-%d')) }}" title="Access log"><i class="bi bi-journal-text"></i></a>
         </span>
     </th>
@@ -63,4 +56,14 @@
         {{ size.total | bytes_to_human }}
         {% endif %}
     </td>
+    {{ row_menu([
+        {"type": "copy", "label": "Copy Link", "value": share_link},
+        {"type": "hxpost", "label": "Expire", "disabled": share_token.is_expired, "config": {
+            "url": url_for('admin_expire_share_token', uuid=share_token.uuid).__str__(),
+            "target": "#share_token-" ~ share_token.uuid,
+            "title": "Expire this share link?",
+            "text": "The link stops working right away.",
+            "icon": "warning",
+        }},
+    ]) }}
 </tr>

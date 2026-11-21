@@ -366,8 +366,8 @@ class TestSelectLibrariesFilters:
         assert f'id="library-row-{lib_unvalidated.id}"' in response.text
         assert f'id="library-row-{lib_unset.id}"' in response.text
         assert f'id="library-row-{lib_forward.id}"' not in response.text
-        # "Not set" can be selected in the orientation dropdown
-        assert 'data-value="null"' in response.text
+        # "Not set" can be selected in the orientation filter
+        assert 'name="barcode_orientation_in" value="null"' in response.text
 
     def test_select_libraries_all_validated(
         self,

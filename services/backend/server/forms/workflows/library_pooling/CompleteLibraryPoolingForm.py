@@ -80,70 +80,47 @@ class CompleteLibraryPoolingForm(LibraryPoolingWorkflowStep):
                         actions.set_library_pool(session, library, None)
                     session.delete(pool)
 
-                # x (failed), t (control) and skip are not pools, even when they are the only value
-                special_pools = ("x", "t", "skip")
-                unique_pools = pooling_table["pool"].unique()
-                single_pool = len(unique_pools) == 1 and str(unique_pools[0]).strip().lower() not in special_pools
-                if single_pool:
-                    pooling_table["pool"] = "1"
-
-                experiment_mappings: dict[str, int] = {}
-                for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
-                    experiment_ids = group["experiment_id"].unique()
-                    if len(experiment_ids) == 1 and pd.notna(experiment_ids[0]):
-                        experiment_mappings[key.pool] = int(experiment_ids[0])
-
-                def _experiment_id(pool_suffix: str) -> int | None:
-                    return experiment_mappings.get(pool_suffix)
+                def _pool_name(value: str) -> str:
+                    # the given name is used as "{prep}_{value}"; the prep name itself
+                    # (also filled in when no pool was given) names the pool after the prep
+                    suffix = str(value).strip().removeprefix(f"{lab_prep.name}_").strip()
+                    if not suffix or suffix == lab_prep.name:
+                        return lab_prep.name
+                    return f"{lab_prep.name}_{suffix}"
 
                 def _num_m_reads_requested(group: pd.DataFrame) -> float | None:
                     # per library in the pooling step; the pool requests the total
                     values = group["num_m_reads_requested"].dropna()
                     return float(values.sum()) if not values.empty else None
 
-                if not single_pool:
-                    for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
-                        pool_suffix = key.pool.strip().lower()
-                        if pool_suffix in ("t", "skip"):
-                            continue
-                        if pool_suffix == "x":
-                            for _, row in parsing.safe_iter(group, PooledLibraryRow):
-                                library = session.get_one(Q.library.select(id=row.library_id))
-                                library.status = C.LibraryStatus.FAILED
-                                session.save(library)
-                            continue
-
-                        pool_suffix = str(key.pool).removeprefix(f"{lab_prep.name}_").strip()
-                        pool = session.save(Q.pool.create(
-                            name=f"{lab_prep.name}_{pool_suffix}",
-                            pool_type=C.PoolType.INTERNAL,
-                            contact_email=current_user.email,
-                            contact_name=current_user.name,
-                            owner_id=current_user.id,
-                            lab_prep_id=lab_prep.id,
-                            experiment_id=_experiment_id(pool_suffix),
-                            num_m_reads_requested=_num_m_reads_requested(group),
-                            clone_number=0,
-                        ))
+                for key, group in parsing.safe_groupby(pooling_table, PoolGroupKey):
+                    # x (failed), t (control) and skip are not pools
+                    pool_value = key.pool.strip().lower()
+                    if pool_value in ("t", "skip"):
+                        continue
+                    if pool_value == "x":
                         for _, row in parsing.safe_iter(group, PooledLibraryRow):
                             library = session.get_one(Q.library.select(id=row.library_id))
-                            actions.set_library_pool(session, library, pool)
-                            library.status = C.LibraryStatus.POOLED
+                            library.status = C.LibraryStatus.FAILED
                             session.save(library)
+                        continue
 
-                else:
+                    # keep the experiment of the old pool if all of the group's libraries shared it
+                    experiment_ids = group["experiment_id"].unique()
+                    experiment_id = int(experiment_ids[0]) if len(experiment_ids) == 1 and pd.notna(experiment_ids[0]) else None
+
                     pool = session.save(Q.pool.create(
-                        name=lab_prep.name,
+                        name=_pool_name(key.pool),
                         pool_type=C.PoolType.INTERNAL,
                         contact_email=current_user.email,
                         contact_name=current_user.name,
                         owner_id=current_user.id,
                         lab_prep_id=lab_prep.id,
-                        experiment_id=_experiment_id("1"),
-                        num_m_reads_requested=_num_m_reads_requested(pooling_table),
+                        experiment_id=experiment_id,
+                        num_m_reads_requested=_num_m_reads_requested(group),
                         clone_number=0,
                     ))
-                    for _, row in parsing.safe_iter(pooling_table, PooledLibraryRow):
+                    for _, row in parsing.safe_iter(group, PooledLibraryRow):
                         library = session.get_one(Q.library.select(id=row.library_id))
                         actions.set_library_pool(session, library, pool)
                         library.status = C.LibraryStatus.POOLED

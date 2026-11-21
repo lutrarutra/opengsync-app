@@ -1,65 +1,49 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
-from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
+from opengsync_db import SyncSession, queries as Q, categories as C, models
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
-from ...core import dependencies, responses, exceptions as exc, query_options
-from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
+from ...core import dependencies, responses, query_options
+from ...components.tables import (
+    Table, TableState, Col, Text, Exact, Enum, Variant, StaticSpreadsheet, TextColumn,
+)
 from ...forms.actions.edit_kit_actions import EditKitBarcodesForm
 from ...forms.models import IndexKitForm
 
 router = APIRouter(prefix="/index_kits", tags=["index-kits"])
 
-class IndexKitTable(HTMXTable):
+IK = models.IndexKit
+
+
+class IndexKitTable(Table):
+    key = "ikit"
+    model = models.IndexKit
+    noun = "index kits"
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Identifier", label="identifier", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Index Type", label="type", col_size=2, choices=C.IndexType.as_selectable(), sortable=True, sort_by="type"),
-        TableCol(title="Protocols", label="protocols", col_size=2),
+        Col("id", "ID", sort=True, search=Exact(IK.id), hideable=False, size=1),
+        Col("identifier", "Identifier", sort=True, search=Text(IK.identifier, compact=True), size=2),
+        Col("name", "Name", sort=True, search=Text(IK.name), hideable=False, size=3),
+        Col("type", "Index Type", sort=True, filter=Enum(C.IndexType), size=2),
+        Col("protocols", "Protocols", size=2),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "identifier", "name", "type", "protocols"], "components/tables/rows/index_kit.html",
+            dom_id="index_kit-table",
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_index_kit_table(
-    name: str | None = Query(None, description="Search by kit name"),
-    identifier: str | None = Query(None, description="Search by kit identifier"),
-    id: str | None = Query(None, description="Search by kit ID"),
-    type_in: list[C.IndexType] | None = Depends(dependencies.parse_enum_ids(C.IndexType, "type_in")),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.IndexKit, default=models.IndexKit.id.desc())),
+    state: TableState = Depends(IndexKitTable.params),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
-    table = IndexKitTable(route="render_index_kit_table", page=page, order_by=order_by)
-    table.template = "components/tables/index_kit.html"
-    stmt = Q.index_kit.select(type_in=type_in)
-
-    if type_in:
-        table.filter_values["type"] = type_in
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.index_kit.search(name=name, statement=stmt)
-    elif identifier:
-        table.active_search_var = "identifier"
-        table.active_query_value = identifier
-        stmt = Q.index_kit.search(identifier=identifier, statement=stmt)
-    elif id:
-        table.active_search_var = "id"
-        table.active_query_value = str(id)
-        try:
-            stmt = Q.index_kit.select(id=int("".join(filter(str.isdigit, id))), statement=stmt)
-        except ValueError:
-            raise exc.BadRequestException()
-        
-    stmt = Q.index_kit.search(name=name, identifier=identifier, statement=stmt)
-    
-    index_kits, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
-    return table.make_response(index_kits=index_kits)
+    table = IndexKitTable(state, route="render_index_kit_table", user=current_user)
+    return table.render(session, Q.index_kit.select())
 
 
 @router.get("/spreadsheet/{index_kit_id}", dependencies=[Depends(dependencies.require_user_id)])

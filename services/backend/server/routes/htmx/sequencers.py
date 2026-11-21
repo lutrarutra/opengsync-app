@@ -1,50 +1,39 @@
 from fastapi import APIRouter, Depends, Query
 
-from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
+from opengsync_db import SyncSession, queries as Q, categories as C, models
 
 from ...core import dependencies, responses, query_options
 from ... import forms
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Text, Exact, Enum, Variant
 
 router = APIRouter(prefix="/sequencers", tags=["sequencers"])
 
 
-class SequencerTable(HTMXTable):
+SQ = models.Sequencer
+
+
+class SequencerTable(Table):
+    key = "seqr"
+    model = models.Sequencer
+    noun = "sequencers"
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Model", label="model", col_size=2, choices=C.SequencerModel.as_selectable(), sortable=True, sort_by="model"),
+        Col("id", "ID", sort=True, search=Exact(SQ.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(SQ.name, compact=True), hideable=False, size=3),
+        Col("model", "Model", sort=True, filter=Enum(C.SequencerModel), size=2),
     ]
+    variants = {
+        "default": Variant(["id", "name", "model"], "components/tables/rows/sequencer.html", dom_id="sequencer-table"),
+    }
 
 
 @router.get("/render-table-page", dependencies=[Depends(dependencies.require_insider)])
 def render_sequencer_table(
-    name: str | None = Query(None, description="Search by sequencer name"),
-    id_search: str | None = Query(None, alias="id", description="Search by sequencer ID"),
-    model_in: list[C.SequencerModel] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SequencerModel, query_param="model_in")),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Sequencer, default=models.Sequencer.id.desc())),
+    state: TableState = Depends(SequencerTable.params),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = SequencerTable(route="render_sequencer_table", page=page, order_by=order_by)
-    table.template = "components/tables/sequencer.html"
-    stmt = Q.sequencer.select(model_in=model_in)
-
-    if model_in:
-        table.filter_values["model"] = model_in
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.sequencer.search(name=name, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.sequencer.select(id=int(digits), statement=stmt)
-
-    sequencers = table.paginate(session, stmt, page=page, order_by=order_by)
-    return table.make_response(sequencers=sequencers)
+    table = SequencerTable(state, route="render_sequencer_table", user=current_user)
+    return table.render(session, Q.sequencer.select())
 
 
 @router.get("/search", dependencies=[Depends(dependencies.require_insider)])

@@ -4,14 +4,14 @@ import pandas as pd
 from sqlalchemy import orm
 from fastapi import APIRouter, Depends, Query
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, release as release_ops
 
 from ...core import dependencies, overview, responses, exceptions as exc, query_options
 from ...utils.io import cells_as_text
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Text, Exact, Enum, Entity, Variant, related
 from ...core.context import ctx
 from ... import forms
 from .data_browser import DataScope, data_browser_router
@@ -20,37 +20,74 @@ from .data_browser import DataScope, data_browser_router
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
-class ProjectTable(HTMXTable):
+PR = models.Project
+_FULL_NAME = Q.search.full_name(models.User)
+
+
+class ProjectTable(Table):
+    key = "prj"
+    model = models.Project
+    noun = "projects"
+    load = (
+        orm.selectinload(PR.assignees),
+        orm.selectinload(PR.owner),
+        orm.selectinload(PR.group),
+        orm.with_expression(PR._num_samples, PR.num_samples.expression),
+        orm.with_expression(PR._library_types, PR.library_types.expression),  # pyright: ignore[reportAttributeAccessIssue]
+    )
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(
-            title="Identifier",
-            label="identifier",
-            col_size=1,
-            searchable=True,
-            sortable=True,
+        Col("id", "ID", sort=True, search=Exact(PR.id), hideable=False, size=1),
+        Col("identifier", "Identifier", sort=True, search=Text(PR.identifier, compact=True), size=1),
+        Col("title", "Title", sort=True, search=Text(PR.title, compact=True), hideable=False, size=3),
+        Col(
+            "library_types", "Library Types", size=2,
+            filter=Enum(C.LibraryType, column=models.Library.type, via=(PR.samples, models.Sample.library_links, models.links.SampleLibraryLink.library)),
         ),
-        TableCol(
-            title="Title", label="title", col_size=3, searchable=True, sortable=True
+        Col("status", "Status", sort=True, filter=Enum(C.ProjectStatus), size=1),
+        Col(
+            "group", "Group", size=2,
+            sort=related(PR.group, models.Group.name),
+            search=Text(models.Group.name, via=PR.group),
+            filter=Entity(models.Group, via=PR.group, option=query_options.group_option, search=(models.Group.name,)),
         ),
-        TableCol(
-            title="Library Types",
-            label="library_types",
-            col_size=2,
-            choices=C.LibraryType.as_selectable(),
+        Col(
+            "owner_name", "Owner", size=2,
+            sort=related(PR.owner, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=PR.owner, weight=0.9),
+            filter=Entity(models.User, via=PR.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
-        TableCol(
-            title="Status",
-            label="status",
-            col_size=1,
-            sort_by="status",
-            sortable=True,
-            choices=C.ProjectStatus.as_selectable(),
+        Col(
+            "assignees", "Assignees", size=2, sort=PR.num_assignees,
+            search=Text(_FULL_NAME, models.User.email, via=PR.assignees, weight=0.9),
+            filter=Entity(
+                models.User, via=PR.assignees, option=query_options.user_option,
+                search=(_FULL_NAME, models.User.email), from_rows=True,
+            ),
         ),
-        TableCol(title="Group", label="group", col_size=2),
-        TableCol(title="Owner", label="owner_name", col_size=2, searchable=True),
-        TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
+        Col("num_samples", "# Samples", sort=True, size=1),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "identifier", "title", "library_types", "status", "group", "owner_name", "num_samples", "assignees"],
+            "components/tables/rows/project.html", dom_id="project-table",
+        ),
+        "user": Variant(
+            ["id", "identifier", "title", "library_types", "status", "num_samples"],
+            "components/tables/rows/user-project.html", dom_id="user-project-table",
+        ),
+        "experiment": Variant(
+            ["id", "identifier", "title", "library_types", "status", "group", "owner_name", "num_samples", "assignees"],
+            "components/tables/rows/experiment-project.html", dom_id="experiment-project-table",
+        ),
+        "seq_request": Variant(
+            ["id", "identifier", "title", "status", "group", "owner_name", "num_samples"],
+            "components/tables/rows/seq_request-project.html", dom_id="seq_request-project-table",
+        ),
+        "group": Variant(
+            ["id", "identifier", "title", "status", "owner_name", "num_samples"],
+            "components/tables/rows/group-project.html", dom_id="group-project-table",
+        ),
+    }
 
 
 @router.get("/render-table-page")
@@ -59,106 +96,43 @@ def render_project_table(
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter projects"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
     group_id: int | None = Query(None, description="Optional group ID to filter projects"),
-    title: str | None = Query(None, description="Optional title to search for in project titles"),
-    identifier: str | None = Query(None, description="Optional identifier to search for in project identifiers"),
-    owner_name: str | None = Query(None, description="Optional owner name to search for in project owners"),
-    id_search: str | None = Query(None, alias="id", description="Search by project ID"),
-    status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
-    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Project, default=models.Project.id.desc())),
+    state: TableState = Depends(ProjectTable.params),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = ProjectTable(route="render_project_table", page=page, order_by=order_by)
-
-    if status_in:
-        table.filter_values["status"] = status_in
-    if library_types_in:
-        table.filter_values["library_types"] = library_types_in
-
     stmt = Q.project.select(
         # user tab lists only owned projects (matches User.num_projects tab count)
         owner_id=user_id,
         experiment_id=experiment_id,
         seq_request_id=seq_request_id,
         group_id=group_id,
-        status_in=status_in,
-        library_types_in=library_types_in,
     )
-
-    if title:
-        table.active_search_var = "title"
-        table.active_query_value = title
-    elif identifier:
-        table.active_search_var = "identifier"
-        table.active_query_value = identifier
-    elif owner_name:
-        table.active_search_var = "owner_name"
-        table.active_query_value = owner_name
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.project.select(id=int(digits), statement=stmt)
-
-    stmt = Q.project.search(
-        title=title,
-        identifier=identifier,
-        owner_name=owner_name,
-        statement=stmt,
-    )
+    table = ProjectTable(state, route="render_project_table", user=current_user)
 
     if user_id is not None:
         if (session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ):
             raise exc.NoPermissionsException("You do not have permission to view projects for this user.")
-        table.template = "components/tables/user-project.html"
-        table.url_params["user_id"] = user_id
+        table.use("user", user_id=user_id)
         table.context["user_id"] = user_id
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view projects for this experiment.")
-        table.template = "components/tables/experiment-project.html"
-        table.url_params["experiment_id"] = experiment_id
+        table.use("experiment", experiment_id=experiment_id)
         table.context["experiment_id"] = experiment_id
     elif seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view projects for this seq request.")
-        table.template = "components/tables/seq_request-project.html"
-        table.url_params["seq_request_id"] = seq_request_id
+        table.use("seq_request", seq_request_id=seq_request_id)
         table.context["seq_request_id"] = seq_request_id
     elif group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view projects for this group.")
-        table.template = "components/tables/group-project.html"
-        table.url_params["group_id"] = group_id
+        table.use("group", group_id=group_id)
         table.context["group_id"] = group_id
-    else:
-        table.template = "components/tables/project.html"
-        if not current_user.is_insider:
-            stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
-        from loguru import logger
-        logger.debug(current_user)
+    elif not current_user.is_insider:
+        stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
-    projects = table.paginate(
-        session,
-        stmt,
-        page=page,
-        order_by=order_by,
-        options=[
-            orm.selectinload(models.Project.assignees),
-            orm.selectinload(models.Project.owner),
-            orm.selectinload(models.Project.group),
-            orm.with_expression(
-                models.Project._num_samples, models.Project.num_samples.expression
-            ),
-            orm.with_expression(
-                models.Project._library_types,
-                models.Project.library_types.expression  # pyright: ignore[reportAttributeAccessIssue]
-            ),
-        ],
-    )
-    return table.make_response(projects=projects)
+    return table.render(session, stmt)
 
 @router.get("/search")
 def search_projects(

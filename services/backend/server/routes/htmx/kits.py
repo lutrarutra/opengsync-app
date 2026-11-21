@@ -1,80 +1,58 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
-from opengsync_db import SyncSession, models, utils
+from sqlalchemy import orm
+from opengsync_db import SyncSession, models
 from opengsync_db import categories as C
 from opengsync_db import queries as Q
 
 from ... import forms
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import (
+    Table, TableState, Col, Text, Exact, Enum, Variant,
+)
 from ...core import dependencies, responses, query_options
-from ...core import exceptions as exc
 
 router = APIRouter(prefix="/kits", tags=["kits"])
 
 
-class KitTable(HTMXTable):
+K = models.Kit
+
+
+class KitTable(Table):
+    key = "kit"
+    model = models.Kit
+    noun = "kits"
+    load = (orm.selectinload(K.protocol_links),)
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Identifier", label="identifier", col_size=2, searchable=True, sortable=True),
-        TableCol(
-            title="Type",
-            label="type",
-            col_size=2,
-            choices=C.KitType.as_selectable(),
-            sortable=True,
-            sort_by="kit_type",
-        ),
+        Col("id", "ID", sort=True, search=Exact(K.id), hideable=False, size=1),
+        Col("identifier", "Identifier", sort=True, search=Text(K.identifier, compact=True), size=2),
+        Col("name", "Name", sort=True, search=Text(K.name), hideable=False, size=3),
+        Col("combinations", "Combinations", size=2),
+        Col("type", "Type", sort=K.kit_type, filter=Enum(C.KitType, column=K.kit_type), size=2),
     ]
+    variants = {
+        "default": Variant(["id", "identifier", "name", "type"], "components/tables/rows/kit.html", dom_id="kit-table"),
+        "protocol": Variant(
+            ["id", "identifier", "name", "combinations", "type"], "components/tables/rows/protocol-kit.html",
+            dom_id="protocol-kit-table", actions=True,
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_kit_table(
-    id: str | None = Query(None, description="Search by kit ID"),
-    name: str | None = Query(None, description="Search by kit name"),
-    identifier: str | None = Query(None, description="Search by kit identifier"),
     protocol_id: int | None = Query(None, description="Filter by protocol ID"),
-    type_in: list[C.KitType] | None = Depends(dependencies.parse_enum_ids(C.KitType, "type_in")),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(
-        dependencies.parse_order_by(model=models.Kit, default=models.Kit.id.desc())
-    ),
+    state: TableState = Depends(KitTable.params),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
-    table = KitTable(route="render_kit_table", page=page, order_by=order_by)
-    table.template = "components/tables/kit.html"
-    stmt = Q.kit.select(type_in=type_in, protocol_id=protocol_id)
-
-    if type_in is not None:
-        table.filter_values["type"] = type_in
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.kit.search(name=name, statement=stmt)
-    elif identifier:
-        table.active_search_var = "identifier"
-        table.active_query_value = identifier
-        stmt = Q.kit.search(identifier=identifier, statement=stmt)
-    elif id:
-        table.active_search_var = "id"
-        table.active_query_value = str(id)
-        try:
-            stmt = Q.kit.select(id=int("".join(filter(str.isdigit, id))), statement=stmt)
-        except ValueError:
-            raise exc.BadRequestException()
-
-    stmt = Q.kit.search(name=name, identifier=identifier, statement=stmt)
+    stmt = Q.kit.select(protocol_id=protocol_id)
+    table = KitTable(state, route="render_kit_table", user=current_user)
 
     if protocol_id is not None:
-        table.template = "components/tables/protocol-kit.html"
-        table.url_params["protocol_id"] = protocol_id
+        table.use("protocol", protocol_id=protocol_id, protocol=session.get_one(Q.protocol.select(id=protocol_id)))
         table.context["protocol_id"] = protocol_id
-        table.context["protocol"] = session.get_one(Q.protocol.select(id=protocol_id))
 
-    kits = table.paginate(session, stmt, page=page, order_by=order_by)
-    return table.make_response(kits=kits)
+    return table.render(session, stmt)
 
 
 @router.get("/search-kits", dependencies=[Depends(dependencies.require_user_id)])

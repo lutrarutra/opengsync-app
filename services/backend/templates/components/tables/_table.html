@@ -1,0 +1,236 @@
+{#- Shared layout of every htmx table (server/components/tables/table.py, docs/tables.md).
+    The variant's row template renders the <tr>s of `rows`; everything else lives here. -#}
+{% set variant = table.variant %}
+{% set columns = table.shown_columns %}
+{% set filter_fields = table.filter_fields %}
+{% set chips = table.chips %}
+{% set ncols = columns | length + (1 if variant.actions else 0) %}
+<div id="{{ table.dom_id }}" class="table-container otable"
+    data-table-key="{{ table.key }}"
+    data-variant="{{ table.variant_name }}"
+    data-sync-url="{{ 'true' if variant.url_state else 'false' }}"
+    data-url-state="{{ table.url_state | tojson | forceescape }}">
+{%- if variant.prelude %}
+<div class="otable-prelude">{% include variant.prelude %}</div>
+{%- endif %}
+<form class="otable-form" hx-get="{{ table.url.path }}" hx-target="#{{ table.dom_id }}" hx-swap="outerHTML" hx-trigger="submit" autocomplete="off">
+    {% for name, value in table.url_params.items() %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {% endfor %}
+    <input type="hidden" name="order_by" value="{{ table.state.order_by | join(':') if table.state.order_by else '' }}">
+    <input type="hidden" name="page" value="{{ table.page }}">
+
+    <div class="otable-toolbar">
+        {% if table.search_fields %}
+        <div class="otable-search">
+            <select name="scope" class="otable-scope" aria-label="Search in">
+                <option value="">All fields</option>
+                {% for col in table.search_fields %}
+                <option value="{{ col.key }}" {% if table.state.scope == col.key %}selected{% endif %}>{{ col.title }}</option>
+                {% endfor %}
+            </select>
+            <i class="bi bi-search otable-search-icon" aria-hidden="true"></i>
+            <input type="search" name="q" id="{{ table.dom_id }}-q" class="otable-q" hx-preserve="true"
+                value="{{ table.state.q }}" placeholder="Search {{ table.noun }}" aria-label="Search {{ table.noun }}"
+                autocomplete="off" spellcheck="false">
+        </div>
+        {% endif %}
+
+        {% if filter_fields %}
+        <div class="dropdown otable-filter">
+            <button type="button" class="otable-btn otable-filter-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i class="bi bi-funnel" aria-hidden="true"></i> Filter
+                {% if chips %}<span class="otable-count-badge">{{ chips | length }}</span>{% endif %}
+            </button>
+            <div class="dropdown-menu otable-filter-panel" role="dialog" aria-label="Filter {{ table.noun }}">
+                <div class="otable-filter-fields" role="tablist">
+                    <span class="otable-panel-label">Filter by</span>
+                    {% for col in filter_fields %}
+                    <button type="button" class="otable-filter-field {% if loop.first %}active{% endif %}" data-field="{{ col.key }}" role="tab">
+                        <span>{{ col.title }}</span>
+                        {% if table.selected(col) %}<span class="otable-selected-count">{{ table.selected(col) | length }}</span>{% endif %}
+                    </button>
+                    {% endfor %}
+                </div>
+                <div class="otable-filter-panes">
+                    {% for col in filter_fields %}
+                    <div class="otable-filter-pane {% if loop.first %}active{% endif %}" data-pane="{{ col.key }}" role="tabpanel">
+                        {% if col.entity %}
+                        <div class="otable-pane-search">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input type="search" class="otable-entity-search" placeholder="Search {{ col.title | lower }}"
+                                aria-label="Search {{ col.title | lower }}" data-options-url="{{ table.options_url(col) }}" data-field="{{ col.key }}"
+                                autocomplete="off">
+                        </div>
+                        <div class="otable-options">
+                            <div class="otable-entity-selected">
+                                {% for obj in table.selected(col) %}
+                                <label class="otable-option">
+                                    <input type="checkbox" name="{{ col.key }}_in" value="{{ obj.id }}" checked>
+                                    <span>{{ table.value_label(col, obj) }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div class="otable-entity-results" data-field="{{ col.key }}"></div>
+                            {#- scrolling to the sentinel loads the next page of options (static/js/table.js) -#}
+                            <div class="otable-entity-sentinel" aria-hidden="true"></div>
+                            <div class="otable-option-status" role="status" hidden>Loading…</div>
+                        </div>
+                        {% else %}
+                        <div class="otable-options">
+                            {% for value in col.filter.options() %}
+                            <label class="otable-option">
+                                <input type="checkbox" name="{{ col.key }}_in" value="{{ table.value_id(value) }}" {% if table.is_selected(col, value) %}checked{% endif %}>
+                                <span>{{ table.value_label(col, value) }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="otable-pane-footer">
+                            <button type="button" class="otable-link otable-clear-field" data-field="{{ col.key }}">Clear</button>
+                            <button type="button" class="otable-apply">Apply</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="otable-toolbar-end">
+            <span class="otable-total">{{ table.count_label }}</span>
+            <div class="dropdown">
+                <button type="button" class="otable-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="bi bi-layout-three-columns" aria-hidden="true"></i> Columns
+                </button>
+                <div class="dropdown-menu otable-columns-panel">
+                    <button type="button" class="otable-link otable-reset-widths">Reset column widths</button>
+                    {% for col in columns %}
+                    <label class="otable-option">
+                        <input type="checkbox" class="otable-col-toggle" data-col="{{ col.key }}" checked {% if not col.hideable %}disabled{% endif %}>
+                        <span>{{ col.title }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if variant.toolbar %}
+            <div class="otable-toolbar-actions">{% include variant.toolbar %}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {#- only when there is something to show: no empty row under the toolbar -#}
+    {% if chips or table.has_query or table.fuzzy %}
+    <div class="otable-chips">
+        {% for chip in chips %}
+        <span class="otable-chip">
+            <span class="otable-chip-field">{{ chip.title }} is</span>
+            <span class="otable-chip-value">{{ chip.labels | join(", ") }}</span>
+            <button type="button" class="otable-chip-x" data-clear-filter="{{ chip.key }}" aria-label="Remove {{ chip.title }} filter"><i class="bi bi-x" aria-hidden="true"></i></button>
+        </span>
+        {% endfor %}
+        {% if table.has_query %}
+        <button type="button" class="otable-link otable-clear-all">Clear all</button>
+        {% endif %}
+        {% if table.fuzzy %}
+        <span class="otable-fuzzy-note"><i class="bi bi-info-circle" aria-hidden="true"></i> No exact matches, showing similar {{ table.noun }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="otable-loadbar" aria-hidden="true"></div>
+    <div class="otable-scroll">
+    {#- fixed layout: column widths come from the spec (Table.col_width), not from the rows on this page -#}
+    <table class="table otable-table" style="min-width: {{ table.min_width }}px">
+        <colgroup>
+            {% for col in columns %}<col data-col="{{ col.key }}" data-width="{{ table.col_width(col) }}" style="width: {{ table.col_width(col) }}">{% endfor %}
+            {% if variant.actions %}<col class="otable-actions-col" style="width: {{ table.ACTIONS_WIDTH_PX }}px">{% endif %}
+        </colgroup>
+        <thead>
+            <tr>
+                {% for col in columns %}
+                {% set direction = table.sort_direction(col) %}
+                <th scope="col" class="{% if direction %}otable-sorted{% endif %}" data-col="{{ col.key }}"
+                    {% if col.sortable %}aria-sort="{{ {'asc': 'ascending', 'desc': 'descending'}.get(direction, 'none') }}"{% endif %}>
+                    <span class="otable-th">
+                        {% if col.sortable %}
+                        <button type="button" class="otable-sort" data-order-by="{{ table.next_sort(col) }}" title="Sort by {{ col.title }}">
+                            <span class="otable-th-title">{{ col.title }}</span>
+                            {% if direction == "asc" %}<i class="bi bi-arrow-up" aria-hidden="true"></i>
+                            {% elif direction == "desc" %}<i class="bi bi-arrow-down" aria-hidden="true"></i>
+                            {% else %}<i class="bi bi-arrow-down-up otable-sort-idle" aria-hidden="true"></i>{% endif %}
+                        </button>
+                        {% else %}
+                        <span class="otable-th-title">{{ col.title }}</span>
+                        {% endif %}
+                        {% if col in filter_fields %}
+                        <button type="button" class="otable-funnel {% if table.selected(col) %}active{% endif %}" data-filter-field="{{ col.key }}" aria-label="Filter {{ col.title }}">
+                            <i class="bi {{ 'bi-funnel-fill' if table.selected(col) else 'bi-funnel' }}" aria-hidden="true"></i>
+                        </button>
+                        {% endif %}
+                        {% if col.index_toggle %}
+                        <span class="otable-index-switch" role="group" aria-label="Barcode display">
+                            <button type="button" data-index-mode="name" aria-pressed="true" title="Show adapter names">Name</button>
+                            <button type="button" data-index-mode="seq" aria-pressed="false" title="Show sequences" aria-label="Sequence">Seq</button>
+                        </span>
+                        {% endif %}
+                    </span>
+                    <span class="otable-resize" role="separator" aria-orientation="vertical" tabindex="0"
+                        aria-label="Resize {{ col.title }} (arrow keys; double-click resets)" title="Drag to resize"></span>
+                </th>
+                {% endfor %}
+                {% if variant.actions %}
+                <th scope="col" class="otable-actions-col"><span class="visually-hidden">Actions</span></th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% if rows %}
+            {% include variant.row_template %}
+            {% else %}
+            <tr class="otable-empty">
+                <td colspan="{{ ncols }}">
+                    {% if table.unfiltered_total %}
+                    <div class="otable-empty-title">No {{ table.noun }} match</div>
+                    <div class="otable-empty-text">{{ table.unfiltered_total }} {{ table.noun }} hidden by the search and filters.</div>
+                    <button type="button" class="otable-btn otable-clear-all">Clear search and filters</button>
+                    {% else %}
+                    <div class="otable-empty-title">No {{ table.noun }} yet</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    </div>
+
+    <div class="otable-footer">
+        <span class="otable-range">{% if table.total %}Showing {{ table.first_row }}–{{ table.last_row }} of {{ table.total }}{% endif %}</span>
+        <div class="otable-footer-end">
+            {% if variant.url_state %}
+            <label class="otable-limit-label">Rows
+                <select class="otable-limit" aria-label="Rows per page">
+                    <option value="auto">Auto</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </label>
+            {% endif %}
+            {% if table.num_pages > 1 %}
+            <nav class="otable-pages" aria-label="Pages">
+                <button type="button" class="otable-page" data-page="{{ table.page - 1 }}" aria-label="Previous page" {% if table.page == 1 %}disabled{% endif %}><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                {% for page in table.page_numbers() %}
+                {% if page is none %}
+                <span class="otable-page-gap">…</span>
+                {% else %}
+                <button type="button" class="otable-page {% if page == table.page %}active{% endif %}" data-page="{{ page }}" {% if page == table.page %}aria-current="page"{% endif %}>{{ page }}</button>
+                {% endif %}
+                {% endfor %}
+                <button type="button" class="otable-page" data-page="{{ table.page + 1 }}" aria-label="Next page" {% if table.page == table.num_pages %}disabled{% endif %}><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</form>
+</div>

@@ -378,7 +378,7 @@
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if not can_be_edited or lanes_assigned is none %}disabled{% endif %}>Begin</button>{% if not can_be_edited or lanes_assigned is none %}</span>{% endif %} 'Dilute Pools' - Workflow.
                     </li>
                 </ol>
-                <div hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                <div data-table-loader="dil" hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once">
                     {{ spinner() }}
                 </div>
             </div>

@@ -139,8 +139,9 @@ class LibraryPoolingForm(LibraryPoolingWorkflowStep):
             form: LibraryPoolingForm = Depends(LibraryPoolingForm.Validate()),
         ) -> Response:
             df = form.spreadsheet.data
+            # no pool given at all: everything goes to one pool named after the prep
             if df.loc[~df["pool"].astype(str).str.strip().str.lower().isin(["x", "t", "skip"]), "pool"].isna().all():
-                df.loc[df["pool"].isna(), "pool"] = "1"
+                df.loc[df["pool"].isna(), "pool"] = form.lab_prep.name if form.lab_prep is not None else "1"
 
             # per library: required for pooled rows (>= 0 by the column); the pool requests the sum
             for idx, row in df.iterrows():

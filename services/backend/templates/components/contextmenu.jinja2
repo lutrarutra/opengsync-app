@@ -1,3 +1,14 @@
 {% macro context_menu(actions) %}
 data-context-menu='{{ {"actions": actions} | tojson | forceescape }}'
 {% endmacro %}
+
+{#- The ⋯ button of a table row (last cell): every action of the row, copy and non-copy alike.
+    Right-click menus in tables (context_menu) hold copy actions only, see docs/tables.md. -#}
+{% macro row_menu(actions, label="Row actions") %}
+<td class="otable-actions-cell">
+    <button type="button" class="row-menu-btn" aria-label="{{ label }}" aria-haspopup="menu" title="Actions"
+        data-context-menu='{{ {"actions": actions} | tojson | forceescape }}'>
+        <i class="bi bi-three-dots" aria-hidden="true"></i>
+    </button>
+</td>
+{% endmacro %}

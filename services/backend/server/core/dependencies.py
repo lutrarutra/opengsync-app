@@ -698,7 +698,7 @@ def parse_order_by(
             model_attr = getattr(model, attr)
             direction = "desc" if order == "desc" else "asc"
             order_by_expr = getattr(model_attr, direction)()
-            # hybrid expressions (e.g. count subqueries) lose their name, label them so HTMXTable can recover the sort column
+            # hybrid expressions (e.g. count subqueries) lose their name, label them so the sort column can be recovered
             if getattr(order_by_expr.element, "key", None) is None and getattr(order_by_expr.element, "name", None) is None:
                 order_by_expr = getattr(model_attr.label(attr), direction)()
             return order_by_expr

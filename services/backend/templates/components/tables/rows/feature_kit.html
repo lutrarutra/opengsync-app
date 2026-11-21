@@ -1,0 +1,19 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for feature_kit in rows %}
+<tr>
+    <th scope="row">{{ feature_kit.id }}</th>
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": feature_kit.identifier, "label": "Copy Identifier"},
+        ])
+    }}><a href="{{ url_for('feature_kit_page', feature_kit_id=feature_kit.id) }}">{{ feature_kit.identifier }}</a></td>
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": feature_kit.name, "label": "Copy Name"},
+        ])
+    }}><a href="{{ url_for('feature_kit_page', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
+    <td>{{ feature_kit.type.label }}</td>
+</tr>
+{% endfor %}
+

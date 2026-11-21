@@ -1,0 +1,21 @@
+{% from "components/contextmenu.jinja2" import row_menu %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for token in rows %}
+<tr>
+    <th scope="row"><i class="bi bi-shield-lock"></i></th>
+    <td>
+        {% if token.is_expired %}🔴{% else %}🟢{% endif %}
+        {{ token.expiration | format_datetime }}
+    </td>
+    <td><a href="{{ url_for('user_page', user_id=token.owner_id) }}">{{ token.owner.name }}{% if current_user.id == token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+    <td>{{ token.time_valid_min }}</td>
+    {{ row_menu([
+        {"type": "hxpost", "label": "Deactivate", "disabled": false if current_user.is_admin or current_user.id == user.id else true, "config": {
+                "url": url_for('deactivate_api_token', token_id=token.id).__str__(),
+                "target": "#user-api_token-table",
+                "title": "Do you want to deactivate this token?"
+            },}
+    ]) }}
+</tr>
+{% endfor %}
+

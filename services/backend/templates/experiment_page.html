@@ -151,12 +151,7 @@
 <div class="page-content">
     <div class="tab-content pt-1">
         <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Pools <img {{ tooltip('Right click on a pool name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_pool_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="pool" hx-get="{{ url_for('render_pool_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -174,22 +169,12 @@
             </div>
         </div>
         <div class="tab-pane fade" id="libraries-tab" role="tabpanel" tabindex="2">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_library_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="lib" hx-get="{{ url_for('render_library_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="dilutions-tab" role="tabpanel" tabindex="3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Dilutions</h2>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="dil" hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -237,7 +222,7 @@
         </div>
         {% endif %}
         <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="6">
-            <div hx-get="{{ url_for('render_media_file_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="file" hx-get="{{ url_for('render_media_file_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -305,7 +290,7 @@
         </div>
         {% endif %}
         <div class="tab-pane fadee" id="experiment-projects-tab" role="tabpanel" tabindex="9">
-            <div hx-get="{{ url_for('render_project_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="prj" hx-get="{{ url_for('render_project_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

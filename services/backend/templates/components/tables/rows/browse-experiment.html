@@ -1,0 +1,13 @@
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% for experiment in rows %}
+<tr id="experiment-row-{{ experiment.id }}" data-id="{{ experiment.id }}" class="experiment-row">
+    <th scope="row">{{ experiment.id }}</th>
+    <td>{{ experiment.name }}</td>
+    <td>{{ experiment.workflow.display_name }}</td>
+    <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
+    <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
+    <td>{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></td>
+</tr>
+{% endfor %}
+

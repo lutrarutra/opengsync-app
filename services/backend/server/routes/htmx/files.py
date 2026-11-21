@@ -10,11 +10,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import orm
 from loguru import logger
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions as exc, config
+from ...core import dependencies, responses, exceptions as exc, config, query_options
 from ...core.redis import RedisClient
-from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
+from ...components.tables import Table, TableState, Col, Text, Exact, Enum, Entity, Variant, related, UniverSpreadsheet
 from ...forms.models import MediaFileForm
 from ...utils.file_browser import (
     FileBrowser, PROJECT_SERVABLE_EXTENSIONS, is_servable, is_within_root, servable_mimetype,
@@ -111,23 +111,36 @@ async def storage_availability_check():
     }
 
 
-class MediaFileTable(HTMXTable):
+MF = models.MediaFile
+_FULL_NAME = Q.search.full_name(models.User)
+_FILE_COLUMNS = ["id", "name", "type", "uploader", "size_bytes", "timestamp_utc"]
+
+
+class MediaFileTable(Table):
+    key = "file"
+    model = models.MediaFile
+    noun = "files"
+    load = (orm.selectinload(MF.uploader),)
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=5, sortable=True),
-        TableCol(title="Extension", label="extension", col_size=1),
-        TableCol(
-            title="Type",
-            label="type",
-            col_size=2,
-            choices=C.MediaFileType.as_selectable(),
-            sortable=True,
-            sort_by="type",
+        Col("id", "ID", sort=True, search=Exact(MF.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(MF.name, compact=True), hideable=False, size=5),
+        Col("extension", "Extension", sort=True, search=Text(MF.extension), size=1),
+        Col("type", "Type", sort=True, filter=Enum(C.MediaFileType), size=2),
+        Col(
+            "uploader", "Uploader", size=2,
+            sort=related(MF.uploader, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=MF.uploader, weight=0.9),
+            filter=Entity(models.User, via=MF.uploader, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
-        TableCol(title="Uploader", label="uploader", col_size=2, searchable=True),
-        TableCol(title="Size", label="size_bytes", col_size=1, sortable=True),
-        TableCol(title="Timestamp", label="timestamp_utc", col_size=2, sortable=True),
+        Col("size_bytes", "Size", sort=True, size=1),
+        Col("timestamp_utc", "Timestamp", sort=True, size=2),
     ]
+    variants = {
+        "default": Variant(_FILE_COLUMNS, "components/tables/rows/media_file.html", dom_id="media_file-table"),
+        "seq_request": Variant(
+            _FILE_COLUMNS, "components/tables/rows/seq_request-media_file.html", dom_id="media_file-table", actions=True,
+        ),
+    }
 
 
 @router.get("/render-table-page")
@@ -136,68 +149,45 @@ def render_media_file_table(
     seq_request_id: int | None = Query(None, description="Filter files by sequencing request ID."),
     experiment_id: int | None = Query(None, description="Filter files by experiment ID."),
     lab_prep_id: int | None = Query(None, description="Filter files by lab prep ID."),
-    type_in: list[C.MediaFileType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.MediaFileType, query_param="type_in")),
-    uploader: str | None = Query(None, description="Search by uploader name"),
-    id_search: str | None = Query(None, alias="id", description="Search by file ID"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.MediaFile, default=models.MediaFile.id.desc())),
+    state: TableState = Depends(MediaFileTable.params),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = MediaFileTable(route="render_media_file_table", page=page, order_by=order_by)
     stmt = Q.media_file.select(
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
         lab_prep_id=lab_prep_id,
         uploader_id=uploader_id,
-        type_in=type_in,
     )
-
-    if type_in:
-        table.filter_values["type"] = type_in
-
-    if uploader:
-        table.active_search_var = "uploader"
-        table.active_query_value = uploader
-        stmt = Q.media_file.search(uploader_name=uploader, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.media_file.select(id=int(digits), statement=stmt)
+    table = MediaFileTable(state, route="render_media_file_table", user=current_user)
 
     if seq_request_id is not None:
         if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/seq_request-media_file.html"
-        table.url_params["seq_request_id"] = seq_request_id
+        table.use("seq_request", seq_request_id=seq_request_id)
         table.context["seq_request_id"] = seq_request_id
         table.context["access_level"] = access_level
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view files for this experiment.")
-        table.template = "components/tables/media_file.html"
-        table.url_params["experiment_id"] = experiment_id
+        table.use("default", experiment_id=experiment_id)
         table.context["experiment_id"] = experiment_id
     elif lab_prep_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view files for this lab prep.")
-        table.template = "components/tables/media_file.html"
-        table.url_params["lab_prep_id"] = lab_prep_id
+        table.use("default", lab_prep_id=lab_prep_id)
         table.context["lab_prep_id"] = lab_prep_id
+    elif uploader_id is not None:
+        # a user's own uploads (insiders: anyone's)
+        if not current_user.is_insider and uploader_id != current_user.id:
+            raise exc.NoPermissionsException("You do not have permission to view files of this user.")
     else:
-        raise exc.BadRequestException("Request, experiment or lab prep context is required to render the file table.")
+        raise exc.BadRequestException("Request, experiment, lab prep or uploader context is required to render the file table.")
 
-    files = table.paginate(
-        session,
-        stmt,
-        page=page,
-        order_by=order_by,
-        options=[
-            orm.selectinload(models.MediaFile.uploader),
-        ],
-    )
-    return table.make_response(files=files)
+    if uploader_id is not None:
+        table.url_params["uploader_id"] = uploader_id
+
+    return table.render(session, stmt)
 
 @router.get("/seq_auth_form_v2.pdf")
 def download_seq_auth_form():

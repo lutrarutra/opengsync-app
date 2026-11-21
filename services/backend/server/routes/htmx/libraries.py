@@ -1,4 +1,3 @@
-from contextlib import suppress
 
 import pandas as pd
 import sqlalchemy as sa
@@ -6,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
+from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
@@ -14,53 +13,118 @@ from ...core import dependencies, responses, exceptions as exc, query_options
 from ...utils import parsing
 from ... import forms
 from .data_browser import DataScope, data_browser_router
-from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
+from ...components.tables import (
+    Table, TableState, Col, Field, Text, Exact, Enum, Entity, Variant, related, TextColumn, StaticSpreadsheet,
+)
 
 router = APIRouter(prefix="/libraries", tags=["libraries"])
 
 
-class LibraryTable(HTMXTable):
+L = models.Library
+_FULL_NAME = Q.search.full_name(models.User)
+_PROJECT_PATH = (L.sample_links, models.links.SampleLibraryLink.sample, models.Sample.project)
+_GROUP_PATH = (L.seq_request, models.SeqRequest.group)
+
+
+class LibraryTable(Table):
+    key = "lib"
+    model = models.Library
+    noun = "libraries"
+    load = (
+        orm.selectinload(L.pool),
+        orm.selectinload(L.seq_request),
+        orm.selectinload(L.owner),
+        orm.selectinload(L.indices),
+    )
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(
-            title="Name", label="name", col_size=3, searchable=True, sortable=True
+        Col("id", "ID", sort=True, search=Exact(L.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(L.name, L.sample_name, compact=True), hideable=False, size=4),
+        Col(
+            "pool", "Pool", size=1,
+            sort=related(L.pool, models.Pool.name),
+            search=Text(models.Pool.name, via=L.pool),
+            filter=Entity(models.Pool, via=L.pool, option=query_options.pool_option, search=(models.Pool.name,)),
         ),
-        TableCol(
-            title="Pool",
-            label="pool_name",
-            col_size=1,
-            searchable=True,
-            sortable=True,
-            sort_by="pool_id",
+        Col("type", "Type", sort=True, filter=Enum(C.LibraryType), size=1),
+        Col("status", "Status", sort=True, filter=Enum(C.LibraryStatus), size=1),
+        Col(
+            "seq_request", "Request", size=2,
+            sort=related(L.seq_request, models.SeqRequest.name),
+            search=Text(models.SeqRequest.name, via=L.seq_request),
+            filter=Entity(
+                models.SeqRequest, via=L.seq_request, option=query_options.seq_request_option,
+                search=(models.SeqRequest.name,),
+            ),
         ),
-        TableCol(
-            title="Library Type",
-            label="type",
-            col_size=1,
-            choices=C.LibraryType.as_selectable(),
+        Col(
+            "owner", "Owner", size=1,
+            sort=related(L.owner, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=L.owner, weight=0.9),
+            filter=Entity(models.User, via=L.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
-        TableCol(
-            title="Status",
-            label="status",
-            col_size=1,
-            sortable=True,
-            sort_by="status",
-            choices=C.LibraryStatus.as_selectable(),
+        Col(
+            "index", "Index", size=3, index_toggle=True,
+            search=Text(
+                models.LibraryIndex.name_i7, models.LibraryIndex.name_i5,
+                models.LibraryIndex.sequence_i7, models.LibraryIndex.sequence_i5, via=L.indices,
+            ),
         ),
-        TableCol(title="Request", label="seq_request", col_size=2),
-        TableCol(title="Owner", label="owner", col_size=1),
-        TableCol(title="Index Type", label="index_type", col_size=2, sortable=True, choices=C.IndexType.as_selectable()),
-        TableCol(
-            title="Barcode Orientation",
-            label="barcode_orientation",
-            col_size=2,
-            sortable=True,
+        Col("index_type", "Index Type", sort=True, filter=Enum(C.IndexType), size=2),
+        Col(
+            "barcode_orientation", "Barcode Orientation", sort=True, size=2,
             # Validated reverse complements are stored reverse-complemented as FORWARD, so REVERSE_COMPLEMENT never occurs
-            choices=[(None, "Not set")] + [
-                (o.id, o.display_name) for o in C.BarcodeOrientation if o is not C.BarcodeOrientation.REVERSE_COMPLEMENT
-            ],
+            filter=Enum(
+                C.BarcodeOrientation, nullable=True,
+                choices=[o for o in C.BarcodeOrientation.as_list() if o is not C.BarcodeOrientation.REVERSE_COMPLEMENT],
+            ),
+        ),
+        Col("qubit_concentration", "Qubit Conc.", sort=True, size=2),
+        Col("avg_fragment_size", "Avg. Fragment Size", sort=True, size=2),
+        Field(
+            "project", "Project",
+            search=Text(models.Project.title, models.Project.identifier, via=_PROJECT_PATH),
+            filter=Entity(
+                models.Project, via=_PROJECT_PATH, option=query_options.project_option,
+                search=(models.Project.title, models.Project.identifier),
+            ),
+        ),
+        Field(
+            "group", "Group",
+            search=Text(models.Group.name, via=_GROUP_PATH),
+            filter=Entity(models.Group, via=_GROUP_PATH, option=query_options.group_option, search=(models.Group.name,)),
         ),
     ]
+    _browse = dict(row_template="components/tables/rows/browse-library.html", dom_id="select-libraries-table", url_state=False)
+    variants = {
+        "default": Variant(
+            ["id", "name", "pool", "type", "status", "seq_request", "index"], "components/tables/rows/library.html",
+            dom_id="library-table",
+        ),
+        "pool": Variant(
+            ["id", "name", "type", "seq_request", "index"], "components/tables/rows/pool-library.html",
+            dom_id="pool-library-table", actions=True,
+        ),
+        "experiment": Variant(
+            ["id", "name", "type", "pool", "index"], "components/tables/rows/experiment-library.html",
+            dom_id="experiment-library-table",
+        ),
+        "lab_prep": Variant(
+            ["id", "name", "type", "status", "pool", "seq_request", "index"], "components/tables/rows/lab_prep-library.html",
+            dom_id="lab_prep-library-table", actions=True,
+        ),
+        "seq_request": Variant(
+            ["id", "name", "pool", "type", "status", "index"], "components/tables/rows/seq_request-library.html",
+            dom_id="seq_request-library-table", actions=True, toolbar="components/tables/toolbars/seq_request-library.html",
+        ),
+        "sample": Variant(
+            ["id", "name", "type", "status", "seq_request", "index"], "components/tables/rows/sample-library.html",
+            dom_id="sample-library-table",
+        ),
+        "browse": Variant(["id", "name", "type", "status"], **_browse),
+        "browse-qubit-measure": Variant(["id", "name", "type", "status", "qubit_concentration"], **_browse),
+        "browse-ba-report": Variant(["id", "name", "type", "status", "avg_fragment_size"], **_browse),
+        "browse-index-check": Variant(["id", "name", "type", "status", "index_type", "barcode_orientation"], **_browse),
+    }
 
 
 @router.get("/render-table-page")
@@ -70,127 +134,58 @@ def render_library_table(
     lab_prep_id: int | None = Query(None, description="Filter libraries by lab prep ID"),
     seq_request_id: int | None = Query(None, description="Filter libraries by seq request ID"),
     sample_id: int | None = Query(None, description="Filter libraries by sample ID"),
-    name: str | None = Query(None, description="Search by library name"),
-    pool_name: str | None = Query(None, description="Search by pool name"),
-    id_search: str | None = Query(None, alias="id", description="Search by library ID"),
     browse: str | None = Query(None, description="Browse context for library selection component"),
-    type_in: list[C.LibraryType] | None = Depends(
-        dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="type_in")
-    ),
-    status_in: list[C.LibraryStatus] | None = Depends(
-        dependencies.parse_enum_ids(enum_type=C.LibraryStatus, query_param="status_in")
-    ),
-    index_type_in: list[C.IndexType] | None = Depends(
-        dependencies.parse_enum_ids(enum_type=C.IndexType, query_param="index_type_in")
-    ),
-    barcode_orientation_in: list[C.BarcodeOrientation | None] | None = Depends(
-        dependencies.parse_opt_enum_ids(enum_type=C.BarcodeOrientation, query_param="barcode_orientation_in")
-    ),
     indexed: bool | None = Query(None, description="Filter libraries by whether they are indexed"),
     pooled: bool | None = Query(None, description="Filter libraries by whether they are pooled"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    state: TableState = Depends(LibraryTable.params),
     current_user: models.User = Depends(dependencies.require_user),
-    order_by: utils.OrderBy | None = Depends(
-        dependencies.parse_order_by(
-            model=models.Library, default=models.Library.id.desc()
-        )
-    ),
-
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = LibraryTable(route="render_library_table", page=page, order_by=order_by)
-
-    if status_in:
-        table.filter_values["status"] = status_in
-    if type_in:
-        table.filter_values["type"] = type_in
-    if index_type_in:
-        table.filter_values["index_type"] = index_type_in
-    if barcode_orientation_in:
-        table.filter_values["barcode_orientation"] = barcode_orientation_in
-
     stmt = Q.library.select(
         pool_id=pool_id,
         experiment_id=experiment_id,
         lab_prep_id=lab_prep_id,
         seq_request_id=seq_request_id,
         sample_id=sample_id,
-        status_in=status_in,
-        type_in=type_in,
-        index_type_in=index_type_in,
-        barcode_orientation_in=barcode_orientation_in,
         indexed=indexed,
         pooled=pooled,
     )
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-    elif pool_name:
-        table.active_search_var = "pool_name"
-        table.active_query_value = pool_name
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        with suppress(ValueError):
-            stmt = Q.library.select(id=int("".join(filter(str.isdigit, id_search))), statement=stmt)
-
-    stmt = Q.library.search(name=name, pool_name=pool_name, statement=stmt)
+    table = LibraryTable(state, route="render_library_table", user=current_user)
+    table.url_params.update({k: v for k, v in {"indexed": indexed, "pooled": pooled}.items() if v is not None})
 
     if pool_id is not None:
         if session.get_access_level(Q.pool.permissions(pool_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this pool.")
-        table.template = "components/tables/pool-library.html"
-        table.url_params["pool_id"] = pool_id
-        table.context["pool"] = session.get_one(Q.pool.select(id=pool_id))
+        table.use("pool", pool_id=pool_id, pool=session.get_one(Q.pool.select(id=pool_id)))
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this experiment.")
-        table.template = "components/tables/experiment-library.html"
-        table.url_params["experiment_id"] = experiment_id
+        table.use("experiment", experiment_id=experiment_id)
         table.context["experiment_id"] = experiment_id
     elif lab_prep_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this lab prep.")
-        table.template = "components/tables/lab_prep-library.html"
-        table.url_params["lab_prep_id"] = lab_prep_id
-        table.context["lab_prep"] = session.get_one(Q.lab_prep.select(id=lab_prep_id))
+        table.use("lab_prep", lab_prep_id=lab_prep_id, lab_prep=session.get_one(Q.lab_prep.select(id=lab_prep_id)))
     elif seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this seq request.")
-        table.template = "components/tables/seq_request-library.html"
-        table.url_params["seq_request_id"] = seq_request_id
-        table.context["seq_request"] = session.get_one(Q.seq_request.select(id=seq_request_id))
+        table.use(
+            "seq_request", seq_request_id=seq_request_id,
+            seq_request=session.get_one(Q.seq_request.select(id=seq_request_id)),
+        )
     elif sample_id is not None:
         if session.get_access_level(Q.sample.permissions(sample_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this sample.")
-        table.template = "components/tables/sample-library.html"
-        table.url_params["sample_id"] = sample_id
+        table.use("sample", sample_id=sample_id)
         table.context["sample_id"] = sample_id
-    else:
-        table.template = "components/tables/library.html"
-        if not current_user.is_insider:
-            stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
+    elif not current_user.is_insider:
+        stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
 
     if browse is not None:
-        table.template = "components/tables/browse-library.html"
+        table.use(f"browse-{browse}" if f"browse-{browse}" in LibraryTable.variants else "browse", browse=browse)
         table.context["browse_context"] = browse
-        table.url_params["browse"] = browse
-            
 
-    libraries = table.paginate(
-        session,
-        stmt,
-        page=page,
-        order_by=order_by,
-        options=[
-            orm.selectinload(models.Library.pool),
-            orm.selectinload(models.Library.seq_request),
-            orm.selectinload(models.Library.owner),
-            orm.selectinload(models.Library.indices),
-        ],
-    )
-    return table.make_response(libraries=libraries)
+    return table.render(session, stmt)
 
 
 @router.get("/search")

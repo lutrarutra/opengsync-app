@@ -1,34 +1,7 @@
 @import "./colors.css";
 
-table {
-    a.sort-btn,
-    a.search-btn {
-        color: #000;
-        padding: 2px 6px 2px 6px;
-        margin: 0;
-    }
-}
-
-table .multi-select {
-    position: static;
-
-    button {
-        height: 27px;
-        width: 100%;
-    }
-}
-
 table tbody tr td {
     a.visitable:visited { color: #551a8b !important; }
-}
-
-table input.table-query-input {
-    height: 28px;
-
-    &:focus {
-        box-shadow: none;
-        border: 1px solid var(--color-cemm-blue);
-    }
 }
 
 .table-container {
@@ -97,33 +70,6 @@ table input.table-query-input {
         tr {
             th {
                 padding: 0 5px;
-                .table-col-header-container {
-                    height: 100%;
-                    width: 100%;
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-
-                .table-col-header {
-                    display: flex;
-                    width: 100%;
-                    align-items: center;
-                    justify-content: space-between;
-                    .multiple-select {
-                        width: 100%;
-                    }
-                }
-
-                .table-col-header:not(.active) {
-                    display: none;
-                }
-
-                .table-col-header-container:not(:has(.multiple-select.active)) {
-                    overflow-x: hidden !important;
-                }
-                
                 .search-btn {
                     background-color: transparent;
                     border-radius: 5px;
@@ -415,4 +361,697 @@ table.barcode-clashes-table tbody td.index-cell {
     .table-container {
         overflow: auto;
     }
+}
+/* ------------------------------------------------------------------------------------------------------------
+   htmx tables (templates/components/tables/_table.html, static/js/table.js, docs/tables.md)
+   One card: toolbar, chips, table and pager share a border; the header row is light grey.
+   ------------------------------------------------------------------------------------------------------------ */
+.otable {
+    --otable-border: #e3e7eb;
+    --otable-border-strong: #cfd6dc;
+    --otable-muted: #5f6b76;
+    --otable-text: #1d2733;
+    --otable-accent: var(--color-cemm-blue-dark);
+    --otable-tint: color-mix(in srgb, var(--color-cemm-blue) 9%, white);
+    --otable-head: #f5f7f9;
+    --otable-hover: #f3f6f8;
+    --otable-radius: 10px;
+    position: relative;
+    color: var(--otable-text);
+    margin: 4px 0 12px 0;
+}
+
+/* in a tab, the tab names the table: a little room under the tabs instead of a heading */
+.tab-pane > .otable:first-child { margin-top: 12px; }
+
+/* the card: toolbar, chips, table and pager (a variant's prelude sits above it) */
+.otable > .otable-form {
+    margin: 0;
+    background: #fff;
+    border: 1px solid var(--otable-border);
+    border-radius: var(--otable-radius);
+    box-shadow: 0 1px 2px rgba(16, 32, 48, .04);
+}
+
+/* toolbar --------------------------------------------------------------------------------------------------- */
+.otable-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+}
+
+.otable-toolbar-end {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.otable-search {
+    flex: 1 1 320px;
+    min-width: 0;
+    max-width: 640px;
+    display: flex;
+    align-items: center;
+    height: 36px;
+    border: 1px solid var(--otable-border-strong);
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color .12s, box-shadow .12s;
+
+    &:focus-within {
+        border-color: var(--color-cemm-blue);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cemm-blue) 18%, transparent);
+    }
+
+    .otable-scope {
+        height: 100%;
+        border: 0;
+        border-right: 1px solid var(--otable-border);
+        background: var(--otable-head);
+        padding: 0 6px 0 10px;
+        font-size: 13px;
+        color: var(--color-gray-700);
+        max-width: 140px;
+        cursor: pointer;
+        &:focus { outline: none; }
+    }
+
+    .otable-search-icon {
+        margin-left: 10px;
+        color: var(--otable-muted);
+    }
+
+    .otable-q {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        border: 0;
+        padding: 0 10px 0 8px;
+        font-size: 14px;
+        background: transparent;
+        &:focus { outline: none; }
+    }
+}
+
+.otable-btn {
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    border: 1px solid var(--otable-border-strong);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    color: var(--otable-text);
+    white-space: nowrap;
+    transition: background-color .12s, border-color .12s;
+    &:hover { background: var(--otable-hover); }
+    &:focus-visible { outline: 2px solid var(--color-cemm-blue); outline-offset: 2px; }
+    &[aria-expanded="true"] { background: var(--otable-hover); border-color: var(--color-gray-500); }
+}
+
+.otable-toolbar-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.otable-btn-primary {
+    background: var(--otable-accent);
+    border-color: var(--otable-accent);
+    color: #fff;
+    &:hover { background: color-mix(in srgb, var(--otable-accent) 85%, black); }
+    &:disabled { opacity: .55; }
+}
+
+.otable-link {
+    border: 0;
+    background: transparent;
+    color: var(--otable-accent);
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    &:hover { background: var(--otable-tint); }
+}
+
+.otable-count-badge,
+.otable-selected-count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--otable-accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* filter panel ---------------------------------------------------------------------------------------------- */
+.otable .dropdown-menu {
+    --bs-dropdown-bg: #fff;
+    background: #fff;
+    border: 1px solid var(--otable-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(16, 32, 48, .14), 0 2px 6px rgba(16, 32, 48, .06);
+}
+
+.otable-filter-panel {
+    width: min(620px, calc(100vw - 32px));
+    padding: 0;
+    overflow: hidden;
+    display: none;
+    grid-template-columns: 180px minmax(0, 1fr);
+
+    &.show { display: grid; }
+
+    .otable-filter-fields {
+        background: #fafbfc;
+        border-right: 1px solid var(--otable-border);
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-height: 420px;
+        overflow-y: auto;
+    }
+
+    .otable-panel-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--otable-muted);
+        padding: 6px 10px 4px 10px;
+    }
+
+    .otable-filter-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        color: var(--otable-text);
+        &:hover { background: var(--otable-hover); }
+        &.active { background: #fff; color: var(--otable-accent); font-weight: 500; box-shadow: inset 0 0 0 1px var(--otable-border); }
+    }
+
+    .otable-filter-panes { background: #fff; min-width: 0; }
+
+    .otable-filter-pane {
+        display: none;
+        flex-direction: column;
+        height: 100%;
+        /* the app styles a bare .active with a grey background */
+        &.active { display: flex; background: #fff; }
+    }
+
+    .otable-pane-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 12px 4px 12px;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--otable-border-strong);
+        border-radius: 8px;
+        color: var(--otable-muted);
+        &:focus-within {
+            border-color: var(--color-cemm-blue);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cemm-blue) 18%, transparent);
+        }
+        input {
+            flex: 1;
+            min-width: 0;
+            border: 0;
+            font-size: 14px;
+            background: transparent;
+            &:focus { outline: none; }
+        }
+    }
+
+    .otable-options {
+        flex: 1;
+        padding: 6px;
+        max-height: 320px;
+        min-height: 120px;
+    }
+
+    .otable-entity-selected:not(:empty) {
+        border-bottom: 1px solid var(--otable-border);
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+    }
+}
+
+.otable-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 300px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.otable-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 0;
+    &:hover { background: var(--otable-hover); }
+    &:has(input:checked) { background: var(--otable-tint); }
+    input { accent-color: var(--otable-accent); margin: 0; width: 16px; height: 16px; flex: none; }
+    > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .otable-option-detail {
+        margin-left: auto;
+        color: var(--otable-muted);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 50%;
+    }
+}
+
+.otable-entity-sentinel { height: 1px; flex: none; }
+
+.otable-option-empty,
+.otable-option-status {
+    padding: 8px;
+    color: var(--otable-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.otable-pane-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--otable-border);
+    padding: 10px 12px;
+    background: #fff;
+
+    .otable-apply {
+        border: 0;
+        background: var(--otable-accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 16px;
+        border-radius: 8px;
+        &:hover { filter: brightness(1.1); }
+    }
+}
+
+.otable-columns-panel {
+    padding: 6px;
+
+    .otable-reset-widths { width: 100%; text-align: left; margin-bottom: 4px; }
+
+    min-width: 220px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+/* chips ----------------------------------------------------------------------------------------------------- */
+.otable-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px 10px 12px;
+
+    .otable-fuzzy-note {
+        font-size: 13px;
+        color: var(--color-gray-700);
+    }
+
+}
+
+.otable-toolbar-end {
+    align-items: center;
+
+    .otable-total {
+        font-size: 13px;
+        color: var(--otable-muted);
+        white-space: nowrap;
+        margin-right: 4px;
+    }
+}
+
+.otable-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 2px 0 10px;
+    border-radius: 14px;
+    background: var(--otable-tint);
+    border: 1px solid color-mix(in srgb, var(--color-cemm-blue) 30%, white);
+    font-size: 13px;
+    color: #0f3c49;
+
+    .otable-chip-field { color: #3a5a64; }
+    .otable-chip-value { font-weight: 500; }
+
+    .otable-chip-x {
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+        &:hover { background: color-mix(in srgb, var(--color-cemm-blue) 22%, white); }
+    }
+}
+
+/* table ----------------------------------------------------------------------------------------------------- */
+.otable-prelude { margin-bottom: 10px; }
+
+.otable-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border-top: 1px solid var(--otable-border);
+}
+
+.table-container.otable table {
+    margin: 0 !important;
+    border-collapse: separate;
+    border-spacing: 0;
+    /* widths from the <colgroup> (spec sizes, or the user's resized widths), not from the content of the page */
+    table-layout: fixed;
+    width: 100%;
+    min-width: 100%;
+
+    th, td { overflow: hidden; text-overflow: ellipsis; }
+
+    /* long names end in "…" (full text on hover, table.js) instead of being cut */
+    /* fixed, compact rows: the same height for text, links and badges on every page (table.js counts on it) */
+    tbody tr:not(.otable-empty) > td, tbody tr:not(.otable-empty) > th {
+        height: 38px;
+        vertical-align: middle;
+        padding: 0 10px !important;
+        line-height: 1.4;
+        white-space: nowrap;
+    }
+
+    tbody .scroll-container {
+        max-height: 30px;
+        align-items: center;
+        overflow-y: hidden;
+    }
+
+    tbody td > a {
+        display: block !important;
+        height: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    thead tr th {
+        background: var(--otable-head);
+        border-bottom: 1px solid var(--otable-border);
+        padding: 0 10px !important;
+        height: 42px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-gray-700);
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    thead tr th.otable-sorted { color: var(--otable-accent); }
+
+    tbody tr {
+        transition: background-color .08s;
+        &:hover > * { background: var(--otable-hover); }
+        > th:first-child, > td:first-child { padding-left: 12px !important; }
+        &:last-child > * { border-bottom: 0; }
+    }
+
+    tbody tr > th, tbody tr > td { border-bottom: 1px solid #eef1f4; }
+
+    /* horizontal rules only: the app's tables draw vertical cell borders */
+    th, td { border-left: 0 !important; border-right: 0 !important; }
+}
+
+.otable table thead th {
+    position: relative;
+
+    /* drag handle on the right edge of a header cell (table.js) */
+    .otable-resize {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 8px;
+        height: 100%;
+        cursor: col-resize;
+        touch-action: none;
+        z-index: 1;
+        &::after {
+            content: "";
+            position: absolute;
+            top: 25%;
+            bottom: 25%;
+            right: 3px;
+            width: 2px;
+            border-radius: 1px;
+            background: transparent;
+            transition: background-color .12s;
+        }
+        &:hover::after, &:focus-visible::after, &.dragging::after { background: var(--color-cemm-blue); }
+        &:focus-visible { outline: none; }
+    }
+    &:hover .otable-resize::after { background: var(--otable-border-strong); }
+
+    .otable-th {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .otable-th-title {
+        margin-right: auto !important;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .otable-sort {
+        flex: 1;
+        justify-content: space-between;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .otable-sort,
+    .otable-funnel {
+        border: 0;
+        background: transparent;
+        padding: 4px 4px !important;
+        border-radius: 6px;
+        font: inherit;
+        font-weight: inherit;
+        color: inherit;
+        display: inline-flex;
+        align-items: center;
+        &:hover { background: #e7ebef; }
+        &:focus-visible { outline: 2px solid var(--color-cemm-blue); }
+    }
+
+    .otable-sort i { font-size: 12px; flex: none; }
+    .otable-sort-idle { color: var(--color-gray-500); }
+    .otable-funnel { color: var(--color-gray-500); font-size: 12px; flex: none; }
+    .otable-funnel.active { color: var(--otable-accent); background: var(--otable-tint); }
+}
+
+.otable-index-switch {
+    display: inline-flex;
+    flex: none;
+    border: 1px solid var(--otable-border-strong);
+    border-radius: 6px;
+    overflow: hidden;
+    font-weight: normal;
+
+    button {
+        border: 0;
+        background: #fff;
+        font-size: 11px;
+        padding: 2px 8px !important;
+        color: var(--color-gray-700);
+        & + button { border-left: 1px solid var(--otable-border-strong); }
+        &[aria-pressed="true"] { background: var(--otable-accent); color: #fff; }
+    }
+}
+
+/* search terms in the cells (static/js/table.js highlightSearch), as in the navbar search */
+.otable mark.otable-mark {
+    padding: 0;
+    border-radius: 2px;
+    background-color: rgba(255, 200, 40, 0.45);
+    color: inherit;
+}
+
+/* barcode display per table: adapter names (default) or sequences */
+.otable .index-badge-seq { display: none !important; }
+.otable[data-index-mode="seq"] .index-badge-name { display: none !important; }
+.otable[data-index-mode="seq"] .index-badge-seq { display: inline-block !important; }
+
+.table-container.otable table tbody tr > td.otable-actions-cell {
+    /* more specific than the general cell padding: the ⋯ button must never be cut ("…") */
+    padding: 0 4px !important;
+    text-align: center;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.row-menu-btn {
+    width: 30px;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-gray-700);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    &:hover, &:focus-visible { background: #e7ebef; }
+    &:focus-visible { outline: 2px solid var(--color-cemm-blue); }
+}
+
+.otable tr.otable-empty td {
+    text-align: center;
+    padding: 40px 12px !important;
+    color: var(--otable-muted);
+    cursor: default;
+    font-family: inherit !important;
+
+    .otable-empty-title { font-weight: 600; color: var(--otable-text); }
+    .otable-empty-text { margin: 4px 0 10px 0 !important; }
+    .otable-btn { margin-top: 10px !important; }
+}
+
+/* pager ----------------------------------------------------------------------------------------------------- */
+.otable-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--otable-border);
+    background: #fff;
+    border-radius: 0 0 var(--otable-radius) var(--otable-radius);
+    font-size: 13px;
+    color: var(--otable-muted);
+
+    .otable-footer-end {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .otable-limit-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .otable-limit {
+        height: 30px;
+        border: 1px solid var(--otable-border-strong);
+        border-radius: 6px;
+        background: #fff;
+        font-size: 13px;
+    }
+}
+
+.otable-pages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .otable-page {
+        min-width: 30px;
+        height: 30px;
+        padding: 0 6px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        font-size: 13px;
+        color: var(--otable-text);
+        font-variant-numeric: tabular-nums;
+        &:hover:not(:disabled):not(.active) { background: var(--otable-hover); border-color: var(--otable-border); }
+        &.active { background: var(--otable-accent); border-color: var(--otable-accent); color: #fff; }
+        &:disabled { opacity: .35; }
+    }
+
+    .otable-page-gap { padding: 0 2px; }
+}
+
+/* loading: keep the rows, dim them and show a thin bar in its own clipped strip (no sideways scrollbar) */
+.otable-loadbar {
+    position: relative;
+    height: 0;
+    overflow: hidden;
+}
+
+.otable-form.htmx-request {
+    tbody { opacity: .45; transition: opacity .15s ease-in; }
+    .otable-loadbar { height: 3px; margin-bottom: -3px; z-index: 2; }
+    .otable-loadbar::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        background: var(--color-cemm-blue);
+        animation: otable-loading 1s ease-in-out infinite;
+    }
+}
+
+@keyframes otable-loading {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+
+@media (max-width: 576px) {
+    .otable-toolbar { padding: 10px; }
+    .otable-toolbar-end { margin-left: 0; }
+    .otable-search .otable-scope { max-width: 96px; }
+    .otable-filter-panel {
+        grid-template-columns: 1fr;
+        .otable-filter-fields {
+            flex-direction: row;
+            overflow-x: auto;
+            border-right: 0;
+            border-bottom: 1px solid var(--otable-border);
+            max-height: none;
+        }
+        .otable-panel-label { display: none; }
+        .otable-filter-field { white-space: nowrap; }
+    }
+    .otable-footer { justify-content: center; }
 }

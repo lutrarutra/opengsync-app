@@ -21,7 +21,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('render_pool_table') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div data-table-loader="pool" hx-get="{{ url_for('render_pool_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

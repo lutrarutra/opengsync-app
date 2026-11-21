@@ -1,0 +1,9 @@
+{#- toolbar buttons of a user's API tokens table (Variant.toolbar) -#}
+{% from "components/button.jinja2" import modal_button %}
+{{
+    modal_button(
+        "New Token", url=url_for('APITokenForm.Begin', user_id=user.id), size="sm", class="otable-btn otable-btn-primary",
+        disabled=current_user.id != user.id and access_level < C.AccessLevel.ADMIN,
+        disabled_tooltip="Only admins can create API tokens for other users.", tooltip_position="left"
+    )
+}}

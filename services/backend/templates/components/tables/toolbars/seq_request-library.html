@@ -1,0 +1,5 @@
+{#- toolbar buttons of a request's libraries table (Variant.toolbar) -#}
+<button type="button" class="otable-btn" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+    hx-get="{{ url_for('EditLibraryPropertiesAction.Begin', seq_request_id=seq_request.id) }}">
+    <i class="bi bi-sliders" aria-hidden="true"></i> Properties
+</button>

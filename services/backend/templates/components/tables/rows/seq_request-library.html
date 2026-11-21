@@ -1,0 +1,58 @@
+{% from "components/contextmenu.jinja2" import row_menu %}
+{% from "components/legends.jinja2" import index_badge_legend %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+{% for library in rows %}
+<tr class="library-row" data-id="{{ library.id }}" data-name="{{ library.name }}">
+    <th scope="row">{{ library.id }}</th>
+    <td class="cm-callback"
+    {{
+        context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                    ])
+    }}>
+        <a href="{{ url_for('library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
+            {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
+        </a>
+    </td>
+    <td {% if library.pool_id %}class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": library.pool.name, "label": "Copy Name"},
+        ])
+    }}{% endif %}>
+    {% if library.pool_id %}
+        {% if current_user.is_insider or library.pool.type == C.PoolType.EXTERNAL %}
+        <a href="{{ url_for('pool_page', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>
+        {% else %}
+        <span>{{ library.pool.name }}</span>
+        {% endif %}
+    {% endif %}
+    </td>
+    <td>
+        <span {{ tooltip(library.type.label) }}>
+            {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
+        </span>
+    </td>
+    <td>
+        {{ library.status.icon }} {{ library.status.label }}
+    </td>
+    <td class="x-scroll-cell">
+        {{ library_index_cell(library) }}
+    </td>
+    {{ row_menu([
+    {"type": "copy", "value": library.name, "label": "Copy Name"},
+    {"type": "hxdelete", "label": "Remove Library", "disabled": false if current_user.is_admin or ((seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider) and library.status < C.LibraryStatus.SEQUENCED) else true, "config": {
+                "url": url_for('remove_library_from_request', library_id=library.id, **table.url_params).__str__(),
+                "target": "#seq_request-library-table",
+                "title": "Remove {library.name} from {seq_request.name}?".format(library=library, seq_request=seq_request)
+            },},
+    {"type": "hxpost", "label": "Re-Sequence Library", "disabled": false if current_user.is_insider else true, "config": {
+                "url": url_for('reseq_library', library_id=library.id, **table.url_params).__str__(),
+                "target": "#seq_request-library-table",
+                "title": "Re-Sequence {library.name} in {seq_request.name}?".format(library=library, seq_request=seq_request)
+            },}
+    ]) }}
+</tr>
+{% endfor %}
+

@@ -1,0 +1,23 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for feature in rows %}
+<tr>
+    <th scope="row">{{ feature.id }}</th>
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": feature.name, "label": "Copy Name"},
+        ])
+    }}>{{ feature.name }}</td>
+    <td {% if feature.identifier %}class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": feature.identifier, "label": "Copy Identifier"},
+        ])
+    }}{% endif %}>{{ feature.identifier or '' }}</td>
+    <td>{{ feature.target_name or '' }}</td>
+    <td>{{ feature.target_id or '' }}</td>
+    <td>{{ feature.sequence }}</td>
+    <td>{{ feature.pattern }}</td>
+    <td>{{ feature.read }}</td>
+    <td>{{ feature.type.label }}</td>
+</tr>
+{% endfor %}
+

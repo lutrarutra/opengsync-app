@@ -27,7 +27,7 @@
     </div>
 </div>
 <div class="page-content">
-    <div hx-get="{{ url_for('render_experiment_table') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div data-table-loader="exp" hx-get="{{ url_for('render_experiment_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

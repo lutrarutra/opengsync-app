@@ -4,106 +4,90 @@ import pandas as pd
 from fastapi import APIRouter, Depends, Query, Path, Request
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
+from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
 
 from ...core import config, dependencies, overview, responses, exceptions as exc, query_options, checklists
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Text, Exact, Enum, Entity, Variant, related
 from ... import forms
 from .data_browser import DataScope, data_browser_router, experiment_data_permissions
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
 
-class ExperimentTable(HTMXTable):
+E = models.Experiment
+_FULL_NAME = Q.search.full_name(models.User)
+
+
+class ExperimentTable(Table):
+    key = "exp"
+    model = models.Experiment
+    noun = "experiments"
+    load = (
+        orm.selectinload(E.operator),
+        orm.selectinload(E.pools),
+        orm.selectinload(E.sequencer),
+        orm.with_expression(E._library_types, E.library_types.expression),  # type: ignore
+    )
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Workflow", label="workflow", col_size=2, choices=C.ExperimentWorkFlow.as_selectable(), sortable=True, sort_by="workflow"),
-        TableCol(title="Status", label="status", col_size=2, choices=C.ExperimentStatus.as_selectable(), sortable=True, sort_by="status"),
-        TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=3, choices=C.LibraryType.as_selectable()),
-        TableCol(title="Operator", label="operator", col_size=2, searchable=True),
-        TableCol(title="Created", label="timestamp_created", col_size=2, sortable=True, sort_by="timestamp_created_utc"),
-        TableCol(title="Completed", label="timestamp_completed", col_size=2, sortable=True, sort_by="timestamp_finished_utc"),
+        Col("id", "ID", sort=True, search=Exact(E.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(E.name, compact=True), hideable=False, size=2),
+        Col("workflow", "Workflow", sort=True, filter=Enum(C.ExperimentWorkFlow), size=2),
+        Col("status", "Status", sort=True, filter=Enum(C.ExperimentStatus), size=2),
+        Col("pools", "Pools Int. Ext. Cstm.", size=2),
+        Col("num_seq_requests", "# Seq Requests", sort=True, size=1),
+        Col("library_types", "Library Types", size=3, filter=Enum(C.LibraryType, column=models.Library.type, via=E.libraries)),
+        Col(
+            "operator", "Operator", size=2,
+            sort=related(E.operator, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=E.operator, weight=0.9),
+            filter=Entity(models.User, via=E.operator, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
+        ),
+        Col("timestamp_created", "Created", sort=E.timestamp_created_utc, size=2),
+        Col("timestamp_completed", "Completed", sort=E.timestamp_finished_utc, size=2),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "name", "operator", "status", "pools", "library_types", "timestamp_created", "workflow"],
+            "components/tables/rows/experiment.html", dom_id="experiment-table",
+        ),
+        "project": Variant(
+            ["id", "name", "status", "workflow", "operator", "timestamp_completed"],
+            "components/tables/rows/project-experiment.html", dom_id="project-experiment-table",
+        ),
+        "browse": Variant(
+            ["id", "name", "workflow", "status", "library_types", "operator"],
+            "components/tables/rows/browse-experiment.html", dom_id="select-experiments-table", url_state=False,
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_experiment_table(
     project_id: int | None = Query(None, description="Optional project ID to filter experiments"),
-    status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentStatus, query_param="status_in")),
-    workflow_in: list[C.ExperimentWorkFlow] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentWorkFlow, query_param="workflow_in")),
-    name: str | None = Query(None, description="Optional name to search experiments"),
-    operator: str | None = Query(None, description="Optional operator name to search experiments"),
-    id_search: str | None = Query(None, alias="id", description="Search by experiment ID"),
-    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     browse: str | None = Query(None, description="Optional browse context for experiment selection component"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Experiment, default=models.Experiment.id.desc())),
+    state: TableState = Depends(ExperimentTable.params),
     session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_user)
 ):
-    table = ExperimentTable(route="render_experiment_table", page=page, order_by=order_by)
-
-    if status_in:
-        table.filter_values["status"] = status_in
-    if workflow_in:
-        table.filter_values["workflow"] = workflow_in
-    if library_types_in:
-        table.filter_values["library_types"] = library_types_in
-
-    stmt = Q.experiment.select(
-        project_id=project_id,
-        status_in=status_in,
-        workflow_in=workflow_in,
-        library_types_in=library_types_in,
-    )
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.experiment.search(name=name, statement=stmt)
-    elif operator:
-        table.active_search_var = "operator"
-        table.active_query_value = operator
-        stmt = Q.experiment.search(operator_name=operator, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.experiment.select(id=int(digits), statement=stmt)
+    stmt = Q.experiment.select(project_id=project_id)
+    table = ExperimentTable(state, route="render_experiment_table", user=current_user)
 
     if project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException(f"User does not have permission to view experiments for project ID {project_id}.")
-        table.template = "components/tables/project-experiment.html"
-        table.url_params["project_id"] = project_id
-    else:
-        if not current_user.is_insider:
-            raise exc.NoPermissionsException("User does not have permission to view experiments.")
-        table.template = "components/tables/experiment.html"
-    
+        table.use("project", project_id=project_id)
+    elif not current_user.is_insider:
+        raise exc.NoPermissionsException("User does not have permission to view experiments.")
+
     if browse is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("User does not have permission to browse experiments.")
-        table.template = "components/tables/browse-experiment.html"
+        table.use("browse", browse=browse)
         table.context["browse_context"] = browse
-        table.url_params["browse"] = browse
 
-    experiments = table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[
-            orm.selectinload(models.Experiment.operator),
-            orm.selectinload(models.Experiment.pools),
-            orm.selectinload(models.Experiment.sequencer),
-            orm.with_expression(
-                models.Experiment._library_types,
-                models.Experiment.library_types.expression  # type: ignore
-            ),
-        ]
-    )
-    return table.make_response(experiments=experiments)
+    return table.render(session, stmt)
 
 
 @router.get("/search")

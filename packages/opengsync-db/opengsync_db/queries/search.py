@@ -284,3 +284,12 @@ def search(query: SearchQuery, kinds: list[str] | None = None, limit_per_kind: i
 
     branches = [sa.select(*_BRANCHES[kind](query, limit_per_kind).c) for kind in kinds]
     return branches[0] if len(branches) == 1 else sa.union_all(*branches)
+
+
+# Public building blocks, reused by the htmx tables (services/backend/server/components/tables/query.py)
+# to rank their free-text search the same way as the navbar search.
+match = _match
+weighted = _weighted
+full_name = _full_name
+enum_label = _enum_label
+seq_request_identifier = _seq_request_identifier

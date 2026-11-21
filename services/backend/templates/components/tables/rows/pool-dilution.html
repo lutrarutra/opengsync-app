@@ -1,0 +1,26 @@
+{% for dilution in rows %}
+<tr>
+    <th scope="row">{{ dilution.identifier }}</th>
+    <td>{{ dilution.operator.name }}</td>
+    <td>{{ dilution.timestamp_str() }}</td>
+    <td>
+        <div class="quantity-container">
+            <div class="value">{{ dilution.qubit_concentration }}</div>
+            <div class="unit">ng/μL</div>
+        </div>
+    </td>
+    <td>
+        <div class="quantity-container {{ dilution.molarity_color_class(pool) }}">
+            <div class="value">{{ dilution.molarity_str(pool) }}</div>
+            <div class="unit">nM</div>
+        </div>
+    </td>
+    <td>
+        <div class="quantity-container">
+            <div class="value">{{ dilution.volume_ul or '' }}</div>
+            <div class="unit">μL</div>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+

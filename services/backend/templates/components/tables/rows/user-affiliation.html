@@ -1,0 +1,13 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for affiliation in rows %}
+<tr>
+    <th scope="row">{{ affiliation.group_id }}</th>
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": affiliation.group.name, "label": "Copy Name"},
+        ])
+    }}><a href="{{ url_for('group_page', group_id=affiliation.group_id, from='user@' + user.id | string) }}">{{ affiliation.group.name }}</a></td>
+    <td>{{ affiliation.affiliation_type.icon }} {{ affiliation.affiliation_type.label }}</td>
+</tr>
+{% endfor %}
+

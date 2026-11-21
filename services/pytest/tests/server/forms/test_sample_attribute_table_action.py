@@ -440,7 +440,7 @@ def test_submit_duplicate_column_names_are_rejected(
         columns, [row(sample_a, "kidney", "b1"), row(sample_b, "lung", "b2")],
     ), token=insider_token)
 
-    assert_form_invalid(response, "Duplicate column names")
+    assert_form_invalid(response, "Columns 'Donor', 'donor' all map to 'donor'")
     _assert_unchanged(session, sample_a, sample_b)
 
 

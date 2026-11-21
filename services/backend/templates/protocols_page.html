@@ -16,7 +16,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('render_protocol_table') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div data-table-loader="prot" hx-get="{{ url_for('render_protocol_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

@@ -1,61 +1,66 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import joinedload
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, exceptions as exc, responses
-from ...components.tables import HTMXTable, TableCol
+from ...core import dependencies, exceptions as exc, responses, query_options
+from ...components.tables import Table, TableState, Col, Text, Exact, Entity, Variant, related
 
 router = APIRouter(prefix="/api-tokens", tags=["api-tokens"])
 
 
-class APITokenTable(HTMXTable):
+T = models.APIToken
+_FULL_NAME = Q.search.full_name(models.User)
+
+
+class APITokenTable(Table):
+    key = "tok"
+    model = models.APIToken
+    noun = "tokens"
+    load = (joinedload(T.owner),)
     columns = [
-        TableCol(title="ID", label="id", col_size=1, sortable=True),
-        TableCol(title="Owner", label="owner_id", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Valid (min)", label="time_valid_min", col_size=1, sortable=True),
-        TableCol(title="Created", label="created_utc", col_size=2, sortable=True),
-        TableCol(title="Expiration", label="expiration", col_size=2, sortable=True),
+        Col("id", "ID", sort=True, search=Exact(T.id), hideable=False, size=1),
+        Col("token", "Token", hideable=False, size=1),
+        Col(
+            "owner", "Owner", sort=related(T.owner, _FULL_NAME), size=2,
+            search=Text(_FULL_NAME, models.User.email, via=T.owner),
+            filter=Entity(models.User, via=T.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
+        ),
+        Col("time_valid_min", "Valid (min)", sort=True, size=1),
+        Col("created_utc", "Created", sort=True, size=2),
+        Col("expiration", "Expiration", sort=True, size=2),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "owner", "time_valid_min", "created_utc", "expiration"], "components/tables/rows/api-token.html",
+            dom_id="api-token-table",
+        ),
+        "user": Variant(
+            ["token", "expiration", "owner", "time_valid_min"], "components/tables/rows/user-api_token.html",
+            dom_id="user-api_token-table", actions=True, toolbar="components/tables/toolbars/user-api_token.html", fields=["id", "time_valid_min", "created_utc", "expiration"],
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_api_token_table(
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    current_user: models.User = Depends(dependencies.require_user),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.APIToken, default=models.APIToken.id.desc())),
     user_id: int | None = Query(None, description="Optional owner user ID to filter tokens"),
-    owner_search: str | None = Query(None, alias="owner_id", description="Search by owner ID or name"),
+    state: TableState = Depends(APITokenTable.params),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = APITokenTable(route="render_api_token_table", page=page, order_by=order_by)
     stmt = Q.api_token.select(owner_id=user_id)
-
-    if owner_search:
-        table.active_search_var = "owner_id"
-        table.active_query_value = owner_search
-        if owner_search.strip().isdigit():
-            stmt = Q.api_token.select(owner_id=int(owner_search), statement=stmt)
-        else:
-            stmt = Q.api_token.search(owner_name=owner_search, statement=stmt)
+    table = APITokenTable(state, route="render_api_token_table", user=current_user)
 
     if user_id is not None:
-        if session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id)) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        # scoped as user_id (not owner_id) so it doesn't collide with the searchable owner_id column state
-        table.url_params["user_id"] = user_id
-        table.template = "components/tables/user-api_token.html"
-        table.context["user"] = session.get_one(Q.user.select(id=user_id))
-    else:
-        if not current_user.is_insider:
-            raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/api-token.html"
+        table.use("user", user_id=user_id, user=session.get_one(Q.user.select(id=user_id)))
+        table.context["access_level"] = access_level
+    elif not current_user.is_insider:
+        raise exc.NoPermissionsException("You do not have permission to view this resource.")
 
-    tokens = table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[joinedload(models.APIToken.owner)],
-    )
-    return table.make_response(tokens=tokens)
+    return table.render(session, stmt)
 
 
 @router.post("/{token_id}/deactivate")

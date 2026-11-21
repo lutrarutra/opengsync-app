@@ -7,13 +7,21 @@
             <h1>Shares</h1>
         </div>
         <div class="page-controls">
-            <span class="desc"><i class="bi bi-info-circle"></i> Right click on a share link to expire it.</span>
+            <span class="desc"><i class="bi bi-info-circle"></i> Expire a share link from its ⋯ menu.</span>
         </div>
     </div>
 </div>
 
+<style>
+    #admin-share_token-table .share-token-cell,
+    #admin-share_token-table .share-paths-cell { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    #admin-share_token-table .share-token-log { display: inline; width: auto; color: var(--color-gray-600); }
+    #admin-share_token-table .share-paths-btn { display: inline-flex; align-items: center; gap: 0.25rem; padding-top: 0; padding-bottom: 0; }
+    #admin-share_token-table .share-size { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+
 <div class="page-content">
-    <div hx-get="{{ url_for('admin_share_token_table') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div data-table-loader="ashare" hx-get="{{ url_for('admin_share_token_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

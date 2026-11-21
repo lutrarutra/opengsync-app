@@ -1,0 +1,29 @@
+{% for adapter in rows %}
+<tr>
+    <th scope="row">{{ adapter.id }}</th>
+    {% if index_kit.type != C.IndexType.COMBINATORIAL_DUAL_INDEX %}
+    <td>{{ adapter.well }}</td>
+    {% endif %}
+    {% if index_kit.type == C.IndexType.SINGLE_INDEX_I7 %}
+    <td>{{ adapter.barcodes_i7[0].name }}</td>
+    <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+    {% elif index_kit.type == C.IndexType.DUAL_INDEX %}
+    <td>{{ adapter.barcodes_i7[0].name }}</td>
+    <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+    <td>{{ adapter.barcodes_i5[0].name }}</td>
+    <td>{{ adapter.barcodes_i5[0].sequence }}</td>
+    {% elif index_kit.type == C.IndexType.COMBINATORIAL_DUAL_INDEX %}
+    <td>{{ adapter.barcodes_i7[0].name if adapter.barcodes_i7 else "" }}</td>
+    <td>{{ adapter.barcodes_i7[0].sequence if adapter.barcodes_i7 else "" }}</td>
+    <td>{{ adapter.barcodes_i5[0].name if adapter.barcodes_i5 else "" }}</td>
+    <td>{{ adapter.barcodes_i5[0].sequence if adapter.barcodes_i5 else "" }}</td>
+    {% elif index_kit.type == C.IndexType.TENX_ATAC_INDEX %}
+    <td>{{ adapter.barcodes_i7[0].name }}</td>
+    <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+    <td>{{ adapter.barcodes_i7[1].sequence }}</td>
+    <td>{{ adapter.barcodes_i7[2].sequence }}</td>
+    <td>{{ adapter.barcodes_i7[3].sequence }}</td>
+    {% endif %}
+</tr>
+{% endfor %}
+

@@ -1,0 +1,16 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for protocol in rows %}
+<tr>
+    <th scope="row">{{ protocol.id }}</th>
+    <td class="cm-callback" {{
+        context_menu([{"type": "copy", "value": protocol.name, "label": "Copy Name"}])
+    }}>
+        <a href="{{ url_for('protocol_page', protocol_id=protocol.id) }}">
+            {{ protocol.name }}
+        </a>
+    </td>
+    <td>{{ protocol.service_type.label }}</td>
+    <td>{{ protocol.read_structure or "" }}</td>
+</tr>
+{% endfor %}
+

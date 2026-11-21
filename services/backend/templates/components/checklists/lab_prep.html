@@ -246,6 +246,11 @@
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Upload</button>{% if lab_prep_completed %}</span>{% endif %} the completed prep-table.
                     </li>
                 </ol>
+                {% if lab_prep.prep_file %}
+                <p class="text-success">
+                    Prep-table uploaded at <b>{{ lab_prep.prep_file.timestamp_str() }}</b> by <b>{{ lab_prep.prep_file.uploader.name }}</b>.
+                </p>
+                {% endif %}
                 <b>Notes:</b>
                 <ul>
                     <li>Mark pool with <span class="code-highlight">x</span> if a library should be marked failed, e.g. didn't pass QC.</li>

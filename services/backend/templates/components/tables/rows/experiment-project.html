@@ -1,0 +1,40 @@
+{% from "components/assignee_list.jinja2" import assignee_list %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+{% for project in rows %}
+<tr>
+    <th scope="row">{{ project.id }}</th>
+    <td {% if project.identifier %}class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": project.identifier, "label": "Copy Identifier"},
+        ])
+    }}{% endif %}><a href="{{ url_for('project_page', project_id=project.id, from='experiment@' + experiment_id | string) }}">{{ project.identifier or "" }}</a></td>
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": project.title, "label": "Copy Title"},
+        ])
+    }}><a href="{{ url_for('project_page', project_id=project.id, from='experiment@' + experiment_id | string) }}">{{ project.title }}</a></td>
+    <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
+    <td>{{ project.status.icon }} {{ project.status.label }}</td>
+    <td {% if project.group_id %}class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": project.group.name, "label": "Copy Name"},
+        ])
+    }}{% endif %}>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
+    <td><a href="{{ url_for('user_page', user_id=project.owner_id, from='experiment@' + experiment_id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
+    <td>{{ project.num_samples }}</td>
+    <td class="otable-assignees">
+        <span class="scroll-container">
+                    {% if current_user not in project.assignees %}
+                    <button type="button" class="btn assignee-badge"  {{ tooltip("Assign Me", category="success") }}
+                    hx-post="{{ url_for('add_project_assignee', project_id=project.id) }}"
+                    hx-target="#experiment-project-table"><i class="bi bi-person-fill-add"></i></button>
+                    {% endif %}
+                    {{ assignee_list(project.assignees, current_user=current_user, delete_url=url_for('remove_project_assignee', project_id=project.id, assignee_id=current_user.id)) }}
+            
+        </span>
+    </td>
+</tr>
+{% endfor %}
+

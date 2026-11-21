@@ -281,12 +281,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Samples <img {{ tooltip('Right click on a sample name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="smp" hx-get="{{ url_for('render_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -328,26 +323,12 @@
             {% endif %}
         </div>
         <div class="tab-pane fade" id="request-libraries-tab" role="tabpanel" tabindex="4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-                <div>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                    hx-get="{{ url_for('EditLibraryPropertiesAction.Begin', seq_request_id=seq_request.id) }}">Properties</button>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_library_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="lib" hx-get="{{ url_for('render_library_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="request-pools-tab" role="tabpanel" tabindex="5">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Pools</h2>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_pool_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="pool" hx-get="{{ url_for('render_pool_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -473,7 +454,7 @@
         </div>
         {% endif %}
         <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="8">
-            <div hx-get="{{ url_for('render_media_file_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="file" hx-get="{{ url_for('render_media_file_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -494,27 +475,12 @@
             </div>
         </div>  
         <div class="tab-pane fade" id="request-projects-tab" role="tabpanel" tabindex="11">
-            <div hx-get="{{ url_for('render_project_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="prj" hx-get="{{ url_for('render_project_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="request-assignees-tab" role="tabpanel" tabindex="12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-                <div>
-                    <span {% if not current_user.is_insider %}{{ tooltip("Only insiders can add assignees.", "left", "warning") }}{% endif %}>
-                    <button hx-get="{{ url_for('AddSeqRequestAssigneeAction.Begin', seq_request_id=seq_request.id) }}" class="btn btn-success"
-                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                        hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
-                        {% if not current_user.is_insider %}disabled{% endif %}>
-                        Add Assignee
-                    </button>
-                    </span>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_assignee_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="asg" hx-get="{{ url_for('render_assignee_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

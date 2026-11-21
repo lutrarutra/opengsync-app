@@ -1,135 +1,117 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions as exc, query_options
-from ...components.tables import HTMXTable, TableCol
+from ...core import dependencies, exceptions as exc, query_options
+from ...components.tables import Table, TableState, Col, Field, Text, Exact, Enum, Entity, Variant
 from ... import forms
 
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-class UserTable(HTMXTable):
-    columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True),
-        TableCol(title="Email", label="email", col_size=3, sortable=True),
-        TableCol(title="Role", label="role", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role"),
-        TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
-        TableCol(title="# Projects", label="num_projects", col_size=1, sortable=True),
-    ]
+U = models.User
+_FULL_NAME = Q.search.full_name(models.User)
+_GROUP_PATH = (U.affiliations, models.links.UserAffiliation.group)
 
+
+class UserTable(Table):
+    key = "user"
+    model = models.User
+    noun = "users"
+    load = (
+        orm.with_expression(U._num_seq_requests, U.num_seq_requests.expression),
+        orm.with_expression(U._num_projects, U.num_projects.expression),
+    )
+    columns = [
+        Col("id", "ID", sort=True, search=Exact(U.id), hideable=False, size=1),
+        Col("name", "Name", sort=_FULL_NAME, search=Text(_FULL_NAME), hideable=False, size=3),
+        Col("email", "Email", sort=True, search=Text(U.email), size=3),
+        Col("role", "Role", sort=True, filter=Enum(C.UserRole), size=2),
+        Col("num_seq_requests", "# Seq Requests", sort=True, size=1),
+        Col("num_projects", "# Projects", sort=True, size=1),
+        Field(
+            "group", "Group",
+            search=Text(models.Group.name, via=_GROUP_PATH),
+            filter=Entity(models.Group, via=_GROUP_PATH, option=query_options.group_option, search=(models.Group.name,)),
+        ),
+    ]
+    variants = {
+        "default": Variant(
+            ["id", "name", "email", "role", "num_seq_requests", "num_projects"], "components/tables/rows/user.html",
+            dom_id="user-table", actions=True,
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_user_table(
     group_id: int | None = Query(None, description="Optional group ID to filter users"),
-    name: str | None = Query(None, description="Search by user name"),
-    id_search: str | None = Query(None, alias="id", description="Search by user ID"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    state: TableState = Depends(UserTable.params),
     current_user: models.User = Depends(dependencies.require_insider),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.User, default=models.User.id.desc())),
-    role_in: list[C.UserRole] | None = Depends(dependencies.parse_enum_ids(enum_type=C.UserRole, query_param="role_in")),
     session: SyncSession = Depends(dependencies.db_session)
 ):
-    table = UserTable(route="render_user_table", page=page, order_by=order_by)
-
-    stmt = Q.user.select(
-        role_in=role_in,
-        group_id=group_id,
-    )
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.user.search(name=name, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.user.select(id=int(digits), statement=stmt)
-
-    if role_in:
-        table.filter_values["role"] = role_in
+    stmt = Q.user.select(group_id=group_id)
+    table = UserTable(state, route="render_user_table", user=current_user)
 
     if group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.url_params["group_id"] = group_id
-    table.template = "components/tables/user.html"
+        table.use("default", group_id=group_id)
 
-    users = table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[
-            orm.with_expression(models.User._num_seq_requests, models.User.num_seq_requests.expression),
-            orm.with_expression(models.User._num_projects, models.User.num_projects.expression),
-        ],
-    )
-    return table.make_response(users=users)
+    return table.render(session, stmt)
 
 
-class AssigneeTable(HTMXTable):
+class AssigneeTable(Table):
+    key = "asg"
+    model = models.User
+    noun = "assignees"
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=4, searchable=True),
-        TableCol(title="Email", label="email", col_size=4, sortable=True),
-        TableCol(title="Role", label="role", col_size=3, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role"),
+        Col("id", "ID", sort=True, search=Exact(U.id), hideable=False, size=1),
+        Col("name", "Name", sort=_FULL_NAME, search=Text(_FULL_NAME), hideable=False, size=4),
+        Col("email", "Email", sort=True, search=Text(U.email), size=4),
+        Col("role", "Role", sort=True, filter=Enum(C.UserRole), size=3),
     ]
+    variants = {
+        "seq_request": Variant(
+            ["id", "name", "email", "role"], "components/tables/rows/seq_request-assignee.html",
+            dom_id="seq_request-assignee-table", actions=True, toolbar="components/tables/toolbars/seq_request-assignee.html",
+        ),
+        "project": Variant(
+            ["id", "name", "email", "role"], "components/tables/rows/project-assignee.html",
+            dom_id="project-assignee-table", actions=True, toolbar="components/tables/toolbars/project-assignee.html",
+        ),
+    }
 
 
 @router.get("/render-assignee-table-page")
 def render_assignee_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter assignees"),
     project_id: int | None = Query(None, description="Optional project ID to filter assignees"),
-    name: str | None = Query(None, description="Search by user name"),
-    id_search: str | None = Query(None, alias="id", description="Search by user ID"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    state: TableState = Depends(AssigneeTable.params),
     current_user: models.User = Depends(dependencies.require_user),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.User, default=models.User.id.desc())),
-    role_in: list[C.UserRole] | None = Depends(dependencies.parse_enum_ids(enum_type=C.UserRole, query_param="role_in")),
     session: SyncSession = Depends(dependencies.db_session)
 ):
-    table = AssigneeTable(route="render_assignee_table", page=page, order_by=order_by)
-
-    stmt = Q.user.select(
-        assignees_seq_request_id=seq_request_id,
-        assignees_project_id=project_id,
-        role_in=role_in,
-    )
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.user.search(name=name, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.user.select(id=int(digits), statement=stmt)
-
-    if role_in:
-        table.filter_values["role"] = role_in
+    stmt = Q.user.select(assignees_seq_request_id=seq_request_id, assignees_project_id=project_id)
+    table = AssigneeTable(state, route="render_assignee_table", user=current_user)
 
     if seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/seq_request-assignee.html"
-        table.url_params["seq_request_id"] = seq_request_id
-        table.context["seq_request"] = session.get_one(Q.seq_request.select(id=seq_request_id))
+        table.use(
+            "seq_request", seq_request_id=seq_request_id,
+            seq_request=session.get_one(Q.seq_request.select(id=seq_request_id)),
+        )
     elif project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/project-assignee.html"
-        table.url_params["project_id"] = project_id
-        table.context["project"] = session.get_one(Q.project.select(id=project_id))
+        table.use("project", project_id=project_id, project=session.get_one(Q.project.select(id=project_id)))
     else:
         raise exc.BadRequestException("At least one of seq_request_id or project_id must be provided")
 
-    users = table.paginate(session, stmt, page=page, order_by=order_by)
-    return table.make_response(users=users)
+    return table.render(session, stmt)
 
-    
+
 @router.get("/search")
 def search_users(
     word: str | None = Query(None, description="Search word for user name or email"),

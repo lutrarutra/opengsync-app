@@ -270,7 +270,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="library-samples-tab" role="tabpanel" tabindex="3">
-            <div hx-get="{{ url_for('render_sample_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="smp" hx-get="{{ url_for('render_sample_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -297,23 +297,12 @@
         {% endif %}
         {% if library.type in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %}
         <div class="tab-pane fade" id="library-abc-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="feat" hx-get="{{ url_for('render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="library-abc-table-tab" role="tabpanel" tabindex="8">
-            <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
-                {{
-                    modal_button(
-                        "Edit",
-                        url_for("LibraryFeaturesAction.Begin", library_id=library.id),
-                        size="fullscreen",
-                        disabled=not current_user.is_insider,
-                        disabled_tooltip="Only insiders can edit features.", tooltip_position="right",
-                    )
-                }}
-            </div>
-            <div hx-get="{{ url_for('render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="feat_table" hx-get="{{ url_for('render_feature_table', library_id=library.id, instance='table') }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

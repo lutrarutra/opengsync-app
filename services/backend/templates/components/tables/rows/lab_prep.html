@@ -1,0 +1,26 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for lab_prep in rows %}
+<tr>
+    <th scope="row">{{ lab_prep.id }}</th>
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": lab_prep.name, "label": "Copy Name"},
+        ])
+    }}><a href="{{ url_for('lab_prep_page', lab_prep_id=lab_prep.id) }}">
+        {% if lab_prep.name == lab_prep.identifier %}
+        {{ lab_prep.name }}
+        {% else %}
+        <span>{{ lab_prep.name }} <span class="desc">{{ lab_prep.identifier }}</span></span>
+        {% endif %}
+    </a></td>
+    <td><span class="badge assignee-badge {% if lab_prep.creator == current_user %}badge-success{% endif %}">{{ lab_prep.creator.initials }}</span> {{ lab_prep.creator.name }}</td>
+    <td>{{ lab_prep.status.icon }} {{ lab_prep.status.label }}</td>
+    <td>{{ lab_prep.checklist_type.display_name }}<sup class="mux-type">{% for mux_type in lab_prep.mux_types %}{{ mux_type.abbreviation }}{% endfor %}</sup></td>
+    <td class="x-scroll-cell">{{ library_type_badge_list(lab_prep.library_types) }}</td>
+    <td>{{ lab_prep.num_libraries }}</td>
+    <td>{{ lab_prep.num_samples }}</td>
+</tr>
+{% endfor %}
+

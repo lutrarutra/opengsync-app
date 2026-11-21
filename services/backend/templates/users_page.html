@@ -24,7 +24,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('render_user_table') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div data-table-loader="user" hx-get="{{ url_for('render_user_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

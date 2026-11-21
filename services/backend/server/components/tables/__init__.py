@@ -1,5 +1,6 @@
-from .HTMXTable import HTMXTable
-from .TableCol import TableCol
+from .table import Table
+from .spec import Col, Field, Text, Exact, Enum, Entity, Variant, related
+from .state import TableState
 from .StaticSpreadsheet import StaticSpreadsheet
 from .spreadsheet import (
     SpreadSheetColumn, IntegerColumn, FloatColumn,
@@ -9,7 +10,7 @@ from .spreadsheet import (
 from .UniverSpreadsheet import UniverSpreadsheet
 
 __all__ = [
-    "HTMXTable", "TableCol", "StaticSpreadsheet",
+    "Table", "Col", "Field", "Text", "Exact", "Enum", "Entity", "Variant", "related", "TableState", "StaticSpreadsheet",
     "SpreadSheetColumn", "IntegerColumn", "FloatColumn",
     "DropdownColumn", "TextColumn", "UniverSpreadsheet",
     "CategoricalDropDown", "DBObjectColumn", "QueryColumn",

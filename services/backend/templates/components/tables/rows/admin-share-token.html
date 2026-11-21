@@ -1,0 +1,7 @@
+{#- rows of the admin share links table: projects and sizes are looked up once for the page's tokens -#}
+{% set row_context = table.row_context(rows) %}
+{% set projects = row_context.projects %}
+{% set sizes = row_context.sizes %}
+{% for share_token in rows %}
+{% include "components/admin/share-token-row.html" %}
+{% endfor %}

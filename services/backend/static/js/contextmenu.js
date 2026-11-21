@@ -91,10 +91,92 @@ function init_context_menu_callbacks() {
         
         if (!menuData?.actions?.length) return;
         
-        const menuItems = menuData.actions.map(action => createMenuItem(action, $element));
-        
+        const actions = [...menuData.actions];
+        // cells of a table body can also copy their whole column (as shown on this page)
+        if ($element.closest(".otable tbody").length && $element.is("td, th")) {
+            actions.push({ type: "copy_column", label: "Copy column" });
+        }
+        const menuItems = actions.map(action => createMenuItem(action, $element));
+
         showContextMenu(e.pageX, e.pageY, menuItems);
     });
+}
+
+// The ⋯ button of a table row opens the same kind of menu on a left click (see row_menu in contextmenu.jinja2)
+function open_row_menu(button) {
+    const $button = $(button);
+    const menuData = $button.data('context-menu');
+    if (!menuData?.actions?.length) return;
+    const rect = button.getBoundingClientRect();
+    const menuItems = menuData.actions.map(action => createMenuItem(action, $button));
+    showContextMenu(rect.right + window.scrollX - 8, rect.bottom + window.scrollY - 8, menuItems, { alignRight: true });
+    $("#context-menu-container .dropdown-item:not(.disabled)").first().trigger("focus");
+}
+
+$(document).on("click", ".row-menu-btn", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    window._rowMenuOpener = this;
+    open_row_menu(this);
+});
+
+// Keyboard in the open menu: Escape closes it (focus back to the ⋯ button), arrows move between items.
+// Caught on window in the capture phase: Bootstrap's own dropdown key handler (a capturing listener on
+// document) expects a toggle button this menu has not and would throw.
+window.addEventListener("keydown", (e) => {
+    const menu = document.getElementById("context-menu-container");
+    if (!menu || !menu.contains(e.target)) return;
+    if (!["Escape", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "Escape") {
+        hideContextMenu();
+        if (window._rowMenuOpener && document.body.contains(window._rowMenuOpener)) window._rowMenuOpener.focus();
+        return;
+    }
+    const items = Array.from(menu.querySelectorAll(".dropdown-item:not(.disabled)"));
+    if (!items.length) return;
+    const index = items.indexOf(document.activeElement);
+    const next = {
+        ArrowDown: (index + 1) % items.length,
+        ArrowUp: (index - 1 + items.length) % items.length,
+        Home: 0,
+        End: items.length - 1,
+    }[e.key];
+    items[next].focus();
+}, true);
+
+// Shift+F10 / the context-menu key: open the menu of the focused ⋯ button or right-click cell
+$(document).on("keydown", function(e) {
+    if (!((e.key === "F10" && e.shiftKey) || e.key === "ContextMenu")) return;
+    const focused = document.activeElement;
+    if (!focused) return;
+    if (focused.classList.contains("row-menu-btn")) {
+        e.preventDefault();
+        open_row_menu(focused);
+        return;
+    }
+    const cell = focused.closest(".cm-callback");
+    if (cell) {
+        e.preventDefault();
+        const rect = cell.getBoundingClientRect();
+        $(cell).trigger($.Event("contextmenu", { pageX: rect.left + window.scrollX, pageY: rect.bottom + window.scrollY }));
+    }
+});
+
+function formatActionLabel(action) {
+    const type = (action.type || "").replace(/^hx/, "").replace(/_/g, " ");
+    return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+function copy_table_column(cell) {
+    const tbody = cell.closest("tbody");
+    if (!tbody) return;
+    const index = cell.cellIndex;
+    const values = Array.from(tbody.rows)
+        .map(row => row.cells[index] ? row.cells[index].innerText.trim() : "")
+        .filter(value => value.length > 0);
+    if (values.length) copy_to_clipboard(values.join("\n"));
 }
 
 function createMenuItem(action, $contextElement) {
@@ -156,6 +238,10 @@ function handleContextMenuAction(action, $contextElement) {
     const handlers = {
         copy: (action) => {
             copy_to_clipboard(action.value);
+        },
+        copy_column: (action, $contextElement) => {
+            const cell = $contextElement ? $contextElement.closest("td, th")[0] : null;
+            if (cell) copy_table_column(cell);
         },
         select: (action) => {
             window.pathSelection?.toggle(action.config.path);
@@ -220,17 +306,30 @@ function handleContextMenuAction(action, $contextElement) {
     }
 }
 
-function showContextMenu(x, y, menuItems) {
+function showContextMenu(x, y, menuItems, options = {}) {
     const $container = $("#context-menu-container");
     const $background = $("#right-click-bg");
-    
+
+    // the overlay holds the menu: show it first, so the menu can be measured
+    $background.css({ display: "block" });
     $container.empty().append(menuItems)
-        .css({ 
+        .css({
             display: "block",
-            left: x + 8, 
+            left: x + 8,
             top: y + 8
         });
-    
+
+    // keep the menu inside the viewport (and right-aligned to a ⋯ button)
+    const menu = $container[0];
+    const width = menu.offsetWidth, height = menu.offsetHeight;
+    let left = options.alignRight ? x + 8 - width : x + 8;
+    let top = y + 8;
+    const maxLeft = window.scrollX + document.documentElement.clientWidth - width - 8;
+    const maxTop = window.scrollY + document.documentElement.clientHeight - height - 8;
+    left = Math.max(window.scrollX + 8, Math.min(left, maxLeft));
+    if (top > maxTop) top = Math.max(window.scrollY + 8, y - height - 8);
+    $container.css({ left: left, top: top });
+
     $background.css({ display: "block" });
 }
 

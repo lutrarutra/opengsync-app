@@ -144,6 +144,10 @@ pg_basebackup \
 ## Run Debug
 - `make debug` - starts the app in debug mode with hot reload and streams logs from `opengsync-app` container.
 - `make dev-stop` - stops the containers
+- `docker exec -i opengsync-app-dev python - < scripts/dev_seed_tables.py` - seeds QA users and data for trying out the tables in a browser
+
+## Tables
+The paged tables (search box, filters, entity filters, ⋯ row actions, state in the address bar) are built from one declarative spec per table; see [docs/tables.md](docs/tables.md) for the search syntax, access rules and how to add a table.
 
 
 # pgAdmin

@@ -79,12 +79,7 @@
     </ul>
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="sample-libraries-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_library_table', sample_id=sample.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="lib" hx-get="{{ url_for('render_library_table', sample_id=sample.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

@@ -1,27 +1,90 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
+from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import dependencies, responses, exceptions as exc, query_options
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Field, Text, Exact, Enum, Entity, Variant, related
 from ...forms.models import PoolForm
 
 
 router = APIRouter(prefix="/pools", tags=["pools"])
 
 
-class PoolTable(HTMXTable):
+P = models.Pool
+_FULL_NAME = Q.search.full_name(models.User)
+
+
+class PoolTable(Table):
+    key = "pool"
+    model = models.Pool
+    noun = "pools"
+    load = (
+        orm.selectinload(P.owner),
+        orm.selectinload(P.lane_links),
+        orm.with_expression(P._num_libraries, P.num_libraries.expression),
+        orm.with_expression(P._library_types, P.library_types.expression),
+    )
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=2, choices=C.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=1, sort_by="status", sortable=True, choices=C.PoolStatus.as_selectable()),
-        TableCol(title="Type", label="type", col_size=1, sort_by="type", sortable=True, choices=C.PoolType.as_selectable()),
-        TableCol(title="Owner", label="owner", col_size=2, searchable=True),
-        TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
+        Col("id", "ID", sort=True, search=Exact(P.id, prefixes=("P",)), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(P.name, compact=True), hideable=False, size=3),
+        Col("lanes", "Lanes", size=3),
+        Col("library_types", "Library Types", size=2, filter=Enum(C.LibraryType, column=models.Library.type, via=P.libraries)),
+        Col("status", "Status", sort=True, filter=Enum(C.PoolStatus), size=1),
+        Col("type", "Type", sort=True, filter=Enum(C.PoolType), size=1),
+        Col(
+            "owner", "Owner", size=2,
+            sort=related(P.owner, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=P.owner, weight=0.9),
+            filter=Entity(models.User, via=P.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
+        ),
+        Col("num_libraries", "# Libraries", sort=True, size=1),
+        Col("num_m_reads_requested", "# Reads Requested", sort=True, size=1),
+        Col("reads", "# Reads", size=1),
+        Col("molarity", "Molarity", size=1),
+        Col("qubit_concentration", "Qubit Conc.", sort=True, size=2),
+        Col("avg_fragment_size", "Avg. Fragment Size", sort=True, size=2),
+        Field(
+            "seq_request", "Request",
+            search=Text(models.SeqRequest.name, via=P.seq_request),
+            filter=Entity(
+                models.SeqRequest, via=P.seq_request, option=query_options.seq_request_option,
+                search=(models.SeqRequest.name,),
+            ),
+        ),
+        Field(
+            "experiment", "Experiment",
+            search=Text(models.Experiment.name, via=P.experiment),
+            filter=Entity(
+                models.Experiment, via=P.experiment, option=query_options.experiment_option,
+                search=(models.Experiment.name,),
+            ),
+        ),
     ]
+    _browse = dict(row_template="components/tables/rows/browse-pool.html", dom_id="select-pools-table", url_state=False)
+    variants = {
+        "default": Variant(
+            ["id", "name", "library_types", "status", "type", "owner", "num_libraries"], "components/tables/rows/pool.html",
+            dom_id="pool-table",
+        ),
+        "seq_request": Variant(
+            ["id", "name", "library_types", "status", "owner", "num_libraries", "num_m_reads_requested"],
+            "components/tables/rows/seq_request-pool.html", dom_id="seq_request-pool-table",
+        ),
+        "lab_prep": Variant(
+            ["id", "name", "library_types", "status", "owner", "num_libraries"], "components/tables/rows/lab_prep-pool.html",
+            dom_id="lab_prep-pool-table",
+        ),
+        "experiment": Variant(
+            ["id", "name", "lanes", "library_types", "status", "reads", "molarity", "num_libraries"],
+            "components/tables/rows/experiment-pool.html", dom_id="experiment-pool-table", actions=True,
+            prelude="components/tables/rows/experiment-pool-prelude.html",
+        ),
+        "browse": Variant(["id", "name", "library_types", "status", "num_libraries"], **_browse),
+        "browse-qubit-measure": Variant(["id", "name", "library_types", "status", "qubit_concentration", "num_libraries"], **_browse),
+        "browse-ba-report": Variant(["id", "name", "library_types", "status", "avg_fragment_size", "num_libraries"], **_browse),
+    }
 
 
 @router.get("/render-table-page")
@@ -29,93 +92,46 @@ def render_pool_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter pools"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter pools"),
     lab_prep_id: int | None = Query(None, description="Optional lab prep ID to filter pools"),
-    name: str | None = Query(None, description="Optional name to search pools"),
-    owner: str | None = Query(None, description="Optional owner to search pools"),
-    id_search: str | None = Query(None, alias="id", description="Search by pool ID"),
-    status_in: list[C.PoolStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolStatus, query_param="status_in")),
-    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
-    type_in: list[C.PoolType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolType, query_param="type_in")),
     browse: str | None = Query(None, description="Browse context for pool selection component"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Pool, default=models.Pool.id.desc())),
+    state: TableState = Depends(PoolTable.params),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = PoolTable(route="render_pool_table", page=page, order_by=order_by)
-
-    if status_in:
-        table.filter_values["status"] = status_in
-    if library_types_in:
-        table.filter_values["library_types"] = library_types_in
-    if type_in:
-        table.filter_values["type"] = type_in
-
     stmt = Q.pool.select(
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
         lab_prep_id=lab_prep_id,
-        status_in=status_in,
-        library_types_in=library_types_in,
-        type_in=type_in,
     )
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.pool.search(name=name, statement=stmt)
-    elif owner:
-        table.active_search_var = "owner"
-        table.active_query_value = owner
-        stmt = Q.pool.search(owner_name=owner, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.pool.select(id=int(digits), statement=stmt)
+    table = PoolTable(state, route="render_pool_table", user=current_user)
 
     if seq_request_id is not None:
         if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        table.template = "components/tables/seq_request-pool.html"
-        table.url_params["seq_request_id"] = seq_request_id
+        table.use("seq_request", seq_request_id=seq_request_id)
         table.context["seq_request_id"] = seq_request_id
     elif lab_prep_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view pools for this lab prep.")
-        table.template = "components/tables/lab_prep-pool.html"
-        table.url_params["lab_prep_id"] = lab_prep_id
+        table.use("lab_prep", lab_prep_id=lab_prep_id)
         table.context["lab_prep_id"] = lab_prep_id
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view pools for this experiment.")
-        table.template = "components/tables/experiment-pool.html"
-        table.url_params["experiment_id"] = experiment_id
         experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
             orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links),
         ))
-        table.context["experiment"] = experiment
+        table.use("experiment", experiment_id=experiment_id, experiment=experiment)
         table.context["can_edit_pooling"] = (experiment.status == C.ExperimentStatus.DRAFT or current_user.is_admin) and not experiment.workflow.combined_lanes
-    else:
-        table.template = "components/tables/pool.html"
-        if not current_user.is_insider:
-            stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
+    elif not current_user.is_insider:
+        stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
 
     if browse is not None:
         if browse == "select-experiment-pools":
             stmt = Q.pool.select(associated_to_experiment=False, statement=stmt)
-        table.template = "components/tables/browse-pool.html"
+        table.use(f"browse-{browse}" if f"browse-{browse}" in PoolTable.variants else "browse", browse=browse)
         table.context["browse_context"] = browse
-        table.url_params["browse"] = browse
 
-    pools = table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[
-            orm.selectinload(models.Pool.owner),
-            orm.selectinload(models.Pool.lane_links),
-            orm.with_expression(models.Pool._num_libraries, models.Pool.num_libraries.expression),
-            orm.with_expression(models.Pool._library_types, models.Pool.library_types.expression),
-        ]
-    )
-    return table.make_response(pools=pools)
+    return table.render(session, stmt)
 
 
 @router.get("/search")

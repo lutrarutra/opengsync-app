@@ -300,6 +300,19 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         # Shown again as submitted when the validation fails
         self._display_df = df.copy()
 
+        # Headers differing only in case/spacing map to the same label; df[label] would then be a DataFrame
+        if df.columns.duplicated().any():
+            titles_by_label: dict = {}
+            for label, title in zip(df.columns, col_names):
+                titles_by_label.setdefault(label, []).append(str(title))
+            for label, titles in titles_by_label.items():
+                if len(titles) > 1:
+                    self.add_general_error(
+                        f"Columns {', '.join(repr(t) for t in titles)} all map to '{label}'. "
+                        "Remove or rename the duplicates."
+                    )
+            return False
+
         if df.empty:
             if not self.can_be_empty:
                 self.add_general_error("Spreadsheet must contain at least one row.")

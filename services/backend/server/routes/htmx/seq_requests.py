@@ -14,7 +14,6 @@ from opengsync_db import (
     queries as Q,
     categories as C,
     actions,
-    utils,
 )
 
 from opengsync_db.core.blueprints import pd_transforms as T
@@ -24,55 +23,87 @@ from ...core import dependencies, overview, responses, exceptions as exc, config
 from ...utils.io import cells_as_text, neutralize_formulas
 from ... import forms
 from .data_browser import DataScope, data_browser_router
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Field, Text, Exact, Enum, Entity, Variant, related
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
 
-class SeqRequestTable(HTMXTable):
+R = models.SeqRequest
+_FULL_NAME = Q.search.full_name(models.User)
+_PROJECT_PATH = (R.libraries, models.Library.sample_links, models.links.SampleLibraryLink.sample, models.Sample.project)
+
+
+class SeqRequestTable(Table):
+    key = "req"
+    model = models.SeqRequest
+    noun = "requests"
+    load = (
+        orm.selectinload(R.assignees),
+        orm.with_expression(R._library_types, R.library_types.expression),
+        orm.with_expression(R._mux_types, R.mux_types.expression),
+        orm.selectinload(R.requestor),
+        orm.selectinload(R.group),
+        orm.with_expression(R._num_libraries, R.num_libraries.expression),
+    )
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(
-            title="Name", label="name", col_size=4, searchable=True, sortable=True
+        Col("id", "ID", sort=True, search=Exact(R.id, prefixes=("BSR",)), hideable=False, size=1),
+        Col(
+            "name", "Name", sort=True, hideable=False, size=4,
+            search=Text(R.name, Q.search.seq_request_identifier(R.id), compact=True),
         ),
-        TableCol(
-            title="Library Types",
-            label="library_types",
-            col_size=3,
-            choices=C.LibraryType.as_selectable(),
+        Col("library_types", "Library Types", size=3, filter=Enum(C.LibraryType, column=models.Library.type, via=R.libraries)),
+        Col("status", "Status", sort=True, filter=Enum(C.SeqRequestStatus), size=1),
+        Col("submission_type", "Submission Type", sort=True, filter=Enum(C.SubmissionType), size=1),
+        Col(
+            "group", "Group", size=2,
+            sort=related(R.group, models.Group.name),
+            search=Text(models.Group.name, via=R.group),
+            filter=Entity(models.Group, via=R.group, option=query_options.group_option, search=(models.Group.name,)),
         ),
-        TableCol(
-            title="Status",
-            label="status",
-            col_size=1,
-            sortable=True,
-            sort_by="status",
-            choices=C.SeqRequestStatus.as_selectable(),
+        Col(
+            "requestor", "Requestor", size=2,
+            sort=related(R.requestor, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=R.requestor, weight=0.9),
+            filter=Entity(models.User, via=R.requestor, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
-        TableCol(
-            title="Submission Type",
-            label="submission_type",
-            col_size=1,
-            choices=C.SubmissionType.as_selectable(),
+        Col(
+            "assignees", "Assignees", size=2, sort=R.num_assignees,
+            search=Text(_FULL_NAME, models.User.email, via=R.assignees, weight=0.9),
+            filter=Entity(
+                models.User, via=R.assignees, option=query_options.user_option,
+                search=(_FULL_NAME, models.User.email), from_rows=True,
+            ),
         ),
-        TableCol(title="Group", label="group", col_size=2, searchable=True),
-        TableCol(title="Requestor", label="requestor", col_size=2, searchable=True),
-        TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
-        TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
-        TableCol(
-            title="Submitted",
-            label="timestamp_submitted",
-            col_size=2,
-            sortable=True,
-            sort_by="timestamp_submitted_utc",
-        ),
-        TableCol(
-            title="Completed",
-            label="timestamp_completed",
-            col_size=2,
-            sortable=True,
-            sort_by="timestamp_finished_utc",
+        Col("num_samples", "# Samples", sort=True, size=1),
+        Col("num_libraries", "# Libraries", sort=True, size=1),
+        Col("timestamp_submitted", "Submitted", sort=R.timestamp_submitted_utc, size=2),
+        Col("timestamp_completed", "Completed", sort=R.timestamp_finished_utc, size=2),
+        Field(
+            "project", "Project",
+            search=Text(models.Project.title, models.Project.identifier, via=_PROJECT_PATH),
+            filter=Entity(
+                models.Project, via=_PROJECT_PATH, option=query_options.project_option,
+                search=(models.Project.title, models.Project.identifier),
+            ),
         ),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "name", "library_types", "status", "submission_type", "group", "requestor", "assignees"],
+            "components/tables/rows/seq_request.html", dom_id="seq_request-table",
+        ),
+        "user": Variant(
+            ["id", "name", "library_types", "status", "timestamp_submitted", "num_libraries"],
+            "components/tables/rows/user-seq_request.html", dom_id="user-seq_request-table",
+        ),
+        "group": Variant(
+            ["id", "name", "requestor", "status", "library_types", "submission_type", "timestamp_submitted", "num_libraries"],
+            "components/tables/rows/group-seq_request.html", dom_id="group-seq_request-table",
+        ),
+        "project": Variant(
+            ["id", "name", "status", "timestamp_submitted", "library_types", "num_libraries", "assignees"],
+            "components/tables/rows/project-seq_request.html", dom_id="project-seq_request-table",
+        ),
+    }
 
 
 @router.get("/render-table-page")
@@ -80,113 +111,31 @@ def render_seq_request_table(
     user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
     group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
     project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
-    name: str | None = Query(None, description="Optional name search term to filter seq requests"),
-    group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
-    requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
-    id_search: str | None = Query(None, alias="id", description="Search by seq request ID"),
-    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
-    submission_type_in: list[C.SubmissionType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SubmissionType, query_param="submission_type_in")),
-    status_in: list[C.SeqRequestStatus] | None = Depends(
-        dependencies.parse_enum_ids(
-            enum_type=C.SeqRequestStatus, query_param="status_in"
-        )
-    ),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    state: TableState = Depends(SeqRequestTable.params),
     current_user: models.User = Depends(dependencies.require_user),
-    order_by: utils.OrderBy | None = Depends(
-        dependencies.parse_order_by(
-            model=models.SeqRequest,
-            default=models.SeqRequest.id.desc(),
-        )
-    ),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = SeqRequestTable(route="render_seq_request_table", page=page, order_by=order_by)
-
-    if status_in:
-        table.filter_values["status"] = status_in
-    if library_types_in:
-        table.filter_values["library_types"] = library_types_in
-    if submission_type_in:
-        table.filter_values["submission_type"] = submission_type_in
-
-    stmt = Q.seq_request.select(
-        requestor_id=user_id,
-        group_id=group_id,
-        project_id=project_id,
-        status_in=status_in,
-        library_types_in=library_types_in,
-        submission_type_in=submission_type_in,
-    )
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-    elif requestor:
-        table.active_search_var = "requestor"
-        table.active_query_value = requestor
-    elif group:
-        table.active_search_var = "group"
-        table.active_query_value = group
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.seq_request.select(id=int(digits), statement=stmt)
-
-    stmt = Q.seq_request.search(
-        name=name,
-        requestor_name=requestor,
-        group_name=group,
-        statement=stmt,
-    )
+    stmt = Q.seq_request.select(requestor_id=user_id, group_id=group_id, project_id=project_id)
+    table = SeqRequestTable(state, route="render_seq_request_table", user=current_user)
 
     if user_id is not None:
         if session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
-        table.template = "components/tables/user-seq_request.html"
-        table.url_params["user_id"] = user_id
+        table.use("user", user_id=user_id)
         table.context["user_id"] = user_id
     elif group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
-        table.template = "components/tables/group-seq_request.html"
-        table.url_params["group_id"] = group_id
+        table.use("group", group_id=group_id)
         table.context["group_id"] = group_id
     elif project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
-        table.template = "components/tables/project-seq_request.html"
-        table.url_params["project_id"] = project_id
-        table.context["project"] = session.get_one(Q.project.select(id=project_id))
-    else:
-        if not current_user.is_insider:
-            stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
+        table.use("project", project_id=project_id, project=session.get_one(Q.project.select(id=project_id)))
+    elif not current_user.is_insider:
+        stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
 
-        table.template = "components/tables/seq_request.html"
-
-    seq_requests = table.paginate(
-        session,
-        stmt,
-        page=page,
-        order_by=order_by,
-        options=[
-            orm.selectinload(models.SeqRequest.assignees),
-            orm.with_expression(
-                models.SeqRequest._library_types,
-                models.SeqRequest.library_types.expression,
-            ),
-            orm.with_expression(
-                models.SeqRequest._mux_types, models.SeqRequest.mux_types.expression
-            ),
-            orm.selectinload(models.SeqRequest.requestor),
-            orm.selectinload(models.SeqRequest.group),
-            orm.with_expression(
-                models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression
-            ),
-        ],
-    )
-    return table.make_response(seq_requests=seq_requests)
+    return table.render(session, stmt)
 
 
 @router.get("/search")

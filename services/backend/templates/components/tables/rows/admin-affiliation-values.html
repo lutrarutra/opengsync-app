@@ -1,0 +1,39 @@
+{#- rows of the admin affiliation values table (one per kind: institutes, departments, PIs) with buttons opening the
+    edit and merge modals. pi_accounts: the user accounts of PIs (their own email is the PI email), by value key. -#}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for value in rows %}
+{% set account = pi_accounts.get(value.key) %}
+<tr>
+    <th scope="row" class="cm-callback" {{ context_menu([{"type": "copy", "value": value.name, "label": "Copy Name"}]) }}>
+        {{ value.name }}
+        {% if value.num_spellings > 1 %}
+        <span class="badge bg-secondary" {{ tooltip("Stored in " ~ value.num_spellings ~ " spellings (case or spaces). Saving it with Edit unifies them.") }}>{{ value.num_spellings }} spellings</span>
+        {% endif %}
+    </th>
+    {% if kind.value == "pi" %}
+    <td>
+        {{ value.email }}
+        {% if account %}<a href="{{ url_for('user_page', user_id=account.id) }}" title="The PI's own account"><i class="bi bi-person-check"></i></a>{% endif %}
+    </td>
+    {% endif %}
+    {% if kind.value == "department" %}
+    <td>{% if value.institute %}{{ value.institute }}{% else %}<span class="desc">—</span>{% endif %}</td>
+    {% endif %}
+    <td>{{ value.num_users }}</td>
+    <td>
+        <div class="d-flex gap-1">
+            <button type="button" class="btn btn-sm btn-outline-primary table-btn" title="Edit"
+                data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                hx-get="{{ url_for('AffiliationValueForm.Edit', kind=kind.value, **value.params) }}">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary table-btn" title="Merge into another {{ kind.label | lower }}"
+                data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                hx-get="{{ url_for('MergeAffiliationValuesAction.Submit', kind=kind.value, **value.params) }}">
+                <i class="bi bi-intersect"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% endfor %}

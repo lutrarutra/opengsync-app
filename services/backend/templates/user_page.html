@@ -172,17 +172,17 @@
             </div>
         </div>
         <div class="tab-pane fade" id="user-projects-tab" role="tabpanel" tabindex="1">
-            <div hx-get="{{ url_for('render_project_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="prj" hx-get="{{ url_for('render_project_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="user-requests-tab" role="tabpanel" tabindex="2">
-            <div hx-get="{{ url_for('render_seq_request_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="req" hx-get="{{ url_for('render_seq_request_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="user-groups-tab" role="tabpanel" tabindex="3">
-            <div hx-get="{{ url_for('render_affiliation_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="aff" hx-get="{{ url_for('render_affiliation_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -195,21 +195,7 @@
         {% endif %}
         {% if current_user.is_insider %}
         <div class="tab-pane fade" id="user-api_tokens-tab" role="tabpanel" tabindex="4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>API Tokens</h2>
-                </div>
-                <div>
-                    {{
-                        modal_button(
-                            "New Token", url=url_for('APITokenForm.Begin', user_id=user.id), size="sm",
-                            disabled=current_user.id != user.id and access_level < C.AccessLevel.ADMIN,
-                            disabled_tooltip="Only admins can create API tokens for other users.", tooltip_position="left"
-                        )
-                    }}
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_api_token_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="tok" hx-get="{{ url_for('render_api_token_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

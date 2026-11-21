@@ -305,11 +305,21 @@ def test_begin_prefills_num_m_reads_from_current_pool(
     assert "247" not in response.text
 
 
-def test_single_pool_is_named_after_prep(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
-    response = _run(client, prep, insider_token, [(prep.a, "A"), (prep.b, "A"), (prep.c, "A")])
+def test_pool_given_as_prep_name_is_named_after_prep(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    name = prep.lab_prep.name
+    response = _run(client, prep, insider_token, [(prep.a, name), (prep.b, name), (prep.c, name)])
 
     assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
     assert _pools(session, prep) == {prep.lab_prep.name: sorted(lib.id for lib in prep.libraries)}
+
+
+def test_single_named_pool_keeps_its_name(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):
+    response = _run(client, prep, insider_token, [(prep.a, "A"), (prep.b, "A"), (prep.c, "A")])
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.lab_prep.id}")
+    assert _pools(session, prep) == {f"{prep.lab_prep.name}_A": sorted(lib.id for lib in prep.libraries)}
 
 
 def test_prep_name_prefix_is_not_doubled(client: TestClient, session: SyncSession, prep: Prep, insider_token: str):

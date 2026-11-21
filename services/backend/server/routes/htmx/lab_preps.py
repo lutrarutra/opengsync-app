@@ -2,98 +2,72 @@ import os
 import io
 
 import pandas as pd
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import orm
 from loguru import logger
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
+from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, lab as lab_ops
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, query_options
 from ...utils.io import set_text
-from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
+from ...components.tables import (
+    Table, TableState, Col, Text, Exact, Enum, Entity, Variant, related, StaticSpreadsheet, TextColumn,
+)
 from ... import forms
 
 router = APIRouter(prefix="/lab_preps", tags=["lab_preps"])
 
 
-class LabPrepTable(HTMXTable):
+LP = models.LabPrep
+_FULL_NAME = Q.search.full_name(models.User)
+
+
+class LabPrepTable(Table):
+    key = "prep"
+    model = models.LabPrep
+    noun = "preps"
+    load = (
+        orm.selectinload(LP.creator),
+        orm.selectinload(LP.libraries),
+        orm.with_expression(LP._num_samples, LP.num_samples.expression),
+        orm.with_expression(LP._num_libraries, LP.num_libraries.expression),
+        orm.with_expression(LP._library_types, LP.library_types.expression),
+    )
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Checklist", label="checklist", col_size=2, choices=C.LabChecklistType.as_selectable(), sortable=True, sort_by="checklist_type"),
-        TableCol(title="Service", label="service", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type"),
-        TableCol(title="Status", label="status", col_size=2, choices=C.PrepStatus.as_selectable(), sortable=True, sort_by="status"),
-        TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
-        TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
-        TableCol(title="Creator", label="creator", col_size=2, searchable=True),
-        TableCol(title="Library Types", label="library_types", col_size=2),
+        Col("id", "ID", sort=True, search=Exact(LP.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(LP.name, compact=True), hideable=False, size=2),
+        Col("checklist", "Checklist", sort=LP.checklist_type, filter=Enum(C.LabChecklistType, column=LP.checklist_type), size=2),
+        Col("service", "Service", sort=LP.service_type, filter=Enum(C.ServiceType, column=LP.service_type), size=2),
+        Col("status", "Status", sort=True, filter=Enum(C.PrepStatus), size=2),
+        Col("num_samples", "# Samples", sort=True, size=1),
+        Col("num_libraries", "# Libraries", sort=True, size=1),
+        Col(
+            "creator", "Creator", size=2,
+            sort=related(LP.creator, _FULL_NAME),
+            search=Text(_FULL_NAME, models.User.email, via=LP.creator, weight=0.9),
+            filter=Entity(models.User, via=LP.creator, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
+        ),
+        Col("library_types", "Library Types", size=2, filter=Enum(C.LibraryType, column=models.Library.type, via=LP.libraries)),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "name", "creator", "status", "checklist", "library_types", "num_libraries", "num_samples"],
+            "components/tables/rows/lab_prep.html", dom_id="lab_prep-table",
+        ),
+    }
 
 
 @router.get("/render-table", name="render_lab_prep_table")
 def render_lab_prep_table(
-    status_in: list[C.PrepStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PrepStatus, query_param="status_in")),
-    checklist_in: list[C.LabChecklistType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LabChecklistType, query_param="checklist_in")),
-    service_in: list[C.ServiceType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ServiceType, query_param="service_in")),
-    name: str | None = Query(None, description="Optional name to search for"),
-    id: int | None = Query(None, description="Optional ID to search for"),
-    creator: str | None = Query(None, description="Optional creator name to search for"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.LabPrep, default=models.LabPrep.id.desc())),
+    state: TableState = Depends(LabPrepTable.params),
+    current_user: models.User = Depends(dependencies.require_insider),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = LabPrepTable(route="render_lab_prep_table", page=page, order_by=order_by)
-    table.template = "components/tables/lab_prep.html"
-
-    if status_in:
-        table.filter_values["status"] = status_in
-    if checklist_in:
-        table.filter_values["checklist"] = checklist_in
-    if service_in:
-        table.filter_values["service"] = service_in
-
-    stmt = Q.lab_prep.select(
-        status_in=status_in,
-        checklist_type_in=checklist_in,
-        service_type_in=service_in,
-    )
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-    elif id is not None:
-        table.active_search_var = "id"
-        table.active_query_value = str(id)
-    elif creator:
-        table.active_search_var = "creator"
-        table.active_query_value = creator
-
-    stmt = Q.lab_prep.search(
-        name=name,
-        creator_name=creator,
-        statement=stmt,
-    )
-
-    if id is not None and not name and not creator:
-        stmt = Q.lab_prep.select(id=id, statement=stmt)
-
-    lab_preps = table.paginate(
-        session,
-        stmt,
-        page=page,
-        order_by=order_by,
-        options=[
-            orm.selectinload(models.LabPrep.creator),
-            orm.selectinload(models.LabPrep.libraries),
-            orm.with_expression(models.LabPrep._num_samples, models.LabPrep.num_samples.expression),
-            orm.with_expression(models.LabPrep._num_libraries, models.LabPrep.num_libraries.expression),
-            orm.with_expression(models.LabPrep._library_types, models.LabPrep.library_types.expression),
-        ],
-    )
-    return table.make_response(lab_preps=lab_preps)
+    table = LabPrepTable(state, route="render_lab_prep_table", user=current_user)
+    return table.render(session, Q.lab_prep.select())
 
 
 @router.post("/{lab_prep_id}/uncomplete")

@@ -3,52 +3,40 @@ from fastapi.responses import Response
 from sqlalchemy import orm
 import sqlalchemy as sa
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...core import dependencies, responses, query_options
 from ... import forms
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Text, Exact, Enum, Variant
 
 router = APIRouter(prefix="/protocols", tags=["protocols"])
 
-class ProtocolTable(HTMXTable):
+PR = models.Protocol
+
+
+class ProtocolTable(Table):
+    key = "prot"
+    model = models.Protocol
+    noun = "protocols"
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Read Structure", label="read_structure", col_size=3),
-        TableCol(title="Assay", label="service_type", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type"),
+        Col("id", "ID", sort=True, search=Exact(PR.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(PR.name, compact=True), hideable=False, size=3),
+        Col("service_type", "Assay", sort=True, filter=Enum(C.ServiceType), size=2),
+        Col("read_structure", "Read Structure", search=Text(PR.read_structure), size=3),
     ]
+    variants = {
+        "default": Variant(["id", "name", "service_type", "read_structure"], "components/tables/rows/protocol.html", dom_id="protocol-table"),
+    }
 
 
 @router.get("/render-table-page")
 def render_protocol_table(
-    name: str | None = Query(None, description="Search by protocol name"),
-    id: str | None = Query(None, description="Search by protocol ID"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    service_type_in: list[C.ServiceType] | None = Depends(dependencies.parse_enum_ids(C.ServiceType, "service_type_in")),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Protocol, default=models.Protocol.id.desc())),
+    state: TableState = Depends(ProtocolTable.params),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
-    table = ProtocolTable(route="render_protocol_table", page=page, order_by=order_by)
-    table.template = "components/tables/protocol.html"
-    stmt = Q.protocol.select(service_type_in=service_type_in)
-
-    if service_type_in:
-        table.filter_values["service_type"] = service_type_in
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-    elif id:
-        table.active_search_var = "id"
-        table.active_query_value = str(id)
-        if digits := "".join(filter(str.isdigit, id)):
-            stmt = Q.protocol.select(id=int(digits), statement=stmt)
-    
-    stmt = Q.protocol.search(name=name, statement=stmt)
-    protocols = table.paginate(session, stmt, page=page, order_by=order_by)
-    return table.make_response(protocols=protocols)
+    table = ProtocolTable(state, route="render_protocol_table", user=current_user)
+    return table.render(session, Q.protocol.select())
 
 
 @router.get("/query")

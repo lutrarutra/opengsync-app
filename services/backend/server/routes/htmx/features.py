@@ -1,38 +1,47 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
-from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
+from opengsync_db import SyncSession, queries as Q, categories as C, models
 
 from ...core import dependencies, exceptions as exc, redis as rds
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Text, Exact, Enum, Variant
 from ...forms.models import FeatureKitForm
 
 router = APIRouter(prefix="/features", tags=["features"])
 
-class FeatureTable(HTMXTable):
+F = models.Feature
+_FEATURE_COLUMNS = ["id", "name", "identifier", "target_name", "target_id", "sequence", "pattern", "read", "type"]
+
+
+class FeatureTable(Table):
+    key = "feat"
+    model = models.Feature
+    noun = "features"
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Identifier", label="identifier", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Target Name", label="target_name", col_size=2),
-        TableCol(title="Target ID", label="target_id", col_size=2),
-        TableCol(title="Sequence", label="sequence", col_size=2),
-        TableCol(title="Pattern", label="pattern", col_size=2),
-        TableCol(title="Read", label="read", col_size=2),
-        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type"),
+        Col("id", "ID", sort=True, search=Exact(F.id), hideable=False, size=1),
+        Col("name", "Name", sort=True, search=Text(F.name, compact=True), hideable=False, size=3),
+        Col("identifier", "Identifier", sort=True, search=Text(F.identifier, compact=True), size=2),
+        Col("target_name", "Target Name", sort=True, search=Text(F.target_name), size=2),
+        Col("target_id", "Target ID", sort=True, search=Text(F.target_id), size=2),
+        Col("sequence", "Sequence", search=Text(F.sequence), size=2),
+        Col("pattern", "Pattern", size=2),
+        Col("read", "Read", size=2),
+        Col("type", "Feature Type", sort=True, filter=Enum(C.FeatureType), size=2),
     ]
+    variants = {
+        "default": Variant(_FEATURE_COLUMNS, "components/tables/rows/feature_kit-feature.html", dom_id="feature_kit-feature-table"),
+        "library": Variant(
+            _FEATURE_COLUMNS, "components/tables/rows/library-feature.html", dom_id="library-feature-table",
+            toolbar="components/tables/toolbars/library-feature.html",
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_feature_table(
     feature_kit_id: int | None = Query(None, description="Optional feature kit ID to filter features"),
     library_id: int | None = Query(None, description="Filter features by library ID"),
-    name: str | None = Query(None, description="Search by feature name"),
-    identifier: str | None = Query(None, description="Search by feature identifier"),
-    id_search: str | None = Query(None, alias="id", description="Search by feature ID"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    type_in: list[C.FeatureType] | None = Depends(dependencies.parse_enum_ids(C.FeatureType, "type_in")),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Feature, default=models.Feature.id.desc())),
+    state: TableState = Depends(FeatureTable.params),
     session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_user),
     r: rds.RedisClient = Depends(dependencies.redis),
@@ -43,36 +52,14 @@ def render_feature_table(
     elif not feature_kit_id and not current_user.is_insider:
         raise exc.NoPermissionsException()
 
-    table = FeatureTable(route="render_feature_table", page=page, order_by=order_by)
-    stmt = Q.feature.select(library_id=library_id, feature_kit_id=feature_kit_id, type_in=type_in)
-
-    if type_in:
-        table.filter_values["type"] = type_in
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.feature.search(name=name, statement=stmt)
-    elif identifier:
-        table.active_search_var = "identifier"
-        table.active_query_value = identifier
-        stmt = Q.feature.search(identifier=identifier, statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.feature.select(id=int(digits), statement=stmt)
+    stmt = Q.feature.select(library_id=library_id, feature_kit_id=feature_kit_id)
+    table = FeatureTable(state, route="render_feature_table", user=current_user)
 
     if library_id:
-        table.template = "components/tables/library-feature.html"
-        table.url_params["library_id"] = library_id
+        table.use("library", library_id=library_id)
     elif feature_kit_id:
-        table.template = "components/tables/feature_kit-feature.html"
-        table.url_params["feature_kit_id"] = feature_kit_id
-    else:
-        table.template = "components/tables/feature_kit-feature.html"
+        table.use("default", feature_kit_id=feature_kit_id)
 
-    features = table.paginate(session, stmt, page=page, order_by=order_by)
-    return table.make_response(features=features)
+    return table.render(session, stmt)
 
 router.include_router(FeatureKitForm.Router())

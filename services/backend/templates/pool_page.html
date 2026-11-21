@@ -142,14 +142,7 @@
         </div>
         {% else %}
         <div class="tab-pane fade show active" id="library-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Libraries</h2>
-                </div>
-                <div>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_library_table', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="lib" hx-get="{{ url_for('render_library_table', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -193,7 +186,7 @@
                     <h2>Dilutions</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_dilution_table', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="dil" hx-get="{{ url_for('render_dilution_table', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

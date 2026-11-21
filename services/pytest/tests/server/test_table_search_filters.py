@@ -1,12 +1,10 @@
-"""HTMX table column search, filter and sort narrow / order the rendered rows.
+"""HTMX table search, filters and sorts narrow / order the rendered rows.
 
-Each test renders a table holding a row that matches and one that does not, sending the query
-parameter the column header sends (``<label>=``, ``<label>_in=[ids]``, ``order_by=``), and checks
-only the matching row is rendered. Name searches are trigram-fuzzy, so the two rows get names
-that share no trigrams.
+Each test renders a table holding a row that matches and one that does not, sending what the table's
+toolbar sends (``q=`` with ``field:value`` terms, ``<key>_in=<ids>``, ``order_by=``), and checks only the
+matching row is rendered. The two rows get names that share no trigrams, so the typo-tolerant fallback
+cannot pull the other one in.
 """
-
-import json
 
 import sqlalchemy as sa
 from fastapi.testclient import TestClient
@@ -35,7 +33,12 @@ def _only(html: str, hit: str, miss: str) -> None:
 
 
 def _ids(*enums) -> str:
-    return json.dumps([e.id for e in enums])
+    return ",".join(str(e.id) for e in enums)
+
+
+def _state(key: str, value: str) -> str:
+    """How a filter is echoed into the state the address bar mirrors (data-url-state, HTML-escaped JSON)."""
+    return f"&#34;{key}&#34;: &#34;{value}&#34;"
 
 
 def _named_user(session: SyncSession, first_name: str, last_name: str = "Quill") -> models.User:
@@ -50,8 +53,8 @@ def test_user_table_search(client: TestClient, session: SyncSession, insider_tok
     hit, miss = _named_user(session, HIT, "Wonderland"), _named_user(session, MISS, "Builder")
     session.commit()
 
-    _only(_html(client, insider_token, "/htmx/users/render-table-page", id=str(hit.id)), hit.email, miss.email)
-    _only(_html(client, insider_token, "/htmx/users/render-table-page", name=f"{HIT} Wonderland"), hit.email, miss.email)
+    _only(_html(client, insider_token, "/htmx/users/render-table-page", q=f"#{hit.id}"), hit.email, miss.email)
+    _only(_html(client, insider_token, "/htmx/users/render-table-page", q=f'name:"{HIT} Wonderland"'), hit.email, miss.email)
 
 
 def test_assignee_table_search(client: TestClient, session: SyncSession, insider, insider_token: str):
@@ -61,8 +64,8 @@ def test_assignee_table_search(client: TestClient, session: SyncSession, insider
     session.commit()
 
     path = "/htmx/users/render-assignee-table-page"
-    _only(_html(client, insider_token, path, project_id=project.id, id=f"#{hit.id}"), hit.email, miss.email)
-    _only(_html(client, insider_token, path, project_id=project.id, name=HIT), hit.email, miss.email)
+    _only(_html(client, insider_token, path, project_id=project.id, q=f"#{hit.id}"), hit.email, miss.email)
+    _only(_html(client, insider_token, path, project_id=project.id, q=f"name:{HIT}"), hit.email, miss.email)
 
 
 # id searches
@@ -72,21 +75,23 @@ def test_pool_table_id_search(client: TestClient, session: SyncSession, insider,
     hit, miss = create_pool(session, insider, seq_request), create_pool(session, insider, seq_request)
     session.commit()
 
-    _only(_html(client, insider_token, "/htmx/pools/render-table-page", id=f"P{hit.id}"), hit.name, miss.name)
+    _only(_html(client, insider_token, "/htmx/pools/render-table-page", q=f"P{hit.id}"), hit.name, miss.name)
 
 
 def test_project_table_id_search(client: TestClient, session: SyncSession, insider, insider_token: str):
     hit, miss = create_project(session, insider), create_project(session, insider)
     session.commit()
 
-    _only(_html(client, insider_token, "/htmx/projects/render-table-page", id=str(hit.id)), hit.title, miss.title)
+    _only(_html(client, insider_token, "/htmx/projects/render-table-page", q=f"#{hit.id}"), hit.title, miss.title)
 
 
-def test_id_search_without_digits_is_ignored(client: TestClient, session: SyncSession, insider_token: str):
+def test_id_search_without_digits_matches_nothing(client: TestClient, session: SyncSession, insider_token: str):
     protocol = create_protocol(session)
     session.commit()
 
-    assert protocol.name in _html(client, insider_token, "/htmx/protocols/render-table-page", id="abc")
+    path = "/htmx/protocols/render-table-page"
+    assert protocol.name not in _html(client, insider_token, path, q="id:abc")
+    assert protocol.name in _html(client, insider_token, path, q=f"id:{protocol.id}")
 
 
 # seq requests
@@ -100,11 +105,11 @@ def test_seq_request_table_search_and_filters(client: TestClient, session: SyncS
     session.commit()
 
     path = "/htmx/seq_requests/render-table-page"
-    _only(_html(client, insider_token, path, id=str(hit.id)), hit.name, miss.name)
+    _only(_html(client, insider_token, path, q=f"#{hit.id}"), hit.name, miss.name)
     _only(_html(client, insider_token, path, library_types_in=_ids(C.LibraryType.TENX_SC_GEX_FLEX)), hit.name, miss.name)
     html = _html(client, insider_token, path, submission_type_in=_ids(C.SubmissionType.RAW_SAMPLES))
     _only(html, hit.name, miss.name)
-    assert '"submission_type_in": "[1]"' in html  # selection is echoed into the table state
+    assert _state("submission_type_in", "1") in html  # selection is echoed into the table state
 
 
 # experiments
@@ -121,8 +126,8 @@ def test_experiment_table_search_and_filters(client: TestClient, session: SyncSe
     session.commit()
 
     path = "/htmx/experiments/render-table-page"
-    _only(_html(client, insider_token, path, id=str(hit.id)), hit.name, miss.name)
-    _only(_html(client, insider_token, path, operator=HIT), hit.name, miss.name)
+    _only(_html(client, insider_token, path, q=f"#{hit.id}"), hit.name, miss.name)
+    _only(_html(client, insider_token, path, q=f"operator:{HIT}"), hit.name, miss.name)
     _only(_html(client, insider_token, path, library_types_in=_ids(C.LibraryType.TENX_SC_GEX_FLEX)), hit.name, miss.name)
 
 
@@ -135,8 +140,8 @@ def test_sequencer_table_search_and_filters(client: TestClient, session: SyncSes
     session.commit()
 
     path = "/htmx/sequencers/render-table-page"
-    _only(_html(client, insider_token, path, id=str(hit.id)), HIT, MISS)
-    _only(_html(client, insider_token, path, name=HIT), HIT, MISS)
+    _only(_html(client, insider_token, path, q=f"#{hit.id}"), HIT, MISS)
+    _only(_html(client, insider_token, path, q=f"name:{HIT}"), HIT, MISS)
     _only(_html(client, insider_token, path, model_in=_ids(C.SequencerModel.MI_SEQ)), HIT, MISS)
 
 
@@ -150,9 +155,9 @@ def test_feature_table_search(client: TestClient, session: SyncSession, insider_
     session.commit()
 
     path = "/htmx/features/render-table-page"
-    _only(_html(client, insider_token, path, feature_kit_id=kit.id, id=str(hit.id)), HIT, MISS)
-    _only(_html(client, insider_token, path, feature_kit_id=kit.id, name=HIT), HIT, MISS)
-    _only(_html(client, insider_token, path, feature_kit_id=kit.id, identifier="ZPH-001"), HIT, MISS)
+    _only(_html(client, insider_token, path, feature_kit_id=kit.id, q=f"#{hit.id}"), HIT, MISS)
+    _only(_html(client, insider_token, path, feature_kit_id=kit.id, q=f"name:{HIT}"), HIT, MISS)
+    _only(_html(client, insider_token, path, feature_kit_id=kit.id, q="identifier:ZPH-001"), HIT, MISS)
 
 
 # adapters
@@ -170,8 +175,8 @@ def test_adapter_table_search_and_name_sort(client: TestClient, session: SyncSes
     session.commit()
 
     path = "/htmx/adapters/render-table-page"
-    _only(_html(client, insider_token, path, index_kit_id=kit.id, id=str(hit.id)), HIT, MISS)
-    _only(_html(client, insider_token, path, index_kit_id=kit.id, well="a1"), HIT, MISS)
+    _only(_html(client, insider_token, path, index_kit_id=kit.id, q=f"#{hit.id}"), HIT, MISS)
+    _only(_html(client, insider_token, path, index_kit_id=kit.id, q="well:a1"), HIT, MISS)
 
     html = _html(client, insider_token, path, index_kit_id=kit.id, order_by="name:asc")
     assert html.index(MISS) < html.index(HIT)
@@ -188,8 +193,8 @@ def test_media_file_table_search(client: TestClient, session: SyncSession, insid
     session.commit()
 
     path = "/htmx/files/render-table-page"
-    _only(_html(client, insider_token, path, seq_request_id=seq_request.id, id=str(hit.id)), hit.name, miss.name)
-    _only(_html(client, insider_token, path, seq_request_id=seq_request.id, uploader=HIT), hit.name, miss.name)
+    _only(_html(client, insider_token, path, seq_request_id=seq_request.id, q=f"#{hit.id}"), hit.name, miss.name)
+    _only(_html(client, insider_token, path, seq_request_id=seq_request.id, q=f"uploader:{HIT}"), hit.name, miss.name)
 
 
 # affiliations
@@ -206,9 +211,9 @@ def test_affiliation_table_search_and_filter(client: TestClient, session: SyncSe
     session.commit()
 
     path = "/htmx/affiliations/render-table-page"
-    _only(_html(client, insider_token, path, group_id=group.id, user_name=HIT), hit.email, miss.email)
+    _only(_html(client, insider_token, path, group_id=group.id, q=f"user_name:{HIT}"), hit.email, miss.email)
     _only(_html(client, insider_token, path, group_id=group.id, affiliation_in=_ids(C.AffiliationType.MEMBER)), hit.email, miss.email)
-    _only(_html(client, insider_token, path, user_id=hit.id, group_name=HIT), f">{HIT}<", f">{MISS}<")
+    _only(_html(client, insider_token, path, user_id=hit.id, q=f"group_name:{HIT}"), f">{HIT}<", f">{MISS}<")
 
 
 # groups / protocols: sort and filter state
@@ -227,7 +232,7 @@ def test_group_table_sort_and_filter(client: TestClient, session: SyncSession, i
 
     html = _html(client, insider_token, path, type_in=_ids(C.GroupType.COLLABORATION))
     _only(html, first.name, other.name)
-    assert '"type_in": "[3]"' in html
+    assert _state("type_in", "3") in html
 
 
 def test_protocol_table_sort_and_filter(client: TestClient, session: SyncSession, insider_token: str):
@@ -242,7 +247,7 @@ def test_protocol_table_sort_and_filter(client: TestClient, session: SyncSession
 
     html = _html(client, insider_token, path, service_type_in=_ids(C.ServiceType.CUSTOM))
     assert first.name in html
-    assert f'"service_type_in": "[{C.ServiceType.CUSTOM.id}]"' in html
+    assert _state("service_type_in", str(C.ServiceType.CUSTOM.id)) in html
 
 
 # share tokens / data paths / api tokens
@@ -254,8 +259,8 @@ def test_share_token_table_search(client: TestClient, session: SyncSession, insi
     session.commit()
 
     path = "/htmx/share_tokens/render-table-page"
-    _only(_html(client, insider_token, path, uuid=hit.uuid[:30].upper()), HIT, MISS)
-    _only(_html(client, insider_token, path, owner=HIT), HIT, MISS)
+    _only(_html(client, insider_token, path, q=f"uuid:{hit.uuid[:30].upper()}"), HIT, MISS)
+    _only(_html(client, insider_token, path, q=f"owner:{HIT}"), HIT, MISS)
 
 
 def test_api_token_table_owner_search(client: TestClient, session: SyncSession, insider_token: str):
@@ -265,8 +270,8 @@ def test_api_token_table_owner_search(client: TestClient, session: SyncSession, 
     session.commit()
 
     path = "/htmx/api-tokens/render-table-page"
-    _only(_html(client, insider_token, path, owner_id=str(hit_owner.id)), HIT, MISS)
-    _only(_html(client, insider_token, path, owner_id=HIT), HIT, MISS)
+    _only(_html(client, insider_token, path, owner_in=str(hit_owner.id)), HIT, MISS)
+    _only(_html(client, insider_token, path, q=f"owner:{HIT}"), HIT, MISS)
 
 
 # sort-only model attributes (values are covered in tests/db/test_hybrid_properties.py)

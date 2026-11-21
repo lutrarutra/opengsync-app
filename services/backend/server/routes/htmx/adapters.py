@@ -1,63 +1,63 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
-from opengsync_db import models, SyncSession, queries as Q, utils
+from sqlalchemy import orm
 
-from ...core import dependencies, exceptions as exc
-from ...components.tables import HTMXTable, TableCol
+from opengsync_db import models, SyncSession, queries as Q, categories as C
+
+from ...core import dependencies
+from ...components.tables import Table, TableState, Col, Field, Text, Exact, Variant
 
 router = APIRouter(prefix="/adapters", tags=["adapters"])
 
 
-class AdapterTable(HTMXTable):
+A = models.Adapter
+_ROW = "components/tables/rows/index_kit-adapter.html"
+_DOM = "index_kit-adapter-table"
+
+
+class AdapterTable(Table):
+    key = "adapt"
+    model = models.Adapter
+    noun = "adapters"
+    load = (orm.selectinload(A.barcodes_i7), orm.selectinload(A.barcodes_i5))
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Well", label="well", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=2, sortable=True),
-        TableCol(title="Name i7", label="name_i7", col_size=2),
-        TableCol(title="Name i5", label="name_i5", col_size=2),
-        TableCol(title="Sequence i7", label="sequence_i7", col_size=2),
-        TableCol(title="Sequence i5", label="sequence_i5", col_size=2),
-        TableCol(title="Sequence 1", label="sequence_1", col_size=2),
-        TableCol(title="Sequence 2", label="sequence_2", col_size=2),
-        TableCol(title="Sequence 3", label="sequence_3", col_size=2),
-        TableCol(title="Sequence 4", label="sequence_4", col_size=2),
+        Col("id", "ID", sort=True, search=Exact(A.id), hideable=False, size=1),
+        Col("well", "Well", sort=True, search=Text(A.well), size=1),
+        Col("name", "Name", sort=True, size=2),
+        Col("name_i7", "Name i7", size=2),
+        Col("sequence_i7", "Sequence i7", size=2),
+        Col("name_i5", "Name i5", size=2),
+        Col("sequence_i5", "Sequence i5", size=2),
+        Col("sequence_1", "Sequence 1", size=2),
+        Col("sequence_2", "Sequence 2", size=2),
+        Col("sequence_3", "Sequence 3", size=2),
+        Col("sequence_4", "Sequence 4", size=2),
+        Field("barcode", "Barcode", search=Text(models.Barcode.name, models.Barcode.sequence, via=A.barcodes_i7)),
+        Field("barcode_i5", "Barcode i5", search=Text(models.Barcode.name, models.Barcode.sequence, via=A.barcodes_i5)),
     ]
+    # the columns follow the index kit's type (the row template branches the same way)
+    variants = {
+        "default": Variant(["id", "well", "name_i7", "sequence_i7", "name_i5", "sequence_i5"], _ROW, dom_id=_DOM),
+        "single": Variant(["id", "well", "name_i7", "sequence_i7"], _ROW, dom_id=_DOM),
+        "combinatorial": Variant(["id", "name_i7", "sequence_i7", "name_i5", "sequence_i5"], _ROW, dom_id=_DOM),
+        "atac": Variant(["id", "well", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], _ROW, dom_id=_DOM),
+    }
 
 
 @router.get("/render-table-page")
 def render_adapter_table(
     index_kit_id: int = Query(..., description="Filter by index kit ID"),
-    well: str | None = Query(None, description="Search by well"),
-    id_search: str | None = Query(None, alias="id", description="Search by adapter ID"),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Adapter, default=models.Adapter.id.desc())),
+    state: TableState = Depends(AdapterTable.params),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
-    table = AdapterTable(route="render_adapter_table", page=page, order_by=order_by)
-    stmt = Q.adapter.select(index_kit_id=index_kit_id)
-
-    if well:
-        table.active_search_var = "well"
-        table.active_query_value = well
-        stmt = Q.adapter.select(well=well.strip().upper(), statement=stmt)
-    elif id_search:
-        table.active_search_var = "id"
-        table.active_query_value = id_search
-        if digits := "".join(filter(str.isdigit, id_search)):
-            stmt = Q.adapter.select(id=int(digits), statement=stmt)
-
-    if index_kit_id is not None:
-        table.template = "components/tables/index_kit-adapter.html"
-        table.context["index_kit"] = session.get_one(Q.index_kit.select(id=index_kit_id))
-        table.url_params["index_kit_id"] = index_kit_id
-    else:
-        raise exc.BadRequestException("index_kit_id must be provided.")
-
-    adapters = table.paginate(
-        session,
-        stmt,
-        page=page,
-        order_by=order_by,
-    )
-    return table.make_response(adapters=adapters)
+    index_kit = session.get_one(Q.index_kit.select(id=index_kit_id))
+    variant = {
+        C.IndexType.SINGLE_INDEX_I7: "single",
+        C.IndexType.COMBINATORIAL_DUAL_INDEX: "combinatorial",
+        C.IndexType.TENX_ATAC_INDEX: "atac",
+    }.get(index_kit.type, "default")
+    table = AdapterTable(state, route="render_adapter_table", user=current_user)
+    table.use(variant, index_kit_id=index_kit_id, index_kit=index_kit)
+    return table.render(session, Q.adapter.select(index_kit_id=index_kit_id))

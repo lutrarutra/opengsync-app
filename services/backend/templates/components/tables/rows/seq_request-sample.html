@@ -1,0 +1,44 @@
+{% from "components/contextmenu.jinja2" import row_menu %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for sample in rows %}
+<tr>
+    <th scope="row">{{ sample.id }}</th>
+    <td class="cm-callback"
+    {{
+        context_menu([
+    {"type": "copy", "value": sample.name, "label": "Copy Name"},
+])
+    }}>
+        <a href="{{ url_for('sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}">{{ sample.name }}</a>
+    </td>
+    {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
+    <td>{% if sample.status is not none %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
+    {% endif %}
+    <td class="cm-callback" {{
+        context_menu([
+            {"type": "copy", "value": sample.project.identifier or sample.project.title, "label": "Copy Name"},
+        ])
+    }}><a href="{{ url_for('project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.identifier or sample.project.title }}</a></td>
+    <td class="x-scroll-cell">
+        <div class="scroll-container">
+            {% for library_link in sample.library_links %}
+            {% set library = library_link.library %}
+            {% if seq_request.id == library.seq_request_id %}
+            <span class="badge"><a href="{{ url_for('library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.type.abbreviation }}</a></span>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </td>
+    {{ row_menu([
+        {"type": "copy", "value": sample.name, "label": "Copy Name"},
+        {"type": "hxdelete", "label": "Remove Sample", "disabled": false if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_admin else true, "config": {
+                "url": url_for("remove_sample_from_request", sample_id=sample.id, **table.url_params).__str__(),
+                "target": "#seq_request-sample-table",
+                "text": "This will remove all libraries associated with the sample. If sample is multiplexed, all other multiplexed samples in the associated libraries will be removed. Are you sure?",
+                "title": "Remove {sample.name} from {seq_request.name}?".format(sample=sample, seq_request=seq_request)
+            },}
+    ]) }}
+</tr>
+{% endfor %}
+

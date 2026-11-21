@@ -11,8 +11,9 @@ from ._http import get
 def test_fresh_customer_sees_empty_states(client: TestClient, user_token: str):
     assert "No sequencing requests yet" in get(client, "/htmx/seq_requests/render-feed", user_token, htmx=True).text
     assert "No projects yet" in get(client, "/htmx/projects/render-feed", user_token, htmx=True).text
-    for path in ("/htmx/seq_requests/render-table-page", "/htmx/groups/render-table-page"):
-        assert "No entries to show." in get(client, path, user_token, htmx=True).text
+    for path, noun in (("/htmx/seq_requests/render-table-page", "requests"), ("/htmx/groups/render-table-page", "groups")):
+        html = get(client, path, user_token, htmx=True).text
+        assert 'class="otable-empty"' in html and "yet" in html, path
 
 
 def test_layout_step_is_not_called_optional_before_samples_are_added(client: TestClient, session: SyncSession, user, user_token: str):
@@ -63,28 +64,4 @@ def test_multiselect_filter_ids_are_unique_per_table(client: TestClient):
         assert f'for="{checkbox_id}"' in html
 
 
-def test_table_col_prefixes_filter_ids_with_its_container(client: TestClient):
-    from pathlib import Path
-    from server.core.templates import j2
-
-    source = Path(j2.env.loader.searchpath[0]) / "components" / "table_col.jinja2"  # type: ignore[union-attr]
-    assert 'id_prefix=table_container_id ~ "-"' in source.read_text()
-
-
-@pytest.mark.parametrize("filter_values, query, hinted", [
-    ({}, None, False),
-    ({"status": [1]}, None, True),
-    ({}, "carol", True),
-])
-def test_empty_table_hints_at_active_filters(client: TestClient, filter_values, query, hinted: bool):
-    """Pickers open with a default status filter (e.g. lab-prep BA: 'Preparing'); an empty result must say so."""
-    from types import SimpleNamespace
-    from server.core.templates import j2
-
-    table = SimpleNamespace(num_pages=0, active_page=0, filter_values=filter_values, active_query_value=query)
-    html = j2.env.from_string(
-        '{% from "components/pagination.jinja2" import pagination %}{{ pagination("t", table) }}'
-    ).render(table=table)
-
-    assert "No entries to show." in html
-    assert ("Filters or a search are active" in html) is hinted
+# empty tables with active filters say what is hidden: tests/server/test_table_joined_search.py

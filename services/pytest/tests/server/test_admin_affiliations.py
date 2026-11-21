@@ -58,10 +58,12 @@ def test_values_listed_once_with_counts_and_spellings(client: TestClient, sessio
     by_name = _table(client, admin_token, "institute", order_by="name:asc").text
     assert by_name.index(CEMM) < by_name.index(MUW)
 
-    searched = _table(client, admin_token, "institute", name="cem").text
+    searched = _table(client, admin_token, "institute", q="cem").text
     assert CEMM in searched and MUW not in searched
 
-    assert _table(client, admin_token, "institute", order_by="email:asc").status_code == 400
+    # an unknown sort is dropped (old or hand-edited links still open), the default order stays
+    unknown = _table(client, admin_token, "institute", order_by="email:asc")
+    assert unknown.status_code == 200 and unknown.text.index(MUW) < unknown.text.index(CEMM)
 
 
 def test_departments_are_scoped_to_their_institute(client: TestClient, session: SyncSession, admin_token: str):

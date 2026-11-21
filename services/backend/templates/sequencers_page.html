@@ -17,7 +17,7 @@
     </div>
 </div>
 <div class="page-content">
-    <div hx-get="{{ url_for('render_sequencer_table') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div data-table-loader="seqr" hx-get="{{ url_for('render_sequencer_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

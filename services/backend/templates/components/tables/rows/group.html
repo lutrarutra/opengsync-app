@@ -1,0 +1,16 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% for group in rows %}
+<tr>
+    <th scope="row">{{ group.id }}</th>
+    <td class="cm-callback" {{ 
+        context_menu([
+            {"type": "copy", "value": group.name, "label": "Copy Name"},
+        ])
+    }}><a href="{{ url_for('group_page', group_id=group.id) }}">{{ group.name }}</a></td>
+    <td>{{ group.type.icon }} {{ group.type.label }}</td>
+    <td>{{ group.num_users }}</td>
+    <td>{{ group.num_seq_requests }}</td>
+    <td>{{ group.num_projects }}</td>
+</tr>
+{% endfor %}
+

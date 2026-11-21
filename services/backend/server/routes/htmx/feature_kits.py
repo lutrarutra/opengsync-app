@@ -1,59 +1,43 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
-from opengsync_db import SyncSession, queries as Q, categories as C, utils, models
+from opengsync_db import SyncSession, queries as Q, categories as C, models
 
-from ...core import dependencies, exceptions as exc, responses, query_options
-from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
+from ...core import dependencies, responses, query_options
+from ...components.tables import (
+    Table, TableState, Col, Text, Exact, Enum, Variant, TextColumn, StaticSpreadsheet,
+)
 
 router = APIRouter(prefix="/feature_kits", tags=["feature-kits"])
 
-class FeatureKitTable(HTMXTable):
+FK = models.FeatureKit
+
+
+class FeatureKitTable(Table):
+    key = "fkit"
+    model = models.FeatureKit
+    noun = "feature kits"
     columns = [
-        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Identifier", label="identifier", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type"),
+        Col("id", "ID", sort=True, search=Exact(FK.id), hideable=False, size=1),
+        Col("identifier", "Identifier", sort=True, search=Text(FK.identifier, compact=True), size=2),
+        Col("name", "Name", sort=True, search=Text(FK.name), hideable=False, size=3),
+        Col("type", "Feature Type", sort=True, filter=Enum(C.FeatureType), size=2),
     ]
+    variants = {
+        "default": Variant(
+            ["id", "identifier", "name", "type"], "components/tables/rows/feature_kit.html", dom_id="feature_kit-table",
+        ),
+    }
 
 
 @router.get("/render-table-page")
 def render_feature_kit_table(
-    id: str | None = Query(None, description="Search by kit ID"),
-    name: str | None = Query(None, description="Search by kit name"),
-    identifier: str | None = Query(None, description="Search by kit identifier"),
-    type_in: list[C.FeatureType] | None = Depends(dependencies.parse_enum_ids(C.FeatureType, "type_in")),
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.FeatureKit, default=models.FeatureKit.id.desc())),
+    state: TableState = Depends(FeatureKitTable.params),
+    current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ) -> Response:
-    table = FeatureKitTable(route="render_feature_kit_table", page=page, order_by=order_by)
-    table.template = "components/tables/feature_kit.html"
-    stmt = Q.feature_kit.select(type_in=type_in)
-
-    if type_in:
-        table.filter_values["type"] = type_in
-
-    if name:
-        table.active_search_var = "name"
-        table.active_query_value = name
-        stmt = Q.feature_kit.search(name=name, statement=stmt)
-    elif identifier:
-        table.active_search_var = "identifier"
-        table.active_query_value = identifier
-        stmt = Q.feature_kit.search(identifier=identifier, statement=stmt)
-    elif id:
-        table.active_search_var = "id"
-        table.active_query_value = str(id)
-        try:
-            stmt = Q.feature_kit.select(id=int("".join(filter(str.isdigit, id))), statement=stmt)
-        except ValueError:
-            raise exc.BadRequestException()
-        
-    stmt = Q.feature_kit.search(name=name, identifier=identifier, statement=stmt)
-    
-    feature_kits = table.paginate(session, stmt, page=page, order_by=order_by)
-    return table.make_response(feature_kits=feature_kits)
+    table = FeatureKitTable(state, route="render_feature_kit_table", user=current_user)
+    return table.render(session, Q.feature_kit.select())
 
 
 @router.get("/query")

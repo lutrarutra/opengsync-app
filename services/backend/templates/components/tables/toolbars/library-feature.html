@@ -1,0 +1,12 @@
+{#- toolbar buttons of a library's features (only on the "Feature Table" tab, ?instance=table) -#}
+{% from "components/button.jinja2" import modal_button %}
+{% if table.instance == "table" %}
+{{
+    modal_button(
+        "Edit", url_for("LibraryFeaturesAction.Begin", library_id=table.url_params.library_id),
+        size="fullscreen", class="otable-btn",
+        disabled=not current_user.is_insider,
+        disabled_tooltip="Only insiders can edit features.", tooltip_position="left",
+    )
+}}
+{% endif %}

@@ -1,62 +1,58 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, utils
+from opengsync_db import models, SyncSession, queries as Q
 
-from ...core import dependencies, responses
-from ...components.tables import HTMXTable, TableCol
+from ...core import dependencies
+from ...components.tables import Table, TableState, Col, Text, Variant, related
 
 router = APIRouter(prefix="/share_tokens", tags=["share_tokens"])
 
 
-class ShareTokenTable(HTMXTable):
+ST = models.ShareToken
+_FULL_NAME = Q.search.full_name(models.User)
+
+
+class ShareTokenTable(Table):
+    key = "share"
+    model = models.ShareToken
+    noun = "share links"
+    default_sort = ("created_utc", "desc")
+    load = (
+        orm.selectinload(ST.owner),
+        orm.selectinload(ST.paths),
+        orm.with_expression(ST._num_paths, ST.num_paths.expression),
+    )
     columns = [
-        TableCol(title="UUID", label="uuid", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Expiration", label="expiration", col_size=4),
-        TableCol(title="Time Valid", label="time_valid_min", col_size=4),
-        TableCol(title="Owner", label="owner", col_size=4, searchable=True, sortable=True, sort_by="owner_id"),
-        TableCol(title="# Paths", label="num_paths", col_size=3, sortable=True),
+        Col("uuid", "UUID", search=Text(ST.uuid), hideable=False, size=1),
+        Col("expiration", "Expiration", sort=True, size=4),
+        Col(
+            "owner", "Owner", sort=related(ST.owner, _FULL_NAME), size=4,
+            search=Text(_FULL_NAME, models.User.email, via=ST.owner),
+        ),
+        Col("time_valid_min", "Time Valid", sort=True, size=4),
+        Col("num_paths", "# Paths", sort=True, size=3),
+        Col("created_utc", "Created", sort=True, display=False),
     ]
+    variants = {
+        "default": Variant(
+            ["uuid", "expiration", "owner", "time_valid_min", "num_paths"], "components/tables/rows/share_token.html",
+            dom_id="share_token-table",
+        ),
+    }
+
+    tie_break = (ST.uuid.asc(),)  # the primary key is the uuid
 
 
 @router.get("/render-table-page")
 def render_share_token_table(
-    page: int = Query(0, ge=0, description="Page number, starting from 0"),
     project_id: int | None = Query(None, description="Optional project ID to filter share tokens"),
-    uuid: str | None = Query(None, description="Search by share token UUID prefix"),
-    owner: str | None = Query(None, description="Search by owner name"),
+    state: TableState = Depends(ShareTokenTable.params),
     current_user: models.User = Depends(dependencies.require_insider),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.ShareToken, default=models.ShareToken.uuid.asc())),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = ShareTokenTable(route="render_share_token_table", page=page, order_by=order_by)
-
-    stmt = Q.share_token.select()
-
+    stmt = Q.share_token.select(project_id=project_id)
+    table = ShareTokenTable(state, route="render_share_token_table", user=current_user)
     if project_id is not None:
-        stmt = Q.share_token.select(project_id=project_id)
-        table.url_params["project_id"] = project_id
-
-    if uuid:
-        table.active_search_var = "uuid"
-        table.active_query_value = uuid
-        stmt = Q.share_token.search(uuid=uuid, statement=stmt)
-    elif owner:
-        table.active_search_var = "owner"
-        table.active_query_value = owner
-        stmt = Q.share_token.search(owner_name=owner, statement=stmt)
-
-    share_tokens = table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[
-            orm.selectinload(models.ShareToken.owner),
-            orm.selectinload(models.ShareToken.paths),
-            orm.with_expression(models.ShareToken._num_paths, models.ShareToken.num_paths.expression),
-        ]
-    )
-
-    return responses.htmx_response(
-        template="components/tables/share_token.html",
-        share_tokens=share_tokens,
-        table=table,
-    )
+        table.use("default", project_id=project_id)
+    return table.render(session, stmt)

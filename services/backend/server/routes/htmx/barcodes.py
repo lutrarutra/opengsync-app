@@ -18,13 +18,5 @@ from opengsync_db import (
 
 from ...core import dependencies, responses, exceptions as exc, config
 from ... import forms
-from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/barcodes", tags=["barcodes"])
-
-
-class BarcodeClashTable(HTMXTable):
-    columns = [
-        TableCol(title="ID", label="id", col_size=1),
-        TableCol(title="Name", label="name", col_size=3),
-    ]

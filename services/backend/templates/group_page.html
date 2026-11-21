@@ -58,38 +58,17 @@
 <div class="page-content">
     <div class="tab-content pt-1">
         <div class="tab-pane fade show active" id="group-members-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Members {% if access_level >= C.AccessLevel.WRITE %}<img {{ tooltip('Right click on a user\'s name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
-                </div>
-                <div>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_affiliation_table', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
+            <div data-table-loader="aff" hx-get="{{ url_for('render_affiliation_table', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="group-requests-tab" role="tabpanel" tabindex="1">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Requests</h2>
-                </div>
-                <div>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_seq_request_table', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="req" hx-get="{{ url_for('render_seq_request_table', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="group-projects-tab" role="tabpanel" tabindex="1">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Projects</h2>
-                </div>
-                <div>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('render_project_table', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div data-table-loader="prj" hx-get="{{ url_for('render_project_table', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

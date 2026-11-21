@@ -5,12 +5,12 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, utils
+from opengsync_db import models, SyncSession, queries as Q
 
 from ...core import dependencies, responses, config, audit_reader, affiliation_values as av, exceptions as exc, redis as rds
 from ...core.context import ctx
 from ...chat import usage as chat_usage
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import Table, TableState, Col, Text, Variant, related
 from ... import forms
 from ...forms.common import SelectedPathsMixin
 from ...utils import fs_index, share_fs_cache
@@ -74,17 +74,46 @@ def get_audit_log(
     )
 
 
-class ShareTokenAdminTable(HTMXTable):
+ST = models.ShareToken
+
+
+class ShareTokenAdminTable(Table):
+    key = "ashare"
+    model = models.ShareToken
+    noun = "share links"
+    default_sort = ("created_utc", "desc")
+    load = (orm.selectinload(ST.owner), orm.selectinload(ST.paths))
     columns = [
-        TableCol(title="Token", label="uuid", col_size=1, searchable=True),
-        TableCol(title="Status", label="status", col_size=1),
-        TableCol(title="Created by", label="owner", col_size=2, searchable=True, sortable=True, sort_by="owner_id"),
-        TableCol(title="Created", label="created_utc", col_size=1, sortable=True),
-        TableCol(title="Expires", label="expiration", col_size=1),
-        TableCol(title="Project", label="project", col_size=2),
-        TableCol(title="Paths", label="paths", col_size=2),
-        TableCol(title="Size", label="size", col_size=1),
+        Col("uuid", "Token", search=Text(ST.uuid), hideable=False, size=1),
+        Col("status", "Status", size=1),
+        Col(
+            "owner", "Created by", sort=related(ST.owner, Q.search.full_name(models.User)), size=2,
+            search=Text(Q.search.full_name(models.User), models.User.email, via=ST.owner),
+        ),
+        Col("created_utc", "Created", sort=True, size=1),
+        Col("expiration", "Expires", sort=True, size=1),
+        Col("project", "Project", size=2),
+        Col("paths", "Paths", size=2),
+        Col("size", "Size", size=1),
     ]
+    variants = {
+        "default": Variant(
+            ["uuid", "status", "owner", "created_utc", "expiration", "project", "paths", "size"],
+            "components/tables/rows/admin-share-token.html", dom_id="admin-share_token-table", actions=True,
+        ),
+    }
+
+    def __init__(self, *args, fs_index_session: SyncSession | None = None, session: SyncSession | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = session
+        self.fs_index_session = fs_index_session
+
+    def row_context(self, tokens) -> dict:
+        """Projects released with and sizes of the page's tokens (for share-token-row.html)."""
+        assert self.session is not None
+        return _row_context(self.session, self.fs_index_session, list(tokens))
+
+    tie_break = (ST.uuid.asc(),)  # the primary key is the uuid
 
 
 @dataclass
@@ -132,35 +161,15 @@ def _get_share_token(session: SyncSession, uuid: str) -> models.ShareToken:
 
 @router.get("/share-tokens", name="admin_share_token_table")
 def get_share_token_table(
-    page: int = Query(0, ge=0),
-    uuid: str | None = Query(None, description="Search by share token UUID prefix"),
-    owner: str | None = Query(None, description="Search by owner name"),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.ShareToken, default=models.ShareToken.created_utc.desc())),
+    state: TableState = Depends(ShareTokenAdminTable.params),
+    current_user: models.User = Depends(dependencies.require_admin),
     session: SyncSession = Depends(dependencies.db_session),
     fs_index_session: SyncSession | None = Depends(dependencies.fs_index_session),
 ):
-    table = ShareTokenAdminTable(route="admin_share_token_table", page=page, order_by=order_by)
-
-    stmt = Q.share_token.select()
-    if uuid:
-        table.active_search_var = "uuid"
-        table.active_query_value = uuid
-        stmt = Q.share_token.search(uuid=uuid, statement=stmt)
-    elif owner:
-        table.active_search_var = "owner"
-        table.active_query_value = owner
-        stmt = Q.share_token.search(owner_name=owner, statement=stmt)
-
-    share_tokens = list(table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[orm.selectinload(models.ShareToken.owner), orm.selectinload(models.ShareToken.paths)],
-    ))
-
-    return responses.htmx_response(
-        template="components/admin/share-tokens.html",
-        share_tokens=share_tokens, table=table,
-        **_row_context(session, fs_index_session, share_tokens),
+    table = ShareTokenAdminTable(
+        state, route="admin_share_token_table", user=current_user, session=session, fs_index_session=fs_index_session,
     )
+    return table.render(session, Q.share_token.select())
 
 
 @router.post("/share-tokens/{uuid}/expire", name="admin_expire_share_token")
@@ -247,50 +256,66 @@ def save_share_token_paths(
     return responses.htmx_response(redirect=ctx.request.url_for("admin_shares_page"), flash=flash)
 
 
-class AffiliationValueTable(HTMXTable):
+class AffiliationValueTable(Table):
+    """Institutes, departments or PIs as stored on users (core/affiliation_values.py): grouped values, not
+    rows of a model, so ``render`` pages them with ``av.listing`` instead of a statement. The search box searches
+    the name (PIs: the email with scope Email or a term containing @)."""
+    model = models.User  # not used: the rows come from av.listing
+    model_backed = False
+    key = "aaff"  # per tab: aaff_<kind>, set in __init__
+    noun = "values"
+    default_sort = ("num_users", "desc")
     columns = [
-        TableCol(title="Name", label="name", col_size=4, searchable=True, sortable=True),
-        TableCol(title="Email", label="email", col_size=3, searchable=True),
-        TableCol(title="Institute", label="institute", col_size=3),
-        TableCol(title="Users", label="num_users", col_size=1, sortable=True),
-        TableCol(title="", label="actions", col_size=1),
+        Col("name", "Name", sort=True, search=Text(sa.column("name")), hideable=False, size=4),
+        Col("email", "Email", search=Text(sa.column("email")), size=3),
+        Col("institute", "Institute", size=3),
+        Col("num_users", "Users", sort=True, size=1),
+        Col("actions", "", hideable=False, size=1),
     ]
+    _rows = "components/tables/rows/admin-affiliation-values.html"
+    variants = {
+        "institute": Variant(["name", "num_users", "actions"], _rows, fields=["name"]),
+        "department": Variant(["name", "institute", "num_users", "actions"], _rows, fields=["name"]),
+        "pi": Variant(["name", "email", "num_users", "actions"], _rows, fields=["name", "email"]),
+    }
+
+    def __init__(self, state: TableState, *, kind: av.Kind, user: models.User):
+        super().__init__(state, route="admin_affiliation_value_table", user=user, variant=kind.value)
+        self.kind = kind
+        self.key = f"aaff_{kind.value}"
+        self.dom_id_override = f"admin-affiliations-{kind.value}-table"
+        self.url_params["kind"] = kind.value
+
+    def render_values(self, session: SyncSession):
+        q = self.state.q
+        by_email = self.kind == av.Kind.PI and (self.state.scope == "email" or "@" in q)
+        sort, direction = self.state.order_by or self.default_sort
+        search = dict(name=None if by_email else (q or None), email=q if by_email else None)
+
+        values, self.total = av.listing(session, self.kind, sort=sort, descending=direction == "desc",
+                                        page=self.state.page - 1, limit=self.state.limit, **search)
+        self.num_pages = max(1, -(-self.total // self.state.limit))
+        self.page = min(self.state.page, self.num_pages)
+        if self.page != self.state.page:
+            values, self.total = av.listing(session, self.kind, sort=sort, descending=direction == "desc",
+                                            page=self.page - 1, limit=self.state.limit, **search)
+        if self.total == 0 and q:
+            self.unfiltered_total = av.listing(session, self.kind, limit=1)[1]
+        self.rows = values
+        return responses.htmx_response(
+            template=self.template, table=self, rows=values, kind=self.kind,
+            pi_accounts=av.pi_accounts(session, values) if self.kind == av.Kind.PI else {},
+        )
 
 
 @router.get("/affiliations", name="admin_affiliation_value_table")
 def get_affiliation_value_table(
     kind: av.Kind = Query(..., description="institute, department or pi"),
-    page: int = Query(0, ge=0),
-    name: str | None = Query(None, description="Search by name"),
-    email: str | None = Query(None, description="Search PIs by email"),
-    order_by: str | None = Query(None, description="'name' or 'num_users' and direction, e.g. 'name:asc'"),
+    state: TableState = Depends(AffiliationValueTable.params),
+    current_user: models.User = Depends(dependencies.require_admin),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    sort, _, direction = (order_by or "num_users:desc").partition(":")
-    if sort not in av.SORT_COLUMNS or direction not in ("asc", "desc"):
-        raise exc.BadRequestException("order_by must be 'name' or 'num_users' with ':asc' or ':desc'.")
-    order = sa.column(sort)
-    table = AffiliationValueTable(
-        route="admin_affiliation_value_table", page=page, order_by=order.desc() if direction == "desc" else order.asc(),
-    )
-    table.url_params["kind"] = kind.value
-
-    if name:
-        table.active_search_var, table.active_query_value = "name", name
-    elif email and kind == av.Kind.PI:
-        table.active_search_var, table.active_query_value = "email", email
-
-    values, count = av.listing(
-        session, kind, name=name, email=None if name else email,
-        sort=sort, descending=direction == "desc", page=page, limit=table.limit,
-    )
-    table.set_num_pages(count)
-
-    return responses.htmx_response(
-        template="components/admin/affiliation-values.html",
-        table=table, kind=kind, values=values,
-        pi_accounts=av.pi_accounts(session, values) if kind == av.Kind.PI else {},
-    )
+    return AffiliationValueTable(state, kind=kind, user=current_user).render_values(session)
 
 
 # The guard is also declared on the form routers, so that it is on their routes' own dependencies

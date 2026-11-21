@@ -1,0 +1,37 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+{% for library in rows %}
+<tr id="library-row-{{ library.id }}" data-id="{{ library.id }}" class="library-row">
+    <th scope="row">{{ library.id }}</th>
+    <td>{{ library.name }}</td>
+    <td>
+        <span {{ tooltip(library.type.label) }}>
+            {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}
+        </span>
+    </td>
+    <td>{% if library.status is not none %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
+    {% if browse_context == "qubit-measure" %}
+    <td>
+        <div class="quantity-container">
+            <div class="value">{{ library.qubit_concentration or "" }}</div>
+            <div class="unit">ng/μL</div>
+        </div>
+    </td>
+    {% elif browse_context == "ba-report" %}
+    <td>
+        <div class="quantity-container">
+            <div class="value">{{ library.avg_fragment_size or "" }}</div>
+            <div class="unit">bp</div>
+        </div>
+    </td>
+    {% elif browse_context == "index-check" %}
+    <td>
+        {% if library.index_type %}{{ library.index_type.label }}{% endif %}
+    </td>
+    <td>
+        {{ library_index_cell(library) }}
+    </td>
+    {% endif %}
+</tr>
+{% endfor %}
+
