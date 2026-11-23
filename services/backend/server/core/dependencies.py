@@ -9,6 +9,7 @@ import hmac
 from fastapi import Depends, Request, Header, Cookie, Query
 from pydantic_ai import Agent
 from loguru import logger
+from redis import Redis
 from redis.exceptions import RedisError
 
 from sqlalchemy import orm
@@ -103,7 +104,8 @@ def _parse_rate_limit(value: str) -> tuple[int, int]:
     return amount, period
 
 
-def rate_limit(*limits: str):
+def rate_limit(*limits: str, exempt: Callable[[runtime.Request, rds.RedisClient], bool] | None = None):
+    """Per IP and route. `exempt` is asked only once a limit is exceeded; True lets the request through."""
     parsed_limits = tuple(_parse_rate_limit(limit) for limit in limits)
     if not parsed_limits:
         raise ValueError("At least one rate limit is required.")
@@ -124,11 +126,13 @@ def rate_limit(*limits: str):
                 for maximum, period in parsed_limits:
                     window = current_window // period
                     key = f"ratelimit:{ip}:{route_path}:{period}:{window}"
-                    count = int(str(r.incr(key)))
+                    # one round trip: share downloads run this for every file
+                    pipe = r.pipeline(transaction=False)
+                    pipe.incr(key)
+                    pipe.expire(key, period, nx=True)
+                    count = int(str(pipe.execute()[0]))
                     keys.append(key)
-                    if count == 1:
-                        r.expire(key, period)
-                    if count > maximum:
+                    if count > maximum and not (exempt is not None and exempt(request, r)):
                         raise exc.TooManyRequestsException()
             except (RedisError, TypeError, ValueError):
                 logger.exception("Rate limiter unavailable; allowing request for {}", route_path)
@@ -136,12 +140,12 @@ def rate_limit(*limits: str):
             request.state.rate_limit_keys.extend(keys)
             yield
         finally:
-            if request.state.clear_rate_limit:
-                for key in keys:
-                    try:
-                        r.delete(key)
-                    except (RedisError, TypeError, ValueError):
-                        logger.exception("Failed to clear rate limit key {}", key)
+            if request.state.clear_rate_limit and keys:
+                try:
+                    # one round trip; RedisClient.delete takes a single key
+                    Redis.delete(r, *keys)
+                except (RedisError, TypeError, ValueError):
+                    logger.exception("Failed to clear rate limit keys {}", keys)
 
     return dependency
 
@@ -205,6 +209,18 @@ def _cache_share_token(share_token: models.ShareToken, r: rds.RedisClient) -> No
         )
     except (RedisError, TypeError, ValueError):
         logger.exception("Failed to cache share token {}", share_token.uuid)
+
+
+def share_token_recently_valid(request: runtime.Request, r: rds.RedisClient) -> bool:
+    """Rate-limit exemption for share routes: the limit is there against guessing tokens, and a valid token's
+    requests are uncounted once answered (`clear_rate_limit`). While they are still running they count, so a
+    single rclone (up to 24 requests at once) or several users behind one NAT would hit the limit. A token in
+    the cache of recently loaded ones (`load_share_token`, SHARE_TOKEN_TTL) is let through; invalid and expired
+    tokens are never cached, so they stay limited."""
+    if not (token := request.path_params.get("token")):
+        return False
+    share_token = _cached_share_token(str(token), r)
+    return share_token is not None and not share_token.is_expired
 
 
 def load_share_token(

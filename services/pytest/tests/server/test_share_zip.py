@@ -306,7 +306,7 @@ def test_retargeted_symlink_is_rechecked_without_the_cache(share_root: Path, tmp
     link.unlink()
     link.symlink_to(tmp_path / "secret.txt")
     monkeypatch.setattr(browser, "walk_contents", lambda subpath: iter(cached_walk))
-    monkeypatch.setattr(browser, "get_file", lambda subpath: browser.root_dir / subpath)  # a stale cache hit
+    monkeypatch.setattr(browser, "get_file", lambda subpath, **_: browser.root_dir / subpath)  # a stale cache hit
 
     manifest = share_zip.build_manifest(browser)
     assert "link.txt" not in manifest.body

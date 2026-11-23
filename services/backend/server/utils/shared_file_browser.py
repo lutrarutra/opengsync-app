@@ -16,7 +16,7 @@ from ..core import exceptions as exc
 from ..core.redis import RedisClient
 from .file_browser import BrowserPath
 from .parsing import filter_subpaths
-from .share_ignore import ShareIgnore
+from .share_ignore import ShareIgnore, cached_realpath, cached_dir_flag
 from . import share_fs_cache, fs_index
 
 
@@ -55,11 +55,13 @@ class SharedFileBrowser:
         redis: RedisClient | None = None,
     ):
         """`cache_key` must change whenever `shared_paths` does: cached listings and safety checks are stored under it."""
-        self.root_dir = root_dir.resolve()
+        # realpaths cached per worker in prod (share_ignore.PROCESS_CACHE_TTL): each one is an lstat per component on sshfs
+        self.root_dir = Path(cached_realpath(os.fspath(root_dir)))
         self.cache_key = cache_key
         self.redis = redis
-        self.shared_paths = [(self.root_dir / shared_path).resolve() for shared_path in shared_paths]
+        self.shared_paths = [Path(cached_realpath(os.fspath(self.root_dir / shared_path))) for shared_path in shared_paths]
         self.ignore = ShareIgnore(self.root_dir)
+        self._cycle_dirs: dict[str, bool] = {}
         # allows relative symlink traversal upstream of shared paths, but not outside of root_dir
         self.allow_symlink_traversal = allow_symlink_traversal
 
@@ -207,12 +209,16 @@ class SharedFileBrowser:
         if self.is_safe(subpath) and full_path.is_dir():
             paths_with_stats: list[tuple[Path, os.stat_result]] = []
             for path in full_path.iterdir():
-                if self._is_junk(path) or not self._is_safe(path):
+                if self._is_junk(path):
                     continue
+                # stat first: knowing file or folder saves the ignore check a stat of its own
                 try:
-                    paths_with_stats.append((path, path.stat()))
+                    path_stat = path.stat()
                 except OSError:
                     continue
+                if not self._is_safe(path, is_dir=stat_module.S_ISDIR(path_stat.st_mode)):
+                    continue
+                paths_with_stats.append((path, path_stat))
 
             paths_with_stats = self._sorted_with_stats(paths_with_stats, sort_by, sort_order)
             if offset:
@@ -259,57 +265,75 @@ class SharedFileBrowser:
             ))
         return result
 
-    def get_file(self, subpath: Path = Path()) -> Path | None:
+    def get_file(self, subpath: Path = Path(), use_cache: bool = True) -> Path | None:
         """The file at `subpath` if it is shared. Misses are cached too, so a new file can take `FILE_TTL` to appear.
 
         A hit is not re-checked against the filesystem; callers serving the file re-check that it still exists.
+        `use_cache=False` skips Redis, for callers that check thousands of files in one go (zip lists).
         """
         if self._is_junk(subpath):
             return None
 
         full_path = self.root_dir / subpath
-        cached = share_fs_cache.get_file(self.redis, self.cache_key, subpath=subpath.as_posix())
-        if cached is not None:
-            try:
-                return full_path if cached["is_file"] else None
-            except (KeyError, TypeError):
-                pass
+        if use_cache:
+            cached = share_fs_cache.get_file(self.redis, self.cache_key, subpath=subpath.as_posix())
+            if cached is not None:
+                try:
+                    return full_path if cached["is_file"] else None
+                except (KeyError, TypeError):
+                    pass
 
         is_file = self.is_safe(subpath) and full_path.is_file()
-        share_fs_cache.set_file(self.redis, self.cache_key, {"is_file": is_file}, subpath=subpath.as_posix())
+        if use_cache:
+            share_fs_cache.set_file(self.redis, self.cache_key, {"is_file": is_file}, subpath=subpath.as_posix())
         return full_path if is_file else None
 
     @staticmethod
-    def _is_cycle_link(path: Path) -> bool:
+    def _is_cycle_link(path: Path, is_link: bool | None = None) -> bool:
         """A symlink to its own folder or one above it: following it lists the same folder at every depth."""
-        if not path.is_symlink():
+        if not (is_link if is_link is not None else path.is_symlink()):
             return False
         target = path.resolve()
         return target.is_dir() and path.parent.resolve().is_relative_to(target)
 
-    def _passes_through_cycle(self, full_path: Path) -> bool:
-        """Whether any component of the unresolved `full_path` below root_dir is a cycle link."""
-        current = self.root_dir
-        for part in full_path.relative_to(self.root_dir).parts:
-            current = current / part
-            if self._is_cycle_link(current):
-                return True
-        return False
+    def _dir_passes_through_cycle(self, directory: Path) -> bool:
+        """Whether `directory` or any folder above it, below root_dir, is a cycle link. Every file in a folder
+        shares the answer, so it is kept per request, and per worker in prod (as the `.ngsignore` caches are)."""
+        key = os.fspath(directory)
+        if (known := self._cycle_dirs.get(key)) is not None:
+            return known
+        if directory == self.root_dir or not directory.is_relative_to(self.root_dir):
+            result = False
+        else:
+            result = self._dir_passes_through_cycle(directory.parent) or cached_dir_flag(
+                f"cycle:{self.root_dir}:{key}", lambda: self._is_cycle_link(directory),
+            )
+        self._cycle_dirs[key] = result
+        return result
 
-    def _is_safe(self, full_path: Path, is_dir: bool | None = None) -> bool:
-        """Check if the full path is safe and doesn't escape root_dir"""
+    def _passes_through_cycle(self, full_path: Path, is_link: bool | None = None) -> bool:
+        """Whether any component of the unresolved `full_path` below root_dir is a cycle link."""
+        if full_path == self.root_dir:
+            return False
+        return self._dir_passes_through_cycle(full_path.parent) or self._is_cycle_link(full_path, is_link=is_link)
+
+    def _is_safe(self, full_path: Path, is_dir: bool | None = None, is_link: bool | None = None) -> bool:
+        """Check if the full path is safe and doesn't escape root_dir. Pass `is_dir`/`is_link` when known: each saves
+        a stat, which is a round trip on a network mount."""
         try:
             if not full_path.is_relative_to(self.root_dir):
                 return False
-            if self._is_cycle_link(full_path):
+            if is_link is None:
+                is_link = full_path.is_symlink()
+            if self._is_cycle_link(full_path, is_link=is_link):
                 return False
-            if self.allow_symlink_traversal and full_path.is_symlink():
+            if self.allow_symlink_traversal and is_link:
                 abs_path = full_path.resolve()
                 if not abs_path.is_relative_to(self.root_dir):
                     return False
             for shared_path in self.shared_paths:
                 if full_path.is_relative_to(shared_path) or shared_path.is_relative_to(full_path):
-                    return not self.ignore.is_ignored(full_path, is_dir=is_dir)
+                    return not self.ignore.is_ignored(full_path, is_dir=is_dir, is_link=is_link)
             return False
         except (ValueError, RuntimeError):
             return False
@@ -318,16 +342,33 @@ class SharedFileBrowser:
         """Public method to check if a subpath is safe"""
         try:
             full_path = self.root_dir / subpath
-            if self.ignore.is_ignored(full_path):
+            if subpath.is_absolute() or ".." in subpath.parts or full_path == self.root_dir:
+                return self._is_safe_resolving(full_path)
+            # one lstat for the path itself; the folders above it come from the per-folder caches
+            is_link = full_path.is_symlink()
+            if self.ignore.is_ignored(full_path, is_link=is_link):
                 return False
             # checked before resolving: shared/self/self/sub resolves to shared/sub
-            if self._passes_through_cycle(full_path):
+            if self._passes_through_cycle(full_path, is_link=is_link):
                 return False
-            if not full_path.is_symlink() or not self.allow_symlink_traversal:
-                full_path = full_path.resolve()
-            return self._is_safe(full_path)
+            if is_link and self.allow_symlink_traversal:
+                return self._is_safe(full_path, is_link=True)
+            if is_link:
+                return self._is_safe(full_path.resolve())
+            # not a link: its real path is its folder's real path plus its name
+            return self._is_safe(Path(self.ignore._real_dir(os.fspath(full_path.parent))) / full_path.name, is_link=False)
         except (ValueError, RuntimeError, OSError):
             return False
+
+    def _is_safe_resolving(self, full_path: Path) -> bool:
+        """`is_safe` for paths that are the root or leave it (absolute, `..`): no shortcuts."""
+        if self.ignore.is_ignored(full_path):
+            return False
+        if full_path.is_relative_to(self.root_dir) and self._passes_through_cycle(full_path):
+            return False
+        if not full_path.is_symlink() or not self.allow_symlink_traversal:
+            full_path = full_path.resolve()
+        return self._is_safe(full_path)
 
     def propfind(self, subpath: Path = Path(), depth: int = 0) -> list[DAVResponse]:
         """
@@ -371,9 +412,15 @@ class SharedFileBrowser:
 
         if depth == 1 and full_path.is_dir():
             for child_path in full_path.iterdir():
-                if self._is_junk(child_path) or not self._is_safe(child_path):
+                if self._is_junk(child_path):
                     continue
-                child_resource = self._build_resource_props(child_path, subpath)
+                try:
+                    child_stat = child_path.stat()
+                except OSError:
+                    continue
+                if not self._is_safe(child_path, is_dir=stat_module.S_ISDIR(child_stat.st_mode)):
+                    continue
+                child_resource = self._build_resource_props(child_path, subpath, child_stat)
                 if child_resource:
                     resources.append(child_resource)
 
@@ -420,10 +467,14 @@ class SharedFileBrowser:
             for resource in resources
         ]
 
-    def _build_resource_props(self, fs_path: Path, requested_subpath: Path) -> DAVResponse | None:
-        """Build DAVResponse for a single file/directory"""
+    def _build_resource_props(
+        self, fs_path: Path, requested_subpath: Path, stat: os.stat_result | None = None,
+    ) -> DAVResponse | None:
+        """Build DAVResponse for a single file/directory; pass its `stat` when already known."""
         try:
-            stat = fs_path.stat()
+            if stat is None:
+                stat = fs_path.stat()
+            is_dir = stat_module.S_ISDIR(stat.st_mode)
 
             try:
                 if requested_subpath in (Path(), Path("/")):
@@ -434,7 +485,7 @@ class SharedFileBrowser:
             except ValueError:
                 href = fs_path.relative_to(self.root_dir).as_posix()
 
-            if fs_path.is_dir() and not href.endswith('/'):
+            if is_dir and not href.endswith('/'):
                 href += '/'
 
             href = href.replace("./", "/")
@@ -445,10 +496,10 @@ class SharedFileBrowser:
                 DAVProp("getlastmodified", self._format_date(stat.st_mtime)),
             ]
 
-            if fs_path.is_file():
+            if stat_module.S_ISREG(stat.st_mode):
                 props.append(DAVProp("getcontentlength", str(stat.st_size)))
                 props.append(DAVProp("resourcetype", ""))
-            elif fs_path.is_dir():
+            elif is_dir:
                 props.append(DAVProp("resourcetype", "<D:collection/>"))
                 props.append(DAVProp("getcontentlength", "0"))
 

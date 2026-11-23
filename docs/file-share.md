@@ -11,6 +11,7 @@ How opengsync shares files from the share mount with external collaborators thro
 - [Hidden files](#hidden-files)
 - [How downloads are served](#how-downloads-are-served)
 - [Caching](#caching)
+- [Load and throttling](#load-and-throttling)
 - [Sharing with the OpeNGSyncAPI](#sharing-with-the-opengsyncapi)
 - [Known quirks](#known-quirks)
 - [Code](#code)
@@ -310,6 +311,10 @@ With this setup, the host path `/nobackup/lab_bsf/projects/P123_Smith` becomes t
    - `proxy_set_header X-Archive-Support zip;` in `location /`. This is how the app learns that mod_zip is available. nginx overwrites any client-sent value.
    - A `location /api/shares/zip/` block with the same proxy headers (including `X-Archive-Support`), plus `proxy_method GET;` and `proxy_read_timeout 300s;`. The app walks and `stat`s every file before nginx starts streaming, which can take longer than the default 60 s on a large share over the network mount. `proxy_method GET` lets a `HEAD` request report the zip's size.
 
+### Throttling (nginx)
+
+`services/nginx/nginx.template.conf` also limits the rate of share-link and WebDAV requests: the two `map`s and `limit_req_zone`s at the top of the file, the `location ~ ^/(api/webdav|…)/` block and the `limit_req` in the zip block. Copy them into the deployed config in `NGINX_CONFIG_DIR`; see [Load and throttling](#load-and-throttling) for what they do.
+
 To try it in dev, run `make dev-nginx`, which starts nginx with mod_zip on http://localhost:8080 (config: `services/nginx/nginx.dev.conf.template`). Open share links through that port. The dev app on its own port has no zip buttons.
 
 ## What a share link exposes
@@ -493,7 +498,7 @@ So `.ngsignore` and the other checks always run before nginx sees the request. D
 
 - **`/nginx-share/` is `internal`** in `services/nginx/nginx.template.conf`, so clients cannot request it directly.
 - **nginx refuses `..` in `X-Accel-Redirect`** with 404, logged as `unsafe URI`. A request whose path contains `..` therefore gets a 404, even when it points at a visible file. It can never make nginx serve a different file from the one the app checked.
-- **`HEAD`** requests are answered by FastAPI with headers only.
+- **`HEAD`** requests are answered by FastAPI with headers only. On the rclone route (`/api/shares/rclone/…`) they carry the file's size and `Last-Modified`: `rclone copy --http-url` sends a `HEAD` for every file first and skips the files that refuse it. WebDAV `HEAD` answers without a size (clients take it from `PROPFIND`).
 - **Fallback:** if a file's path does not start with the configured `share_root`, for example because `share_root` is set to a path through a symlink, `file_response` falls back to serving the file from FastAPI, reading it entirely into memory. The project **Data** tab refuses this fallback and answers 500 instead (`require_accel=True`). Keep `share_root` a real folder, with the bind mounts below it.
 
 ### Zip downloads
@@ -535,11 +540,11 @@ In prod, results are cached in Redis, and `.ngsignore` rules in each worker's me
 | A Data tab's data paths, top level | Redis `share-fs:<key>:roots:*` | 60 s | Data tab |
 | File lookups (does the path exist, is it shared) | Redis `share-fs:<key>:file:*` | 60 s | downloads, WebDAV `GET`/`HEAD`, Data tab |
 | WebDAV `PROPFIND` | Redis `share-fs:<key>:propfind:*` | 5 min | WebDAV clients |
-| Each folder's parsed `.ngsignore` (or its absence) and resolved path | worker memory, at most 10,000 folders | 60 s | every check that misses the Redis caches |
+| Each folder's parsed `.ngsignore` (or its absence), resolved path, and whether a cycle link leads to it | worker memory, at most 10,000 folders each | 60 s | every check that misses the Redis caches |
 
 `<key>` is the token for share links, and `<owner>:<id>:<hash of its data paths>` for a Data tab (`project`, `seq_request`, `experiment` or `library`). Linking or unlinking a data path changes the hash, so the Data tab shows the new set immediately.
 
-The `.ngsignore` cache exists because every check walks all parent folders of the requested path and tries to open a `.ngsignore` in each. On a remote mount such as sshfs, every one of those attempts is a round trip, even when the file doesn't exist.
+The worker caches exist because every check walks all parent folders of the requested path: it tries to open a `.ngsignore` in each, resolves symlinks, and checks each for a link back to a folder above it. On a remote mount such as sshfs, every one of those attempts is a round trip, even when the file doesn't exist. With them, checking a file in a known folder costs one `lstat` and one `stat`, instead of about 30. The file itself is always checked live; only the folders above it come from the cache, so a folder replaced by a symlink can take up to 60 s to be noticed, as with the Redis file lookups. The zip list resolves every file again without these caches (see [Zip downloads](#zip-downloads)).
 
 What this means in practice:
 
@@ -557,6 +562,30 @@ docker exec redis-cache sh -c "redis-cli --scan --pattern 'share-fs:<token>:*' |
 ```
 
 or, from Python in the app, call `share_fs_cache.invalidate(redis, token)`.
+
+## Load and throttling
+
+Every file of a share-link download is a request the app checks on the share mount before nginx serves it, and rclone keeps up to 24 requests per user in flight (`--transfers=8 --checkers=16`). Without limits, a handful of users downloading folders with many small files took the app's threads and CPU, and every page slowed down. Three layers keep downloads from crowding out the rest of the app:
+
+| Layer | What | Default | Where |
+|---|---|---|---|
+| nginx, per token | requests above the rate wait in nginx | 100 per second, 1,000 waiting | `limit_req zone=share_per_token` |
+| nginx, all share traffic | the same, for all tokens together | 300 per second, 5,000 waiting | `limit_req zone=share_global` |
+| app threads | share-link and WebDAV requests use at most this many threads per app worker; the others wait without holding one | 16 | `share_threads` in `opengsync.yaml`, `utils/share_threads.py` |
+
+Requests above the nginx rates are delayed, not refused; only once the waiting queue is full does nginx answer 429, which rclone retries. Zip requests have their own per-token limit (20 waiting), since each one walks a whole folder.
+
+The app's own rate limits (20 per minute on share links, 200 per minute on WebDAV, per IP) are there against guessing tokens. A valid token's requests are uncounted once answered, and while they are still running a recently loaded token (the 5-minute token cache) is let through, so parallel rclone requests and several users behind one NAT are not refused.
+
+**Measured** (2026-11, prod setup on 4 CPUs, 3 ms added to every share filesystem call to mimic sshfs, ~3,000-file folders, dashboard p50 while users download with the rclone WebDAV command):
+
+| Users downloading | Before | After |
+|---|---|---|
+| none | 92 ms | 46 ms |
+| 6 | 133 ms | 47 ms |
+| 12 | 287 ms | 61 ms |
+
+Downloads run at about 60–80% of their unthrottled speed in exchange. To trade one for the other, change the nginx rates (more downloads, slower pages) or `share_threads`.
 
 ## Sharing with the OpeNGSyncAPI
 
@@ -642,6 +671,7 @@ Notes on `release_project_data`:
 | `X-Accel-Redirect` | `services/backend/server/core/responses.py` (`x_accel_redirect`) |
 | Zip file list for mod_zip | `services/backend/server/utils/share_zip.py`, route `file_share.zip` in `routes/api/shares.py` |
 | Share routes | `services/backend/server/routes/api/shares.py`, `routes/api/webdav.py`, `routes/pages/shared_browser.py` |
+| Thread limit for share routes | `services/backend/server/utils/share_threads.py` |
 | File browser Share and Associate forms | `services/backend/server/forms/actions/SharePathAction.py`, `forms/actions/AssociatePathAction.py`, shared path list in `forms/common/SelectedPathsMixin.py` and `templates/components/selected-paths.jinja2` |
 | File browser selection panel | `services/backend/static/js/path-selection.js`, `templates/files_page.html` |
 | Data tabs (listing, search, file and remove routes, allowed file types) | `services/backend/server/routes/htmx/data_browser.py`, `utils/file_browser.py` |

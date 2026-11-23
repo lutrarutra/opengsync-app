@@ -105,6 +105,8 @@ class AppConfig(BaseModel):
     uploads_folder: str
     app_data_folder: str
     share_root: str
+    # threads per app worker for share-link and WebDAV requests; the rest stay free for the app (utils/share_threads.py)
+    share_threads: int = 16
     static_folder: str
     template_folder: str
     log_folder: str

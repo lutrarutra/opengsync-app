@@ -437,3 +437,19 @@ def test_share_links_escape_special_characters(
     file = client.get(f"/api/shares/browse/{token}/shared/a%23b%20%3Fc%25/x%231.bam.md5")
     assert file.status_code == 200
     assert file.text == "md5"
+
+
+def test_rclone_route_answers_head_with_size_and_mtime(
+    client: TestClient,
+    share_fixture: ShareFixture,
+):
+    """`rclone copy --http-url` sends a HEAD for every file first and skips the files that refuse it."""
+    token = share_fixture.token.uuid
+    head = client.head(f"/api/shares/rclone/{token}/shared/root.txt")
+    assert head.status_code == 200
+    assert head.content == b""
+    assert head.headers["content-length"] == "4"
+    assert "last-modified" in head.headers
+
+    assert client.head(f"/api/shares/rclone/{token}/shared").status_code == 200
+    assert client.head(f"/api/shares/rclone/{token}/unshared.txt").status_code == 404

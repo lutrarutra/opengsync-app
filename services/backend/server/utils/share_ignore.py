@@ -70,9 +70,10 @@ class _ProcessCache:
             self._items.clear()
 
 
-# directory -> (spec, unreadable), and directory -> realpath
+# directory -> (spec, unreadable), directory -> realpath, and directory -> whether a cycle link leads to it
 _loaded = _ProcessCache(PROCESS_CACHE_TTL, PROCESS_CACHE_MAX_DIRS)
 _real_paths = _ProcessCache(PROCESS_CACHE_TTL, PROCESS_CACHE_MAX_DIRS)
+_cycle_dirs = _ProcessCache(PROCESS_CACHE_TTL, PROCESS_CACHE_MAX_DIRS)
 
 
 def _process_cache_enabled() -> bool:
@@ -83,21 +84,44 @@ def _process_cache_enabled() -> bool:
 def clear_process_cache() -> None:
     _loaded.clear()
     _real_paths.clear()
+    _cycle_dirs.clear()
+
+
+def cached_realpath(path: str) -> str:
+    """`os.path.realpath`, kept for `PROCESS_CACHE_TTL` in prod: one lstat per component on a remote mount."""
+    if not _process_cache_enabled():
+        return os.path.realpath(path)
+    if (cached := _real_paths.get(path)) is not _MISSING:
+        return cached
+    real = os.path.realpath(path)
+    _real_paths.set(path, real)
+    return real
+
+
+def cached_dir_flag(key: str, compute) -> bool:
+    """A per-directory boolean (e.g. "a cycle link leads here"), kept for `PROCESS_CACHE_TTL` in prod."""
+    if not _process_cache_enabled():
+        return compute()
+    if (cached := _cycle_dirs.get(key)) is not _MISSING:
+        return cached
+    value = compute()
+    _cycle_dirs.set(key, value)
+    return value
 
 
 class ShareIgnore:
     """Evaluates each directory once and works on plain strings: this runs for every entry of listings and walks."""
 
     def __init__(self, root_dir: str | os.PathLike[str]):
-        self.root = os.path.realpath(root_dir)
+        self.root = cached_realpath(os.fspath(root_dir))
         self._root_prefix = self.root if self.root.endswith(os.sep) else self.root + os.sep
         self._dirs: dict[str, tuple[bool, Specs]] = {}
         self._real_dirs: dict[str, str] = {}
 
-    def is_ignored(self, path: str | os.PathLike[str], is_dir: bool | None = None) -> bool:
+    def is_ignored(self, path: str | os.PathLike[str], is_dir: bool | None = None, is_link: bool | None = None) -> bool:
         """True if a `.ngsignore` hides `path`, either by its own path or by the path its symlinks resolve to.
 
-        Pass `is_dir` when it is already known to save a stat.
+        Pass `is_dir` and `is_link` when they are already known to save a stat each.
         """
         path = os.path.normpath(path)
         if not self._is_inside(path):
@@ -105,7 +129,7 @@ class ShareIgnore:
         if self._matches(path, is_dir):
             return True
         try:
-            if os.path.islink(path):
+            if is_link if is_link is not None else os.path.islink(path):
                 real_path = os.path.realpath(path)
             else:
                 parent, name = os.path.split(path)
@@ -120,14 +144,7 @@ class ShareIgnore:
 
     def _real_dir(self, directory: str) -> str:
         if (real := self._real_dirs.get(directory)) is None:
-            cached = _real_paths.get(directory) if _process_cache_enabled() else _MISSING
-            if cached is _MISSING:
-                real = os.path.realpath(directory)
-                if _process_cache_enabled():
-                    _real_paths.set(directory, real)
-            else:
-                real = cached
-            self._real_dirs[directory] = real
+            real = self._real_dirs[directory] = cached_realpath(directory)
         return real
 
     def _matches(self, path: str, is_dir: bool | None) -> bool:

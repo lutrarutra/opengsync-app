@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse, Response
 from opengsync_db import models
 
 from ...core import dependencies, exceptions as exc, config, responses, templates, redis as rds
+from ...utils import share_threads
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(
@@ -15,7 +16,7 @@ router = APIRouter(
     tags=["api", "webdav"],
     redirect_slashes=False,
     dependencies=[
-        Depends(dependencies.rate_limit("200/minute", "5000/hour")),
+        Depends(dependencies.rate_limit("200/minute", "5000/hour", exempt=dependencies.share_token_recently_valid)),
         Depends(dependencies.audit_share_access),
     ],
 )
@@ -40,12 +41,23 @@ def _wants_html(request: Request) -> bool:
 
 @router.api_route("/{token}", methods=WEBDAV_METHODS, name="webdav.share", operation_id="webdav_share")
 @router.api_route("/{token}/{subpath:path}", methods=WEBDAV_METHODS, name="webdav.share", operation_id="webdav_share_path")
-def share(
+async def share(
     request: Request,
     token: str,
     subpath: str = "",
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
     redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    # the share mount is slow (sshfs): its own threads, so downloads can't take the threadpool the app needs
+    return await share_threads.run(_share, request, token, subpath, share_token, redis)
+
+
+def _share(
+    request: Request,
+    token: str,
+    subpath: str,
+    share_token: models.ShareToken,
+    redis: rds.RedisClient,
 ):
     current_path = _subpath(subpath)
 

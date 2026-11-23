@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import mimetypes
+from email.utils import formatdate
 import smtplib
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import PlainTextResponse, Response
@@ -18,7 +19,7 @@ from ...core import dependencies, exceptions as exc, config, responses, template
 from ...core.mailer import Mailer
 from ...utils import parsing
 from ...utils.io import is_browser_friendly
-from ...utils import share_fs_cache, share_zip
+from ...utils import share_fs_cache, share_threads, share_zip
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(prefix="/shares", tags=["api", "shares"])
@@ -28,7 +29,7 @@ DOWNLOAD_DIR = "BSF_DATA"
 ZIP_SUPPORT_HEADER = "X-Archive-Support"
 access_router = APIRouter(
     dependencies=[
-        Depends(dependencies.rate_limit("20/minute")),
+        Depends(dependencies.rate_limit("20/minute", exempt=dependencies.share_token_recently_valid)),
         Depends(dependencies.audit_share_access),
     ],
 )
@@ -358,6 +359,22 @@ def release_project_data(
     return {"result": "success", "recipients": recipients}
 
 
+def _head_response(file: Path, mimetype: str) -> Response:
+    """Headers of a file download without its body: its real size, which rclone checks against the download."""
+    try:
+        st = file.stat()
+    except OSError:
+        raise exc.NotFoundException(f"Not found: {file.name}")
+    return Response(
+        content=b"",
+        media_type=mimetype,
+        headers={
+            "Content-Length": str(st.st_size),
+            "Last-Modified": formatdate(st.st_mtime, usegmt=True),
+        },
+    )
+
+
 def _subpath(subpath: str) -> Path:
     if not subpath or subpath in (".", "/"):
         return Path()
@@ -380,13 +397,26 @@ def validate(
     return PlainTextResponse("OK")
 
 
-@access_router.get("/rclone/{token}", name="file_share.rclone", operation_id="file_share_rclone")
-@access_router.get("/rclone/{token}/{subpath:path}", name="file_share.rclone", operation_id="file_share_rclone_path")
-def rclone(
+# HEAD too: `rclone copy --http-url` asks for every file's size and modification time with a HEAD first, and
+# skips the files that refuse it
+@access_router.api_route("/rclone/{token}", methods=["GET", "HEAD"], name="file_share.rclone", operation_id="file_share_rclone")
+@access_router.api_route("/rclone/{token}/{subpath:path}", methods=["GET", "HEAD"], name="file_share.rclone", operation_id="file_share_rclone_path")
+async def rclone(
+    request: Request,
     token: str,
     subpath: str = "",
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
     redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    return await share_threads.run(_rclone, request, token, subpath, share_token, redis)
+
+
+def _rclone(
+    request: Request,
+    token: str,
+    subpath: str,
+    share_token: models.ShareToken,
+    redis: rds.RedisClient,
 ):
     current_path = _subpath(subpath)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
@@ -394,6 +424,8 @@ def rclone(
 
     if len(paths := browser.list_contents(current_path)) == 0 and (file := browser.get_file(current_path)) is not None:
         mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
+        if request.method == "HEAD":
+            return _head_response(file, mimetype)
         return responses.file_response(
             path=file,
             filename=file.name,
@@ -414,12 +446,22 @@ def rclone(
 
 @access_router.get("/browse/{token}", name="file_share.browse", operation_id="file_share_browse")
 @access_router.get("/browse/{token}/{subpath:path}", name="file_share.browse", operation_id="file_share_browse_path")
-def browse(
+async def browse(
     request: Request,
     token: str,
     subpath: str = "",
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
     redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    return await share_threads.run(_browse, request, token, subpath, share_token, redis)
+
+
+def _browse(
+    request: Request,
+    token: str,
+    subpath: str,
+    share_token: models.ShareToken,
+    redis: rds.RedisClient,
 ):
     current_path = _subpath(subpath)
     SHARE_ROOT = Path(config.settings.app_config.share_root)
@@ -457,7 +499,7 @@ def _zip_available(request: Request) -> bool:
 
 @access_router.api_route("/zip/{token}", methods=["GET", "HEAD"], name="file_share.zip", operation_id="file_share_zip")
 @access_router.api_route("/zip/{token}/{subpath:path}", methods=["GET", "HEAD"], name="file_share.zip", operation_id="file_share_zip_path")
-def zip_download(
+async def zip_download(
     request: Request,
     token: str,
     subpath: str = "",
@@ -468,7 +510,15 @@ def zip_download(
     stored zip (utils/share_zip.py). Without mod_zip in front, the list would reach the client, so it is refused."""
     if not _zip_available(request):
         raise exc.NotFoundException("Zip downloads need the nginx proxy.")
+    return await share_threads.run(_zip_download, request, subpath, share_token, redis)
 
+
+def _zip_download(
+    request: Request,
+    subpath: str,
+    share_token: models.ShareToken,
+    redis: rds.RedisClient,
+):
     current_path = _subpath(subpath)
     browser = SharedFileBrowser.for_share_token(Path(config.settings.app_config.share_root), share_token, redis=redis)
     manifest = share_zip.build_manifest(browser, current_path if current_path != Path() else None)

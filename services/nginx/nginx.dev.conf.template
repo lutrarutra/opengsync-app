@@ -1,6 +1,23 @@
 # Dev only: the parts of nginx.template.conf that share downloads need, to try zip downloads (mod_zip)
 # locally. Started with `make dev-nginx`; the image's
 # entrypoint fills in ${OPENGSYNC_PORT} (only variables set in the environment are replaced).
+# Share-link and WebDAV throttling (docs/file-share.md#load-and-throttling). Every downloaded file is a request
+# the app checks on the share mount, and rclone sends up to 24 at once per user; requests above these rates
+# wait in nginx (cheap) instead of piling up in the app. Only past `burst` waiting requests is one refused (429),
+# which rclone retries. Non-share requests have an empty key and are not limited.
+map $uri $share_token {
+    "~^/api/(?:webdav|shares/(?:rclone|browse|zip))/(?<share_tok>[0-9A-Za-z-]{36})" $share_tok;
+    "~^/files/share/browse/(?<share_tok>[0-9A-Za-z-]{36})" $share_tok;
+    default "";
+}
+map $share_token $share_all {
+    "" "";
+    default "all";
+}
+limit_req_zone $share_token zone=share_per_token:10m rate=100r/s;
+limit_req_zone $share_all zone=share_global:1m rate=300r/s;
+limit_req_status 429;
+
 upstream opengsync-app {
     server opengsync-app:${OPENGSYNC_PORT};
 }
@@ -28,6 +45,28 @@ server {
         proxy_redirect off;
     }
 
+    # share links and WebDAV: as `location /`, plus the throttling above
+    location ~ ^/(api/webdav|api/shares/rclone|api/shares/browse|files/share/browse)/ {
+        limit_req zone=share_per_token burst=1000;
+        limit_req zone=share_global burst=5000;
+        proxy_pass http://opengsync-app;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /;
+        proxy_set_header X-Archive-Support zip;
+
+        proxy_set_header Depth $http_depth;
+        proxy_set_header Destination $http_destination;
+        proxy_set_header Overwrite $http_overwrite;
+        proxy_set_header If $http_if;
+        proxy_set_header Lock-Token $http_lock_token;
+        proxy_set_header Timeout $http_timeout;
+
+        proxy_redirect off;
+    }
+
     location /api/shares/zip/ {
         proxy_pass http://opengsync-app/api/shares/zip/;
         proxy_set_header X-Real-IP $remote_addr;
@@ -36,6 +75,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Prefix /;
         proxy_set_header X-Archive-Support zip;
+        limit_req zone=share_per_token burst=20;
         # mod_zip needs the file list to answer HEAD with the zip's Content-Length
         proxy_method GET;
         proxy_read_timeout 300s;

@@ -127,3 +127,53 @@ def test_rate_limited_share_access_is_audited(client: TestClient, audit_records:
     assert record["status_code"] == 429
     assert record["path"] == path
     assert record["ip"] == ip
+
+
+def _redis(client: TestClient):
+    from server.core import redis as rds
+    return rds.RedisClient(client.app.state.redis_pool)  # type: ignore[attr-defined]
+
+
+def test_valid_share_token_is_not_limited_while_requests_are_in_flight(
+    client: TestClient,
+    share_fixture,
+):
+    """Requests of a valid token count until they are answered: rclone's parallel requests (or users behind one
+    NAT) can exceed the limit while they run. A recently validated token is let through anyway."""
+    token = share_fixture.token.uuid
+    ip = "198.51.100.14"
+    url = f"/api/webdav/{token}/shared/root.txt"
+    assert client.get(url, headers={"X-Real-IP": ip}).status_code == 200  # loads and caches the token
+
+    window = int(1_700_000_000.0) // 60
+    key = f"ratelimit:{ip}:/api/webdav/{{token}}/{{subpath:path}}:60:{window}"
+    r = _redis(client)
+    r.set(key, 10_000, ex=60)  # as if thousands of requests were still running
+    try:
+        assert client.get(url, headers={"X-Real-IP": ip}).status_code == 200
+    finally:
+        r.delete(key)
+
+
+def test_unknown_share_token_over_the_limit_is_not_exempt(client: TestClient):
+    ip = "198.51.100.15"
+    path = "/api/shares/rclone/not-a-real-token"
+    window = int(1_700_000_000.0) // 60
+    key = f"ratelimit:{ip}:/api/shares/rclone/{{token}}:60:{window}"
+    r = _redis(client)
+    r.set(key, 10_000, ex=60)
+    try:
+        assert client.get(path, headers={"X-Real-IP": ip}).status_code == 429
+    finally:
+        r.delete(key)
+
+
+def test_valid_share_request_deletes_its_rate_limit_counters(
+    client: TestClient,
+    share_fixture,
+):
+    token = share_fixture.token.uuid
+    ip = "198.51.100.16"
+    assert client.get(f"/api/webdav/{token}/shared/root.txt", headers={"X-Real-IP": ip}).status_code == 200
+    r = _redis(client)
+    assert r.get_keys(f"ratelimit:{ip}:*") == []

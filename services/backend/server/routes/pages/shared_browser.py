@@ -9,13 +9,14 @@ from ...core import config, dependencies, responses
 from ...utils.file_browser import BrowserPath
 from ...utils.io import is_browser_friendly
 from ...core import redis as rds
+from ...utils import share_threads
 from ...utils.shared_file_browser import SharedFileBrowser
 
 router = APIRouter(
     prefix="/files/share/browse",
     tags=["file-share"],
     dependencies=[
-        Depends(dependencies.rate_limit("20/minute")),
+        Depends(dependencies.rate_limit("20/minute", exempt=dependencies.share_token_recently_valid)),
         Depends(dependencies.audit_share_access),
     ],
 )
@@ -42,7 +43,7 @@ def _browser_paths(paths: list[BrowserPath]) -> list[BrowserPath]:
 
 @router.get("/{token}/entries", name="shared_browser_entries")
 @router.get("/{token}/entries/{subpath:path}", name="shared_browser_entries")
-def shared_browser_entries(
+async def shared_browser_entries(
     token: str,
     subpath: str = "",
     page: int = Query(0, ge=0),
@@ -50,6 +51,18 @@ def shared_browser_entries(
     sort_order: str = Query("asc"),
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
     redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    return await share_threads.run(_shared_browser_entries, token, subpath, page, sort_by, sort_order, share_token, redis)
+
+
+def _shared_browser_entries(
+    token: str,
+    subpath: str,
+    page: int,
+    sort_by: str,
+    sort_order: str,
+    share_token: models.ShareToken,
+    redis: rds.RedisClient,
 ):
     current_path = _subpath(subpath)
     browser = SharedFileBrowser.for_share_token(
@@ -81,11 +94,20 @@ def shared_browser_entries(
 
 @router.get("/{token}", name="shared_browser_page")
 @router.get("/{token}/{subpath:path}", name="shared_browser_page_path")
-def shared_browser_page(
+async def shared_browser_page(
     token: str,
     subpath: str = "",
     share_token: models.ShareToken = Depends(dependencies.load_share_token),
     redis: rds.RedisClient = Depends(dependencies.redis),
+):
+    return await share_threads.run(_shared_browser_page, token, subpath, share_token, redis)
+
+
+def _shared_browser_page(
+    token: str,
+    subpath: str,
+    share_token: models.ShareToken,
+    redis: rds.RedisClient,
 ):
     current_path = _subpath(subpath)
     browser = SharedFileBrowser.for_share_token(

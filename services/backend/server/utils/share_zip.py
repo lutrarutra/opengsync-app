@@ -8,8 +8,8 @@ never reads file contents.
     0 0 @directory <name in the zip>/                                  a folder
 
 A file is listed only if a single download of it would be served (`SharedFileBrowser.get_file`), and its
-real path is re-checked here without any cache: nginx follows symlinks, so this is the last check before
-nginx reads the file. Every line is validated again before the list is returned.
+real path is re-checked here without the Redis or worker caches (each folder is resolved once per zip): nginx
+follows symlinks, so this is the last check before nginx reads the file. Every line is validated again before the list is returned.
 """
 import hashlib
 import os
@@ -105,12 +105,25 @@ def _start_points(browser: SharedFileBrowser, subpath: Path | None) -> list[tupl
     return starts
 
 
-def _file_entry(browser: SharedFileBrowser, rel: Path) -> tuple[int, int, str] | None:
+def _fresh_realpath(full_path: Path, real_dirs: dict[str, str]) -> str:
+    """realpath of `full_path` without the request caches; each folder is resolved once per zip (`real_dirs`),
+    since resolving costs an lstat per path component, a round trip each on a network mount."""
+    parent, name = os.path.split(os.fspath(full_path))
+    if os.path.islink(full_path):
+        return os.path.realpath(full_path)
+    if (real_parent := real_dirs.get(parent)) is None:
+        real_parent = real_dirs[parent] = os.path.realpath(parent)
+    return os.path.join(real_parent, name)
+
+
+def _file_entry(browser: SharedFileBrowser, rel: Path, real_dirs: dict[str, str]) -> tuple[int, int, str] | None:
     """(size, mtime_ns, location) of a file a single download would serve, None otherwise."""
-    if (full_path := browser.get_file(rel)) is None:
+    # checked live, not through the Redis file cache: a zip checks thousands of files at once
+    if (full_path := browser.get_file(rel, use_cache=False)) is None:
         return None
-    # uncached: a symlink retargeted outside the share root after the walk or get_file was cached is refused here
-    if not Path(os.path.realpath(full_path)).is_relative_to(browser.root_dir):
+    # resolved again here, without the request caches: a symlink retargeted outside the share root after the
+    # walk was cached is refused, because nginx follows symlinks
+    if not Path(_fresh_realpath(full_path, real_dirs)).is_relative_to(browser.root_dir):
         logger.warning(f"Share zip: '{rel}' resolves outside the share root, skipped")
         return None
     try:
@@ -144,6 +157,7 @@ def build_manifest(browser: SharedFileBrowser, subpath: Path | None = None) -> Z
     """The mod_zip file list for the whole share (`subpath` None) or one shared folder; None when there is
     nothing to download or `subpath` is not a shared folder."""
     entries: list[tuple[str, str, int]] = []  # (name, line, mtime_ns)
+    real_dirs: dict[str, str] = {}
     for start, prefix in _start_points(browser, subpath):
         for rel, is_dir in browser.walk_contents(start):
             rest = rel.relative_to(start).as_posix()
@@ -154,7 +168,7 @@ def build_manifest(browser: SharedFileBrowser, subpath: Path | None = None) -> Z
             if is_dir:
                 if browser.is_safe(rel):
                     entries.append((f"{name}/", f"0 0 @directory {name}/", 0))
-            elif (file := _file_entry(browser, rel)) is not None:
+            elif (file := _file_entry(browser, rel, real_dirs)) is not None:
                 size, mtime_ns, location = file
                 entries.append((name, f"- {size} {location} {name}", mtime_ns))
 
