@@ -160,8 +160,9 @@ class Col:
     filter: Enum | Entity | None = None
     display: bool = True               # False: search/filter-only field, never a column
     hideable: bool = True              # can be hidden with the column picker
-    size: int | None = None            # bootstrap col-N width hint
+    size: float | None = None          # width weight: 1 = 48px at the table's minimum width (see Table.col_weight)
     index_toggle: bool = False         # header gets the barcode Name | Sequence switch
+    icon: str | None = None            # header shows this bootstrap icon instead of the title (for narrow columns)
     align: str | None = None
 
     @property
@@ -197,4 +198,5 @@ class Variant:
     fields: Sequence[str] | None = None  # search/filter fields offered, defaults to all
     prelude: str | None = None         # template rendered above the table (e.g. capacity bars)
     toolbar: str | None = None         # template with buttons at the end of the toolbar (e.g. "Add Assignee")
+    sizes: dict = dc_field(default_factory=dict)  # per-variant Col.size overrides (e.g. an id cell with assignees)
     extra: dict = dc_field(default_factory=dict)

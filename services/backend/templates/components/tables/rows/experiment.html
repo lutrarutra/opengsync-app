@@ -1,10 +1,12 @@
+{% from "components/assignee_list.jinja2" import assignee_list, id_cell, person_badge %}
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% for experiment in rows %}
 {% set cycle_mismatch = experiment.match_seq_run_config() is false %}
 <tr>
-    <th scope="row">{{ experiment.id }}</th>
+    {% call id_cell(experiment.id) %}{{ person_badge(experiment.operator, current_user, "Operator") }}{% endcall %}
     <td class="cm-callback" {{
         context_menu([
             {"type": "copy", "value": experiment.name, "label": "Copy Name"},
@@ -13,8 +15,7 @@
         <a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}" {% if cycle_mismatch %}{{ tooltip("Experiment config (num. cycles) does not match the associated run config. Please update the experiment or run config to match.", category="danger") }}{% endif %}>
             {% if cycle_mismatch %}❗{% endif %}{{ experiment.name }}
         </a></td>
-    <td><span class="badge assignee-badge {% if experiment.operator == current_user %}badge-success{% endif %}">{{ experiment.operator.initials }}</span> {{ experiment.operator.name }}</td>
-    <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
+    <td>{{ status_badge(experiment.status) }}</td>
     <td class="x-scroll-cell">
         <div class="scroll-container">
         {% for pool in experiment.pools %}

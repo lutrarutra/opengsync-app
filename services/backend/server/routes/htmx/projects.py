@@ -36,28 +36,28 @@ class ProjectTable(Table):
         orm.with_expression(PR._library_types, PR.library_types.expression),  # pyright: ignore[reportAttributeAccessIssue]
     )
     columns = [
-        Col("id", "ID", sort=True, search=Exact(PR.id), hideable=False, size=1),
-        Col("identifier", "Identifier", sort=True, search=Text(PR.identifier, compact=True), size=1),
-        Col("title", "Title", sort=True, search=Text(PR.title, compact=True), hideable=False, size=3),
+        Col("id", "ID", sort=True, search=Exact(PR.id), hideable=False, size=1.5),
+        Col("identifier", "Identifier", sort=True, search=Text(PR.identifier, compact=True), size=2),
+        Col("title", "Title", sort=True, search=Text(PR.title, compact=True), hideable=False, size=6),
         Col(
-            "library_types", "Library Types", size=2,
+            "library_types", "Library Types", size=3.5,
             filter=Enum(C.LibraryType, column=models.Library.type, via=(PR.samples, models.Sample.library_links, models.links.SampleLibraryLink.library)),
         ),
-        Col("status", "Status", sort=True, filter=Enum(C.ProjectStatus), size=1),
+        Col("status", "Status", sort=True, filter=Enum(C.ProjectStatus), size=3),
         Col(
-            "group", "Group", size=2,
+            "group", "Group", size=3,
             sort=related(PR.group, models.Group.name),
             search=Text(models.Group.name, via=PR.group),
             filter=Entity(models.Group, via=PR.group, option=query_options.group_option, search=(models.Group.name,)),
         ),
         Col(
-            "owner_name", "Owner", size=2,
+            "owner_name", "Owner", size=3.5,
             sort=related(PR.owner, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=PR.owner, weight=0.9),
             filter=Entity(models.User, via=PR.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
         Col(
-            "assignees", "Assignees", size=2, sort=PR.num_assignees,
+            "assignees", "Assignees", size=1, display=False, hideable=False, sort=PR.num_assignees,
             search=Text(_FULL_NAME, models.User.email, via=PR.assignees, weight=0.9),
             filter=Entity(
                 models.User, via=PR.assignees, option=query_options.user_option,
@@ -68,16 +68,16 @@ class ProjectTable(Table):
     ]
     variants = {
         "default": Variant(
-            ["id", "identifier", "title", "library_types", "status", "group", "owner_name", "num_samples", "assignees"],
-            "components/tables/rows/project.html", dom_id="project-table",
+            ["id", "identifier", "title", "library_types", "status", "group", "owner_name", "num_samples"],
+            "components/tables/rows/project.html", sizes={"id": 2.6}, dom_id="project-table",
         ),
         "user": Variant(
             ["id", "identifier", "title", "library_types", "status", "num_samples"],
             "components/tables/rows/user-project.html", dom_id="user-project-table",
         ),
         "experiment": Variant(
-            ["id", "identifier", "title", "library_types", "status", "group", "owner_name", "num_samples", "assignees"],
-            "components/tables/rows/experiment-project.html", dom_id="experiment-project-table",
+            ["id", "identifier", "title", "library_types", "status", "group", "owner_name", "num_samples"],
+            "components/tables/rows/experiment-project.html", sizes={"id": 2.6}, dom_id="experiment-project-table",
         ),
         "seq_request": Variant(
             ["id", "identifier", "title", "status", "group", "owner_name", "num_samples"],

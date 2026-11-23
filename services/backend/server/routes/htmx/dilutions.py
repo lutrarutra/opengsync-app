@@ -29,7 +29,7 @@ class DilutionTable(Table):
             filter=Entity(models.Pool, via=PD.pool, option=query_options.pool_option, search=(models.Pool.name,)),
         ),
         Col(
-            "operator", "Operator", size=2,
+            "operator", "Operator", size=3.5,
             sort=related(PD.operator, _FULL_NAME),
             search=Text(_FULL_NAME, via=PD.operator, weight=0.9),
         ),

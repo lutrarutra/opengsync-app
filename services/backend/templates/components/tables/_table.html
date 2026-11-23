@@ -1,11 +1,18 @@
 {#- Shared layout of every htmx table (server/components/tables/table.py, docs/tables.md).
     The variant's row template renders the <tr>s of `rows`; everything else lives here. -#}
+{% macro th_title(col) -%}
+{%- if col.icon -%}
+<span class="otable-th-title otable-th-icon"><i class="bi {{ col.icon }}" aria-hidden="true"></i><span class="visually-hidden">{{ col.title }}</span></span>
+{%- else -%}
+<span class="otable-th-title">{{ col.title }}</span>
+{%- endif -%}
+{%- endmacro %}
 {% set variant = table.variant %}
 {% set columns = table.shown_columns %}
 {% set filter_fields = table.filter_fields %}
 {% set chips = table.chips %}
 {% set ncols = columns | length + (1 if variant.actions else 0) %}
-<div id="{{ table.dom_id }}" class="table-container otable"
+<div id="{{ table.dom_id }}" class="table-container otable otable-pending"
     data-table-key="{{ table.key }}"
     data-variant="{{ table.variant_name }}"
     data-sync-url="{{ 'true' if variant.url_state else 'false' }}"
@@ -150,18 +157,18 @@
             <tr>
                 {% for col in columns %}
                 {% set direction = table.sort_direction(col) %}
-                <th scope="col" class="{% if direction %}otable-sorted{% endif %}" data-col="{{ col.key }}"
+                <th scope="col" class="{% if direction %}otable-sorted{% endif %}" data-col="{{ col.key }}" {% if col.icon %}title="{{ col.title }}"{% endif %}
                     {% if col.sortable %}aria-sort="{{ {'asc': 'ascending', 'desc': 'descending'}.get(direction, 'none') }}"{% endif %}>
                     <span class="otable-th">
                         {% if col.sortable %}
                         <button type="button" class="otable-sort" data-order-by="{{ table.next_sort(col) }}" title="Sort by {{ col.title }}">
-                            <span class="otable-th-title">{{ col.title }}</span>
+                            {{ th_title(col) }}
                             {% if direction == "asc" %}<i class="bi bi-arrow-up" aria-hidden="true"></i>
                             {% elif direction == "desc" %}<i class="bi bi-arrow-down" aria-hidden="true"></i>
                             {% else %}<i class="bi bi-arrow-down-up otable-sort-idle" aria-hidden="true"></i>{% endif %}
                         </button>
                         {% else %}
-                        <span class="otable-th-title">{{ col.title }}</span>
+                        {{ th_title(col) }}
                         {% endif %}
                         {% if col in filter_fields %}
                         <button type="button" class="otable-funnel {% if table.selected(col) %}active{% endif %}" data-filter-field="{{ col.key }}" aria-label="Filter {{ col.title }}">

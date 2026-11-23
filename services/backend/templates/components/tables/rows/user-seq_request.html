@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -10,7 +11,7 @@
         ])
     }}><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='user@' + user_id | string) }}">{{ seq_request.name }}</a></td>
     <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types, seq_request.mux_types) }}</td>
-    <td>{{ seq_request.status.icon }} {{ seq_request.status.label }}</td>
+    <td>{{ status_badge(seq_request.status) }}</td>
     <td>{{ seq_request.timestamp_submitted_str() }}</td>
     <td>{{ seq_request.num_libraries }}</td>
 </tr>

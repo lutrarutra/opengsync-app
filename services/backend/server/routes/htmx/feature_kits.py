@@ -19,9 +19,9 @@ class FeatureKitTable(Table):
     noun = "feature kits"
     columns = [
         Col("id", "ID", sort=True, search=Exact(FK.id), hideable=False, size=1),
-        Col("identifier", "Identifier", sort=True, search=Text(FK.identifier, compact=True), size=2),
-        Col("name", "Name", sort=True, search=Text(FK.name), hideable=False, size=3),
-        Col("type", "Feature Type", sort=True, filter=Enum(C.FeatureType), size=2),
+        Col("identifier", "Identifier", sort=True, search=Text(FK.identifier, compact=True), size=1),
+        Col("name", "Name", sort=True, search=Text(FK.name), hideable=False, size=7),
+        Col("type", "Feature Type", sort=True, filter=Enum(C.FeatureType), size=2.5),
     ]
     variants = {
         "default": Variant(

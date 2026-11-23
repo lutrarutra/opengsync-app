@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% for project in rows %}
@@ -13,7 +14,7 @@
             {"type": "copy", "value": project.title, "label": "Copy Title"},
         ])
     }}><a href="{{ url_for('project_page', project_id=project.id, from='group@' + group_id | string) }}">{{ project.title }}</a></td>
-    <td>{{ project.status.label }} {{ project.status.icon | safe }}</td>
+    <td>{{ status_badge(project.status) }}</td>
     <td><a href="{{ url_for('user_page', user_id=project.owner_id, from='group@' + group_id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
     <td>{{ project.num_samples }}</td>
 </tr>

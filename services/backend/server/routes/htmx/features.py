@@ -19,14 +19,14 @@ class FeatureTable(Table):
     noun = "features"
     columns = [
         Col("id", "ID", sort=True, search=Exact(F.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(F.name, compact=True), hideable=False, size=3),
-        Col("identifier", "Identifier", sort=True, search=Text(F.identifier, compact=True), size=2),
-        Col("target_name", "Target Name", sort=True, search=Text(F.target_name), size=2),
-        Col("target_id", "Target ID", sort=True, search=Text(F.target_id), size=2),
-        Col("sequence", "Sequence", search=Text(F.sequence), size=2),
-        Col("pattern", "Pattern", size=2),
-        Col("read", "Read", size=2),
-        Col("type", "Feature Type", sort=True, filter=Enum(C.FeatureType), size=2),
+        Col("name", "Name", sort=True, search=Text(F.name, compact=True), hideable=False, size=4),
+        Col("identifier", "Identifier", sort=True, search=Text(F.identifier, compact=True), size=1),
+        Col("target_name", "Target Name", sort=True, search=Text(F.target_name), size=3),
+        Col("target_id", "Target ID", sort=True, search=Text(F.target_id), size=2.5),
+        Col("sequence", "Sequence", search=Text(F.sequence), size=3),
+        Col("pattern", "Pattern", size=3),
+        Col("read", "Read", size=1.5),
+        Col("type", "Feature Type", sort=True, filter=Enum(C.FeatureType), size=2.5),
     ]
     variants = {
         "default": Variant(_FEATURE_COLUMNS, "components/tables/rows/feature_kit-feature.html", dom_id="feature_kit-feature-table"),

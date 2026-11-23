@@ -761,9 +761,14 @@ table.barcode-clashes-table tbody td.index-cell {
     width: 100%;
     min-width: 100%;
 
-    th, td { overflow: hidden; text-overflow: ellipsis; }
+    th, td { overflow: hidden; }
 
-    /* long names end in "…" (full text on hover, table.js) instead of being cut */
+    /* body cells scroll sideways: table.js wraps their content in .otable-cell (full text also on hover) */
+    tbody .otable-cell {
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+    }
     /* fixed, compact rows: the same height for text, links and badges on every page (table.js counts on it) */
     tbody tr:not(.otable-empty) > td, tbody tr:not(.otable-empty) > th {
         height: 38px;
@@ -779,13 +784,10 @@ table.barcode-clashes-table tbody td.index-cell {
         overflow-y: hidden;
     }
 
-    tbody td > a {
-        display: block !important;
+    tbody td a {
         height: auto !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
         white-space: nowrap;
     }
 
@@ -848,7 +850,7 @@ table.barcode-clashes-table tbody td.index-cell {
     .otable-th {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 2px;
         width: 100%;
     }
 
@@ -859,10 +861,12 @@ table.barcode-clashes-table tbody td.index-cell {
         text-overflow: ellipsis;
     }
 
+    /* label on the left; sort arrow and funnel together at the right end. The sort button fills the cell (the
+       whole header sorts on click), its title takes the free space so the arrow sits next to the funnel */
     .otable-sort {
         flex: 1;
         justify-content: space-between;
-        gap: 6px;
+        gap: 2px;
         min-width: 0;
     }
 
@@ -870,7 +874,7 @@ table.barcode-clashes-table tbody td.index-cell {
     .otable-funnel {
         border: 0;
         background: transparent;
-        padding: 4px 4px !important;
+        padding: 4px 2px !important;
         border-radius: 6px;
         font: inherit;
         font-weight: inherit;
@@ -1020,8 +1024,9 @@ table.barcode-clashes-table tbody td.index-cell {
 }
 
 .otable-form.htmx-request {
-    tbody { opacity: .45; transition: opacity .15s ease-in; }
-    .otable-loadbar { height: 3px; margin-bottom: -3px; z-index: 2; }
+    /* only slow loads dim the rows and show the bar: a quick page change would just blink */
+    tbody { opacity: .45; transition: opacity .15s ease-in .3s; }
+    .otable-loadbar { height: 3px; margin-bottom: -3px; z-index: 2; animation: otable-loadbar-in 0s linear .3s backwards; }
     .otable-loadbar::before {
         content: "";
         position: absolute;
@@ -1031,6 +1036,8 @@ table.barcode-clashes-table tbody td.index-cell {
         animation: otable-loading 1s ease-in-out infinite;
     }
 }
+
+@keyframes otable-loadbar-in { from { visibility: hidden; } }
 
 @keyframes otable-loading {
     from { transform: translateX(-100%); }
@@ -1055,3 +1062,131 @@ table.barcode-clashes-table tbody td.index-cell {
     }
     .otable-footer { justify-content: center; }
 }
+
+/* status pill (components/status_badge.jinja2): icon + label, tinted by tone */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px 1px 6px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+
+    .status-badge-icon { font-size: 11px; flex: none; }
+
+    &.status-neutral  { background: #f1f3f5; border-color: #dee2e6; color: #495057; }
+    &.status-progress { background: #e7f1fb; border-color: #c5ddf3; color: #1c5a92; }
+    &.status-ready    { background: #e6f5f3; border-color: #bfe3dd; color: #17685c; }
+    &.status-pending  { background: #fdf3e1; border-color: #f2d6a2; color: #8a5300; }
+    &.status-done     { background: #e9f6ec; border-color: #c3e6cb; color: #23683a; }
+    &.status-danger   { background: #fcebeb; border-color: #f3c7c7; color: #9b2c2c; }
+}
+
+/* library type pill (components/library_type_badge_list.jinja2): "type │ mux │ flags" as one split chip */
+.lt-list { gap: 4px !important; }
+.lt-chip {
+    display: inline-flex;
+    align-items: stretch;
+    flex: none;
+    border: 1px solid #c9d8ea;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+
+    > span { padding: 1px 6px; display: inline-flex; align-items: center; gap: 3px; }
+    > span + span { border-left: 1px solid #c9d8ea; }
+    .lt-type { background: #eef3fa; color: #1f4f82; }
+    .lt-mux  { background: #e9f6ec; color: #23683a; }
+    .lt-mux i { font-size: 10px; }
+    .lt-flag { background: #f6f7f8; color: #5f6b76; font-size: 11px; font-weight: 600; }
+    .lt-flag-ncl { color: #9b2c2c; }
+}
+.lt-chip:has(> .lt-mux:only-child) { border-color: #c3e6cb; }
+
+/* row header: id, then the people on the row (assignees, operator) as initials; scrolls sideways if many */
+.otable tbody th.otable-id-cell .otable-id {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.otable tbody .otable-id-num { flex: none; }
+.otable tbody .otable-id-people {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+/* sideways-scrolling cells: no scrollbar (it pushed the content off centre); the cut-off edge fades instead,
+   toggled by table.js (fade-left / fade-right) */
+.table-container.otable tbody :is(.scroll-container, .otable-cell) {
+    --otable-fade: 18px;
+    scrollbar-width: none !important;
+    &::-webkit-scrollbar { display: none !important; }
+
+    &.fade-right {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--otable-fade)), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - var(--otable-fade)), transparent);
+    }
+    &.fade-left {
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--otable-fade));
+        mask-image: linear-gradient(to right, transparent, #000 var(--otable-fade));
+    }
+    &.fade-left.fade-right {
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--otable-fade), #000 calc(100% - var(--otable-fade)), transparent);
+        mask-image: linear-gradient(to right, transparent, #000 var(--otable-fade), #000 calc(100% - var(--otable-fade)), transparent);
+    }
+}
+
+/* icon-only header (Col.icon): the title is in the hover text */
+.otable .otable-th-icon i { font-size: 14px; }
+
+/* hovered cut-off cell grown over its right-hand neighbours (table.js expandCell) */
+.table-container.otable tbody .otable-cell-expanded {
+    z-index: 20;
+    max-height: none !important;
+    margin: 0 !important;
+    background: var(--otable-hover);
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 2px 10px rgba(29, 39, 51, .16), 0 0 0 1px var(--otable-border);
+    /* fade only when it still doesn't fit; the box itself keeps its edges */
+    &:not(.fade-left):not(.fade-right) { -webkit-mask-image: none; mask-image: none; }
+    &.scroll-container { display: flex !important; align-items: center; }
+}
+
+/* first paint: the table stays hidden behind a skeleton until table.js has applied the saved widths, hidden
+   columns and cell wrappers (revealTable); if the script never runs, it shows itself after a second anyway */
+.table-container.otable.otable-pending .otable-scroll {
+    position: relative;
+
+    > table {
+        visibility: hidden;
+        animation: otable-reveal 0s linear 1s forwards;
+    }
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            linear-gradient(var(--otable-head), var(--otable-head)) top / 100% 42px no-repeat,
+            repeating-linear-gradient(to bottom,
+                transparent 0 13px, #edf0f3 13px 25px, transparent 25px 38px) 12px 42px / calc(100% - 24px) calc(100% - 42px) no-repeat;
+        animation: otable-skeleton 1.2s ease-in-out infinite, otable-skeleton-off 0s linear 1s forwards;
+    }
+}
+@keyframes otable-reveal { to { visibility: visible; } }
+@keyframes otable-skeleton { 50% { opacity: .55; } }
+@keyframes otable-skeleton-off { to { visibility: hidden; } }

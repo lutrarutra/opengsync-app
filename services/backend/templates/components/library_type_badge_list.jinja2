@@ -1,12 +1,39 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
+{#- One library: a split pill "type │ mux │ flags", so type and multiplexing read as one thing. -#}
+{% macro library_type_chip(library, qc=false) -%}
+{%- set hint = [library.type.label] -%}
+{%- if library.mux_type %}{% set _ = hint.append("multiplexed: " ~ library.mux_type.label) %}{% endif -%}
+{%- if qc %}{% set _ = hint.append("QC only") %}{% endif -%}
+{%- if library.nuclei_isolation %}{% set _ = hint.append("nuclei isolation") %}{% endif -%}
+<span class="lt-chip" {{ tooltip(hint | join(" · ")) }}>
+    <span class="lt-type">{{ library.type.abbreviation }}</span>
+    {%- if library.mux_type %}<span class="lt-mux">{{ library.mux_type.abbreviation }}</span>{% endif -%}
+    {%- if qc %}<span class="lt-flag lt-flag-qc">QC</span>{% endif -%}
+    {%- if library.nuclei_isolation %}<span class="lt-flag lt-flag-ncl">ncl</span>{% endif -%}
+</span>
+{%- endmacro %}
+
+{#- Several libraries (request, project, pool, experiment): a pill per type, then one pill with the mux types used. -#}
 {% macro library_type_badge_list(library_types, mux_types=none) %}
-<div class="scroll-container">
+<div class="scroll-container lt-list">
     {% for library_type in library_types %}
-    <span class="badge" {{ tooltip(library_type.label) }}>{{ library_type.identifier }}</span>
+    <span class="lt-chip" {{ tooltip(library_type.label) }}><span class="lt-type">{{ library_type.abbreviation }}</span></span>
     {% endfor %}
     {% if mux_types %}
-    <sup class="mux-type">{% for mux_type in mux_types %}{{ mux_type.abbreviation }}{% endfor %}</sup>
+    <span class="lt-chip" {{ tooltip("Multiplexing: " ~ (mux_types | map(attribute="label") | join(", "))) }}><span class="lt-mux"><i class="bi bi-intersect" aria-hidden="true"></i>{{ mux_types | map(attribute="abbreviation") | join(" · ") }}</span></span>
     {% endif %}
 </div>
 {% endmacro %}
+
+{#- Lab prep checklist: the same split pill, "checklist │ mux types"; long labels use the abbreviation
+    ("Whole Genome Sequencing" -> "WGS"), full name on hover. -#}
+{% macro checklist_chip(checklist_type, mux_types=none) -%}
+{%- set name = checklist_type.label if checklist_type.label | length <= 12 else checklist_type.abbreviation | replace("_", " ") -%}
+{%- set hint = [checklist_type.label] -%}
+{%- if mux_types %}{% set _ = hint.append("multiplexed: " ~ (mux_types | map(attribute="label") | join(", "))) %}{% endif -%}
+<span class="lt-chip" {{ tooltip(hint | join(" · ")) }}>
+    <span class="lt-type">{{ name }}</span>
+    {%- if mux_types %}<span class="lt-mux">{{ mux_types | map(attribute="abbreviation") | join(" · ") }}</span>{% endif -%}
+</span>
+{%- endmacro %}

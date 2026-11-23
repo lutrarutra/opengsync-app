@@ -38,17 +38,17 @@ class LibraryTable(Table):
     )
     columns = [
         Col("id", "ID", sort=True, search=Exact(L.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(L.name, L.sample_name, compact=True), hideable=False, size=4),
+        Col("name", "Name", sort=True, search=Text(L.name, L.sample_name, compact=True), hideable=False, size=5),
         Col(
-            "pool", "Pool", size=1,
+            "pool", "Pool", size=3,
             sort=related(L.pool, models.Pool.name),
             search=Text(models.Pool.name, via=L.pool),
             filter=Entity(models.Pool, via=L.pool, option=query_options.pool_option, search=(models.Pool.name,)),
         ),
-        Col("type", "Type", sort=True, filter=Enum(C.LibraryType), size=1),
-        Col("status", "Status", sort=True, filter=Enum(C.LibraryStatus), size=1),
+        Col("type", "Type", sort=True, filter=Enum(C.LibraryType), size=3),
+        Col("status", "Status", sort=True, filter=Enum(C.LibraryStatus), size=3),
         Col(
-            "seq_request", "Request", size=2,
+            "seq_request", "Request", size=4,
             sort=related(L.seq_request, models.SeqRequest.name),
             search=Text(models.SeqRequest.name, via=L.seq_request),
             filter=Entity(

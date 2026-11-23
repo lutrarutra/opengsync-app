@@ -18,11 +18,11 @@ class SeqRunTable(Table):
     noun = "runs"
     columns = [
         Col("id", "ID", sort=True, search=Exact(SR.id), hideable=False, size=1),
-        Col("experiment", "Experiment", sort=SR.experiment_name, search=Text(SR.experiment_name, compact=True), size=2),
-        Col("status", "Status", sort=True, filter=Enum(C.RunStatus), size=1),
+        Col("experiment", "Experiment", sort=SR.experiment_name, search=Text(SR.experiment_name, compact=True), size=3),
+        Col("status", "Status", sort=True, filter=Enum(C.RunStatus), size=2.5),
         Col("cycles", "Cycles", size=1),
         Col("flow_cell_id", "Flow Cell ID", sort=SR.flowcell_id, search=Text(SR.flowcell_id), size=1),
-        Col("run_folder", "Run Folder", sort=True, search=Text(SR.run_folder, compact=True), size=4),
+        Col("run_folder", "Run Folder", sort=True, search=Text(SR.run_folder, compact=True), size=5),
         Col("started", "Started", size=2),
         Col("completed", "Completed", size=2),
     ]

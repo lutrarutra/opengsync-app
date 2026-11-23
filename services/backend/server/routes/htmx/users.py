@@ -25,10 +25,10 @@ class UserTable(Table):
     )
     columns = [
         Col("id", "ID", sort=True, search=Exact(U.id), hideable=False, size=1),
-        Col("name", "Name", sort=_FULL_NAME, search=Text(_FULL_NAME), hideable=False, size=3),
-        Col("email", "Email", sort=True, search=Text(U.email), size=3),
+        Col("name", "Name", sort=_FULL_NAME, search=Text(_FULL_NAME), hideable=False, size=4),
+        Col("email", "Email", sort=True, search=Text(U.email), size=4),
         Col("role", "Role", sort=True, filter=Enum(C.UserRole), size=2),
-        Col("num_seq_requests", "# Seq Requests", sort=True, size=1),
+        Col("num_seq_requests", "# Requests", sort=True, size=1),
         Col("num_projects", "# Projects", sort=True, size=1),
         Field(
             "group", "Group",

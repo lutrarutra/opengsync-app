@@ -127,7 +127,7 @@ class MediaFileTable(Table):
         Col("extension", "Extension", sort=True, search=Text(MF.extension), size=1),
         Col("type", "Type", sort=True, filter=Enum(C.MediaFileType), size=2),
         Col(
-            "uploader", "Uploader", size=2,
+            "uploader", "Uploader", size=3.5,
             sort=related(MF.uploader, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=MF.uploader, weight=0.9),
             filter=Entity(models.User, via=MF.uploader, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),

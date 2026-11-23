@@ -202,7 +202,74 @@ function applyTableViews(target) {
     if (!(target instanceof Element) || !document.body.contains(target)) return;
     const containers = target.matches(".otable") ? [target] : Array.from(target.querySelectorAll(".otable"));
     containers.forEach(applyTableView);
+    containers.forEach(initScrollFades);
+    containers.forEach(revealTable);
 }
+
+// tables arrive as .otable-pending (hidden behind a skeleton, table.css) so the first paint is the finished
+// layout: saved widths, hidden columns and wrapped cells, not the server's defaults
+function revealTable(container) {
+    container.classList.remove("otable-pending");
+}
+
+// Every body cell scrolls sideways instead of ending in "…": its content is wrapped in a .otable-cell scroller
+// here, so the row templates stay plain (cells with their own .scroll-container keep it; the ⋯ cell is skipped).
+// Scrollers have no scrollbar, so content stays vertically centred; the edge where content is cut off fades
+// out instead (table.css). Trackpads and shift+wheel scroll them.
+const OTABLE_SCROLL = ".otable tbody .scroll-container, .otable tbody .otable-cell";
+
+function wrapCells(container) {
+    container.querySelectorAll("tbody tr:not(.otable-empty) > td, tbody tr:not(.otable-empty) > th").forEach((cell) => {
+        if (cell.classList.contains("otable-actions-cell") || cell.querySelector(":scope > .otable-cell, .scroll-container")) return;
+        if (!cell.hasChildNodes()) return;
+        const wrapper = document.createElement("div");
+        wrapper.className = "otable-cell";
+        wrapper.append(...cell.childNodes);
+        cell.append(wrapper);
+    });
+}
+
+function updateScrollFade(el) {
+    const max = el.scrollWidth - el.clientWidth;
+    el.classList.toggle("fade-left", max > 1 && el.scrollLeft > 1);
+    el.classList.toggle("fade-right", max > 1 && el.scrollLeft < max - 1);
+}
+
+// cells change width when columns are resized or the window changes, and content can load late (fonts)
+const scrollFadeObserver = typeof ResizeObserver === "undefined" ? null
+    : new ResizeObserver((entries) => entries.forEach((entry) => updateScrollFade(entry.target)));
+const scrollFadeObserved = new Set();
+
+function initScrollFades(container) {
+    wrapCells(container);
+    scrollFadeObserved.forEach((el) => {
+        if (!el.isConnected) { scrollFadeObserver?.unobserve(el); scrollFadeObserved.delete(el); }
+    });
+    container.querySelectorAll(OTABLE_SCROLL).forEach((el) => {
+        updateScrollFade(el);
+        if (scrollFadeObserver && !scrollFadeObserved.has(el)) {
+            scrollFadeObserver.observe(el);
+            scrollFadeObserved.add(el);
+        }
+    });
+}
+
+// scroll events don't bubble: listen in the capture phase
+document.addEventListener("scroll", (e) => {
+    if (e.target instanceof Element && e.target.matches(OTABLE_SCROLL)) updateScrollFade(e.target);
+}, true);
+
+// right after a swap inserts a table, before the browser paints it (htmx:load only fires after the settle delay,
+// which would show the server's default layout for a frame and then jump). Not only .otable-pending ones: until
+// it settles, a swapped-in table that keeps its id carries the old element's attributes (htmx attribute
+// settling), so it isn't marked pending yet.
+document.body.addEventListener("htmx:afterSwap", () => {
+    document.querySelectorAll(".otable").forEach((container) => {
+        applyTableView(container);
+        initScrollFades(container);
+        revealTable(container);
+    });
+});
 
 // new content (an outerHTML swap of a table or of its loader) and settled swaps
 document.body.addEventListener("htmx:load", (evt) => applyTableViews(evt.detail.elt));
@@ -210,6 +277,8 @@ document.body.addEventListener("htmx:afterSettle", (evt) => applyTableViews(evt.
 
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".otable").forEach(applyTableView);
+    document.querySelectorAll(".otable").forEach(initScrollFades);
+    document.querySelectorAll(".otable").forEach(revealTable);
 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -428,12 +497,68 @@ function resetColumnWidths(container) {
     applyColumnWidths(container);
 }
 
-// truncated cells show their full text on hover
+// A cut-off cell grows to the right over its neighbours while hovered (like a spreadsheet cell), so the full
+// text shows without scrolling. The real content moves (fixed position), so links and menus keep working; it
+// never reaches past the visible table and stays scrollable if it still doesn't fit.
+const CELL_EXPAND_DELAY_MS = 150;
+let expandedCell = null;
+let expandTimer = null;
+
+function expandCell(scroller) {
+    collapseCell();
+    if (!scroller.isConnected || scroller.scrollWidth <= scroller.clientWidth + 1) return;
+    const cell = scroller.closest("td, th");
+    const cellBox = cell.getBoundingClientRect();
+    const box = scroller.getBoundingClientRect();
+    const bounds = (scroller.closest(".otable-scroll") || document.documentElement).getBoundingClientRect();
+    const padLeft = box.left - cellBox.left;
+    const padRight = cellBox.right - box.right;
+    scroller.classList.add("otable-cell-expanded");
+    Object.assign(scroller.style, {
+        position: "fixed",
+        top: `${cellBox.top}px`,
+        left: `${cellBox.left}px`,
+        height: `${cellBox.height - 1}px`,
+        minWidth: `${cellBox.width}px`,
+        maxWidth: `${Math.max(cellBox.width, bounds.right - cellBox.left - 4)}px`,
+        paddingLeft: `${padLeft}px`,
+        paddingRight: `${Math.max(padRight, 10)}px`,
+        // plain cells stay block (flex would drop the spaces between text and inline elements): centre by line
+        lineHeight: scroller.classList.contains("otable-cell") ? `${cellBox.height - 1}px` : "",
+    });
+    expandedCell = scroller;
+    updateScrollFade(scroller);
+}
+
+function collapseCell() {
+    if (!expandedCell) return;
+    const scroller = expandedCell;
+    expandedCell = null;
+    scroller.classList.remove("otable-cell-expanded");
+    ["position", "top", "left", "height", "minWidth", "maxWidth", "paddingLeft", "paddingRight", "lineHeight"]
+        .forEach((prop) => { scroller.style[prop] = ""; });
+    scroller.scrollLeft = 0;
+    updateScrollFade(scroller);
+}
+
 document.addEventListener("mouseover", (e) => {
-    const cell = e.target.closest && e.target.closest(".otable tbody td, .otable tbody td > a");
-    if (!cell || cell.title) return;
-    if (cell.scrollWidth > cell.clientWidth + 1) cell.title = cell.innerText.trim();
+    if (!(e.target instanceof Element)) return;
+    if (expandedCell && expandedCell.contains(e.target)) { clearTimeout(expandTimer); return; }
+    const scroller = e.target.closest(OTABLE_SCROLL);
+    clearTimeout(expandTimer);
+    if (expandedCell && expandedCell !== scroller) collapseCell();
+    if (scroller && scroller !== expandedCell) {
+        expandTimer = setTimeout(() => expandCell(scroller), CELL_EXPAND_DELAY_MS);
+    }
 });
+
+document.addEventListener("mouseleave", () => { clearTimeout(expandTimer); collapseCell(); });
+window.addEventListener("resize", collapseCell);
+// a fixed box would drift when the page or table scrolls; scrolling inside the expanded cell is fine
+document.addEventListener("scroll", (e) => {
+    if (expandedCell && e.target !== expandedCell) collapseCell();
+}, true);
+document.body.addEventListener("htmx:beforeSwap", () => { clearTimeout(expandTimer); collapseCell(); });
 
 function clearFilterInputs(container, field) {
     const selector = field ? `.otable-filter-panel input[name="${field}_in"]` : ".otable-filter-panel input[type=checkbox]";

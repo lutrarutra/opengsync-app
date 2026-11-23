@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/contextmenu.jinja2" import row_menu %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% for sample in rows %}
@@ -11,7 +12,7 @@
     }}>
         <a href="{{ url_for('sample_page', sample_id=sample.id, from='library@' + library.id | string) }}">{{ sample.name }}</a>
     </td>
-    <td>{% if sample.status is not none %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
+    <td>{{ status_badge(sample.status) }}</td>
     <td><a href="{{ url_for('user_page', user_id=sample.owner_id, from='library@' + library.id | string) }}">{{ sample.owner.name }}{% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
     {{ row_menu([
         {"type": "copy", "value": sample.name, "label": "Copy Name"},

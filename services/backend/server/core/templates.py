@@ -355,8 +355,20 @@ def absolute_url_for(request, name: str, *, external: bool = False, **path_param
         url = url.replace(scheme="https")
     return url
 
+_route_param_cache: dict[tuple, set] = {}
+
+
 def _get_route_param_names(router, name: str, provided: set[str] | None = None) -> set:
-    """Extract path parameter names from a route by its name."""
+    """Extract path parameter names from a route by its name. Cached: scanning every route took ~0.5 ms per
+    `url_for`, and a listing calls it once per row. The route count is part of the key, so routes added later
+    (tests, startup order) are never missed."""
+    key = (id(router), len(router.routes), name, frozenset(provided) if provided is not None else None)
+    if (cached := _route_param_cache.get(key)) is None:
+        cached = _route_param_cache[key] = _find_route_param_names(router, name, provided)
+    return set(cached)
+
+
+def _find_route_param_names(router, name: str, provided: set[str] | None) -> set:
     matches: list[set] = []
     for route in iter_route_contexts(router.routes):
         if route.name != name:

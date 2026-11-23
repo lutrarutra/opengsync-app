@@ -20,9 +20,9 @@ class ProtocolTable(Table):
     noun = "protocols"
     columns = [
         Col("id", "ID", sort=True, search=Exact(PR.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(PR.name, compact=True), hideable=False, size=3),
-        Col("service_type", "Assay", sort=True, filter=Enum(C.ServiceType), size=2),
-        Col("read_structure", "Read Structure", search=Text(PR.read_structure), size=3),
+        Col("name", "Name", sort=True, search=Text(PR.name, compact=True), hideable=False, size=6),
+        Col("service_type", "Assay", sort=True, filter=Enum(C.ServiceType), size=3),
+        Col("read_structure", "Read Structure", search=Text(PR.read_structure), size=4),
     ]
     variants = {
         "default": Variant(["id", "name", "service_type", "read_structure"], "components/tables/rows/protocol.html", dom_id="protocol-table"),

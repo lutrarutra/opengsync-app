@@ -24,11 +24,11 @@ class GroupTable(Table):
     )
     columns = [
         Col("id", "ID", sort=True, search=Exact(G.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(G.name), hideable=False, size=3),
+        Col("name", "Name", sort=True, search=Text(G.name), hideable=False, size=5),
         Col("type", "Type", sort=True, filter=Enum(C.GroupType), size=2),
         Col("num_users", "# Users", sort=True, size=1),
         Col("num_projects", "# Projects", sort=True, size=1),
-        Col("num_seq_requests", "# Seq Requests", sort=True, size=1),
+        Col("num_seq_requests", "# Requests", sort=True, size=1),
         Field(
             "member", "Member",
             search=Text(Q.search.full_name(models.User), models.User.email,

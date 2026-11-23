@@ -1,3 +1,5 @@
+{% from "components/library_type_badge_list.jinja2" import library_type_chip %}
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/contextmenu.jinja2" import row_menu %}
 {% from "components/legends.jinja2" import index_badge_legend %}
 {% from "components/tooltip.jinja2" import tooltip %}
@@ -30,12 +32,10 @@
     {% endif %}
     </td>
     <td>
-        <span {{ tooltip(library.type.label) }}>
-            {{ library.type.abbreviation }}{% if library.seq_request.submission_type == C.SubmissionType.QC_ONLY %}<sup class="qc-type">[qc]</sup>{% endif %}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
-        </span>
+        {{ library_type_chip(library, qc=library.seq_request.submission_type == C.SubmissionType.QC_ONLY) }}
     </td>
     <td>
-        {{ library.status.icon }} {{ library.status.label }}
+        {{ status_badge(library.status) }}
     </td>
     <td class="x-scroll-cell">
         {{ library_index_cell(library) }}

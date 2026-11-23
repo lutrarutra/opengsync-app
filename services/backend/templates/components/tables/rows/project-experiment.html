@@ -1,8 +1,10 @@
+{% from "components/assignee_list.jinja2" import assignee_list, id_cell, person_badge %}
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% for experiment in rows %}
 <tr>
-    <th scope="row">{{ experiment.id }}</th>
+    {% if current_user.is_insider %}{% call id_cell(experiment.id) %}{{ person_badge(experiment.operator, current_user, "Operator") }}{% endcall %}{% else %}{{ id_cell(experiment.id) }}{% endif %}
     {% if current_user.is_insider %}
     <td class="cm-callback" {{
         context_menu([
@@ -12,11 +14,8 @@
     {% else %}
     <td>{{ experiment.name }}</td>
     {% endif %}
-    <td>{{ experiment.status.label }} {{ experiment.status.icon | safe }}</td>
+    <td>{{ status_badge(experiment.status) }}</td>
     <td>{{ experiment.workflow.display_name }}</td>
-    {% if current_user.is_insider %}
-    <td><a href="{{ url_for('user_page', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
-    {% endif %}
     <td>{% if experiment.seq_run %}{{ experiment.seq_run.get_timestamp("completed") | format_datetime }}{% endif %}</td>
 </tr>
 {% endfor %}

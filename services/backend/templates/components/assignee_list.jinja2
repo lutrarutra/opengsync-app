@@ -20,3 +20,18 @@ hx-delete="{{ delete_url }}">{{ assignee.initials }}</button>
     {{ assignee_list(assignees, current_user=current_user, delete_url=unassign_url if current_user.is_insider else none) }}
 </div>
 {% endmacro %}
+
+{#- One person as an initials badge (operator, creator), with role and name on hover. -#}
+{% macro person_badge(user, current_user, role=none) -%}
+{%- if user -%}
+<span class="badge assignee-badge {% if user == current_user %}badge-success{% endif %}" {{ tooltip((role ~ ": " if role else "") ~ user.name, category="success" if user == current_user else "primary") }}>{{ user.initials }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{#- Row header of a table row: the id, followed by the people on it (the caller block: assignee_list, person_badge
+    or an "assign me" button). Saves a column; the people strip scrolls and fades like other cells. -#}
+{% macro id_cell(id) -%}
+<th scope="row" class="otable-id-cell"><div class="otable-id"><span class="otable-id-num">{{ id }}</span>
+{%- if caller is defined %}<span class="scroll-container otable-id-people">{{ caller() }}</span>{% endif -%}
+</div></th>
+{%- endmacro %}

@@ -31,34 +31,34 @@ class ExperimentTable(Table):
         orm.with_expression(E._library_types, E.library_types.expression),  # type: ignore
     )
     columns = [
-        Col("id", "ID", sort=True, search=Exact(E.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(E.name, compact=True), hideable=False, size=2),
-        Col("workflow", "Workflow", sort=True, filter=Enum(C.ExperimentWorkFlow), size=2),
-        Col("status", "Status", sort=True, filter=Enum(C.ExperimentStatus), size=2),
-        Col("pools", "Pools Int. Ext. Cstm.", size=2),
-        Col("num_seq_requests", "# Seq Requests", sort=True, size=1),
-        Col("library_types", "Library Types", size=3, filter=Enum(C.LibraryType, column=models.Library.type, via=E.libraries)),
+        Col("id", "ID", sort=True, search=Exact(E.id), hideable=False, size=1.5),
+        Col("name", "Name", sort=True, search=Text(E.name, compact=True), hideable=False, size=4),
+        Col("workflow", "Workflow", sort=True, filter=Enum(C.ExperimentWorkFlow), size=3),
+        Col("status", "Status", sort=True, filter=Enum(C.ExperimentStatus), size=3),
+        Col("pools", "Pools", size=4),
+        Col("num_seq_requests", "# Requests", sort=True, size=1),
+        Col("library_types", "Library Types", size=3.5, filter=Enum(C.LibraryType, column=models.Library.type, via=E.libraries)),
         Col(
-            "operator", "Operator", size=2,
+            "operator", "Operator", size=2, display=False, hideable=False,
             sort=related(E.operator, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=E.operator, weight=0.9),
             filter=Entity(models.User, via=E.operator, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
-        Col("timestamp_created", "Created", sort=E.timestamp_created_utc, size=2),
-        Col("timestamp_completed", "Completed", sort=E.timestamp_finished_utc, size=2),
+        Col("timestamp_created", "Created", sort=E.timestamp_created_utc, size=2.5),
+        Col("timestamp_completed", "Completed", sort=E.timestamp_finished_utc, size=2.5),
     ]
     variants = {
         "default": Variant(
-            ["id", "name", "operator", "status", "pools", "library_types", "timestamp_created", "workflow"],
-            "components/tables/rows/experiment.html", dom_id="experiment-table",
+            ["id", "name", "status", "pools", "library_types", "timestamp_created", "workflow"],
+            "components/tables/rows/experiment.html", sizes={"id": 2}, dom_id="experiment-table",
         ),
         "project": Variant(
-            ["id", "name", "status", "workflow", "operator", "timestamp_completed"],
-            "components/tables/rows/project-experiment.html", dom_id="project-experiment-table",
+            ["id", "name", "status", "workflow", "timestamp_completed"],
+            "components/tables/rows/project-experiment.html", sizes={"id": 2}, dom_id="project-experiment-table",
         ),
         "browse": Variant(
-            ["id", "name", "workflow", "status", "library_types", "operator"],
-            "components/tables/rows/browse-experiment.html", dom_id="select-experiments-table", url_state=False,
+            ["id", "name", "workflow", "status", "library_types"],
+            "components/tables/rows/browse-experiment.html", sizes={"id": 2}, dom_id="select-experiments-table", url_state=False,
         ),
     }
 

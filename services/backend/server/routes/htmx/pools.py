@@ -28,13 +28,13 @@ class PoolTable(Table):
     )
     columns = [
         Col("id", "ID", sort=True, search=Exact(P.id, prefixes=("P",)), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(P.name, compact=True), hideable=False, size=3),
-        Col("lanes", "Lanes", size=3),
-        Col("library_types", "Library Types", size=2, filter=Enum(C.LibraryType, column=models.Library.type, via=P.libraries)),
-        Col("status", "Status", sort=True, filter=Enum(C.PoolStatus), size=1),
-        Col("type", "Type", sort=True, filter=Enum(C.PoolType), size=1),
+        Col("name", "Name", sort=True, search=Text(P.name, compact=True), hideable=False, size=4),
+        Col("lanes", "Lanes", size=2.5),
+        Col("library_types", "Library Types", size=3.5, filter=Enum(C.LibraryType, column=models.Library.type, via=P.libraries)),
+        Col("status", "Status", sort=True, filter=Enum(C.PoolStatus), size=3),
+        Col("type", "Type", sort=True, filter=Enum(C.PoolType), size=2),
         Col(
-            "owner", "Owner", size=2,
+            "owner", "Owner", size=3.5,
             sort=related(P.owner, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=P.owner, weight=0.9),
             filter=Entity(models.User, via=P.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),

@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -10,7 +11,7 @@
         ])
     }}><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, from='group@' + group_id | string) }}">{{ seq_request.name }}</a></td>
     <td><a href="{{ url_for('user_page', user_id=seq_request.requestor_id, from='group@' + group_id | string) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
-    <td>{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</td>
+    <td>{{ status_badge(seq_request.status) }}</td>
     <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
     <td>{{ seq_request.submission_type.abbreviation }}</td>
     <td>{{ seq_request.timestamp_submitted_str() }}</td>

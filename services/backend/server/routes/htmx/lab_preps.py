@@ -38,24 +38,24 @@ class LabPrepTable(Table):
     )
     columns = [
         Col("id", "ID", sort=True, search=Exact(LP.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(LP.name, compact=True), hideable=False, size=2),
-        Col("checklist", "Checklist", sort=LP.checklist_type, filter=Enum(C.LabChecklistType, column=LP.checklist_type), size=2),
-        Col("service", "Service", sort=LP.service_type, filter=Enum(C.ServiceType, column=LP.service_type), size=2),
-        Col("status", "Status", sort=True, filter=Enum(C.PrepStatus), size=2),
+        Col("name", "Name", sort=True, search=Text(LP.name, compact=True), hideable=False, size=4),
+        Col("checklist", "Checklist", sort=LP.checklist_type, filter=Enum(C.LabChecklistType, column=LP.checklist_type), size=3),
+        Col("service", "Service", sort=LP.service_type, filter=Enum(C.ServiceType, column=LP.service_type), size=2.5),
+        Col("status", "Status", sort=True, filter=Enum(C.PrepStatus), size=3),
         Col("num_samples", "# Samples", sort=True, size=1),
         Col("num_libraries", "# Libraries", sort=True, size=1),
         Col(
-            "creator", "Creator", size=2,
+            "creator", "Creator", size=3.5, display=False, hideable=False,
             sort=related(LP.creator, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=LP.creator, weight=0.9),
             filter=Entity(models.User, via=LP.creator, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
-        Col("library_types", "Library Types", size=2, filter=Enum(C.LibraryType, column=models.Library.type, via=LP.libraries)),
+        Col("library_types", "Library Types", size=3.5, filter=Enum(C.LibraryType, column=models.Library.type, via=LP.libraries)),
     ]
     variants = {
         "default": Variant(
-            ["id", "name", "creator", "status", "checklist", "library_types", "num_libraries", "num_samples"],
-            "components/tables/rows/lab_prep.html", dom_id="lab_prep-table",
+            ["id", "name", "status", "checklist", "library_types", "num_libraries", "num_samples"],
+            "components/tables/rows/lab_prep.html", sizes={"id": 2}, dom_id="lab_prep-table",
         ),
     }
 

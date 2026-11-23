@@ -18,8 +18,8 @@ class SequencerTable(Table):
     noun = "sequencers"
     columns = [
         Col("id", "ID", sort=True, search=Exact(SQ.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(SQ.name, compact=True), hideable=False, size=3),
-        Col("model", "Model", sort=True, filter=Enum(C.SequencerModel), size=2),
+        Col("name", "Name", sort=True, search=Text(SQ.name, compact=True), hideable=False, size=5),
+        Col("model", "Model", sort=True, filter=Enum(C.SequencerModel), size=3),
     ]
     variants = {
         "default": Variant(["id", "name", "model"], "components/tables/rows/sequencer.html", dom_id="sequencer-table"),

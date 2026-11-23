@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/contextmenu.jinja2" import row_menu %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -13,7 +14,7 @@
         <a href="{{ url_for('sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}">{{ sample.name }}</a>
     </td>
     {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
-    <td>{% if sample.status is not none %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
+    <td>{{ status_badge(sample.status) }}</td>
     {% endif %}
     <td class="cm-callback" {{
         context_menu([

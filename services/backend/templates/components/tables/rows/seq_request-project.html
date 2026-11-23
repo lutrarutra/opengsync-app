@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% for project in rows %}
 <tr>
@@ -12,7 +13,7 @@
             {"type": "copy", "value": project.title, "label": "Copy Title"},
         ])
     }}><a href="{{ url_for('project_page', project_id=project.id, from='seq_request@' + seq_request_id | string) }}">{{ project.title }}</a></td>
-    <td>{{ project.status.icon }} {{ project.status.label }}</td>
+    <td>{{ status_badge(project.status) }}</td>
     <td {% if project.group_id %}class="cm-callback" {{
         context_menu([
             {"type": "copy", "value": project.group.name, "label": "Copy Name"},

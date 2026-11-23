@@ -1,13 +1,14 @@
+{% from "components/assignee_list.jinja2" import assignee_list, id_cell, person_badge %}
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% for experiment in rows %}
 <tr id="experiment-row-{{ experiment.id }}" data-id="{{ experiment.id }}" class="experiment-row">
-    <th scope="row">{{ experiment.id }}</th>
+    {% call id_cell(experiment.id) %}{{ person_badge(experiment.operator, current_user, "Operator") }}{% endcall %}
     <td>{{ experiment.name }}</td>
     <td>{{ experiment.workflow.display_name }}</td>
-    <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
+    <td>{{ status_badge(experiment.status) }}</td>
     <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
-    <td>{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></td>
 </tr>
 {% endfor %}
 

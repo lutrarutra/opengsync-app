@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/contextmenu.jinja2" import row_menu %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -54,7 +55,7 @@
         </span>
     </td>
     <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
-    <td>{{ pool.status.icon }} {{ pool.status.label }}</td>
+    <td>{{ status_badge(pool.status) }}</td>
     <td>
         <div class="quantity-container" {{ tooltip("Planned / Requested") }}>
             <div class="value">{{ pool.reads_planned() | int }}/{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested else '' }}</div>

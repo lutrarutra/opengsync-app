@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% for seq_run in rows %}
@@ -9,7 +10,7 @@
             {"type": "copy", "value": seq_run.experiment_name, "label": "Copy Experiment Name"},
         ])
     }}><a href="{{ url_for('seq_run_page', seq_run_id=seq_run.id) }}">{{ seq_run.experiment_name }}</a></td>
-    <td>{{ seq_run.status.icon }} {{ seq_run.status.label }}</td>
+    <td>{{ status_badge(seq_run.status) }}</td>
     <td>{{ seq_run.cycles_str }}</td>
     <td class="cm-callback"
     {{

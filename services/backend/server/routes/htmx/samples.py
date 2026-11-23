@@ -33,9 +33,9 @@ class SampleTable(Table):
     )
     columns = [
         Col("id", "ID", sort=True, search=Exact(S.id), hideable=False, size=1),
-        Col("name", "Name", sort=True, search=Text(S.name, compact=True), hideable=False, size=3),
+        Col("name", "Name", sort=True, search=Text(S.name, compact=True), hideable=False, size=5),
         Col(
-            "project", "Project", size=2,
+            "project", "Project", size=4,
             sort=related(S.project, models.Project.title),
             search=Text(models.Project.title, models.Project.identifier, via=S.project),
             filter=Entity(
@@ -43,15 +43,15 @@ class SampleTable(Table):
                 search=(models.Project.title, models.Project.identifier),
             ),
         ),
-        Col("status", "Status", sort=True, filter=Enum(C.SampleStatus, nullable=True), size=2),
+        Col("status", "Status", sort=True, filter=Enum(C.SampleStatus, nullable=True), size=3),
         Col(
-            "owner", "Owner", size=1,
+            "owner", "Owner", size=3.5,
             sort=related(S.owner, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=S.owner, weight=0.9),
             filter=Entity(models.User, via=S.owner, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
         Col("num_libraries", "# Libraries", sort=True, size=1),
-        Col("library_types", "Library Types", size=4, filter=Enum(C.LibraryType, column=models.Library.type, via=_LIBRARY_PATH)),
+        Col("library_types", "Library Types", size=3.5, filter=Enum(C.LibraryType, column=models.Library.type, via=_LIBRARY_PATH)),
         Col("qubit_concentration", "Qubit Conc.", sort=True, size=2),
         Col("avg_fragment_size", "Avg. Fragment Size", sort=True, size=2),
         Field(

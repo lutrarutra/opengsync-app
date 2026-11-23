@@ -300,9 +300,10 @@ class Table:
             return "Not set"
         if isinstance(col.filter, Entity):
             return col.filter.option(value)["name"]
-        icon = getattr(value, "icon", None)
-        label = getattr(value, "display_name", None) or value.label
-        return f"{icon} {label}" if icon else label
+        # status enums' display_name already ends in the icon: with an icon, use the bare label
+        if icon := getattr(value, "icon", None):
+            return f"{icon} {value.label}"
+        return getattr(value, "display_name", None) or value.label
 
     @property
     def chips(self) -> list[dict[str, Any]]:
@@ -349,20 +350,21 @@ class Table:
 
     def header_min_px(self, col: Col) -> int:
         """Room the header needs (title, sort arrow, funnel, barcode switch), from the spec, not the rows.
-        Measured on table.css: 20px cell padding, ~7.6px per title character (13px semibold), the sort button
-        adds 26px (padding, gap, arrow), the funnel 26px, the barcode switch 92px."""
-        width = 38 + round(len(col.title) * 7.6)  # 26px measured + 12px margin
+        Measured on table.css: 20px cell padding, ~7.6px per title character (13px semibold) or 16px for an icon, the sort button
+        adds 18px (padding, gap, arrow), the funnel 18px, the barcode switch 92px."""
+        width = 30 + (16 if col.icon else round(len(col.title) * 7.6))  # 26px measured + 4px margin
         if col.sortable:
-            width += 26
+            width += 18
         if col.filterable and col in self.filter_fields:
-            width += 26
+            width += 18
         if col.index_toggle:
             width += 92
         return width
 
     def col_weight(self, col: Col) -> float:
         """The column's ``size`` (default 1), raised so its header fits at the table's minimum width."""
-        return max(float(col.size or 1), self.header_min_px(col) / self.MIN_PX_PER_SIZE)
+        size = self.variant.sizes.get(col.key, col.size)
+        return max(float(size or 1), self.header_min_px(col) / self.MIN_PX_PER_SIZE)
 
     def col_width(self, col: Col) -> str:
         """Share of the table width: weights of the shown columns, the same on every page."""

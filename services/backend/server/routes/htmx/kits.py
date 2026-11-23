@@ -24,10 +24,10 @@ class KitTable(Table):
     load = (orm.selectinload(K.protocol_links),)
     columns = [
         Col("id", "ID", sort=True, search=Exact(K.id), hideable=False, size=1),
-        Col("identifier", "Identifier", sort=True, search=Text(K.identifier, compact=True), size=2),
-        Col("name", "Name", sort=True, search=Text(K.name), hideable=False, size=3),
-        Col("combinations", "Combinations", size=2),
-        Col("type", "Type", sort=K.kit_type, filter=Enum(C.KitType, column=K.kit_type), size=2),
+        Col("identifier", "Identifier", sort=True, search=Text(K.identifier, compact=True), size=1),
+        Col("name", "Name", sort=True, search=Text(K.name), hideable=False, size=7),
+        Col("combinations", "Combinations", size=3),
+        Col("type", "Type", sort=K.kit_type, filter=Enum(C.KitType, column=K.kit_type), size=2.5),
     ]
     variants = {
         "default": Variant(["id", "identifier", "name", "type"], "components/tables/rows/kit.html", dom_id="kit-table"),

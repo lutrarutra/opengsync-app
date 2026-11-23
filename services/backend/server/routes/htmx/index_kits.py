@@ -23,10 +23,10 @@ class IndexKitTable(Table):
     noun = "index kits"
     columns = [
         Col("id", "ID", sort=True, search=Exact(IK.id), hideable=False, size=1),
-        Col("identifier", "Identifier", sort=True, search=Text(IK.identifier, compact=True), size=2),
-        Col("name", "Name", sort=True, search=Text(IK.name), hideable=False, size=3),
-        Col("type", "Index Type", sort=True, filter=Enum(C.IndexType), size=2),
-        Col("protocols", "Protocols", size=2),
+        Col("identifier", "Identifier", sort=True, search=Text(IK.identifier, compact=True), size=1),
+        Col("name", "Name", sort=True, search=Text(IK.name), hideable=False, size=7),
+        Col("type", "Index Type", sort=True, filter=Enum(C.IndexType), size=2.5),
+        Col("protocols", "Protocols", size=4),
     ]
     variants = {
         "default": Variant(

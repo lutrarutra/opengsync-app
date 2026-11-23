@@ -1,3 +1,4 @@
+{% from "components/status_badge.jinja2" import status_badge %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% for project in rows %}
@@ -14,7 +15,7 @@
         ])
     }}><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user_id | string) }}">{{ project.title }}</a></td>
     <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
-    <td>{{ project.status.icon }} {{ project.status.label }}</td>
+    <td>{{ status_badge(project.status) }}</td>
     <td>{{ project.num_samples }}</td>
 </tr>
 {% endfor %}

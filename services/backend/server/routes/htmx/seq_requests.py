@@ -45,28 +45,28 @@ class SeqRequestTable(Table):
         orm.with_expression(R._num_libraries, R.num_libraries.expression),
     )
     columns = [
-        Col("id", "ID", sort=True, search=Exact(R.id, prefixes=("BSR",)), hideable=False, size=1),
+        Col("id", "ID", sort=True, search=Exact(R.id, prefixes=("BSR",)), hideable=False, size=1.5),
         Col(
-            "name", "Name", sort=True, hideable=False, size=4,
+            "name", "Name", sort=True, hideable=False, size=6,
             search=Text(R.name, Q.search.seq_request_identifier(R.id), compact=True),
         ),
-        Col("library_types", "Library Types", size=3, filter=Enum(C.LibraryType, column=models.Library.type, via=R.libraries)),
-        Col("status", "Status", sort=True, filter=Enum(C.SeqRequestStatus), size=1),
-        Col("submission_type", "Submission Type", sort=True, filter=Enum(C.SubmissionType), size=1),
+        Col("library_types", "Library Types", size=3.5, filter=Enum(C.LibraryType, column=models.Library.type, via=R.libraries)),
+        Col("status", "Status", sort=True, filter=Enum(C.SeqRequestStatus), size=3),
+        Col("submission_type", "Submission", sort=True, filter=Enum(C.SubmissionType), size=2),
         Col(
-            "group", "Group", size=2,
+            "group", "Group", size=3,
             sort=related(R.group, models.Group.name),
             search=Text(models.Group.name, via=R.group),
             filter=Entity(models.Group, via=R.group, option=query_options.group_option, search=(models.Group.name,)),
         ),
         Col(
-            "requestor", "Requestor", size=2,
+            "requestor", "Requestor", size=3.5,
             sort=related(R.requestor, _FULL_NAME),
             search=Text(_FULL_NAME, models.User.email, via=R.requestor, weight=0.9),
             filter=Entity(models.User, via=R.requestor, option=query_options.user_option, search=(_FULL_NAME, models.User.email)),
         ),
         Col(
-            "assignees", "Assignees", size=2, sort=R.num_assignees,
+            "assignees", "Assignees", size=1, display=False, hideable=False, sort=R.num_assignees,
             search=Text(_FULL_NAME, models.User.email, via=R.assignees, weight=0.9),
             filter=Entity(
                 models.User, via=R.assignees, option=query_options.user_option,
@@ -75,8 +75,8 @@ class SeqRequestTable(Table):
         ),
         Col("num_samples", "# Samples", sort=True, size=1),
         Col("num_libraries", "# Libraries", sort=True, size=1),
-        Col("timestamp_submitted", "Submitted", sort=R.timestamp_submitted_utc, size=2),
-        Col("timestamp_completed", "Completed", sort=R.timestamp_finished_utc, size=2),
+        Col("timestamp_submitted", "Submitted", sort=R.timestamp_submitted_utc, size=2.5),
+        Col("timestamp_completed", "Completed", sort=R.timestamp_finished_utc, size=2.5),
         Field(
             "project", "Project",
             search=Text(models.Project.title, models.Project.identifier, via=_PROJECT_PATH),
@@ -88,8 +88,8 @@ class SeqRequestTable(Table):
     ]
     variants = {
         "default": Variant(
-            ["id", "name", "library_types", "status", "submission_type", "group", "requestor", "assignees"],
-            "components/tables/rows/seq_request.html", dom_id="seq_request-table",
+            ["id", "name", "library_types", "status", "submission_type", "group", "requestor"],
+            "components/tables/rows/seq_request.html", sizes={"id": 2.6}, dom_id="seq_request-table",
         ),
         "user": Variant(
             ["id", "name", "library_types", "status", "timestamp_submitted", "num_libraries"],
@@ -100,8 +100,8 @@ class SeqRequestTable(Table):
             "components/tables/rows/group-seq_request.html", dom_id="group-seq_request-table",
         ),
         "project": Variant(
-            ["id", "name", "status", "timestamp_submitted", "library_types", "num_libraries", "assignees"],
-            "components/tables/rows/project-seq_request.html", dom_id="project-seq_request-table",
+            ["id", "name", "status", "timestamp_submitted", "library_types", "num_libraries"],
+            "components/tables/rows/project-seq_request.html", sizes={"id": 2.6}, dom_id="project-seq_request-table",
         ),
     }
 

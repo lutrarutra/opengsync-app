@@ -1,0 +1,20 @@
+{#- Status as a coloured pill with its icon. Tone by member name, shared across the status enums:
+    neutral = not started / ended quietly, progress = being worked on, ready = accepted or stored,
+    pending = finished in the lab but not yet handed over (a green step follows), done = finished successfully,
+    danger = failed or refused. "Enum.MEMBER" keys override the shared member name. Unknown names fall back to neutral. -#}
+{% set _STATUS_TONES = {
+    "SUBMITTED": "progress", "PREPARING": "progress", "PROCESSING": "progress", "DATA_PROCESSING": "progress",
+    "LOADED": "progress", "SEQUENCING": "progress", "RUNNING": "progress", "QC_PENDING": "progress",
+    "WAITING_DELIVERY": "progress",
+    "ACCEPTED": "ready", "STORED": "ready", "SAMPLES_RECEIVED": "ready", "POOLED": "ready", "PREPARED": "ready",
+    "ProjectStatus.SEQUENCED": "pending", "LibraryStatus.SEQUENCED": "pending", "ExperimentStatus.SEQUENCED": "pending",
+    "SEQUENCED": "done", "DEMULTIPLEXED": "done", "SHARED": "done", "DELIVERED": "done", "FINISHED": "done",
+    "COMPLETED": "done", "QC_COMPLETED": "done",
+    "FAILED": "danger", "REJECTED": "danger",
+} %}
+
+{% macro status_badge(status) -%}
+{% if status is not none -%}
+<span class="status-badge status-{{ _STATUS_TONES.get(status.__class__.__name__ ~ '.' ~ status.name) or _STATUS_TONES.get(status.name, 'neutral') }}" title="{{ status.description if status.description is defined else status.label }}"><span class="status-badge-icon" aria-hidden="true">{{ status.icon | safe }}</span>{{ status.label }}</span>
+{%- endif %}
+{%- endmacro %}

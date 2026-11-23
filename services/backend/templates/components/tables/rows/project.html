@@ -1,21 +1,22 @@
-{% from "components/assignee_list.jinja2" import assignee_list %}
+{% from "components/status_badge.jinja2" import status_badge %}
+{% from "components/assignee_list.jinja2" import assignee_list, id_cell, person_badge %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% for project in rows %}
 <tr>
-    <th scope="row">{{ project.id }}</th>
+    {% call id_cell(project.id) %}{{ assignee_list(project.assignees, current_user=current_user) }}{% endcall %}
     <td {% if project.identifier %}class="cm-callback" {{
         context_menu([
             {"type": "copy", "value": project.identifier, "label": "Copy Identifier"},
         ])
     }}{% endif %}><a href="{{ url_for('project_page', project_id=project.id) }}">{{ project.identifier or "" }}</a></td>
-    <td class="x-scroll-cell cm-callback" {{ 
+    <td class="cm-callback" {{ 
         context_menu([
             {"type": "copy", "value": project.title, "label": "Copy Title"},
         ])
-    }}><a class="scroll-container" href="{{ url_for('project_page', project_id=project.id) }}">{{ project.title }}</a></td>
+    }}><a href="{{ url_for('project_page', project_id=project.id) }}">{{ project.title }}</a></td>
     <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
-    <td>{{ project.status.icon }} {{ project.status.label }}</td>
+    <td>{{ status_badge(project.status) }}</td>
     <td {% if project.group_id %}class="cm-callback" {{
         context_menu([
             {"type": "copy", "value": project.group.name, "label": "Copy Name"},
@@ -23,12 +24,6 @@
     }}{% endif %}>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
     <td><a href="{{ url_for('user_page', user_id=project.owner_id) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
     <td>{{ project.num_samples }}</td>
-    <td class="otable-assignees">
-        <span class="scroll-container">
-                    {{ assignee_list(project.assignees, current_user=current_user) }}
-            
-        </span>
-    </td>
 </tr>
 {% endfor %}
 
