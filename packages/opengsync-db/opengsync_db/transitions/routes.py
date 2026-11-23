@@ -42,7 +42,7 @@ SEQUENCE = Step(
     _request_reached(RQ.DATA_PROCESSING),
 )
 RELEASE = Step(
-    "release", "Release data", ("api.release_project", "project.share_data"),
+    "release", "Release data", ("api.release_project", "project.share_data", "project.mark_shared"),
     rules.ChildrenAll(R.REQUEST_LIBRARIES, at_least(LB.SHARED)) | rules.StatusIn(_DONE_REQUEST),
 )
 FINISH = Step("finish", "Finished", ("worker.request_finished",), rules.StatusIn(_DONE_REQUEST))

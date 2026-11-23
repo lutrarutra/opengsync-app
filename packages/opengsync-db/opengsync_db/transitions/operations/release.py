@@ -19,6 +19,17 @@ RELEASE = operation(
     where=[B + "routes/api/shares.py:release_project_data", DB + "core/actions.py:release_project_data"],
 )
 
+MARK_SHARED = operation(
+    "project.mark_shared", "Mark data shared", K.ACTION, E.PROJECT,
+    effect(E.PROJECT, below(PJ.DELIVERED), PJ.DELIVERED, when="all libraries ≥ SEQUENCED"),
+    effect(E.DELIVERY_LINK, ANY, DL.DISPATCHED, via="libraries.seq_request.delivery_email_links"),
+    effect(E.LIBRARY, LB.SEQUENCED, LB.SHARED, via="libraries"),
+    guard=rules.ChildrenAny(R.PROJECT_LIBRARIES, frozenset([LB.SEQUENCED])),
+    where=[B + "routes/htmx/projects.py:mark_project_data_shared", DB + "core/actions.py:release_project_data"],
+    doc="Records a data release that happened outside the app: same statuses as project.share_data, "
+        "but no email, no new share link, and every delivery email of the requests counts as dispatched.",
+)
+
 COMPLETE = operation(
     "project.complete", "Complete project", K.ACTION, E.PROJECT,
     effect(E.PROJECT, ANY, PJ.DELIVERED),

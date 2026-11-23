@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import orm
 from fastapi import APIRouter, Depends, Query
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 
 from opengsync_db.core.blueprints import pd_transforms as T
 from opengsync_db.transitions import run_operation, release as release_ops
@@ -290,6 +290,39 @@ def complete_project(
     return responses.htmx_response(
         redirect=ctx.request.url_for("project_page", project_id=project.id),
         flash=responses.flash("Project Completed!", "success"),
+    )
+
+
+@router.post("/{project_id}/mark-shared")
+def mark_project_data_shared(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    _: models.User = Depends(dependencies.require_data_assigner),
+    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+):
+    """Record a data release that happened outside the app (backfill): the statuses of 'Share data'
+    without an email or a new share link. Every delivery email of the requests counts as dispatched."""
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    project = session.get_one(Q.project.select(id=project_id))
+
+    if not any(library.status == C.LibraryStatus.SEQUENCED for library in project.libraries):
+        return responses.htmx_response(
+            redirect=ctx.request.url_for("project_page", project_id=project_id),
+            flash=responses.flash(f"Project '{project.title}' has no sequenced libraries to mark shared.", "warning"),
+        )
+
+    seq_requests = project.seq_requests
+    recipients = list({link.email for seq_request in seq_requests for link in seq_request.delivery_email_links})
+    with run_operation(session, release_ops.MARK_SHARED, subject=project):
+        actions.release_project_data(
+            session, project=project, seq_requests=seq_requests, recipients=recipients, mark_project_delivered=None,
+        )
+
+    return responses.htmx_response(
+        redirect=ctx.request.url_for("project_page", project_id=project.id),
+        flash=responses.flash(f"Marked data of project '{project.title}' as shared. No email was sent.", "success"),
     )
 
 

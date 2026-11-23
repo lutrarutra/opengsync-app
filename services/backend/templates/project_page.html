@@ -31,6 +31,19 @@
                         }}
                     </li>
                     {% endif %}
+                    {% if current_user.can_assign_data and access_level >= C.AccessLevel.WRITE and project.status != C.ProjectStatus.ARCHIVED
+                        and project.libraries | selectattr("status", "equalto", C.LibraryStatus.SEQUENCED) | first is defined %}
+                    <li>
+                        {{
+                            confirm_action_button(
+                                "Mark Data Shared", class="dropdown-item", title='Mark data of project ' + project.title + ' as shared',
+                                url=url_for('mark_project_data_shared', project_id=project.id), method="hx-post",
+                                tooltip="For data that was already sent out: sequenced libraries become shared and delivery emails count as dispatched. No email is sent and the share link is not changed.",
+                                tooltip_position="left",
+                            )
+                        }}
+                    </li>
+                    {% endif %}
                     <li>
                         <a class="dropdown-item" href="{{ url_for('export_project_data', project_id=project.id) }}">Export (.xlsx)</a>
                     </li>

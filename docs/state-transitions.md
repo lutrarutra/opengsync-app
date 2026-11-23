@@ -282,7 +282,7 @@ Table `project`, enum `ProjectStatus`.
 | DRAFT | 0 | Project has been created but no samples have been submitted for sequencing. | `request.complete_sas`, `project.unarchive` |
 | PROCESSING | 1 | Project is being worked on in the lab. | `request.accept`, `project.unarchive`, `worker.project_reopen` |
 | SEQUENCED | 2 | All libraries are sequenced. We are working on data processing. | `worker.project_sequenced` |
-| DELIVERED | 3 | Project is completed and data is delivered. | `project.share_data`, `api.release_project`, `project.complete`, `project.unarchive` |
+| DELIVERED | 3 | Project is completed and data is delivered. | `project.share_data`, `api.release_project`, `project.mark_shared`, `project.complete`, `project.unarchive` |
 | ARCHIVED | 11 | Data is archived. | `project.archive` |
 
 ```mermaid
@@ -292,10 +292,10 @@ stateDiagram-v2
     ARCHIVED --> DRAFT : project.unarchive
     ARCHIVED --> PROCESSING : project.unarchive, worker.project_reopen
     DELIVERED --> PROCESSING : worker.project_reopen
-    DRAFT --> DELIVERED : project.share_data, api.release_project
-    PROCESSING --> DELIVERED : project.share_data, api.release_project
+    DRAFT --> DELIVERED : project.share_data, api.release_project, project.mark_shared
+    PROCESSING --> DELIVERED : project.share_data, api.release_project, project.mark_shared
     PROCESSING --> SEQUENCED : worker.project_sequenced
-    SEQUENCED --> DELIVERED : project.share_data, api.release_project
+    SEQUENCED --> DELIVERED : project.share_data, api.release_project, project.mark_shared
     SEQUENCED --> PROCESSING : worker.project_reopen
     [*] --> DRAFT : request.complete_sas
     any --> ARCHIVED : project.archive
@@ -342,7 +342,7 @@ Table `library`, enum `LibraryStatus`.
 | STORED | 4 | Library is received and stored | `request.clone`, `library.reseq`, `receipt.store_samples`, `pool.remove_libraries` |
 | POOLED | 5 | Library is prepared and pooled and ready for sequencing | `pool.clone`, `request.clone`, `request.accept`, `receipt.store_samples`, `prep.pool_libraries` |
 | SEQUENCED | 6 | Sequencing is finished | `api.lane_reads`, `worker.rf_folder_missing`, `worker.rf_run_finished`, `worker.rf_folder_back`, `worker.library_sequenced` |
-| SHARED | 7 | Sequencing data is shared with the customer(s) | `project.share_data`, `api.release_project` |
+| SHARED | 7 | Sequencing data is shared with the customer(s) | `project.share_data`, `api.release_project`, `project.mark_shared` |
 | FAILED | 10 | Sequencing of the library could not be completed | `prep.upload_table`, `prep.pool_libraries` |
 | REJECTED | 11 | Library was not accepted to be sequenced by staff | `request.reject` |
 | ARCHIVED | 12 | Library is sequenced and the data is archived | by hand only (edit form or chosen status) |
@@ -369,7 +369,7 @@ stateDiagram-v2
     REJECTED --> QC_PENDING : receipt.store_samples
     REMOVED --> QC_PENDING : receipt.store_samples
     SEQUENCED --> QC_PENDING : receipt.store_samples
-    SEQUENCED --> SHARED : project.share_data, api.release_project
+    SEQUENCED --> SHARED : project.share_data, api.release_project, project.mark_shared
     SHARED --> QC_PENDING : receipt.store_samples
     STORED --> QC_PENDING : receipt.store_samples
     STORED --> SEQUENCED : api.lane_reads, worker.rf_folder_missing, worker.rf_run_finished, worker.rf_folder_back, worker.library_sequenced
@@ -509,13 +509,13 @@ Table `seq_request_delivery_email_link`, enum `DeliveryStatus`.
 | Status | Id | Description | Set by |
 |---|---|---|---|
 | PENDING | 0 |  | `request.create`, `request.add_share_email` |
-| DISPATCHED | 1 |  | `project.share_data`, `api.release_project` |
+| DISPATCHED | 1 |  | `project.share_data`, `api.release_project`, `project.mark_shared` |
 
 ```mermaid
 stateDiagram-v2
     state "any status" as any
     [*] --> PENDING : request.create, request.add_share_email
-    any --> DISPATCHED : project.share_data, api.release_project
+    any --> DISPATCHED : project.share_data, api.release_project, project.mark_shared
 ```
 
 ## Operations
@@ -541,6 +541,7 @@ stateDiagram-v2
 |---|---|---|---|---|
 | `project.create`<br>Create project | Action | Project: new → chosen — chosen status; non-insiders only DRAFT | — | `services/backend/server/forms/models/ProjectForm.py` |
 | `project.share_data`<br>Share project data | Action | Project: < DELIVERED → DELIVERED — 'mark project delivered' is ticked, or all libraries ≥ SEQUENCED<br>Delivery email: any → DISPATCHED <sub>via `libraries.seq_request.delivery_email_links`</sub> — email is a recipient<br>Library: SEQUENCED → SHARED <sub>via `libraries`</sub> | Same statuses as api.release_project (shared function). | `services/backend/server/forms/actions/ShareProjectDataAction.py`<br>`packages/opengsync-db/opengsync_db/core/actions.py:release_project_data` |
+| `project.mark_shared`<br>Mark data shared | Action | Project: < DELIVERED → DELIVERED — all libraries ≥ SEQUENCED<br>Delivery email: any → DISPATCHED <sub>via `libraries.seq_request.delivery_email_links`</sub><br>Library: SEQUENCED → SHARED <sub>via `libraries`</sub> | guard: at least one of the libraries of the project is SEQUENCED<br>Records a data release that happened outside the app: same statuses as project.share_data, but no email, no new share link, and every delivery email of the requests counts as dispatched. | `services/backend/server/routes/htmx/projects.py:mark_project_data_shared`<br>`packages/opengsync-db/opengsync_db/core/actions.py:release_project_data` |
 | `project.complete`<br>Complete project | Action | Project: any → DELIVERED | guard: all libraries of the project are SHARED, FAILED, REJECTED, ARCHIVED | `services/backend/server/routes/htmx/projects.py:complete_project` |
 | `project.archive`<br>Archive project | Action | Project: any → ARCHIVED | — | `services/backend/server/routes/htmx/projects.py:archive_project` |
 | `project.unarchive`<br>Unarchive project | Action | Project: ARCHIVED → DRAFT, PROCESSING, DELIVERED — DRAFT without libraries, DELIVERED if all libraries are finished, else PROCESSING | guard: status is ARCHIVED | `services/backend/server/routes/htmx/projects.py:unarchive_project` |
@@ -669,7 +670,7 @@ Applies when: submission type is RAW_SAMPLES.
 | 5 | Sample multiplexing *(optional)* | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `mux.sample_pooling` |
 | 6 | Pool libraries | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.pool_libraries`, `prep.complete`, `worker.request_prepared` |
 | 7 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
-| 8 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
+| 8 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data`, `project.mark_shared` |
 | 9 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
 ### Pre-pooled libraries (`pooled_libraries`)
@@ -682,7 +683,7 @@ Applies when: submission type is POOLED_LIBRARIES.
 | 2 | Review | status is ACCEPTED, SAMPLES_RECEIVED, PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `request.accept`, `request.return`, `request.reject` |
 | 3 | Receive pools | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `receipt.store_samples` |
 | 4 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
-| 5 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
+| 5 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data`, `project.mark_shared` |
 | 6 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
 ### Un-pooled libraries, pooled in-house (`unpooled_libraries`)
@@ -696,7 +697,7 @@ Applies when: submission type is UNPOOLED_LIBRARIES.
 | 3 | Receive libraries | status is SAMPLES_RECEIVED, PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `receipt.store_samples` |
 | 4 | Pool libraries | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.pool_libraries`, `prep.complete`, `worker.request_prepared` |
 | 5 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
-| 6 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
+| 6 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data`, `project.mark_shared` |
 | 7 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
 ### QC only (`qc_only`)
@@ -725,7 +726,7 @@ Inferred when the request has re-sequenced libraries (`original_library_id`) wit
 | 2 | Library prep | no libraries of the request is < PREPARING or status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.add_libraries`, `prep.upload_table` |
 | 3 | Pool libraries | status is PREPARED, DATA_PROCESSING, FINISHED, ARCHIVED | `prep.pool_libraries`, `prep.complete`, `worker.request_prepared` |
 | 4 | Sequencing | status is DATA_PROCESSING, FINISHED, ARCHIVED | `experiment.load_flowcell`, `worker.rf_new_run`, `worker.rf_run_running`, `worker.rf_run_finished`, `api.lane_reads`, `worker.request_data_processing` |
-| 5 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data` |
+| 5 | Release data | all libraries of the request are ≥ SHARED or status is FINISHED, ARCHIVED | `api.release_project`, `project.share_data`, `project.mark_shared` |
 | 6 | Finished | status is FINISHED, ARCHIVED | `worker.request_finished` |
 
 ## Known gaps
