@@ -79,6 +79,13 @@
             text: "Here you can see your projects, with the samples you sent us.",
         },
         {
+            // only rendered when the chat feature is enabled (templates/components/chat/widget.html)
+            id: "dash.chat", element: "#chat-toggle", side: "left", skipIfMissing: true,
+            title: "Ask the assistant",
+            text: "Have a question about how something works? Click ✨ to chat with our AI assistant. "
+                + "It can't see your data, so don't enter personal or confidential information.",
+        },
+        {
             id: "dash.create", element: '[data-tour="create-seq-request"]', side: "left", action: "create",
             title: "Create your first request",
             text: "Let's create a request together. <b>Click the tile</b> to open the request form. "

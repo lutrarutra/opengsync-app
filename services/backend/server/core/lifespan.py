@@ -116,6 +116,8 @@ async def lifespan(app: FastAPI):
     j2.env.globals["organization_name"] = settings.app_config.personalization.organization
     j2.env.globals["chat_enabled"] = settings.app_config.chat.enabled
     j2.env.globals["chat_history_ttl_hours"] = settings.app_config.chat.history_ttl_hours
+    # shown in the chat footer, without the pydantic-ai provider prefix ("openai:gpt-4.1-mini" -> "gpt-4.1-mini")
+    j2.env.globals["chat_model_name"] = settings.app_config.chat.model.split(":", 1)[-1]
     j2.env.globals["fs_index_enabled"] = settings.app_config.fs_index.enabled
 
     # FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix=cache.PREFIX)

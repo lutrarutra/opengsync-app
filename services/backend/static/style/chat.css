@@ -378,6 +378,10 @@
     font-size: 11px;
     color: var(--color-gray-600);
     text-align: center;
+
+    .chat-model {
+        font-family: var(--bs-font-monospace);
+    }
 }
 
 @media (max-width: 576px) {

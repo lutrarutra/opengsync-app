@@ -198,10 +198,13 @@ def _library_group(library: models.Library, with_request: bool, insider: bool) -
 
 def _add_library(g: Graph, library: models.Library, read_count: int | None, group: tuple[str, str]) -> str:
     requested = library.seq_depth_requested
+    mux = library.mux_type
+    sub = f"{library.type.abbreviation} · {mux.abbreviation}" if mux is not None else library.type.abbreviation
     return g.add(
-        "library", library.id, library.name, status=library.status, sub=library.type.abbreviation, group=group,
+        "library", library.id, library.name, status=library.status, sub=sub, group=group,
         facts=[
             ("Type", library.type.label),
+            ("Multiplexing", mux.label if mux is not None else None),
             ("Genome", library.genome_ref.label),
             ("Request", library.seq_request.identifier),
             ("Lab prep", library.lab_prep.identifier if library.lab_prep is not None and g.insider else None),

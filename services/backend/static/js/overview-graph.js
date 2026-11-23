@@ -626,9 +626,11 @@ function render(container, [React, ReactDOMClient, XY], data) {
     ReactDOMClient.createRoot(container).render(h(ReactFlowProvider, null, h(Graph)));
 }
 
-// Mounts the graphs of a popup (overview-graph.jinja2), each the first time it is shown: the first view's
+// Mounts the graphs of a popup (overview-graph.jinja2), each the first time it is shown: the current view's
 // data and the modules load while the popup fades in, the graph renders once it has its full size. A
 // switch in the header (several views) shows another view, loading it then.
+// `?overview` in the page URL opens the popup on load (`?overview=2`: the second view); while it is open
+// the URL carries the parameter, so it can be copied and shared, and closing it removes it.
 export function mountOnOpen(modal) {
     const views = new Map([...modal.querySelectorAll(".overview-graph")].map((container) => [container.dataset.view, { container, loading: null, shown: false }]));
     const failed = (container) => (err) => {
@@ -645,11 +647,35 @@ export function mountOnOpen(modal) {
         load(view);
         view.loading.then(([modules, data]) => render(view.container, modules, data)).catch(failed(view.container));
     };
-    const first = views.values().next().value;
-    modal.addEventListener("show.bs.modal", () => load(first), { once: true });
-    modal.addEventListener("shown.bs.modal", () => show(first), { once: true });
+    const firstKey = views.keys().next().value;
+    let current = firstKey;
+    const setUrl = (value) => {
+        const url = new URL(window.location.href);
+        if (value === null) url.searchParams.delete("overview");
+        else url.searchParams.set("overview", value);
+        history.replaceState(history.state, "", url.pathname + url.search.replace(/([?&]overview)=(?=&|$)/, "$1") + url.hash);
+    };
+    const select = (key) => {
+        current = key;
+        for (const [k, view] of views) view.container.classList.toggle("d-none", k !== key);
+        const input = modal.querySelector(`input[name="${modal.id}-view"][value="${key}"]`);
+        if (input) input.checked = true;
+    };
+    modal.addEventListener("show.bs.modal", () => load(views.get(current)));
+    modal.addEventListener("shown.bs.modal", () => {
+        show(views.get(current));
+        setUrl(current === firstKey ? "" : current);
+    });
+    modal.addEventListener("hidden.bs.modal", () => setUrl(null));
     modal.querySelectorAll(`input[name="${modal.id}-view"]`).forEach((input) => input.addEventListener("change", () => {
-        for (const [key, view] of views) view.container.classList.toggle("d-none", key !== input.value);
+        select(input.value);
         show(views.get(input.value));
+        setUrl(input.value === firstKey ? "" : input.value);
     }));
+
+    const requested = new URLSearchParams(window.location.search).get("overview");
+    if (requested !== null) {
+        if (views.has(requested)) select(requested);
+        window.bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
 }
