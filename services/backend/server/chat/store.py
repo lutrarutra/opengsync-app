@@ -23,6 +23,8 @@ class ChatMessage(BaseModel):
     user_message: str
     assistant_text: str = ""
     status: Literal["pending", "done", "error"] = "pending"
+    # why a reply failed: the AI service returned an error, or the reply stopped (e.g. the stream was cut off)
+    error: Literal["service", "interrupted"] | None = None
     page: str | None = None  # route pattern only (never the URL, which can contain tokens or file names)
     form: str | None = None  # route pattern of the form/workflow step open in a modal, if any
     created_at: datetime = Field(default_factory=config.settings.now)
@@ -73,7 +75,7 @@ class ChatStore:
                 continue
             stale = config.settings.now() - message.created_at > timedelta(seconds=STREAM_LOCK_SECONDS)
             if stale and not self.is_locked():
-                message.status = "error"
+                message.status, message.error = "error", "interrupted"
                 self.update(message)
                 continue
             return message

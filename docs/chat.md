@@ -55,6 +55,7 @@ The agent is built once at startup (`lifespan.py` → `app.state.chat_agent`) an
    │ POST /htmx/chat/messages        → stores a pending message, returns components/chat/message.html
    │                                   (user bubble + assistant placeholder that connects to the stream)
    │ GET  /htmx/chat/stream/{msg_id} → SSE: "message" (full re-rendered reply), "error", "done"
+   │ POST /htmx/chat/messages/{msg_id}/retry → new streaming placeholder for the latest failed reply
    ▼
 [server/routes/htmx/chat.py] ── ChatDeps(user_role, page, form) ──► Agent ──► LLM
                                                                      │
@@ -123,7 +124,7 @@ Safety rules, applied by every tool:
 
 | Key | Content |
 |---|---|
-| `chat:{user_id}:messages` | Display list of `ChatMessage` (`id`, `user_message`, `assistant_text`, `status` = `pending`/`done`/`error`, `page`, `form`, `created_at`), used to render the widget |
+| `chat:{user_id}:messages` | Display list of `ChatMessage` (`id`, `user_message`, `assistant_text`, `status` = `pending`/`done`/`error`, `error` = `service`/`interrupted`, `page`, `form`, `created_at`), used to render the widget |
 | `chat:{user_id}:history` | pydantic-ai `ModelMessage`s sent back to the model with follow-ups |
 | `chat:{user_id}:lock` | `msg_id` of the reply being generated (`SET NX`, expires after 5 minutes) |
 
@@ -141,7 +142,8 @@ Safety rules, applied by every tool:
 - **Heartbeat:** when no event arrives for 15 s (e.g. a long thinking phase), an SSE comment (`: keep-alive`) is sent so nginx doesn't close the idle connection (`proxy_read_timeout`, 60 s by default). `_with_heartbeat` waits without cancelling the pending event.
 - **Disconnects:** the stream stops when `request.is_disconnected()`, and the message is marked `error`. The lock is always released.
 - **On success:** saves `run.all_messages()` as the history, marks the message `done`, logs the tool names and token usage, and sends the final HTML followed by `done`.
-- **On errors:** logs the exception, marks the message `error` and sends an `error` event with whatever text was produced plus "The response was interrupted.", followed by `done`.
+- **On errors:** marks the message `error` and sends an `error` event with whatever text was produced, a note and a "Try again" button, followed by `done`. A `ModelAPIError` (the AI service sent an error, e.g. an intermittent "Internal pipe error" from the proxy) is logged as a warning and says "The AI service didn't respond…"; anything else logs the traceback and says "The response was interrupted."
+- **Retry:** `POST /htmx/chat/messages/{msg_id}/retry` (CSRF, consent, rate-limited) resets the latest failed message to `pending` and returns `components/chat/assistant.html`, which reconnects the stream. Only the latest message can be retried, because a failed turn leaves nothing in the agent history, so the new run continues the conversation in order. Older failed replies keep their note without a button.
 - Response headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`, so nginx doesn't buffer the stream. No nginx config change is needed.
 - The generator runs after the request's dependencies are torn down, so it opens its own Redis connection from `app.state.redis_pool`.
 
@@ -187,7 +189,7 @@ Safety rules, applied by every tool:
 No test calls a real LLM. They use a scripted `FunctionModel`.
 
 - `services/pytest/tests/server/test_chat_unit.py`: code-tool allowlist and refusals (hidden entries, symlinks, flat `docs/`, line caps, grep time budget), Markdown sanitising, history compaction, heartbeat.
-- `services/pytest/tests/server/test_chat_routes.py`: login, 404 when disabled, CSRF, consent, other users' messages, validation, rate limit, the full conversation loop, one pending reply at a time, history on follow-ups, model errors, tool status, tools hidden on the last request, usage-limit fallback, role-specific instructions, no personal data in instructions, page and form context limited to route patterns, auditing, path prefix.
+- `services/pytest/tests/server/test_chat_routes.py`: login, 404 when disabled, CSRF, consent, other users' messages, validation, rate limit, the full conversation loop, one pending reply at a time, history on follow-ups, model errors, AI service errors and retry, tool status, tools hidden on the last request, usage-limit fallback, role-specific instructions, no personal data in instructions, page and form context limited to route patterns, auditing, path prefix.
 
 ## Not implemented
 

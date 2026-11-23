@@ -12,6 +12,7 @@ from pydantic_ai import (
     Agent, FunctionToolCallEvent, FunctionToolResultEvent, PartDeltaEvent, PartStartEvent,
     TextPart, TextPartDelta, ToolCallPart, UsageLimitExceeded, UsageLimits,
 )
+from pydantic_ai.exceptions import ModelAPIError
 
 from opengsync_db import models
 
@@ -40,25 +41,50 @@ def require_chat_enabled() -> None:
 router = APIRouter(prefix="/chat", tags=["chat"], dependencies=[Depends(require_chat_enabled)])
 
 
-def _assistant_html(message: chat.ChatMessage) -> Markup | None:
+ERROR_NOTES = {
+    "service": "The AI service didn't respond. This is usually temporary, please try again.",
+    "interrupted": "The response was interrupted.",
+}
+
+
+def _retry_url(request: runtime.Request, msg_id: str) -> str:
+    return request.scope.get("root_path", "").rstrip("/") + request.app.url_path_for("chat_retry_message", msg_id=msg_id)
+
+
+def _assistant_html(message: chat.ChatMessage, retry_url: str | None = None) -> Markup | None:
+    """Rendered reply. A failed reply gets a note, and a retry button when `retry_url` is given
+    (only the latest message can be retried, so its answer stays in order in the history)."""
     if message.status == "pending":
         return None
     html = chat.render_markdown(message.assistant_text) if message.assistant_text else Markup("")
     if message.status == "error":
-        html += Markup('<p class="chat-error-note"><i class="bi bi-exclamation-triangle"></i> The response was interrupted.</p>')
+        note = ERROR_NOTES[message.error or "interrupted"]
+        html += Markup('<div class="chat-error-note"><i class="bi bi-exclamation-triangle"></i> <span>{}</span>').format(note)
+        if retry_url:
+            html += Markup(
+                '<button type="button" class="btn btn-outline-secondary btn-sm chat-retry" hx-post="{}" '
+                'hx-target="closest .chat-msg-assistant" hx-swap="outerHTML">'
+                '<i class="bi bi-arrow-clockwise"></i> Try again</button>'
+            ).format(retry_url)
+        html += Markup("</div>")
     return html
 
 
 @router.get("", name="chat_conversation")
 def get_conversation(
+    request: runtime.Request,
     user_id: int = Depends(dependencies.require_user_id),
     r: rds.RedisClient = Depends(dependencies.redis),
 ) -> Response:
     store = chat.ChatStore(r, user_id)
     store.pending()  # marks stale pending messages as failed
+    stored = store.messages()
     messages = [
-        {"msg_id": m.id, "user_message": m.user_message, "assistant_html": _assistant_html(m)}
-        for m in store.messages()
+        {
+            "msg_id": m.id, "user_message": m.user_message,
+            "assistant_html": _assistant_html(m, _retry_url(request, m.id) if i == len(stored) - 1 else None),
+        }
+        for i, m in enumerate(stored)
     ]
     return responses.htmx_response(template="components/chat/conversation.html", messages=messages)
 
@@ -118,6 +144,42 @@ def post_message(
     )
 
 
+@router.post(
+    "/messages/{msg_id}/retry",
+    name="chat_retry_message",
+    dependencies=[
+        Depends(dependencies.verify_csrf_header),
+        Depends(dependencies.rate_limit("10/minute", "100/hour")),
+    ],
+)
+def retry_message(
+    msg_id: str,
+    request: runtime.Request,
+    user_id: int = Depends(dependencies.require_user_id),
+    r: rds.RedisClient = Depends(dependencies.redis),
+) -> Response:
+    """Generate a failed reply again. Only the latest message: the agent history holds no trace of the failed turn,
+    so a new run continues the conversation where it stopped."""
+    if request.cookies.get(CONSENT_COOKIE) != "1":
+        raise exc.NoPermissionsException("Please accept the assistant notice first.")
+
+    store = chat.ChatStore(r, user_id)
+    messages = store.messages()
+    if not messages or (message := messages[-1]).id != msg_id:
+        raise exc.NotFoundException("Only the latest message can be retried.")
+    if store.pending() is not None:
+        raise exc.TooManyRequestsException("Please wait for the current reply to finish.")
+    if message.status != "error":
+        raise exc.BadRequestException("This message has already been answered.")
+
+    message.status, message.error, message.assistant_text = "pending", None, ""
+    message.created_at = config.settings.now()  # restarts the stale-pending timeout
+    store.update(message)
+    logger.info(f"Chat reply retried for user {user_id}")
+
+    return responses.htmx_response(template="components/chat/assistant.html", msg_id=message.id, assistant_html=None)
+
+
 def _route_pattern(request: runtime.Request, url_path: str | None, methods: tuple[str, ...] = ("GET",)) -> str | None:
     """Route pattern of a URL path, e.g. `/browser/{subpath:path}`. The URL itself is never passed on:
     path segments can hold record ids, share/reset tokens or folder and file names."""
@@ -163,8 +225,10 @@ async def _with_heartbeat(events: AsyncIterator[T], interval: float = HEARTBEAT_
             pending.cancel()
 
 
-def _final_events(message: chat.ChatMessage) -> list[str]:
-    return [_sse("message", str(_assistant_html(message) or "")), _sse("done")]
+def _final_events(message: chat.ChatMessage, retry_url: str | None = None) -> list[str]:
+    """The finished reply. Failed replies are sent as "error", with a retry button."""
+    event = "error" if message.status == "error" else "message"
+    return [_sse(event, str(_assistant_html(message, retry_url) or "")), _sse("done")]
 
 
 @router.get("/stream/{msg_id}", name="chat_stream")
@@ -180,13 +244,14 @@ def stream_reply(
     if (message := store.get(msg_id)) is None:
         raise exc.NotFoundException("Message not found.")
 
+    retry_url = _retry_url(request, msg_id)
     if message.status != "pending":
-        events = _final_events(message)
+        events = _final_events(message, retry_url)
     elif not store.acquire_lock(msg_id):
-        events = _wait_for_reply(request, user_id, msg_id)  # another stream is already generating this reply
+        events = _wait_for_reply(request, user_id, msg_id, retry_url)  # another stream is already generating this reply
     else:
         deps = chat.ChatDeps(user_role=current_user.role, page=message.page, form=message.form)
-        events = _generate_reply(request, agent, deps, user_id, message)
+        events = _generate_reply(request, agent, deps, user_id, message, retry_url)
 
     return StreamingResponse(
         events,  # type: ignore[arg-type]
@@ -210,6 +275,7 @@ def _tool_status(call: ToolCallPart) -> Markup:
 
 async def _generate_reply(
     request: runtime.Request, agent: Agent[chat.ChatDeps, str], deps: chat.ChatDeps, user_id: int, message: chat.ChatMessage,
+    retry_url: str,
 ) -> AsyncIterator[str]:
     # Runs after the request's dependencies are torn down, so it opens its own Redis connection.
     cfg = config.settings.app_config.chat
@@ -282,20 +348,27 @@ async def _generate_reply(
             store.update(message)
             for event in _final_events(message):
                 yield event
-        except Exception:
-            logger.exception(f"Chat reply failed for user {user_id}")
+        except Exception as e:
+            if isinstance(e, ModelAPIError):  # the AI service failed (e.g. intermittent upstream errors); not our bug
+                logger.warning(f"Chat reply failed for user {user_id}: AI service error from {e.model_name}: {e.message}")
+                message.error = "service"
+            else:
+                logger.exception(f"Chat reply failed for user {user_id}")
+                message.error = "interrupted"
+            status = None
+            render()  # keeps text streamed before the failure
             message.status = "error"
             store.update(message)
-            yield _sse("error", str(_assistant_html(message)))
-            yield _sse("done")
+            for event in _final_events(message, retry_url):
+                yield event
         finally:
             if message.status == "pending":  # client disconnected mid-stream
-                message.status = "error"
+                message.status, message.error = "error", "interrupted"
                 store.update(message)
             store.release_lock()
 
 
-async def _wait_for_reply(request: runtime.Request, user_id: int, msg_id: str) -> AsyncIterator[str]:
+async def _wait_for_reply(request: runtime.Request, user_id: int, msg_id: str, retry_url: str) -> AsyncIterator[str]:
     with rds.RedisClient(pool=request.app.state.redis_pool) as r:
         store = chat.ChatStore(r, user_id)
         last_heartbeat = time.monotonic()
@@ -307,10 +380,10 @@ async def _wait_for_reply(request: runtime.Request, user_id: int, msg_id: str) -
                 yield _sse("done")
                 return
             if message.status == "pending" and not store.is_locked():
-                message.status = "error"  # the generating stream died without finishing
+                message.status, message.error = "error", "interrupted"  # the generating stream died without finishing
                 store.update(message)
             if message.status != "pending":
-                for event in _final_events(message):
+                for event in _final_events(message, retry_url):
                     yield event
                 return
             await asyncio.sleep(WAIT_POLL_SECONDS)

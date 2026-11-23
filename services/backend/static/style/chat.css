@@ -256,9 +256,18 @@
     }
 
     .chat-error-note {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 8px;
         margin: 4px 0 0;
         font-size: 12px;
         color: var(--color-red);
+    }
+
+    .chat-retry {
+        padding: 1px 8px;
+        font-size: 12px;
     }
 
     /* rendered markdown */

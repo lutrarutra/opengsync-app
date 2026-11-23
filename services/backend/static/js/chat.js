@@ -210,6 +210,17 @@
 
     widget.addEventListener("htmx:sendError", () => showError("Could not reach the server."));
 
+    // "Try again" on a failed reply swaps in a new streaming placeholder
+    messages.addEventListener("htmx:beforeRequest", (e) => {
+        if (!e.detail.elt.classList.contains("chat-retry")) return;
+        if (streaming) e.preventDefault();
+        else e.detail.elt.disabled = true;
+    });
+
+    messages.addEventListener("htmx:afterSwap", () => {
+        if (messages.querySelector(".chat-streaming")) setStreaming(true);
+    });
+
     widget.addEventListener("htmx:sseClose", (e) => {
         e.detail.elt.classList.remove("chat-streaming");
         if (!messages.querySelector(".chat-streaming")) setStreaming(false);

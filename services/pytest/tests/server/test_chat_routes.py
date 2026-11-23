@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import pytest
 from fastapi.testclient import TestClient
 from pydantic_ai import ModelRequest, ToolReturnPart, UserPromptPart
+from pydantic_ai.exceptions import ModelAPIError
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 
 from opengsync_db import SyncSession, models
@@ -25,6 +26,7 @@ class ScriptedModel:
     reply: str = "Hello **there**"
     tool_calls: list[tuple[str, dict]] = field(default_factory=list)
     fail: bool = False
+    service_fail: bool = False  # the AI service sends an error (e.g. "Internal pipe error")
     call_tools_without_offer: bool = False
     requests: int = 0
     instructions: list[str] = field(default_factory=list)
@@ -38,6 +40,8 @@ class ScriptedModel:
         ])
         if self.fail:
             raise RuntimeError("model down")
+        if self.service_fail:
+            raise ModelAPIError(model_name="test-model", message="Internal pipe error: ")
 
         done = 0
         for m in reversed(messages):
@@ -195,10 +199,66 @@ def test_model_error(client: TestClient, model: ScriptedModel, user_token: str):
     model.fail = True
     parsed = ask(client, user_token)
     assert parsed[-2][0] == "error" and "interrupted" in parsed[-2][1]
+    assert "chat-retry" in parsed[-2][1]
     assert parsed[-1] == ("done", "")
 
     model.fail = False  # the failed message no longer blocks new ones
     assert ask(client, user_token)[-2] == ("message", "<p>Hello <strong>there</strong></p>")
+
+
+def retry(client: TestClient, token: str, message_id: str):
+    client.cookies.set("csrf_token", CSRF)
+    client.cookies.set("chat_consent", "1")
+    headers = {"HX-Request": "true", "X-Real-IP": "198.51.100.20", "X-CSRF-Token": CSRF}
+    return client.post(f"/htmx/chat/messages/{message_id}/retry", headers=headers | cookie_header(client, token))
+
+
+def test_service_error_can_be_retried(client: TestClient, model: ScriptedModel, user_token: str):
+    model.service_fail = True
+    response = send(client, user_token, "first question")
+    message_id = msg_id(response)
+    parsed = events(stream(client, user_token, message_id))
+    assert parsed[-2][0] == "error"
+    assert "The AI service didn&#39;t respond" in parsed[-2][1]
+    assert f"/htmx/chat/messages/{message_id}/retry" in parsed[-2][1]
+
+    # the failed reply shows its retry button after a reload too
+    page = client.get("/htmx/chat", headers={"HX-Request": "true", **cookie_header(client, user_token)})
+    assert "The AI service didn&#39;t respond" in page.text
+    assert "chat-retry" in page.text
+
+    model.service_fail = False
+    response = retry(client, user_token, message_id)
+    assert response.status_code == 200, response.text
+    assert f"/htmx/chat/stream/{message_id}" in response.text  # streaming placeholder for the same message
+    assert "chat-msg-user" not in response.text  # only the assistant half is replaced
+    assert events(stream(client, user_token, message_id))[-2] == ("message", "<p>Hello <strong>there</strong></p>")
+    assert model.prompts[-1] == ["first question"]  # the failed attempt left nothing in the history
+
+    assert retry(client, user_token, message_id).status_code == 400  # answered now
+
+
+def test_only_latest_failed_message_can_be_retried(client: TestClient, model: ScriptedModel, user_token: str):
+    model.fail = True
+    first = msg_id(send(client, user_token))
+    stream(client, user_token, first)
+    model.fail = False
+    second = msg_id(send(client, user_token))
+    assert retry(client, user_token, second).status_code == 429  # still pending
+    stream(client, user_token, second)
+
+    assert retry(client, user_token, first).status_code == 404
+    page = client.get("/htmx/chat", headers={"HX-Request": "true", **cookie_header(client, user_token)})
+    assert "chat-retry" not in page.text  # older failures show the note without a button
+    assert "interrupted" in page.text
+
+
+def test_retry_requires_csrf(client: TestClient, model: ScriptedModel, user_token: str):
+    model.fail = True
+    message_id = msg_id(send(client, user_token))
+    stream(client, user_token, message_id)
+    headers = {"HX-Request": "true"} | cookie_header(client, user_token)
+    assert client.post(f"/htmx/chat/messages/{message_id}/retry", headers=headers).status_code in (400, 403)
 
 
 # ── tools and limits ───────────────────────────────────────────────

@@ -5,6 +5,7 @@
         chat_conversation   GET  /htmx/chat                  -> components/chat/conversation.html
         chat_post_message   POST /htmx/chat/messages         -> components/chat/message.html (user bubble + assistant placeholder)
         chat_stream         GET  /htmx/chat/stream/{msg_id}  -> SSE: "message" (full re-rendered assistant HTML), "error", "done"
+        chat_retry_message  POST /htmx/chat/messages/{msg_id}/retry -> components/chat/assistant.html (latest failed reply only)
 #}
 <div id="chat-widget" data-conversation-url="{{ url_for('chat_conversation') }}" hx-headers='js:{"X-CSRF-Token": getCookie("csrf_token") || ""}'>
     <button type="button" id="chat-toggle" class="chat-toggle" aria-label="Open assistant chat" aria-expanded="false" aria-controls="chat-panel" title="Ask the assistant">

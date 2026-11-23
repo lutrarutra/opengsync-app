@@ -7,12 +7,4 @@
 <div class="chat-msg chat-msg-user">
     <div class="chat-bubble">{{ user_message }}</div>
 </div>
-<div class="chat-msg chat-msg-assistant">
-    {% if assistant_html is defined and assistant_html is not none %}
-    <div class="chat-bubble">{{ assistant_html }}</div>
-    {% else %}
-    <div class="chat-bubble chat-streaming" hx-ext="sse" sse-connect="{{ url_for('chat_stream', msg_id=msg_id) }}" sse-swap="message,error" sse-close="done" hx-swap="innerHTML">
-        <span class="chat-typing"><span></span><span></span><span></span></span>
-    </div>
-    {% endif %}
-</div>
+{% include "components/chat/assistant.html" %}
