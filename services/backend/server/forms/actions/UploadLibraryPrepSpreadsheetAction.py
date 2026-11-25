@@ -13,6 +13,7 @@ from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import exceptions as exc, responses, dependencies, config
 from ...components import inputs
+from ...utils import prep_table as prep_table_utils
 from ...components.tables import (
     TextColumn,
     FloatColumn,
@@ -67,11 +68,11 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
                 "plate_well": "",
                 "index_well": "",
                 "kit_i7": "",
-                "name_i7": library.indices[0].name_i7 if library.indices else "",
-                "sequence_i7": library.sequences_i7_str(";") if library.indices else "",
+                "name_i7": prep_table_utils.joined_names(library, "i7"),
+                "sequence_i7": library.sequences_i7_str(prep_table_utils.SEPARATOR),
                 "kit_i5": "",
-                "name_i5": library.indices[0].name_i5 if library.indices else "",
-                "sequence_i5": library.sequences_i5_str(";") if library.indices else "",
+                "name_i5": prep_table_utils.joined_names(library, "i5"),
+                "sequence_i5": library.sequences_i5_str(prep_table_utils.SEPARATOR),
                 "lib_conc_ng_ul": library.qubit_concentration if library.qubit_concentration else "",
             }
             rows.append(row)
@@ -165,6 +166,9 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
                     logger.error(f"Invalid library_id '{row['library_id']}' at row {idx}.")
                     form.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Invalid library_id '{row['library_id']}'"))
                     continue
+
+                for error in prep_table_utils.parse_barcodes(row).errors:
+                    form.spreadsheet.add_error(idx, error.columns, InvalidCellValue(error.message))
 
                 if library_id not in libraries:
                     form.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Library ID '{library_id}' is not part of this prep."))

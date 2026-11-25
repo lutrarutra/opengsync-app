@@ -545,3 +545,90 @@ def test_missing_optional_plate_column_is_accepted(client: TestClient, session: 
 
     assert_htmx_redirect(response, f"/lab_preps/{prep.id}")
     assert _plates(session, prep.lab_prep) == {f"P-{prep.name}": {0: a.id}}
+
+
+# ── Submit: barcode cells ───────────────────────────────────────────────────
+# One row per library; several index combinations are ';'-separated in each cell.
+# Only the format is checked; kits, wells and names are matched in the barcode step.
+
+
+def test_semicolon_separated_barcodes_are_accepted(client: TestClient, prep: Prep, insider_token: str):
+    a, b, c = prep.libraries
+    response = _upload(client, prep.id, _xlsx([
+        _row(a, plate_well="A1", index_well="A1;B1", kit_i7="NO-SUCH-KIT"),
+        _row(b, plate_well="A2", sequence_i7="AAAA;CCCC;", sequence_i5="GGGG;TTTT"),
+        _row(c, plate_well="A3", name_i7="SI-GA-A1", sequence_i7="AAAA;CCCC;GGGG;TTTT"),
+    ]), insider_token)
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.id}")
+
+
+@pytest.mark.parametrize("cell", ["A1,B1", "A1 B1", "A1|B1"])
+def test_other_barcode_separators_ask_for_semicolons(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str, cell: str,
+):
+    response = _upload(client, prep.id, _xlsx([_row(prep.libraries[0], plate_well="A1", index_well=cell, kit_i7="TT")]), insider_token)
+
+    assert_form_invalid(response, "Separate several values with semicolons ';'")
+    _assert_unchanged(session, prep)
+
+
+def test_mismatched_barcode_counts_are_rejected(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    response = _upload(client, prep.id, _xlsx([
+        _row(prep.libraries[0], plate_well="A1", index_well="A1;B1", kit_i7="TT", name_i7="X;Y;Z"),
+    ]), insider_token)
+
+    assert_form_invalid(response, "different numbers of ';'-separated values")
+    _assert_unchanged(session, prep)
+
+
+def test_invalid_barcode_sequence_is_rejected(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    response = _upload(client, prep.id, _xlsx([_row(prep.libraries[0], plate_well="A1", sequence_i7="AAAA;ACGX")]), insider_token)
+
+    assert_form_invalid(response, "Invalid sequence 'ACGX'")
+    _assert_unchanged(session, prep)
+
+
+def test_kit_without_well_or_name_is_rejected(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    response = _upload(client, prep.id, _xlsx([_row(prep.libraries[0], plate_well="A1", kit_i7="TT")]), insider_token)
+
+    assert_form_invalid(response, "'index_well' or 'name_i7' must be given with 'kit_i7'.")
+    _assert_unchanged(session, prep)
+
+
+def test_barcodes_of_pool_t_rows_are_not_validated(client: TestClient, prep: Prep, insider_token: str):
+    response = _upload(client, prep.id, _xlsx([_row(prep.libraries[0], pool="t", plate_well="A1", index_well="A1,B1")]), insider_token)
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.id}")
+
+
+def test_downloaded_template_is_accepted_unchanged(
+    client: TestClient, session: SyncSession, prep: Prep, insider_token: str,
+):
+    """Stored barcodes are written one value per index, so the untouched template uploads."""
+    a, b, _ = prep.libraries
+    a.indices.append(models.LibraryIndex(name_i7="N701", sequence_i7="AAAAAAAA", name_i5="S501", sequence_i5="CCCCCCCC"))
+    a.indices.append(models.LibraryIndex(name_i7="N702", sequence_i7="GGGGGGGG", name_i5="S502", sequence_i5="TTTTTTTT"))
+    for seq in ["AAAACCCC", "CCCCGGGG", "GGGGTTTT", "TTTTAAAA"]:
+        b.indices.append(models.LibraryIndex(name_i7="SI-GA-A1", sequence_i7=seq))
+    session.save(a)
+    session.save(b)
+    session.commit()
+
+    template = get(client, f"/htmx/lab_preps/{prep.id}/prep-spreadsheet-template", insider_token)
+    assert template.status_code == 200
+    df = pd.read_excel(io.BytesIO(template.content), "prep_table").set_index("library_id")
+    assert df.at[a.id, "name_i7"] == "N701;N702"
+    assert df.at[a.id, "sequence_i5"] == "CCCCCCCC;TTTTTTTT"
+    assert df.at[b.id, "name_i7"] == "SI-GA-A1"
+    assert pd.isna(df.at[a.id, "index_well"])  # a pre-filled well would not belong to both indices
+
+    response = _upload(client, prep.id, template.content, insider_token)
+
+    assert_htmx_redirect(response, f"/lab_preps/{prep.id}")

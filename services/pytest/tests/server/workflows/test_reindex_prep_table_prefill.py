@@ -27,6 +27,7 @@ from .._http import OpenGSyncTestClient, post_form
 
 PREFIX = "/htmx/workflows/reindex"
 COLUMNS = ["index_well", "kit_i7", "name_i7", "kit_i5", "name_i5"]
+SEQUENCE_COLUMNS = ["sequence_i7", "sequence_i5"]
 
 
 @pytest.fixture
@@ -54,6 +55,7 @@ def _library_in_prep(session: SyncSession, user: models.User, lab_prep: models.L
 
 def _barcode_rows(
     client: OpenGSyncTestClient, token: str, lab_prep: models.LabPrep, library: models.Library,
+    columns: list[str] = COLUMNS,
 ) -> list[dict]:
     """Run the select step and return the library's rows of the saved barcode table."""
     workflow_uuid = str(uuid.uuid4())
@@ -66,7 +68,7 @@ def _barcode_rows(
 
     workflow = ReindexWorkflow(step=None, r=redis.RedisClient(pool=client.app.state.redis_pool), uuid=workflow_uuid)  # type: ignore[arg-type]  # resume at the last step
     table = workflow.tables["barcode_table"]
-    rows = table[table["library_id"] == library.id][COLUMNS]
+    rows = table[table["library_id"] == library.id][columns]
     return [{col: (None if pd.isna(v) else v) for col, v in row.items()} for row in rows.to_dict("records")]
 
 
@@ -161,3 +163,22 @@ def test_library_missing_from_prep_table_is_left_empty(
     rows = _barcode_rows(client, insider_token, lab_prep, library)
 
     assert rows == [{col: None for col in COLUMNS}]
+
+
+def test_manual_sequences_are_prefilled_one_row_per_index(
+    client: OpenGSyncTestClient, session: SyncSession, user, insider, insider_token: str, media_folder: Path,
+):
+    lab_prep = create_lab_prep(session, insider)
+    library = _library_in_prep(session, user, lab_prep)
+    _attach_prep_file(session, lab_prep, media_folder, [{
+        "library_id": library.id, "library_name": library.name,
+        "sequence_i7": "aaaacccc; GGGGTTTT", "sequence_i5": "ACGTACGT;TGCATGCA",
+    }])
+    session.commit()
+
+    rows = _barcode_rows(client, insider_token, lab_prep, library, columns=SEQUENCE_COLUMNS)
+
+    assert rows == [
+        {"sequence_i7": "AAAACCCC", "sequence_i5": "ACGTACGT"},
+        {"sequence_i7": "GGGGTTTT", "sequence_i5": "TGCATGCA"},
+    ]

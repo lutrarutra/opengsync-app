@@ -13,6 +13,7 @@ from opengsync_db.transitions import run_operation, lab as lab_ops
 
 from ...core import dependencies, responses, exceptions as exc, query_options
 from ...utils.io import set_text
+from ...utils import prep_table as prep_table_utils
 from ...components.tables import (
     Table, TableState, Col, Text, Exact, Enum, Entity, Variant, related, StaticSpreadsheet, TextColumn,
 )
@@ -304,10 +305,12 @@ def download_lab_prep_spreadsheet_template(
         set_text(library_name_cell, library.name)
         set_text(requestor_cell, library.seq_request.requestor.name)
         if len(library.indices) > 0:
-            set_text(name_i7_cell, library.indices[0].name_i7)
-            set_text(name_i5_cell, library.indices[0].name_i5)
-        sequence_i7_cell.value = library.sequences_i7_str(";")
-        sequence_i5_cell.value = library.sequences_i5_str(";")
+            # One value per index, as the prep table is read; a well would not belong to every index
+            set_text(name_i7_cell, prep_table_utils.joined_names(library, "i7") or None)
+            set_text(name_i5_cell, prep_table_utils.joined_names(library, "i5") or None)
+            prep_table[f"{column_mapping['index_well']}{i + 2}"].value = None
+        sequence_i7_cell.value = library.sequences_i7_str(prep_table_utils.SEPARATOR)
+        sequence_i5_cell.value = library.sequences_i5_str(prep_table_utils.SEPARATOR)
 
     if "FLEX_table" in template.sheetnames:
         flex_table = template["FLEX_table"]

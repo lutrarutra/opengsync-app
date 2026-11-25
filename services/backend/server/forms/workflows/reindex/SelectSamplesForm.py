@@ -9,6 +9,7 @@ from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ....core import dependencies, config
 from ....components import inputs
+from ....utils import prep_table as prep_table_utils
 from ...HTMXForm import RouteFunc, htmx_route
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
 
@@ -38,63 +39,13 @@ def _append_barcode_row(
     data["sequence_i5"].append(index.sequence_i5)
 
 
-PREP_TABLE_BARCODE_COLUMNS = ["index_well", "kit_i7", "kit_i5", "name_i7", "name_i5"]
-
-
-def _clean_kit_identifier(identifier) -> str | None:
-    """Same as legacy ``CommonBarcodeInputForm.kit_identifier_clean_up``."""
-    if pd.isna(identifier):
-        return None
-    identifier = str(identifier).strip().removeprefix("#")
-    if not identifier:
-        return None
-    try:
-        float(identifier)
-        identifier = identifier.replace(",", ".")  # regional Excel may use a comma as decimal separator
-    except ValueError:
-        pass
-    return identifier
-
-
-def _clean_text(value) -> str | None:
-    if pd.isna(value):
-        return None
-    return str(value).strip() or None
-
-
-def _split_prep_cell(value, clean) -> list[str | None]:
-    """Prep table cells hold one value per index, separated by ';'."""
-    if pd.isna(value):
-        return []
-    return [clean(part) for part in str(value).split(";")]
-
-
-def _prep_table_index_rows(prep_row: pd.Series) -> list[dict[str, str | None]]:
-    """Unaggregate one prep-table row into one row per index.
-
-    A column with a single value (e.g. one kit for all indices) applies to every index.
-    """
-    values = {
-        col: _split_prep_cell(prep_row.get(col), _clean_kit_identifier if col.startswith("kit_") else _clean_text)
-        for col in PREP_TABLE_BARCODE_COLUMNS
-    }
-    num_indices = max((len(v) for v in values.values()), default=0)
-    rows = []
-    for i in range(num_indices):
-        row = {}
-        for col, parts in values.items():
-            if len(parts) == 1:
-                row[col] = parts[0]
-            else:
-                row[col] = parts[i] if i < len(parts) else None
-        if any(v is not None for v in row.values()):
-            rows.append(row)
-    return rows
+PREP_TABLE_BARCODE_COLUMNS = prep_table_utils.BARCODE_COLUMNS
 
 
 def _fill_from_prep_table(df: pd.DataFrame, lab_prep: models.LabPrep) -> pd.DataFrame:
     """Fill well, kit and name of libraries without a stored barcode from the lab prep's
-    uploaded prep table, as legacy ``CommonBarcodeInputForm`` did for reindex, one row per index."""
+    uploaded prep table, as legacy ``CommonBarcodeInputForm`` did for reindex, one row per index.
+    Sequences typed into the prep table (no kit) are carried over too."""
     if lab_prep.prep_file is None:
         return df
     path = os.path.join(config.settings.app_config.media_folder, lab_prep.prep_file.path)
@@ -114,7 +65,8 @@ def _fill_from_prep_table(df: pd.DataFrame, lab_prep: models.LabPrep) -> pd.Data
         if not unindexed[idx] or library_id not in prep_rows.index:
             rows.append(row.to_dict())
             continue
-        index_rows = _prep_table_index_rows(prep_rows.loc[library_id])
+        # Files uploaded before the upload validated barcodes may not parse cleanly; use what can be read
+        index_rows = prep_table_utils.parse_barcodes(prep_rows.loc[library_id]).rows()
         if not index_rows:
             rows.append(row.to_dict())
             continue
