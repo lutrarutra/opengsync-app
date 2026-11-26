@@ -138,7 +138,7 @@ class GenerateSequencerLoadingChecklistAction(HTMXForm):
             # which is prepended after rendering so it is never parsed as Jinja source.
             header = (
                 f"# Experiment {form.experiment.name}\n"
-                f"- Generated: {dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"- Generated: {config.settings.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"- Workflow: {form.experiment.workflow.display_name}\n"
                 f"- Operator: {form.current_user.name}\n"
                 f"- Read Config. {form.experiment.read_config}\n"

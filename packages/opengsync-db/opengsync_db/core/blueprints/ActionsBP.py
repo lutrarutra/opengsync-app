@@ -1,8 +1,7 @@
 import string
-from datetime import datetime
 from typing import Optional, Literal, Sequence
 
-from ... import models, queries as Q, to_utc
+from ... import models, queries as Q, utc_now
 from ...categories import (
     LibraryStatus, PoolStatus,
     BarcodeOrientation, SeqRequestStatus, SampleStatus, ProjectStatus, SubmissionType
@@ -555,7 +554,7 @@ class ActionsBP(DBBlueprint):
     def submit_seq_request(self, seq_request: models.SeqRequest) -> models.SeqRequest:
         seq_request.status = SeqRequestStatus.SUBMITTED
         seq_request.review_checklist = None
-        seq_request.timestamp_submitted_utc = to_utc(datetime.now())
+        seq_request.timestamp_submitted_utc = utc_now()
         
         for library in seq_request.libraries:
             if library.status != LibraryStatus.DRAFT:

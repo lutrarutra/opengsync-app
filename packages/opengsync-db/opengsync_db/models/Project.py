@@ -477,7 +477,7 @@ class Project(Base):
         software = software.strip().lower()
         self.__software[software] = {
             "version": version,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         if comment is not None:
             self.__software[software]["comment"] = comment

@@ -1,4 +1,3 @@
-from datetime import datetime
 
 import pandas as pd
 from fastapi import Depends
@@ -6,7 +5,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, categories as C
 
-from ...core import dependencies, exceptions as exc, responses
+from ...core import dependencies, exceptions as exc, responses, config
 from ...components import inputs
 from ...utils import io
 from ..HTMXForm import HTMXForm, RouteFunc, htmx_route
@@ -221,7 +220,7 @@ class BillingAction(HTMXForm):
                     pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment is below flow cell capacity "  # type: ignore
 
             pools_df["info"] = pools_df["info"].str.strip()
-            file_name = f"billing_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            file_name = f"billing_{config.settings.now().strftime('%Y%m%d')}.xlsx"
 
             ew = io.ExcelWriter({
                 "pools": pools_df,

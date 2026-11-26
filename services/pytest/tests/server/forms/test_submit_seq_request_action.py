@@ -464,6 +464,36 @@ def test_custom_time_outside_windows_is_accepted(client: TestClient, session: Sy
     assert_htmx_redirect(_submit_at(client, user_token, seq_request, _next(0, 10), custom=True))
 
 
+def test_submission_time_is_read_as_local_time(client: TestClient, session: SyncSession, user, user_token: str, windows, vienna):
+    # The picker sends naive local time. Read as UTC, half an hour ago in Vienna would lie in the
+    # future and fail the window check instead.
+    seq_request = _submittable(session, user)
+    moment = (config.settings.now() - dt.timedelta(minutes=30)).replace(tzinfo=None)
+    response = _submit_at(client, user_token, seq_request, moment)
+    assert_form_invalid(response)
+    assert "cannot be in the past" in response.text
+
+
+def test_submission_stores_utc_and_renders_the_entered_time(client: TestClient, session: SyncSession, user, user_token: str, windows, vienna):
+    seq_request = _submittable(session, user)
+    moment = _next(2, 16)  # Wednesday 16:00 Vienna time, as typed into the picker
+    before = dt.datetime.now(dt.timezone.utc)
+
+    assert_htmx_redirect(_submit_at(client, user_token, seq_request, moment))
+
+    session.expire_all()
+    stored = session.get_one(Q.seq_request.select(id=seq_request.id))
+    event = stored.sample_submission_event
+    assert event is not None
+    offset = vienna.utcoffset(moment)
+    assert event.timestamp_utc == (moment - offset).replace(tzinfo=dt.timezone.utc)
+    assert event.timestamp_str("%Y-%m-%dT%H:%M") == moment.strftime("%Y-%m-%dT%H:%M")
+
+    submitted = stored.timestamp_submitted_utc
+    assert submitted is not None
+    assert before - dt.timedelta(seconds=1) <= submitted <= dt.datetime.now(dt.timezone.utc)
+
+
 def test_submission_time_in_window_creates_event(client: TestClient, session: SyncSession, user, user_token: str, windows):
     seq_request = _submittable(session, user)
     moment = _next(2, 16)  # Wednesday 16:00 local

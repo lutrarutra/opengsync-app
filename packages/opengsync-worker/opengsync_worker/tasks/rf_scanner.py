@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
 from opengsync_db.transitions import run_operation, sequencing as ops
-from opengsync_db import units, queries as Q, SyncDBHandler
+from opengsync_db import units, queries as Q, SyncDBHandler, TIMEZONE
 
 from . import logger
 
@@ -188,7 +188,8 @@ def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
         if os.path.exists(os.path.join(run_folder, "RTAComplete.txt")):
             status = RunStatus.FINISHED
             stat = os.stat(os.path.join(run_folder, "RTAComplete.txt"))
-            completed = datetime.fromtimestamp(stat.st_ctime)
+            # naive local time, like the times parsed from the instrument files
+            completed = datetime.fromtimestamp(stat.st_ctime, tz=TIMEZONE).replace(tzinfo=None)
             marker = "RTAComplete.txt found"
         else:
             status = RunStatus.RUNNING

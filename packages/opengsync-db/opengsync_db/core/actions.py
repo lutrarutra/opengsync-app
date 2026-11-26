@@ -1,11 +1,10 @@
 import string
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional, Literal, Sequence
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from .. import models, exceptions, categories as C, queries as Q, to_utc
+from .. import models, exceptions, categories as C, queries as Q, utc_now
 from ..transitions import run_operation, request as request_ops, create as create_ops, lab as lab_ops, release as release_ops
 
 def link_sample_library(
@@ -890,7 +889,7 @@ def submit_seq_request(session: Session, seq_request: models.SeqRequest) -> mode
 def _submit_seq_request(session: Session, seq_request: models.SeqRequest) -> models.SeqRequest:
     seq_request.status = C.SeqRequestStatus.SUBMITTED
     seq_request.review_checklist = None
-    seq_request.timestamp_submitted_utc = to_utc(datetime.now())
+    seq_request.timestamp_submitted_utc = utc_now()
     
     for library in seq_request.libraries:
         if library.status != C.LibraryStatus.DRAFT:

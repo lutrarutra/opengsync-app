@@ -39,7 +39,7 @@ class APIToken(Base):
 
     @expiration.expression
     def expiration(cls) -> sa.ColumnElement[datetime]:
-        return sa.func.timezone("UTC", cls.created_utc) + sa.func.make_interval(0, 0, 0, 0, 0, cls.time_valid_min)
+        return cls.created_utc + sa.func.make_interval(0, 0, 0, 0, 0, cls.time_valid_min)
 
     @property
     def is_expired(self) -> bool:

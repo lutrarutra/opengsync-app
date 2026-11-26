@@ -1,12 +1,11 @@
 import math
-from datetime import datetime
 from typing import Optional, Literal, Callable, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.base import ExecutableOption
 
-from ... import to_utc
+from ... import utc_now
 from ... import models, PAGE_LIMIT
 from ...categories import (
     SeqRequestStatus, LibraryStatus, DataDeliveryMode, SeqRequestStatus,
@@ -242,7 +241,7 @@ class SeqRequestBP(DBBlueprint):
 
         seq_request.status = SeqRequestStatus.SUBMITTED
         seq_request.review_checklist = None
-        seq_request.timestamp_submitted_utc = to_utc(datetime.now())
+        seq_request.timestamp_submitted_utc = utc_now()
         
         for library in seq_request.libraries:
             if library.status != LibraryStatus.DRAFT:

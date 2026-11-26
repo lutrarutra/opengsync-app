@@ -245,6 +245,19 @@ def _login_token(user) -> str:
 
 
 @pytest.fixture  # type: ignore[attr-defined]
+def vienna(monkeypatch):
+    """Pin the app timezone to Europe/Vienna (CET = UTC+1, CEST = UTC+2) so tests can assert concrete
+    local times. Patches the single source, opengsync_db.TIMEZONE, which settings.TIMEZONE returns."""
+    from zoneinfo import ZoneInfo
+    import opengsync_db
+
+    tz = ZoneInfo("Europe/Vienna")
+    monkeypatch.setattr(opengsync_db, "TIMEZONE", tz)
+    monkeypatch.setattr(opengsync_db, "TIMEZONE_NAME", "Europe/Vienna")
+    return tz
+
+
+@pytest.fixture  # type: ignore[attr-defined]
 def user(session: SyncSession):
     _ensure_backend_on_path()
     return _create_test_user(session, email="user@example.com", role=UserRole.CLIENT)

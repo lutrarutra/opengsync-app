@@ -1,8 +1,8 @@
 import os
 from functools import wraps
-import pytz
 import datetime as dt
 from typing import Callable
+from zoneinfo import ZoneInfo
 from sqlalchemy import exc
 
 from importlib.metadata import version, PackageNotFoundError
@@ -13,31 +13,43 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 PAGE_LIMIT = 15
-if (__timezone := os.environ.get("TZ")) is None:
+
+
+def resolve_timezone_name() -> str:
+    """The display timezone: the TZ env var, else the host's zone, else UTC.
+    An empty TZ (e.g. an unset ${TIMEZONE} in compose) counts as unset."""
+    if name := os.environ.get("TZ", "").strip().lstrip(":"):
+        return name
     import tzlocal
-    __timezone = tzlocal.get_localzone_name() or "UTC"
-TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
+    return tzlocal.get_localzone_name() or "UTC"
 
 
-def localize(timestamp: dt.datetime, timezone: pytz.BaseTzInfo | str = TIMEZONE) -> dt.datetime:
-    """
-    Args:
-        timestamp (dt.datetime): if tzinfo is None, it's assumed to be utc
-        timezone (pytz.BaseTzInfo | str, optional): Timezone to convert to. Defaults to 'tzlocal.get_localzone_name()'.
+# The single source of truth for the app's timezone; the server's settings.TIMEZONE returns this.
+# Timestamps are stored in UTC and converted to this zone for display and for naive user input.
+TIMEZONE_NAME: str = resolve_timezone_name()
+TIMEZONE: ZoneInfo = ZoneInfo(TIMEZONE_NAME)
 
-    Returns:
-        dt.datetime: datetime object in the specified timezone
-    """
-    if isinstance(timezone, str):
-        timezone = pytz.timezone(timezone)
-    
+
+def localize(timestamp: dt.datetime, timezone: dt.tzinfo | str | None = None) -> dt.datetime:
+    """Convert a stored timestamp to local time (``TIMEZONE`` unless given). Naive values are taken as UTC."""
+    if timezone is None:
+        timezone = TIMEZONE
+    elif isinstance(timezone, str):
+        timezone = ZoneInfo(timezone)
     if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=pytz.utc)
+        timestamp = timestamp.replace(tzinfo=dt.timezone.utc)
     return timestamp.astimezone(timezone)
 
 
 def to_utc(timestamp: dt.datetime) -> dt.datetime:
-    return TIMEZONE.localize(timestamp).astimezone(pytz.utc)
+    """Convert to UTC for storage. Naive values are taken as local time in ``TIMEZONE`` (e.g. picker input)."""
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=TIMEZONE)
+    return timestamp.astimezone(dt.timezone.utc)
+
+
+def utc_now() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc)
 
 
 from . import categories  # noqa

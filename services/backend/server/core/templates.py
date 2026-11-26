@@ -1,4 +1,5 @@
 import shlex
+import time
 from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
@@ -30,8 +31,8 @@ j2 = Jinja2Templates(env=jinja2.Environment(
 ))
 
 def format_timestamp(value: float, format: str = "%Y-%m-%d %H:%M"):
-    """Convert timestamp to readable string"""
-    return datetime.fromtimestamp(value).strftime(format)
+    """Unix time as a readable local-time string."""
+    return datetime.fromtimestamp(value, tz=settings.TIMEZONE).strftime(format)
 
 def format_datetime(value: datetime | None, format: str = "%Y-%m-%d %H:%M"):
     """Convert datetime to readable string. Empty when the value is missing.
@@ -119,16 +120,18 @@ def format_iso(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
     if not value:
         return ""
     try:
-        dt = datetime.fromisoformat(value).astimezone(settings.TIMEZONE)
+        dt = datetime.fromisoformat(value)
     except ValueError:
         return "<error formatting time>"
+    # naive ISO strings (older JSON values) were written in local time
+    dt = dt.replace(tzinfo=settings.TIMEZONE) if dt.tzinfo is None else dt.astimezone(settings.TIMEZONE)
     return dt.strftime(fmt)
 
 def from_timestamp(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
     if not value:
         return ""
     try:
-        dt = datetime.fromtimestamp(float(value)).astimezone(settings.TIMEZONE)
+        dt = datetime.fromtimestamp(float(value), tz=settings.TIMEZONE)
     except ValueError:
         return "<error formatting time>"
     return dt.strftime(fmt)
@@ -137,7 +140,7 @@ def time_ago(value: float | int | None) -> str:
     """Unix time as a short relative time ("5 min ago"); the exact time belongs in a title attribute."""
     if not value:
         return "never"
-    seconds = max(0, int(datetime.now().timestamp() - float(value)))
+    seconds = max(0, int(time.time() - float(value)))
     if seconds < 60:
         return "just now"
     if seconds < 3600:

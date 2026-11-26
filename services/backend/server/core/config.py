@@ -3,6 +3,7 @@ from datetime import datetime, time
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+import opengsync_db
 from pydantic import BaseModel, PrivateAttr, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -119,7 +120,6 @@ class AppConfig(BaseModel):
 
 class Settings(BaseSettings):
     SECRET_KEY: SecretStr = SecretStr("")
-    TZ: str = "UTC"
     SESSION_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
     ENVIRONMENT: Literal["dev", "prod", "test"] = "prod"
 
@@ -158,7 +158,9 @@ class Settings(BaseSettings):
 
     @property
     def TIMEZONE(self) -> ZoneInfo:
-        return ZoneInfo(self.TZ)
+        """The app timezone, resolved once by opengsync_db (TZ env var, else host zone, else UTC)
+        so the server, the models and the worker always agree."""
+        return opengsync_db.TIMEZONE
 
     def now(self) -> datetime:
         return datetime.now(self.TIMEZONE)
