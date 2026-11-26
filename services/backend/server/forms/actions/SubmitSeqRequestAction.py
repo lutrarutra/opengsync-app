@@ -68,11 +68,13 @@ class SubmitSeqRequestAction(HTMXForm):
             if (value := form.sample_submission_time.data) is not None:
                 # the picker sends local time without a zone
                 submission_time = value if value.tzinfo else value.replace(tzinfo=config.settings.TIMEZONE)
-                if submission_time < config.settings.now():
+                # the custom-time checkbox bypasses both checks (legacy parity)
+                custom = form.custom_sample_submission_time.data
+                if not custom and submission_time < config.settings.now():
                     form.sample_submission_time.errors.append("Sample submission time cannot be in the past.")
                     raise exc.FormValidationException(form)
                 windows = config.settings.app_config.sample_submission_windows
-                if windows and not form.custom_sample_submission_time.data and not any(w.contains(submission_time) for w in windows):
+                if windows and not custom and not any(w.contains(submission_time) for w in windows):
                     form.sample_submission_time.errors.append("Sample submission time must be within the allowed submission times.")
                     raise exc.FormValidationException(form)
 

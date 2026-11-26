@@ -441,6 +441,14 @@ def test_submission_time_in_the_past_is_rejected(client: TestClient, session: Sy
     assert "cannot be in the past" in response.text
     session.expire_all()
     assert session.get_one(Q.seq_request.select(id=seq_request.id)).status == C.SeqRequestStatus.DRAFT
+    assert 'name="custom_sample_submission_time"' in response.text
+
+
+def test_custom_time_in_the_past_is_accepted(client: TestClient, session: SyncSession, user, user_token: str, windows):
+    seq_request = _submittable(session, user)
+    assert_htmx_redirect(_submit_at(client, user_token, seq_request, dt.datetime(2020, 1, 1, 16), custom=True))
+    session.expire_all()
+    assert session.get_one(Q.seq_request.select(id=seq_request.id)).status == C.SeqRequestStatus.SUBMITTED
 
 
 def test_submission_time_outside_windows_is_rejected(client: TestClient, session: SyncSession, user, user_token: str, windows):
